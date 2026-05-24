@@ -42,11 +42,14 @@ struct TVTopBar: View {
             HStack(spacing: 12) {
                 Circle().fill(MeshDropColor.lime).frame(width: 10, height: 10)
                 Text("客厅 · LIVING ROOM · 5 台")
-                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                    .tracking(1.6)
+                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                    .tracking(1.2)
                     .textCase(.uppercase)
                     .foregroundStyle(MeshDropColor.dpaperDim)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
+            .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 90)
         .padding(.top, 40)
@@ -62,15 +65,20 @@ struct TVTopBar: View {
             selection = tab
         } content: {
             HStack(spacing: 10) {
-                Text(tab.rawValue).font(.system(size: 22, weight: .bold))
+                Text(tab.rawValue)
+                    .font(.system(size: 22, weight: .bold))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                 Text("· \(tab.english)")
-                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                    .tracking(1.4)
+                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .tracking(1.2)
                     .textCase(.uppercase)
                     .opacity(0.55)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .foregroundStyle(textColor(isActive: isActive, isFocused: isFocused))
-            .padding(.horizontal, 22)
+            .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)

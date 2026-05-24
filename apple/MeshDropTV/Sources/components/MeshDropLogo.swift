@@ -34,11 +34,14 @@ struct MeshDropWordmark: View {
                 .font(.system(size: size, weight: .bold, design: .default))
                 .tracking(-size * 0.025)
                 .foregroundStyle(color)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Circle()
                 .fill(MeshDropColor.lime)
                 .frame(width: size * 0.18, height: size * 0.18)
                 .offset(x: -size * 0.04, y: size * 0.32)
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 
@@ -51,5 +54,6 @@ struct MeshDropLockup: View {
             MeshDropMark(size: size, stroke: color)
             MeshDropWordmark(size: size * 0.78, color: color)
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
