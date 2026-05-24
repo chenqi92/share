@@ -51,7 +51,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: drop.mesh.ios
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: 2HTXUYF8ZU
+        DEVELOPMENT_TEAM: 2U97K3U27A
     dependencies:
       - package: ShareKit
         product: ShareKit
