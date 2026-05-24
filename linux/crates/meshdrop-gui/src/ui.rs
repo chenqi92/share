@@ -1,368 +1,305 @@
-//! GTK4 / libadwaita UI。简化版：libadwaita 标准 widget。
-//! 重点是把 core 的 ShareEngine 完整接进来。
+//! 主窗口 shell：左侧 sidebar（logo + 导航 + 设备列表） + 中央 Stack + 底部状态条。
+//!
+//! 全部 mock 驱动；点 sidebar 切换 Stack；右上工具栏可触发 Pairing / Onboarding / FileOffer 弹窗。
 
+use crate::components::{ascii_divider, chip, device_row, icon_btn, meshdrop_logo};
+use crate::dialogs;
+use crate::mock;
+use crate::pages;
+use crate::theme;
 use adw::prelude::*;
-use meshdrop_core::{
-    history::format_bytes, Device, DeviceOS, HistoryItem, HistoryKind, PairingDecision,
-    PendingFileOffer, PendingPairing, ShareEngine, TransferDirection, TransferStatus,
-};
 use std::cell::RefCell;
-use std::path::PathBuf;
 use std::rc::Rc;
 
-#[derive(Clone)]
-pub struct MainWindow {
+const PAGES: &[(&str, &str, &str)] = &[
+    ("discovery", "附近 · Nearby",   "🛰"),
+    ("chat",      "对话 · Chat",     "✱"),
+    ("transfers", "传输 · Transfers", "↕"),
+    ("history",   "历史 · History",  "◫"),
+    ("trust",     "已配对 · Trusted", "◉"),
+    ("settings",  "设置 · Settings", "⚙"),
+    ("empty",     "空态 · States",   "○"),
+];
+
+/// 公开给 main / screenshots 模式使用：返回 window + stack 句柄。
+pub struct Shell {
     pub window: adw::ApplicationWindow,
-    inner: Rc<Inner>,
+    pub stack: gtk::Stack,
 }
 
-struct Inner {
-    devices_box: gtk::ListBox,
-    devices_state: RefCell<Vec<Device>>,
-    history_box: gtk::ListBox,
-    engine: RefCell<Option<ShareEngine>>,
+pub fn build(app: &adw::Application) {
+    let shell = build_shell(app);
+    shell.window.present();
 }
 
-impl MainWindow {
-    pub fn new(app: &adw::Application, display_name: &str, fingerprint: &str) -> Self {
-        let window = adw::ApplicationWindow::builder()
-            .application(app)
-            .default_width(560)
-            .default_height(720)
-            .title("MeshDrop")
-            .icon_name("drop.mesh.linux")
-            .build();
+pub fn build_shell(app: &adw::Application) -> Shell {
+    theme::install();
 
-        let toolbar = adw::ToolbarView::new();
-        let header = adw::HeaderBar::new();
-        header.set_title_widget(Some(&adw::WindowTitle::new("MeshDrop", "局域网分享")));
-        toolbar.add_top_bar(&header);
-
-        let content = gtk::Box::new(gtk::Orientation::Vertical, 0);
-
-        // 顶部 SelfBanner
-        let group = adw::PreferencesGroup::new();
-        group.set_margin_top(12); group.set_margin_bottom(12);
-        group.set_margin_start(12); group.set_margin_end(12);
-        let title_row = adw::ActionRow::builder()
-            .title(display_name)
-            .subtitle(format!("本机 · 指纹 {}", &fingerprint[..8]))
-            .build();
-        let icon = gtk::Image::from_icon_name("network-wireless-symbolic");
-        title_row.add_prefix(&icon);
-        group.add(&title_row);
-        content.append(&group);
-
-        let devices_label = gtk::Label::builder()
-            .label("附近设备")
-            .halign(gtk::Align::Start)
-            .margin_start(20).margin_top(8).margin_bottom(6)
-            .css_classes(["heading"])
-            .build();
-        content.append(&devices_label);
-
-        let devices_box = gtk::ListBox::builder()
-            .selection_mode(gtk::SelectionMode::None)
-            .css_classes(["boxed-list"])
-            .margin_start(12).margin_end(12).margin_bottom(8)
-            .build();
-        content.append(&devices_box);
-
-        let history_label = gtk::Label::builder()
-            .label("历史")
-            .halign(gtk::Align::Start)
-            .margin_start(20).margin_top(8).margin_bottom(6)
-            .css_classes(["heading"])
-            .build();
-        content.append(&history_label);
-
-        let history_scroll = gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::Never)
-            .vexpand(true)
-            .build();
-        let history_box = gtk::ListBox::builder()
-            .selection_mode(gtk::SelectionMode::None)
-            .css_classes(["boxed-list"])
-            .margin_start(12).margin_end(12).margin_bottom(12)
-            .build();
-        history_scroll.set_child(Some(&history_box));
-        content.append(&history_scroll);
-
-        toolbar.set_content(Some(&content));
-        window.set_content(Some(&toolbar));
-
-        Self {
-            window,
-            inner: Rc::new(Inner {
-                devices_box,
-                devices_state: RefCell::new(Vec::new()),
-                history_box,
-                engine: RefCell::new(None),
-            }),
-        }
-    }
-
-    pub fn set_engine(&self, engine: ShareEngine) {
-        *self.inner.engine.borrow_mut() = Some(engine);
-    }
-
-    pub fn update_devices(&self, devices: &[Device]) {
-        *self.inner.devices_state.borrow_mut() = devices.to_vec();
-        let listbox = &self.inner.devices_box;
-        while let Some(child) = listbox.first_child() { listbox.remove(&child); }
-
-        if devices.is_empty() {
-            let placeholder = adw::ActionRow::builder()
-                .title("正在搜索附近设备…")
-                .subtitle("确保对方设备在同一 Wi-Fi 或局域网下，并已启动 MeshDrop")
-                .build();
-            listbox.append(&placeholder);
-            return;
-        }
-
-        for d in devices {
-            let row = adw::ActionRow::builder()
-                .title(&d.name)
-                .subtitle(device_subtitle(d))
-                .activatable(true)
-                .build();
-            row.add_prefix(&gtk::Image::from_icon_name(os_icon(d.os)));
-            row.add_suffix(&gtk::Image::from_icon_name("go-next-symbolic"));
-
-            let win = self.window.clone();
-            let engine_ref = self.inner.engine.clone();
-            let device_clone = d.clone();
-            row.connect_activated(move |_| {
-                if let Some(engine) = engine_ref.borrow().clone() {
-                    show_send_dialog(&win, engine, device_clone.clone());
-                }
-            });
-            listbox.append(&row);
-        }
-    }
-
-    pub fn update_history(&self, history: &[HistoryItem]) {
-        let listbox = &self.inner.history_box;
-        while let Some(child) = listbox.first_child() { listbox.remove(&child); }
-        if history.is_empty() {
-            let placeholder = adw::ActionRow::builder().title("暂无历史").build();
-            listbox.append(&placeholder);
-            return;
-        }
-        for item in history.iter().take(50) {
-            let arrow = if item.direction == TransferDirection::Outgoing { "↗" } else { "↙" };
-            let title = format!("{} {} · {}", arrow, item.peer.name, history_content(&item.kind));
-            let subtitle = history_status(&item.status);
-            let row = adw::ActionRow::builder()
-                .title(&title)
-                .subtitle(&subtitle)
-                .build();
-            listbox.append(&row);
-        }
-    }
-
-    pub fn show_pairing(&self, pending: PendingPairing, engine: ShareEngine) {
-        let dialog = adw::MessageDialog::builder()
-            .transient_for(&self.window)
-            .heading(format!("{} 想要连接", pending.peer.name))
-            .body(format!("指纹: {}\n\n请确认与对方设备显示的一致再放行。", pending.peer.human_fingerprint()))
-            .build();
-        dialog.add_response("reject", "拒绝");
-        dialog.add_response("once", "允许一次");
-        dialog.add_response("trust", "允许并记住");
-        dialog.set_response_appearance("trust", adw::ResponseAppearance::Suggested);
-        dialog.set_response_appearance("reject", adw::ResponseAppearance::Destructive);
-        let pid = pending.id;
-        dialog.connect_response(None, move |dlg, resp| {
-            let decision = match resp {
-                "trust" => PairingDecision::Trust,
-                "once"  => PairingDecision::AllowOnce,
-                _       => PairingDecision::Reject,
-            };
-            engine.respond_pairing(pid, decision);
-            dlg.close();
-        });
-        dialog.present();
-    }
-
-    pub fn show_file_offer(&self, offer: PendingFileOffer, engine: ShareEngine) {
-        let dialog = adw::MessageDialog::builder()
-            .transient_for(&self.window)
-            .heading(format!("{} 想发送文件", offer.peer.name))
-            .body(format!("{} ({})\n\n保存到 ~/Downloads/MeshDrop/", offer.file_name, offer.formatted_size()))
-            .build();
-        dialog.add_response("reject", "拒绝");
-        dialog.add_response("accept", "接受");
-        dialog.set_response_appearance("accept", adw::ResponseAppearance::Suggested);
-        dialog.set_response_appearance("reject", adw::ResponseAppearance::Destructive);
-        let oid = offer.id;
-        dialog.connect_response(None, move |dlg, resp| {
-            engine.respond_file_offer(oid, resp == "accept");
-            dlg.close();
-        });
-        dialog.present();
-    }
-}
-
-// ─── 辅助 ────────────────────────────────────────────────────────────
-
-fn os_icon(os: DeviceOS) -> &'static str {
-    match os {
-        DeviceOS::Ios | DeviceOS::Android => "phone-symbolic",
-        DeviceOS::Macos | DeviceOS::Windows | DeviceOS::Linux => "computer-symbolic",
-    }
-}
-
-fn device_subtitle(d: &Device) -> String {
-    match &d.model {
-        Some(m) => format!("{} · {}", d.os, m),
-        None => d.os.to_string(),
-    }
-}
-
-fn history_content(kind: &HistoryKind) -> String {
-    match kind {
-        HistoryKind::Text(s) => {
-            if s.chars().count() > 40 {
-                let truncated: String = s.chars().take(40).collect();
-                format!("{}…", truncated)
-            } else { s.clone() }
-        }
-        HistoryKind::File { name, size, .. } => format!("📄 {} ({})", name, format_bytes(*size)),
-    }
-}
-
-fn history_status(status: &TransferStatus) -> String {
-    match status {
-        TransferStatus::Pending => "准备中…".into(),
-        TransferStatus::WaitingApproval => "等待对方接受…".into(),
-        TransferStatus::Transferring { done, total } =>
-            format!("{} / {}", format_bytes(*done), format_bytes(*total)),
-        TransferStatus::Completed => "✓ 完成".into(),
-        TransferStatus::Failed(r) => format!("✗ {}", r),
-        TransferStatus::Canceled => "已取消".into(),
-    }
-}
-
-// ─── SendDialog ──────────────────────────────────────────────────────
-
-fn show_send_dialog(parent: &adw::ApplicationWindow, engine: ShareEngine, device: Device) {
-    let dialog = adw::Window::builder()
-        .transient_for(parent)
-        .modal(true)
-        .title(format!("发送到 {}", device.name))
-        .default_width(420)
-        .default_height(360)
+    let window = adw::ApplicationWindow::builder()
+        .application(app)
+        .default_width(1280)
+        .default_height(820)
+        .title("MeshDrop")
+        .icon_name("com.welape.meshdrop.linux")
         .build();
 
     let toolbar = adw::ToolbarView::new();
+
+    // ── HeaderBar ──
     let header = adw::HeaderBar::new();
+
+    let title_pack = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    title_pack.set_halign(gtk::Align::Center);
+    title_pack.append(&meshdrop_logo::lockup(22, meshdrop_logo::LogoTone::Dark));
+    title_pack.append(&chip::chip_with_dot("LIVE · LAN", chip::Tone::Mute, "#A8C800"));
+    header.set_title_widget(Some(&title_pack));
+
+    // 右侧动作
+    let pair_btn = icon_btn::icon_btn("配对", "弹出配对窗 · Pairing", icon_btn::IconBtnTone::Default);
+    let offer_btn = icon_btn::icon_btn("接收", "弹出文件 offer · File offer", icon_btn::IconBtnTone::Default);
+    let intro_btn = icon_btn::icon_btn("Onboarding", "首次教程", icon_btn::IconBtnTone::Default);
+    let send_btn = icon_btn::icon_btn("发送 · Send", "选择文件 / 文字便签", icon_btn::IconBtnTone::Accent);
+    header.pack_end(&send_btn);
+    header.pack_end(&intro_btn);
+    header.pack_end(&offer_btn);
+    header.pack_end(&pair_btn);
+
+    let theme_btn = icon_btn::icon_btn("☼", "切换浅 / 暗", icon_btn::IconBtnTone::Default);
+    header.pack_start(&theme_btn);
+
     toolbar.add_top_bar(&header);
 
-    let content = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    content.set_margin_top(16); content.set_margin_bottom(16);
-    content.set_margin_start(16); content.set_margin_end(16);
+    // ── 主内容：sidebar + stack ──
+    let body = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    body.set_hexpand(true);
+    body.set_vexpand(true);
 
-    let stack = gtk::Stack::new();
+    let sidebar = build_sidebar();
+    body.append(&sidebar.root);
 
-    let text_view = gtk::TextView::builder()
-        .accepts_tab(false)
-        .top_margin(8).bottom_margin(8).left_margin(8).right_margin(8)
+    let stack = gtk::Stack::builder()
+        .transition_type(gtk::StackTransitionType::Crossfade)
+        .transition_duration(140)
+        .hexpand(true)
+        .vexpand(true)
         .build();
-    let text_scroll = gtk::ScrolledWindow::builder()
-        .min_content_height(140)
-        .css_classes(["card"])
-        .child(&text_view)
-        .build();
-    stack.add_titled(&text_scroll, Some("text"), "文本");
 
-    let file_box = gtk::Box::new(gtk::Orientation::Vertical, 8);
-    let file_label = gtk::Label::builder()
-        .label("未选择文件")
-        .halign(gtk::Align::Start)
-        .build();
-    let pick_btn = gtk::Button::with_label("选择文件…");
-    file_box.append(&pick_btn);
-    file_box.append(&file_label);
-    stack.add_titled(&file_box, Some("file"), "文件");
+    for (id, _, _) in PAGES {
+        let widget = match *id {
+            "discovery" => pages::discovery::build(),
+            "chat"      => pages::chat::build(),
+            "transfers" => pages::transfers::build(),
+            "history"   => pages::history::build(),
+            "trust"     => pages::trust::build(),
+            "settings"  => pages::settings::build(),
+            "empty"     => pages::empty::build(),
+            _ => gtk::Box::new(gtk::Orientation::Vertical, 0).upcast(),
+        };
+        stack.add_named(&widget, Some(id));
+    }
+    stack.set_visible_child_name("discovery");
 
-    let stack_switcher = gtk::StackSwitcher::builder()
-        .stack(&stack)
-        .halign(gtk::Align::Center)
-        .build();
-    content.append(&stack_switcher);
-    content.append(&stack);
-
-    let btn_box = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    btn_box.set_halign(gtk::Align::End);
-    let cancel_btn = gtk::Button::with_label("取消");
-    let send_btn = gtk::Button::with_label("发送");
-    send_btn.add_css_class("suggested-action");
-    btn_box.append(&cancel_btn);
-    btn_box.append(&send_btn);
-    content.append(&btn_box);
-
-    toolbar.set_content(Some(&content));
-    dialog.set_content(Some(&toolbar));
-
-    let selected_file: Rc<RefCell<Option<PathBuf>>> = Rc::new(RefCell::new(None));
-
-    let file_label_c = file_label.clone();
-    let selected_c = selected_file.clone();
-    let parent_c = parent.clone();
-    pick_btn.connect_clicked(move |_| {
-        let chooser = gtk::FileChooserDialog::builder()
-            .title("选择要发送的文件")
-            .transient_for(&parent_c)
-            .modal(true)
-            .action(gtk::FileChooserAction::Open)
-            .build();
-        chooser.add_button("取消", gtk::ResponseType::Cancel);
-        chooser.add_button("选择", gtk::ResponseType::Accept);
-        let selected_inner = selected_c.clone();
-        let label_inner = file_label_c.clone();
-        chooser.connect_response(move |c, resp| {
-            if resp == gtk::ResponseType::Accept {
-                if let Some(file) = c.file().and_then(|f| f.path()) {
-                    let name = file.file_name().and_then(|n| n.to_str()).unwrap_or("?").to_string();
-                    let size = std::fs::metadata(&file).map(|m| m.len()).unwrap_or(0);
-                    label_inner.set_text(&format!("{} ({})", name, format_bytes(size)));
-                    *selected_inner.borrow_mut() = Some(file);
-                }
-            }
-            c.close();
-        });
-        chooser.present();
+    let stack_rc = stack.clone();
+    sidebar.connect_nav(move |id| {
+        stack_rc.set_visible_child_name(id);
     });
 
-    let dialog_c = dialog.clone();
-    cancel_btn.connect_clicked(move |_| dialog_c.close());
+    body.append(&stack);
 
-    let stack_c = stack.clone();
-    let text_view_c = text_view.clone();
-    let selected_c2 = selected_file.clone();
-    let engine_c = engine.clone();
-    let device_c = device.clone();
-    let dialog_c = dialog.clone();
-    send_btn.connect_clicked(move |_| {
-        match stack_c.visible_child_name().as_deref() {
-            Some("text") => {
-                let buffer = text_view_c.buffer();
-                let (start, end) = buffer.bounds();
-                let text = buffer.text(&start, &end, false).to_string();
-                if !text.trim().is_empty() {
-                    engine_c.send_text(device_c.clone(), text);
+    let content_col = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    content_col.append(&body);
+    content_col.append(&build_statusbar());
+
+    toolbar.set_content(Some(&content_col));
+    window.set_content(Some(&toolbar));
+
+    // 顶栏按钮回调
+    let win_for_pair = window.clone();
+    pair_btn.connect_clicked(move |_| { dialogs::pairing::present(&win_for_pair); });
+    let win_for_offer = window.clone();
+    offer_btn.connect_clicked(move |_| { dialogs::file_offer::present(&win_for_offer); });
+    let win_for_intro = window.clone();
+    intro_btn.connect_clicked(move |_| { dialogs::onboarding::present(&win_for_intro); });
+
+    let app_for_theme = app.clone();
+    let cur = Rc::new(RefCell::new(theme::ColorMode::Auto));
+    theme_btn.connect_clicked(move |btn| {
+        let next = match *cur.borrow() {
+            theme::ColorMode::Auto  => theme::ColorMode::Light,
+            theme::ColorMode::Light => theme::ColorMode::Dark,
+            theme::ColorMode::Dark  => theme::ColorMode::Auto,
+        };
+        *cur.borrow_mut() = next;
+        theme::set_scheme(&app_for_theme, next);
+        let glyph = match next {
+            theme::ColorMode::Auto  => "☼",
+            theme::ColorMode::Light => "☀",
+            theme::ColorMode::Dark  => "☾",
+        };
+        btn.set_label(glyph);
+    });
+
+    let win_for_send = window.clone();
+    send_btn.connect_clicked(move |_| { dialogs::file_offer::present(&win_for_send); });
+
+    Shell { window, stack }
+}
+
+struct Sidebar {
+    root: gtk::Box,
+    nav_buttons: Vec<(String, gtk::Button)>,
+}
+
+impl Sidebar {
+    fn connect_nav<F: Fn(&str) + 'static>(&self, cb: F) {
+        let cb = Rc::new(cb);
+        let buttons: Vec<(String, gtk::Button)> = self.nav_buttons.clone();
+        for (id, btn) in &self.nav_buttons {
+            let id = id.clone();
+            let cb = cb.clone();
+            let all = buttons.clone();
+            btn.connect_clicked(move |_| {
+                for (_, b) in &all { b.remove_css_class("active"); }
+                if let Some((_, b)) = all.iter().find(|(i, _)| i == &id) {
+                    b.add_css_class("active");
                 }
-            }
-            Some("file") => {
-                if let Some(path) = selected_c2.borrow().clone() {
-                    engine_c.send_file(device_c.clone(), path);
-                }
-            }
-            _ => {}
+                cb(&id);
+            });
         }
-        dialog_c.close();
-    });
+    }
+}
 
-    dialog.present();
+fn build_sidebar() -> Sidebar {
+    let root = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    root.add_css_class("meshdrop-sidebar");
+    root.set_size_request(260, -1);
+    root.set_margin_top(16);
+    root.set_margin_bottom(12);
+
+    // search
+    let search_pad = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    search_pad.set_margin_start(12);
+    search_pad.set_margin_end(12);
+    let search = gtk::Entry::builder()
+        .placeholder_text("⌘K  搜索设备 / 文件 / 历史…")
+        .build();
+    search_pad.append(&search);
+    root.append(&search_pad);
+
+    // 一级导航
+    let nav = gtk::Box::new(gtk::Orientation::Vertical, 2);
+    nav.set_margin_start(8);
+    nav.set_margin_end(8);
+
+    let mut nav_buttons: Vec<(String, gtk::Button)> = Vec::new();
+    for (id, label, glyph) in PAGES {
+        let row = gtk::Button::new();
+        row.add_css_class("meshdrop-nav-row");
+        row.set_has_frame(false);
+        if *id == "discovery" { row.add_css_class("active"); }
+
+        let inner = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+        let g = gtk::Label::new(Some(glyph));
+        g.add_css_class("meshdrop-mono");
+        g.set_size_request(22, -1);
+        inner.append(&g);
+        let l = gtk::Label::new(Some(label));
+        l.set_halign(gtk::Align::Start);
+        l.set_hexpand(true);
+        inner.append(&l);
+        if *id == "chat" {
+            inner.append(&chip::chip("6", chip::Tone::Ink, true));
+        }
+        if *id == "transfers" {
+            inner.append(&chip::chip("3", chip::Tone::Flame, true));
+        }
+        row.set_child(Some(&inner));
+        nav.append(&row);
+        nav_buttons.push(((*id).to_string(), row));
+    }
+    root.append(&nav);
+
+    // ── 设备列表（sidebar 半部分）──
+    let div = ascii_divider::divider("── PEERS · 设备 · 5 ──");
+    div.set_margin_start(14);
+    div.set_margin_end(14);
+    div.set_margin_top(6);
+    root.append(&div);
+
+    let scroll = gtk::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk::PolicyType::Never)
+        .vexpand(true)
+        .build();
+    let dev_list = gtk::Box::new(gtk::Orientation::Vertical, 4);
+    dev_list.set_margin_start(8);
+    dev_list.set_margin_end(8);
+    for (i, d) in mock::devices().iter().enumerate() {
+        let r = device_row::build(d, i == mock::CHAT_PEER_INDEX);
+        dev_list.append(&r);
+    }
+    scroll.set_child(Some(&dev_list));
+    root.append(&scroll);
+
+    // 底部本机摘要
+    let me_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    me_row.set_margin_start(14);
+    me_row.set_margin_end(14);
+    me_row.set_margin_top(6);
+    me_row.append(&crate::components::avatar::avatar("我", "#DDF94B", 24,
+                                                     crate::components::avatar::Ring::Lime));
+    let me_col = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    let me = mock::me();
+    let nm = gtk::Label::new(Some("我 · welape-arch"));
+    nm.add_css_class("meshdrop-body");
+    nm.set_halign(gtk::Align::Start);
+    me_col.append(&nm);
+    let fp = gtk::Label::new(Some(me.fingerprint));
+    fp.add_css_class("meshdrop-meta");
+    fp.set_halign(gtk::Align::Start);
+    me_col.append(&fp);
+    me_col.set_hexpand(true);
+    me_row.append(&me_col);
+    me_row.append(&chip::chip("E2E", chip::Tone::Lime, true));
+    root.append(&me_row);
+
+    Sidebar { root, nav_buttons }
+}
+
+fn build_statusbar() -> gtk::Box {
+    let st = mock::shell_status();
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 14);
+    row.add_css_class("meshdrop-statusbar");
+
+    let mk = |s: &str| {
+        let l = gtk::Label::new(Some(s));
+        l.add_css_class("meshdrop-meta");
+        l.add_css_class("meshdrop-mono");
+        l
+    };
+
+    row.append(&chip::chip_with_dot("ONLINE", chip::Tone::Mute, "#A8C800"));
+    row.append(&mk(st.mdns));
+    row.append(&sep());
+    row.append(&mk(st.e2e));
+    row.append(&sep());
+    row.append(&mk(st.clip));
+    row.append(&sep());
+    row.append(&mk(st.trace));
+
+    let sp = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    sp.set_hexpand(true);
+    row.append(&sp);
+
+    let build_id = gtk::Label::new(Some("meshdrop 0.2 · build 20260524"));
+    build_id.add_css_class("meshdrop-meta");
+    build_id.add_css_class("meshdrop-mono");
+    row.append(&build_id);
+
+    row
+}
+
+fn sep() -> gtk::Label {
+    let s = gtk::Label::new(Some("·"));
+    s.add_css_class("meshdrop-meta");
+    s
 }
