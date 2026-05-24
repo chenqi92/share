@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.ui.MeshAppState
 import com.welape.meshdrop.ui.components.AsciiDivider
@@ -50,10 +51,15 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 
 /** 多选 DevicePicker：全屏，长按设备 row 进入此模式，底部 CTA bar。 */
 @Composable
-fun DevicePickerSheet(state: MeshAppState, onClose: () -> Unit) {
+fun DevicePickerSheet(
+    state: MeshAppState,
+    onClose: () -> Unit,
+    devices: List<MockDevice> = MockDevices,
+    onSendToSelected: (List<MockDevice>) -> Unit = {},
+) {
     val mesh = MeshTheme.colors
     val selected = state.pickerSelection.filterValues { it }.keys.toList()
-    val selectedDevices = MockDevices.filter { it.id in selected }
+    val selectedDevices = devices.filter { it.id in selected }
 
     Box(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         Column(modifier = Modifier.fillMaxSize().padding(bottom = 96.dp)) {
@@ -108,10 +114,10 @@ fun DevicePickerSheet(state: MeshAppState, onClose: () -> Unit) {
                     Photo(sizeDp = 88.dp, hueDeg = 320)
                 }
 
-                AsciiDivider(label = "附近 · NEARBY · ${MockDevices.size}")
+                AsciiDivider(label = "附近 · NEARBY · ${devices.size}")
 
                 // 3 列 grid
-                val rows = MockDevices.chunked(3)
+                val rows = devices.chunked(3)
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     rows.forEach { row ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -165,7 +171,10 @@ fun DevicePickerSheet(state: MeshAppState, onClose: () -> Unit) {
                 Modifier
                     .clip(RoundedCornerShape(999.dp))
                     .background(Lime)
-                    .clickable { onClose() }
+                    .clickable {
+                        if (selectedDevices.isNotEmpty()) onSendToSelected(selectedDevices)
+                        onClose()
+                    }
                     .padding(PaddingValues(horizontal = 18.dp, vertical = 12.dp)),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {

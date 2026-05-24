@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +38,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.mock.MockChatPreviews
+import com.welape.meshdrop.mock.MockDevices
+import com.welape.meshdrop.mock.MockHistory
+import com.welape.meshdrop.transport.ShareEngine
 import com.welape.meshdrop.ui.components.MeshIconBtn
 import com.welape.meshdrop.ui.sheets.DevicePickerSheet
 import com.welape.meshdrop.ui.sheets.FileOfferSheet
@@ -56,9 +61,21 @@ import com.welape.meshdrop.ui.theme.Lime
 import com.welape.meshdrop.ui.theme.MeshTheme
 
 @Composable
-fun PhoneRoot(state: MeshAppState) {
+fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val mesh = MeshTheme.colors
     var inChatDetail by remember { mutableStateOf(false) }
+
+    val realDevicesRaw = engine?.devices?.collectAsState()?.value
+    val realHistoryRaw = engine?.history?.collectAsState()?.value
+    val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
+    val lastError = engine?.lastError?.collectAsState()?.value
+
+    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i) }
+        ?: if (engine == null) MockDevices else emptyList()
+    val historyUi = realHistoryRaw?.map { it.toUiHistoryItem() }
+        ?: if (engine == null) MockHistory else emptyList()
+    val chatPreviewsUi = realHistoryRaw?.toChatPreviews()
+        ?: if (engine == null) MockChatPreviews else emptyList()
 
     Box(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -78,6 +95,10 @@ fun PhoneRoot(state: MeshAppState) {
                                 state.openChatDeviceId = it
                                 inChatDetail = true
                             },
+                            devices = devicesUi,
+                            isStarting = isStarting,
+                            lastError = lastError,
+                            onDismissError = { engine?.clearLastError() },
                         )
                     }
                     MeshTab.CHAT -> if (inChatDetail && state.openChatDeviceId != null) {
@@ -87,10 +108,14 @@ fun PhoneRoot(state: MeshAppState) {
                             showDropOverlay = state.showDropOverlay,
                         )
                     } else {
-                        ChatListScreen(onOpenChat = {
-                            state.openChatDeviceId = it
-                            inChatDetail = true
-                        })
+                        ChatListScreen(
+                            onOpenChat = {
+                                state.openChatDeviceId = it
+                                inChatDetail = true
+                            },
+                            previews = chatPreviewsUi,
+                            devices = devicesUi,
+                        )
                     }
                     MeshTab.TRANSFER -> TransferScreen()
                     MeshTab.ME -> MeScreen(
@@ -130,9 +155,28 @@ fun PhoneRoot(state: MeshAppState) {
             })
         }
 
+        var pendingDraft by remember { mutableStateOf("") }
         when (state.sheet) {
-            MeshSheet.SEND -> SendBottomSheet(onDismiss = { state.sheet = MeshSheet.NONE }, onPickDevices = { state.sheet = MeshSheet.PICKER })
-            MeshSheet.PICKER -> DevicePickerSheet(state = state, onClose = { state.sheet = MeshSheet.NONE })
+            MeshSheet.SEND -> SendBottomSheet(
+                onDismiss = { state.sheet = MeshSheet.NONE },
+                onPickDevices = { state.sheet = MeshSheet.PICKER },
+                onSendTextDraft = { pendingDraft = it },
+            )
+            MeshSheet.PICKER -> DevicePickerSheet(
+                state = state,
+                onClose = { state.sheet = MeshSheet.NONE },
+                devices = devicesUi,
+                onSendToSelected = { picked ->
+                    val draft = pendingDraft
+                    if (draft.isNotBlank() && engine != null) {
+                        val byId = (realDevicesRaw ?: emptyList()).associateBy { it.id }
+                        picked.forEach { ui ->
+                            byId[ui.id]?.let { engine.sendText(it, draft) }
+                        }
+                        pendingDraft = ""
+                    }
+                },
+            )
             MeshSheet.PAIRING -> PairingSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.FILE_OFFER -> FileOfferSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.ONBOARDING -> OnboardingSheet(onClose = { state.sheet = MeshSheet.NONE })

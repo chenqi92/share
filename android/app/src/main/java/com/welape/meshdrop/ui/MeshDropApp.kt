@@ -5,6 +5,9 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
+import com.welape.meshdrop.ShareApplication
+import com.welape.meshdrop.transport.ShareEngine
 
 /**
  * 入口分发：Compact → Phone，Medium/Expanded → Tablet 双栏。
@@ -18,6 +21,7 @@ fun MeshDropApp(
     forceLayout: String? = null,
 ) {
     val state = rememberMeshAppState()
+    val engine: ShareEngine? = (LocalContext.current.applicationContext as? ShareApplication)?.engine
     val isTablet = when (forceLayout) {
         "phone" -> false
         "tablet" -> true
@@ -26,5 +30,5 @@ fun MeshDropApp(
             wsc.widthSizeClass != WindowWidthSizeClass.Compact
         }
     }
-    if (isTablet) TabletRoot(state) else PhoneRoot(state)
+    if (isTablet) TabletRoot(state, engine) else PhoneRoot(state, engine)
 }
