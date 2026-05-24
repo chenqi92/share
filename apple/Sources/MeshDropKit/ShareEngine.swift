@@ -29,6 +29,8 @@ public final class ShareEngine: ObservableObject {
     @Published public var displayName: String
 
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
+    /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
+    /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
     @Published public private(set) var isStarting: Bool = false
     /// 最近一次启动 / 网络层错误的可读文案，nil 表示无错。
     @Published public private(set) var lastError: String?

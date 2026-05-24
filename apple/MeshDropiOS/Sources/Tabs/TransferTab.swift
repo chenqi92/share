@@ -1,8 +1,19 @@
 import SwiftUI
+import MeshDropKit
 
 struct TransferTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+
+    private var transfers: [MockTransfer] {
+        engine.history.compactMap { $0.displayTransfer }
+    }
+
+    private var active: [MockTransfer]   { transfers.filter { $0.state == .transferring } }
+    private var queued: [MockTransfer]   { transfers.filter { $0.state == .queued } }
+    private var done: [MockTransfer]     { transfers.filter { $0.state == .done } }
+    private var failed: [MockTransfer]   { transfers.filter { $0.state == .failed } }
 
     var body: some View {
         ZStack {
@@ -12,14 +23,26 @@ struct TransferTab: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
-                    summaryCard
-                    filterChips
-                    AsciiDivider("ACTIVE · 进行中 · 3")
-                    ForEach(Mock.transfers.filter { $0.state == .transferring }) { TransferRow($0) }
-                    AsciiDivider("QUEUED · 等待")
-                    ForEach(Mock.transfers.filter { $0.state == .queued }) { TransferRow($0) }
-                    AsciiDivider("COMPLETED · 完成 · 2")
-                    ForEach(Mock.transfers.filter { $0.state == .done }) { TransferRow($0) }
+                    if transfers.isEmpty {
+                        emptyCard
+                    } else {
+                        if !active.isEmpty {
+                            AsciiDivider("ACTIVE · 进行中 · \(active.count)")
+                            ForEach(active) { TransferRow($0) }
+                        }
+                        if !queued.isEmpty {
+                            AsciiDivider("QUEUED · 等待 · \(queued.count)")
+                            ForEach(queued) { TransferRow($0) }
+                        }
+                        if !done.isEmpty {
+                            AsciiDivider("COMPLETED · 完成 · \(done.count)")
+                            ForEach(done) { TransferRow($0) }
+                        }
+                        if !failed.isEmpty {
+                            AsciiDivider("FAILED · 失败 · \(failed.count)")
+                            ForEach(failed) { TransferRow($0) }
+                        }
+                    }
                     Spacer(minLength: 60)
                 }
                 .padding(.horizontal, 16)
@@ -45,62 +68,18 @@ struct TransferTab: View {
         }
     }
 
-    private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .bottom, spacing: 18) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("UPLOAD ↑")
-                        .font(MeshDropFont.mono(10, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundStyle(MeshDropColor.flame)
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("8.4").font(MeshDropFont.display(28, weight: .bold)).monospacedDigit()
-                        Text("MB/s").font(MeshDropFont.mono(11)).foregroundStyle(MeshDropColor.flame.opacity(0.8))
-                    }
-                }
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("DOWNLOAD ↓")
-                        .font(MeshDropFont.mono(10, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundStyle(MeshDropColor.sky)
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text("11.7").font(MeshDropFont.display(28, weight: .bold)).monospacedDigit()
-                        Text("MB/s").font(MeshDropFont.mono(11)).foregroundStyle(MeshDropColor.sky.opacity(0.8))
-                    }
-                }
-                Spacer()
-            }
-            // 双向条形
-            HStack(alignment: .bottom, spacing: 3) {
-                ForEach(0..<Mock.uploadBars.count, id: \.self) { i in
-                    VStack(spacing: 1) {
-                        Rectangle().fill(MeshDropColor.flame)
-                            .frame(width: 8, height: CGFloat(Mock.uploadBars[i]) * 3)
-                        Rectangle().fill(MeshDropColor.sky)
-                            .frame(width: 8, height: CGFloat(Mock.downloadBars[i]) * 3)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private var emptyCard: some View {
+        VStack(spacing: 8) {
+            Text("没有传输任务")
+                .font(MeshDropFont.body(14, weight: .semibold))
+            Text("发送或接收文件后会出现在这里")
+                .font(MeshDropFont.mono(10.5))
+                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
-        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 120)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 14)
                 .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
-        )
-    }
-
-    private var filterChips: some View {
-        HStack(spacing: 8) {
-            Chip("全部", tone: .lime, mono: false)
-            Chip("发送", tone: .outline, mono: false)
-            Chip("接收", tone: .outline, mono: false)
-            Chip("失败", tone: .outline, mono: false)
-            Spacer()
-        }
     }
 }

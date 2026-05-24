@@ -11,6 +11,7 @@ public struct Radar: View {
     let devices: [MockDevice]
     var mode: Mode = .sweep
     var selectedDevice: MockDevice? = nil
+    var meIP: String = "—"
     var diameter: CGFloat = 310
 
     @Environment(\.colorScheme) private var scheme
@@ -18,10 +19,13 @@ public struct Radar: View {
     @State private var pulseStep: Double = 0
 
     public init(devices: [MockDevice], mode: Mode = .sweep,
-                selectedDevice: MockDevice? = nil, diameter: CGFloat = 310) {
+                selectedDevice: MockDevice? = nil,
+                meIP: String = "—",
+                diameter: CGFloat = 310) {
         self.devices = devices
         self.mode = mode
         self.selectedDevice = selectedDevice
+        self.meIP = meIP
         self.diameter = diameter
     }
 
@@ -191,7 +195,7 @@ public struct Radar: View {
                     .font(MeshDropFont.mono(10, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(MeshDropColor.lime)
-                Text(Mock.me.ip)
+                Text(meIP)
                     .font(MeshDropFont.mono(8))
                     .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper.opacity(0.7) : MeshDropColor.paper.opacity(0.8))
                     .padding(.top, 1)

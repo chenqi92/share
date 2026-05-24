@@ -1,13 +1,17 @@
 import SwiftUI
+import UIKit
+import MeshDropKit
 
 struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject var engine: ShareEngine
     @State private var visible: Bool = true
     @State private var requireConfirm: Bool = true
     @State private var autoAcceptTrusted: Bool = true
     @State private var notifyOnArrival: Bool = true
-    @State private var trustNewFor: Int = 1
+
+    private var me: MockMe { engine.displaySelf }
 
     var body: some View {
         ZStack {
@@ -36,6 +40,9 @@ struct SettingsScreen: View {
                 Button("完成") { dismiss() }
             }
         }
+        .onChange(of: visible) { _, newValue in
+            if newValue { engine.start() } else { engine.stop() }
+        }
     }
 
     @ViewBuilder
@@ -46,13 +53,13 @@ struct SettingsScreen: View {
     private var visibilityCard: some View {
         VStack(spacing: 0) {
             Toggle(isOn: $visible) {
-                row(title: "可见", detail: visible ? "附近设备可发现我" : "完全隐身")
+                row(title: "可见", detail: visible ? "附近设备可发现我" : "完全隐身（停止 mDNS）")
             }
             .tint(MeshDropColor.lime)
             .padding(14)
             divider
             HStack {
-                row(title: "本机名", detail: Mock.me.name)
+                row(title: "本机名", detail: me.name)
                 Spacer()
                 Image(systemName: "chevron.right").opacity(0.4)
             }
@@ -72,14 +79,16 @@ struct SettingsScreen: View {
             .padding(14)
             divider
             HStack {
-                row(title: "本机指纹", detail: Mock.me.fingerprint)
+                row(title: "本机指纹", detail: me.fingerprint)
                 Spacer()
-                IconBtn("doc.on.doc", size: 28, variant: .ghost)
+                IconBtn("doc.on.doc", size: 28, variant: .ghost) {
+                    UIPasteboard.general.string = me.fingerprint
+                }
             }
             .padding(14)
             divider
             HStack {
-                row(title: "信任管理", detail: "5 台已配对")
+                row(title: "信任管理", detail: "\(engine.trusted.count) 台已配对")
                 Spacer()
                 Image(systemName: "chevron.right").opacity(0.4)
             }

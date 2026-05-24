@@ -1,56 +1,74 @@
 import SwiftUI
+import MeshDropKit
 
 struct FileOfferSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject var engine: ShareEngine
 
     var body: some View {
-        let offer = Mock.pendingOffer
+        Group {
+            if let real = engine.pendingFileOffers.first {
+                let offer = real.displayMock
+                NavigationStack {
+                    ZStack {
+                        (scheme == .dark ? MeshDropColor.dink : MeshDropColor.paper).ignoresSafeArea()
 
-        NavigationStack {
-            ZStack {
-                (scheme == .dark ? MeshDropColor.dink : MeshDropColor.paper).ignoresSafeArea()
+                        VStack(alignment: .leading, spacing: 18) {
+                            header(offer, peer: real.peer)
 
-                VStack(alignment: .leading, spacing: 18) {
-                    header(offer)
+                            AsciiDivider("FILE · 文件")
+                            fileCard(offer)
 
-                    AsciiDivider("FILE · 文件")
-                    fileCard(offer)
+                            if let note = offer.note {
+                                AsciiDivider("NOTE · 文字便签")
+                                Text(note)
+                                    .font(MeshDropFont.body(14))
+                                    .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(scheme == .dark ? MeshDropColor.lime.opacity(0.10) : MeshDropColor.lime.opacity(0.32))
+                                    )
+                            }
 
-                    if let note = offer.note {
-                        AsciiDivider("NOTE · 文字便签")
-                        Text(note)
-                            .font(MeshDropFont.body(14))
-                            .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-                            .padding(14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(scheme == .dark ? MeshDropColor.lime.opacity(0.10) : MeshDropColor.lime.opacity(0.32))
-                            )
+                            AsciiDivider("VERIFY · 验证")
+                            verify(real)
+                            Spacer()
+                            buttons(real)
+                        }
+                        .padding(20)
                     }
-
-                    AsciiDivider("VERIFY · 验证")
-                    verify(offer)
-                    Spacer()
-                    buttons
+                    .navigationTitle("收件 · Incoming")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Chip("E2E", tone: .lime, mono: true, uppercased: true)
+                        }
+                    }
                 }
-                .padding(20)
-            }
-            .navigationTitle("收件 · Incoming")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Chip("E2E", tone: .lime, mono: true, uppercased: true)
+                .presentationDetents([.medium, .large])
+            } else {
+                NavigationStack {
+                    VStack(spacing: 10) {
+                        Text("没有待审的收件")
+                            .font(MeshDropFont.body(14, weight: .semibold))
+                        Button("关闭") { dismiss() }
+                            .padding(.top, 8)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(scheme == .dark ? MeshDropColor.dink : MeshDropColor.paper)
                 }
+                .presentationDetents([.medium])
             }
         }
-        .presentationDetents([.medium, .large])
     }
 
-    private func header(_ offer: MockPendingOffer) -> some View {
+    private func header(_ offer: MockPendingOffer, peer: Device) -> some View {
         HStack(spacing: 12) {
-            Avatar(initials: "JW", color: Color(red: 0.78, green: 0.72, blue: 1.0), size: 44, ring: .flame, online: true)
+            Avatar(initials: Device.initials(peer.name),
+                   color: peer.displayMock.color, size: 44, ring: .flame, online: true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("来自 \(offer.peer)")
                     .font(MeshDropFont.body(15, weight: .semibold))
@@ -66,8 +84,9 @@ struct FileOfferSheet: View {
     }
 
     private func fileCard(_ offer: MockPendingOffer) -> some View {
-        HStack(spacing: 14) {
-            FileTile(ext: "pages", size: 56)
+        let ext = (offer.fileName as NSString).pathExtension
+        return HStack(spacing: 14) {
+            FileTile(ext: ext.isEmpty ? "?" : ext, size: 56)
             VStack(alignment: .leading, spacing: 4) {
                 Text(offer.fileName)
                     .font(MeshDropFont.body(15, weight: .semibold))
@@ -88,14 +107,14 @@ struct FileOfferSheet: View {
         )
     }
 
-    private func verify(_ offer: MockPendingOffer) -> some View {
+    private func verify(_ offer: PendingFileOffer) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("FP")
                     .font(MeshDropFont.mono(10, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(MeshDropColor.limeDeep)
-                Text("ZX8K · L72M · 9FQ3 · 7HD2")
+                Text(offer.peer.humanFingerprint.prefix(23))
                     .font(MeshDropFont.mono(12, weight: .medium))
             }
             HStack {
@@ -103,16 +122,19 @@ struct FileOfferSheet: View {
                     .font(MeshDropFont.mono(10, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
-                Text("校验通过后保存 ✓")
-                    .font(MeshDropFont.body(12))
+                Text("\(offer.sha256.prefix(16))… · 校验通过后保存 ✓")
+                    .font(MeshDropFont.mono(11))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.7) : MeshDropColor.ink80)
             }
         }
     }
 
-    private var buttons: some View {
+    private func buttons(_ offer: PendingFileOffer) -> some View {
         HStack(spacing: 10) {
-            Button { dismiss() } label: {
+            Button {
+                engine.respondToFileOffer(offer.id, accept: false)
+                dismiss()
+            } label: {
                 Text("拒绝")
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
@@ -120,7 +142,10 @@ struct FileOfferSheet: View {
                     .overlay(Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 1))
             }
             .buttonStyle(.plain)
-            Button { dismiss() } label: {
+            Button {
+                engine.respondToFileOffer(offer.id, accept: true)
+                dismiss()
+            } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down")
                     Text("接收")

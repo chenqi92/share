@@ -1,10 +1,25 @@
 import SwiftUI
+import MeshDropKit
 
 struct ChatDetailScreen: View {
     let device: MockDevice
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
     @State private var composerText: String = ""
+
+    /// 当前对话 = engine.history 中 peer.id 匹配的所有项，按时间正序展示。
+    private var messages: [MockMessage] {
+        engine.history
+            .filter { $0.peer.id == device.id }
+            .sorted { $0.createdAt < $1.createdAt }
+            .map { $0.displayMessage }
+    }
+
+    /// 收到本 peer 的 file offer 时自动弹 FileOfferSheet（之前 mock 是 timer，现在是真事件）。
+    private var incomingOffer: PendingFileOffer? {
+        engine.pendingFileOffers.first(where: { $0.peer.id == device.id })
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -14,11 +29,14 @@ struct ChatDetailScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     chatHeader
-                    AsciiDivider("TODAY · 今天 · 14:08")
-                    ForEach(Mock.chatWithMengxi) { m in
-                        MsgBubble(m)
+                    if messages.isEmpty {
+                        emptyHint
+                    } else {
+                        AsciiDivider("TODAY · 今天")
+                        ForEach(messages) { m in
+                            MsgBubble(m)
+                        }
                     }
-                    typingIndicator
                     Spacer(minLength: 120)
                 }
                 .padding(.horizontal, 16)
@@ -45,11 +63,16 @@ struct ChatDetailScreen: View {
                 IconBtn("ellipsis", size: 30, variant: .ghost)
             }
         }
+        .onChange(of: incomingOffer?.id) { _, newID in
+            if newID != nil { state.showOfferSheet = true }
+        }
     }
 
     private var chatHeader: some View {
         HStack(spacing: 8) {
-            Chip("ONLINE", tone: .lime, mono: true, uppercased: true, icon: "circle.fill")
+            Chip(device.isOnline ? "ONLINE" : "OFFLINE",
+                 tone: device.isOnline ? .lime : .outline,
+                 mono: true, uppercased: true, icon: "circle.fill")
             Chip("E2E", tone: .outline, mono: true, uppercased: true)
             Spacer()
             Text("RTT \(device.rtt)ms")
@@ -58,19 +81,16 @@ struct ChatDetailScreen: View {
         }
     }
 
-    private var typingIndicator: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 3) {
-                Text("▸▸▸")
-                    .font(MeshDropFont.mono(11, weight: .bold))
-                    .foregroundStyle(MeshDropColor.flame)
-                Text("\(device.who) 正在输入…")
-                    .font(MeshDropFont.body(12))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.6) : MeshDropColor.ink60)
-            }
-            Spacer()
+    private var emptyHint: some View {
+        VStack(spacing: 6) {
+            Text("还没有消息")
+                .font(MeshDropFont.body(13, weight: .semibold))
+            Text("发一句你好开始对话")
+                .font(MeshDropFont.mono(10.5))
+                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
-        .padding(.leading, 4)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 
     private var composer: some View {
@@ -86,7 +106,12 @@ struct ChatDetailScreen: View {
                         .font(MeshDropFont.body(14))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
                 }
-                Spacer()
+                TextField("", text: $composerText)
+                    .font(MeshDropFont.body(14))
+                    .textFieldStyle(.plain)
+                    .submitLabel(.send)
+                    .onSubmit(sendComposed)
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
@@ -97,7 +122,11 @@ struct ChatDetailScreen: View {
                 Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
             )
 
-            IconBtn("arrow.up", size: 38, variant: .lime, shape: .circle)
+            Button(action: sendComposed) {
+                IconBtn("arrow.up", size: 38, variant: .lime, shape: .circle)
+            }
+            .buttonStyle(.plain)
+            .disabled(composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -108,5 +137,12 @@ struct ChatDetailScreen: View {
         .overlay(alignment: .top) {
             Rectangle().fill(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line).frame(height: 0.5)
         }
+    }
+
+    private func sendComposed() {
+        let trimmed = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let real = engine.realDevice(for: device.id) else { return }
+        engine.sendText(to: real, content: trimmed)
+        composerText = ""
     }
 }

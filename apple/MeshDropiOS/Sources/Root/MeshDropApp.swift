@@ -1,23 +1,33 @@
 import SwiftUI
+import MeshDropKit
 
 @main
 struct MeshDropApp: App {
     @StateObject private var state = AppState()
+    @StateObject private var engine = ShareEngine.shared
+    @StateObject private var watchSession = WatchSessionController.shared
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(state)
+                .environmentObject(engine)
                 .tint(MeshDropColor.lime)
-                .task { state.applyPreviewRouteFromEnvIfNeeded() }
+                .task {
+                    engine.start()
+                    watchSession.start(engine: engine)
+                    PendingShareQueue.shared.drain(engine: engine)
+                    state.applyPreviewRouteFromEnvIfNeeded()
+                }
         }
     }
 }
 
-/// 全局 UI 状态（mock 数据驱动；不接 backend）。
+/// 全局 UI 状态（导航 / sheet 显隐 + 选中的设备 id）。设备 / 历史 / 待审等数据全部走
+/// `ShareEngine.shared`，AppState 不再持有业务数据。
 @MainActor
 final class AppState: ObservableObject {
-    @Published var selectedDeviceID: String = "mengxi"
+    @Published var selectedDeviceID: String = ""
     @Published var phoneTab: PhoneTab = .discover
     @Published var showSendSheet: Bool = false
     @Published var showOfferSheet: Bool = false
@@ -28,10 +38,16 @@ final class AppState: ObservableObject {
     @Published var showTrustManager: Bool = false
     @Published var showShareExt: Bool = false
     @Published var showLiveActivity: Bool = false
-    @Published var liveActivityProgress: Double = 0.84
 
-    var selectedDevice: MockDevice {
-        Mock.devices.first(where: { $0.id == selectedDeviceID }) ?? Mock.devices[3]
+    /// 选中设备的 UI 展示模型。LAN 上没有任何设备时返回一个占位的"等待"卡片。
+    func selectedDeviceDisplay(engine: ShareEngine) -> MockDevice {
+        if let real = engine.devices.first(where: { $0.id == selectedDeviceID }) {
+            return real.displayMock
+        }
+        if let any = engine.devices.first {
+            return any.displayMock
+        }
+        return MockDevice.placeholder
     }
 
     /// 接受 `MESHDROP_PREVIEW_ROUTE` 环境变量，启动后直接跳到指定页面。
@@ -60,4 +76,13 @@ final class AppState: ObservableObject {
 
 enum PhoneTab: Hashable {
     case discover, chats, transfers, me
+}
+
+extension MockDevice {
+    /// 当 LAN 上一台设备都还没发现时的占位卡片。
+    static let placeholder = MockDevice(
+        id: "—", name: "等待设备", who: "—", kind: .ios,
+        dist: 0, angle: 0, colorHex: 0xE5E7EB,
+        initials: "··", os: "—", rtt: 0, isOnline: false
+    )
 }
