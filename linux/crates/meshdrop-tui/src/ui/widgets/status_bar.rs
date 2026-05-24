@@ -30,7 +30,7 @@ pub fn render_top(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, peer_
         Span::styled(me.ip.clone(), Style::default().fg(theme.ink())),
         Span::styled(format!("  {} ", theme.small_dot()), Style::default().fg(theme.muted())),
         Span::styled("FP ", Style::default().fg(theme.muted())),
-        Span::styled(me.fingerprint, Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD)),
+        Span::styled(me.fingerprint.clone(), Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD)),
     ]);
     f.render_widget(Paragraph::new(mid), chunks[1]);
 

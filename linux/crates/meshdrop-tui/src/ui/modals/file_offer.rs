@@ -53,10 +53,10 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
         ])
         .split(inner);
 
-    let peer = Paragraph::new(Line::from(vec![
+    let peer_line = Paragraph::new(Line::from(vec![
         Span::raw("  "),
         Span::styled(
-            offer.peer,
+            offer.peer.clone(),
             Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
@@ -65,7 +65,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
         ),
         chip::chip(theme, "INCOMING", chip::Tone::Sky),
     ]));
-    f.render_widget(peer, rows[0]);
+    f.render_widget(peer_line, rows[0]);
 
     ascii_divider::render(f, rows[2], theme, "FILE · 文件");
 
@@ -73,7 +73,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
         Span::raw("  "),
         Span::styled("[PAGES]", Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD)),
         Span::raw("  "),
-        Span::styled(offer.file_name, Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD)),
+        Span::styled(offer.file_name.clone(), Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD)),
         Span::styled(format!("    {}", offer.file_size), Style::default().fg(theme.muted())),
     ]));
     f.render_widget(file_line, rows[4]);

@@ -54,7 +54,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, pairing: &PendingPairing
         ])
         .split(inner);
 
-    let peer = Paragraph::new(Line::from(vec![
+    let peer_line = Paragraph::new(Line::from(vec![
         Span::styled(
             format!("  {} ", pairing.peer),
             Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD),
@@ -66,13 +66,13 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, pairing: &PendingPairing
         Span::raw("  "),
         chip::chip(theme, "STRANGER", chip::Tone::Flame),
     ]));
-    f.render_widget(peer, rows[0]);
+    f.render_widget(peer_line, rows[0]);
 
     ascii_divider::render(f, rows[2], theme, "VERIFY CODE · 6 位代码");
-    render_big_code(f, rows[4], theme, pairing.code);
+    render_big_code(f, rows[4], theme, &pairing.code);
     ascii_divider::render(f, rows[6], theme, "FINGERPRINT · 完整指纹");
 
-    let fp_lines: Vec<Line> = split_fingerprint(pairing.fingerprint)
+    let fp_lines: Vec<Line> = split_fingerprint(&pairing.fingerprint)
         .into_iter()
         .map(|row| {
             Line::from(Span::styled(

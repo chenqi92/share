@@ -78,7 +78,7 @@ fn section_visibility(
     let lines = vec![
         Line::from(""),
         kv(theme, "display name ", &name, true),
-        kv(theme, "visibility   ", me.visibility, false),
+        kv(theme, "visibility   ", &me.visibility, false),
         kv(theme, "service      ", "_meshdrop._tcp", false),
         kv(theme, "port         ", "auto", false),
         Line::from(vec![
@@ -113,7 +113,7 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard) {
     let lines = vec![
         Line::from(""),
         kv(theme, "encryption  ", "X25519 + ChaCha20-Poly1305", true),
-        kv(theme, "fingerprint ", me.fingerprint, true),
+        kv(theme, "fingerprint ", &me.fingerprint, true),
         kv(theme, "trust mode  ", "TOFU + manual revoke", false),
         kv(theme, "ip          ", &me.ip, false),
         Line::from(vec![

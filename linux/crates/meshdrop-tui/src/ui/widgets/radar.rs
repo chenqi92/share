@@ -171,7 +171,7 @@ pub fn render(
                     y,
                     Line::from(vec![
                         Span::styled(
-                            d.who,
+                            d.who.clone(),
                             Style::default()
                                 .fg(if is_sel { flame } else { ink })
                                 .add_modifier(Modifier::BOLD),

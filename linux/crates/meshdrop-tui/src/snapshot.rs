@@ -36,7 +36,7 @@ pub fn render(
     std::env::set_var("MESHDROP_COLOR", color_tier);
     std::env::set_var("MESHDROP_CHARS", char_tier);
 
-    let mut app = crate::app::App::new();
+    let mut app = crate::app::App::new_demo();
     // 让动画停在好看的相位（扫描臂 ~45° / halo 凸起）
     app.start = std::time::Instant::now() - std::time::Duration::from_millis(800);
     app.apply_demo(demo);
