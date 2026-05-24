@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<title>MeshDrop · Web Gateway</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#0a0a0a; color:#eaeaea; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; margin:0; padding:48px; }
+  .card { max-width:520px; margin:0 auto; padding:32px; border:1px solid #2a2a2a; border-radius:14px; background:#111; }
+  h1 { margin:0 0 6px 0; font-size:20px; letter-spacing:-0.02em; }
+  h1 .dot { display:inline-block; width:7px; height:7px; background:#ddf94b; border-radius:99px; margin:0 4px 2px 4px; vertical-align:middle; }
+  p { opacity:.68; font-size:13px; line-height:1.6; }
+  label { display:block; font-size:11px; opacity:.6; letter-spacing:.18em; text-transform:uppercase; margin:14px 0 6px 0; }
+  input[type=text] { width:100%; padding:14px 12px; font-family:inherit; font-size:22px; letter-spacing:6px; text-transform:uppercase; background:#0a0a0a; color:#ddf94b; border:1px solid #2a2a2a; border-radius:8px; box-sizing:border-box; }
+  button { margin-top:16px; padding:11px 18px; background:#ddf94b; color:#0a0a0a; border:0; border-radius:8px; font-weight:600; cursor:pointer; font-family:inherit; }
+  button:hover { background:#c8e62a; }
+  .msg { margin-top:14px; min-height:1.4em; font-size:12px; }
+  .ok { color:#9ee84a; }
+  .err { color:#ff5a2c; }
+  .footer { margin-top:24px; font-size:10px; opacity:.4; letter-spacing:.16em; text-transform:uppercase; }
+  pre.log { margin-top:18px; max-height:260px; overflow:auto; background:#070707; border:1px solid #1c1c1c; padding:10px; border-radius:6px; font-size:11px; color:#9ee84a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>meshdrop<span class="dot"></span> web gateway</h1>
+  <p>请在 Windows 上打开 MeshDrop，在 <em>设置 · Web 访问</em> 段找到 6 字符配对码，填入下方继续。</p>
+  <form id="f">
+    <label for="code">配对码 · pairing code</label>
+    <input id="code" type="text" maxlength="6" placeholder="ABCDEF" autocomplete="off" autofocus/>
+    <button type="submit">连接 · CONNECT</button>
+  </form>
+  <div class="msg" id="msg"></div>
+  <pre class="log" id="log" hidden></pre>
+  <div class="footer">LAN ONLY · E2E · v0.1</div>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+function log(line) {
+  const el = $('log');
+  el.hidden = false;
+  el.textContent = (el.textContent + '\n' + line).slice(-4000);
+  el.scrollTop = el.scrollHeight;
+}
+$('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('code').value.trim().toUpperCase();
+  const msg = $('msg');
+  msg.textContent = '验证中…'; msg.className = 'msg';
+  try {
+    const r = await fetch('/api/v1/auth', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      msg.textContent = '已通过 · 正在连接 WebSocket…';
+      msg.className = 'msg ok';
+      connect();
+    } else {
+      msg.textContent = '配对码错误';
+      msg.className = 'msg err';
+    }
+  } catch (err) {
+    msg.textContent = '请求失败: ' + err.message;
+    msg.className = 'msg err';
+  }
+});
+function connect() {
+  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/v1/control';
+  const ws = new WebSocket(url);
+  ws.onopen = () => log('[ws] open ' + url);
+  ws.onmessage = (ev) => log('[ws] ' + ev.data);
+  ws.onclose = () => log('[ws] closed');
+  ws.onerror = (e) => log('[ws] error');
+}
+</script>
+</body>
+</html>

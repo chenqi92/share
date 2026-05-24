@@ -1,10 +1,16 @@
+using System;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
+using MeshDrop.Gateway;
+using MeshDrop.Transport;
 
 namespace MeshDrop;
 
 public partial class App : Application
 {
     public static Window? MainWindow { get; private set; }
+
+    private WebGatewayHost? _gateway;
 
     public App()
     {
@@ -16,6 +22,32 @@ public partial class App : Application
     {
         MainWindow = new MainWindow();
         MainWindow.Activate();
+        if (MainWindow is Window w) w.Closed += OnMainWindowClosed;
+
+        _ = StartBackgroundAsync();
+    }
+
+    private async Task StartBackgroundAsync()
+    {
+        try
+        {
+            await ShareEngine.Shared.StartAsync();
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"engine start fail: {ex}"); }
+
+        try
+        {
+            _gateway = new WebGatewayHost(ShareEngine.Shared);
+            await _gateway.StartAsync();
+            GatewayProbe.Publish(_gateway);
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"gateway start fail: {ex}"); }
+    }
+
+    private void OnMainWindowClosed(object sender, WindowEventArgs args)
+    {
+        try { _gateway?.Stop(); } catch { }
+        try { ShareEngine.Shared.Stop(); } catch { }
     }
 }
 

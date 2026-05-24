@@ -19,6 +19,15 @@ using Microsoft.UI.Dispatching;
 namespace MeshDrop.Transport;
 
 /// <summary>
+/// 别名：本仓库统一暴露 <see cref="ShareEngine"/>（与 mac / android / linux 同名），
+/// 同时按 prompt 文档约定提供 <c>MeshDropEngine.Instance</c>。两者指向同一单例。
+/// </summary>
+public static class MeshDropEngine
+{
+    public static ShareEngine Instance => ShareEngine.Shared;
+}
+
+/// <summary>
 /// 顶层引擎：进程单例。持有 Identity、Discovery、TrustStore，对外暴露设备
 /// 列表、历史、待审配对/文件 offer。整链路对齐 Apple/Android。
 /// </summary>
@@ -35,10 +44,17 @@ public sealed partial class ShareEngine : ObservableObject
 
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
+    private ushort _listenPort;
 
     public Identity Identity { get; }
-    public string DisplayName { get; }
     public string? Model { get; }
+
+    // 可观察状态
+    [ObservableProperty] private string _displayName;
+    [ObservableProperty] private bool _isStarting;
+    [ObservableProperty] private bool _isRunning;
+    [ObservableProperty] private string? _lastError;
+    [ObservableProperty] private string _localIp = "—";
 
     public ObservableCollection<Device> Devices { get; } = new();
     public ObservableCollection<HistoryItem> History { get; } = new();
@@ -46,12 +62,19 @@ public sealed partial class ShareEngine : ObservableObject
     public ObservableCollection<PendingFileOffer> PendingFileOffers { get; } = new();
     public ObservableCollection<TrustRecord> Trusted { get; } = new();
 
+    /// <summary>跨端通用事件：设备加入 / 离开 / 待审 / 进度 / 传输完成。Gateway 订阅。</summary>
+    public event Action<EngineEvent>? Event;
+
+    public Device SelfDevice => new(
+        Identity.Id, DisplayName, DeviceOS.Windows, Model, Identity.Fingerprint,
+        _listenPort, 1, _localIp);
+
     private ShareEngine()
     {
         _ui = DispatcherQueue.GetForCurrentThread()
               ?? throw new InvalidOperationException("ShareEngine must be created on UI thread");
         Identity = Identity.LoadOrCreate();
-        DisplayName = Environment.MachineName;
+        _displayName = Environment.MachineName;
         Model = "Windows PC";
 
         _discovery = new MdnsDiscovery(Identity, DisplayName, Model);
@@ -60,21 +83,64 @@ public sealed partial class ShareEngine : ObservableObject
         foreach (var r in _trustStore.Snapshot()) Trusted.Add(r);
     }
 
+    public void SetDisplayName(string name)
+    {
+        var trimmed = (name ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed == DisplayName) return;
+        DisplayName = trimmed;
+        // mdns advertise 已经起来时，重启发现广告以新名字 announce
+        if (IsRunning && _listenPort > 0)
+        {
+            try
+            {
+                _discovery.Stop();
+                _discovery.Start(_listenPort, DisplayName);
+            }
+            catch (Exception ex) { LastError = ex.Message; }
+        }
+        OnPropertyChanged(nameof(SelfDevice));
+    }
+
     // ─── 生命周期 ───────────────────────────────────────────────────────
 
     public async Task StartAsync()
     {
         if (_listener is not null) return;
+        IsStarting = true;
+        LastError = null;
 
-        _listener = new TcpListener(IPAddress.Any, 0);
-        _listener.Start();
-        var port = (ushort)((IPEndPoint)_listener.LocalEndpoint).Port;
+        try
+        {
+            _listener = new TcpListener(IPAddress.Any, 0);
+            _listener.Start();
+            var port = (ushort)((IPEndPoint)_listener.LocalEndpoint).Port;
+            _listenPort = port;
+            LocalIp = ResolveLocalIp();
 
-        _cts = new CancellationTokenSource();
-        _discovery.Start(port);
+            _cts = new CancellationTokenSource();
+            _discovery.Start(port, DisplayName);
 
-        _ = AcceptLoopAsync(_cts.Token);
+            _ = AcceptLoopAsync(_cts.Token);
+            IsRunning = true;
+        }
+        catch (Exception ex)
+        {
+            LastError = ex.Message;
+            _listener?.Stop();
+            _listener = null;
+        }
+        finally
+        {
+            IsStarting = false;
+            OnPropertyChanged(nameof(SelfDevice));
+        }
         await Task.CompletedTask;
+    }
+
+    public Task StopAsync()
+    {
+        Stop();
+        return Task.CompletedTask;
     }
 
     public void Stop()
@@ -85,6 +151,29 @@ public sealed partial class ShareEngine : ObservableObject
         _discovery.Stop();
         foreach (var ctx in _contexts.Values) ctx.Connection.Close();
         _contexts.Clear();
+        IsRunning = false;
+        OnPropertyChanged(nameof(SelfDevice));
+    }
+
+    private static string ResolveLocalIp()
+    {
+        try
+        {
+            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
+                foreach (var addr in nic.GetIPProperties().UnicastAddresses)
+                {
+                    if (addr.Address.AddressFamily != AddressFamily.InterNetwork) continue;
+                    var s = addr.Address.ToString();
+                    if (s.StartsWith("169.254.")) continue;
+                    return s;
+                }
+            }
+        }
+        catch { }
+        return "127.0.0.1";
     }
 
     // ─── 历史 ────────────────────────────────────────────────────────────
@@ -104,6 +193,7 @@ public sealed partial class ShareEngine : ObservableObject
         var item = HistoryItem.Create(device, TransferDirection.Outgoing,
             new HistoryKind.Text(content), new TransferStatus.Pending());
         History.Insert(0, item);
+        RaiseEvent(new EngineEvent.HistoryAdded(item));
 
         if (string.IsNullOrEmpty(device.Host))
         {
@@ -129,6 +219,7 @@ public sealed partial class ShareEngine : ObservableObject
             new HistoryKind.File(info.Name, info.Length, sourcePath),
             new TransferStatus.Pending());
         History.Insert(0, item);
+        RaiseEvent(new EngineEvent.HistoryAdded(item));
 
         if (string.IsNullOrEmpty(device.Host))
         {
@@ -239,6 +330,7 @@ public sealed partial class ShareEngine : ObservableObject
                 new HistoryKind.File(offer.FileName, offer.FileSize, path),
                 new TransferStatus.Transferring(0, offer.FileSize));
             History.Insert(0, item);
+            RaiseEvent(new EngineEvent.HistoryAdded(item));
             ctx.HistoryId = item.Id;
 
             _ = Task.Run(async () =>
@@ -374,7 +466,11 @@ public sealed partial class ShareEngine : ObservableObject
             var req = PendingPairing.Create(peer);
             ctx.State = ConnectionContext.StateAwaitingPairApproval;
             ctx.PendingPairingId = req.Id;
-            _ui.TryEnqueue(() => PendingPairings.Add(req));
+            _ui.TryEnqueue(() =>
+            {
+                PendingPairings.Add(req);
+                RaiseEvent(new EngineEvent.PairingPending(req));
+            });
         }
     }
 
@@ -509,8 +605,10 @@ public sealed partial class ShareEngine : ObservableObject
         var content = text.Content;
         _ui.TryEnqueue(() =>
         {
-            History.Insert(0, HistoryItem.Create(peer, TransferDirection.Incoming,
-                new HistoryKind.Text(content), new TransferStatus.Completed()));
+            var item = HistoryItem.Create(peer, TransferDirection.Incoming,
+                new HistoryKind.Text(content), new TransferStatus.Completed());
+            History.Insert(0, item);
+            RaiseEvent(new EngineEvent.HistoryAdded(item));
         });
     }
 
@@ -525,7 +623,11 @@ public sealed partial class ShareEngine : ObservableObject
         var first = offer.Files[0];
         var pending = new PendingFileOffer(tid, ctx.Peer, first.Name, first.Size, first.Sha256, DateTime.Now);
         ctx.PendingOfferId = pending.Id;
-        _ui.TryEnqueue(() => PendingFileOffers.Add(pending));
+        _ui.TryEnqueue(() =>
+        {
+            PendingFileOffers.Add(pending);
+            RaiseEvent(new EngineEvent.OfferPending(pending));
+        });
     }
 
     private async Task HandleReceivedChunkAsync(ConnectionContext ctx, byte[] body)
@@ -609,9 +711,40 @@ public sealed partial class ShareEngine : ObservableObject
     {
         _ui.TryEnqueue(() =>
         {
-            Devices.Clear();
-            foreach (var d in list) Devices.Add(d);
+            var byId = new Dictionary<string, Device>(StringComparer.Ordinal);
+            foreach (var d in list) byId[d.Id] = d;
+
+            for (var i = Devices.Count - 1; i >= 0; i--)
+            {
+                var existing = Devices[i];
+                if (!byId.ContainsKey(existing.Id))
+                {
+                    Devices.RemoveAt(i);
+                    RaiseEvent(new EngineEvent.DeviceRemoved(existing.Id));
+                }
+            }
+
+            var have = new HashSet<string>(Devices.Select(d => d.Id), StringComparer.Ordinal);
+            foreach (var d in list)
+            {
+                if (have.Add(d.Id))
+                {
+                    Devices.Add(d);
+                    RaiseEvent(new EngineEvent.DeviceAdded(d));
+                }
+                else
+                {
+                    var idx = -1;
+                    for (var i = 0; i < Devices.Count; i++) if (Devices[i].Id == d.Id) { idx = i; break; }
+                    if (idx >= 0 && Devices[idx] != d) { Devices[idx] = d; RaiseEvent(new EngineEvent.DeviceUpdated(d)); }
+                }
+            }
         });
+    }
+
+    private void RaiseEvent(EngineEvent ev)
+    {
+        try { Event?.Invoke(ev); } catch { /* gateway 单点订阅，异常不影响 engine */ }
     }
 
     // SHA-256 流式

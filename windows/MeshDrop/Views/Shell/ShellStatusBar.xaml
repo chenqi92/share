@@ -16,27 +16,24 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Ellipse Width="6" Height="6" Fill="{ThemeResource MdLimeDeepBrush}"/>
-                <TextBlock Text="ONLINE"
+                <Ellipse x:Name="StatusDot" Width="6" Height="6" Fill="{ThemeResource MdLimeDeepBrush}"/>
+                <TextBlock x:Name="StateLabel"
+                           Text="ONLINE"
                            Style="{StaticResource MdMonoTagStyle}"
                            Foreground="{ThemeResource MdLimeDeepBrush}"/>
                 <TextBlock Text="·" Style="{StaticResource MdMonoTagStyle}"/>
-                <TextBlock Text="ACME-LAN" Style="{StaticResource MdMonoTagStyle}"/>
+                <TextBlock x:Name="IpLabel" Text="—" Style="{StaticResource MdMonoTagStyle}"/>
                 <TextBlock Text="·" Style="{StaticResource MdMonoTagStyle}"/>
-                <TextBlock Text="192.168.1.42" Style="{StaticResource MdMonoTagStyle}"/>
-                <TextBlock Text="·" Style="{StaticResource MdMonoTagStyle}"/>
-                <TextBlock Text="5 PEERS" Style="{StaticResource MdMonoTagStyle}"/>
+                <TextBlock x:Name="PeerCountLabel" Text="0 PEERS" Style="{StaticResource MdMonoTagStyle}"/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <TextBlock Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdFlameBrush}">
-                    <Run Text="↑"/><Run Text=" 8.4 MB/s"/>
-                </TextBlock>
-                <TextBlock Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdSkyBrush}">
-                    <Run Text="↓"/><Run Text=" 11.7 MB/s"/>
-                </TextBlock>
-                <TextBlock Text="·" Style="{StaticResource MdMonoTagStyle}"/>
-                <TextBlock Text="1.24 GB" Style="{StaticResource MdMonoTagStyle}"/>
+                <TextBlock x:Name="ErrorLabel"
+                           Text=""
+                           Visibility="Collapsed"
+                           Style="{StaticResource MdMonoTagStyle}"
+                           Foreground="{ThemeResource MdFlameBrush}"/>
+                <TextBlock x:Name="DisplayNameLabel" Text="—" Style="{StaticResource MdMonoTagStyle}"/>
             </StackPanel>
         </Grid>
     </Border>
