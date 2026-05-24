@@ -25,19 +25,6 @@ struct GalleryPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            PageHeader(
-                tag: "收件箱 · LIBRARY · \(MockData.gallerySummary.count) 件 · \(MockData.gallerySummary.size)",
-                title: "收件箱 ",
-                titleAccentSuffix: MockData.gallerySummary.count
-            ) {
-                HStack(spacing: 12) {
-                    ForEach(GalleryFilter.allCases, id: \.self) { f in
-                        filterChip(f)
-                    }
-                }
-                .focusSection()
-            }
-
             MeshAsciiDivider(label: "TODAY · 今天 · 7 件 · NEW")
                 .padding(.top, 4)
 

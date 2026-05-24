@@ -2,20 +2,7 @@ import SwiftUI
 
 struct PairingPage: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            PageHeader(
-                tag: "待配对 · PAIRING · 把代码发给对方",
-                title: "把代码发给 ",
-                titleAccentSuffix: "对方"
-            ) {
-                HStack(spacing: 10) {
-                    Chip(text: "LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "E2E · CHACHA20", tone: .outline, mono: true, size: 14)
-                    Chip(text: "65 秒后过期", tone: .outline, mono: true, size: 14)
-                }
-            }
-
-            HStack(alignment: .top, spacing: 64) {
+        HStack(alignment: .top, spacing: 64) {
                 // 左：大字 6 字符代码 + 指纹
                 VStack(alignment: .leading, spacing: 28) {
                     Text(MockData.pairingCode)
@@ -70,9 +57,8 @@ struct PairingPage: View {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(MeshDropColor.dink2)
                     )
-                }
-                .frame(width: 420)
             }
+            .frame(width: 420)
         }
     }
 

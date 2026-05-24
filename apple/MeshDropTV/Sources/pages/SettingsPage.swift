@@ -25,18 +25,6 @@ struct SettingsPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            PageHeader(
-                tag: "设置 · SETTINGS · 可见性 · 安全 · 行为",
-                title: "设置 ",
-                titleAccentSuffix: "Settings"
-            ) {
-                HStack(spacing: 10) {
-                    Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "E2E", tone: .outline, mono: true, size: 14)
-                    Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 14)
-                }
-            }
-
             MeshAsciiDivider(label: "可见性 · 安全 · 行为 · BEHAVIOR")
 
             VStack(spacing: 18) {

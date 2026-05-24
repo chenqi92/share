@@ -2,19 +2,7 @@ import SwiftUI
 
 struct NearbyPage: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            PageHeader(
-                tag: "附近 · NEARBY · READY 待机",
-                title: "这台电视，谁都能 ",
-                titleAccentSuffix: "ping."
-            ) {
-                HStack(spacing: 10) {
-                    Chip(text: "● 客厅 LAN", tone: .lime, mono: true, size: 14)
-                    Chip(text: "5 台可见", tone: .outline, mono: true, size: 14)
-                }
-            }
-
-            HStack(alignment: .top, spacing: 56) {
+        HStack(alignment: .top, spacing: 56) {
                 // 左：巨型雷达
                 MeshRadar(devices: MockData.devices, diameter: 640)
                     .frame(width: 640, height: 640)
@@ -67,8 +55,7 @@ struct NearbyPage: View {
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

@@ -15,32 +15,19 @@ struct ReceivePage: View {
     private let firstThumbId = MockData.incomingPhotos.first?.id ?? 0
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            PageHeader(
-                tag: "接收 · RECEIVE · 来自 \(MockData.incomingPeer.who)",
-                title: "孟茜想发给你 ",
-                titleAccentSuffix: "18 张照片"
-            ) {
-                HStack(spacing: 10) {
-                    Chip(text: "● E2E", tone: .lime, mono: true, size: 14)
-                    Chip(text: "9MS · LAN", tone: .outline, mono: true, size: 14)
-                }
+        HStack(alignment: .top, spacing: 36) {
+            VStack(alignment: .leading, spacing: 18) {
+                heroPhoto
+                thumbnailStrip
+                Spacer(minLength: 0)
+                remoteHint
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(0)
 
-            HStack(alignment: .top, spacing: 36) {
-                VStack(alignment: .leading, spacing: 18) {
-                    heroPhoto
-                    thumbnailStrip
-                    Spacer(minLength: 0)
-                    remoteHint
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(0)
-
-                sidePanel
-                    .frame(width: 460, alignment: .top)
-                    .layoutPriority(1)
-            }
+            sidePanel
+                .frame(width: 460, alignment: .top)
+                .layoutPriority(1)
         }
     }
 
