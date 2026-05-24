@@ -52,8 +52,7 @@ struct TVTopBar: View {
             .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 90)
-        .padding(.top, 40)
-        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     @ViewBuilder
@@ -89,7 +88,6 @@ struct TVTopBar: View {
                     .inset(by: 1)
                     .strokeBorder(strokeColor(isActive: isActive, isFocused: isFocused), lineWidth: 2)
             )
-            .animation(.easeInOut(duration: 0.18), value: isFocused)
         }
     }
 

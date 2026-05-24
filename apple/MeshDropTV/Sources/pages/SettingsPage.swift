@@ -26,14 +26,13 @@ struct SettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             HStack(alignment: .firstTextBaseline, spacing: 18) {
-                Text("设置")
-                    .font(.system(size: 64, weight: .bold))
-                    .foregroundStyle(MeshDropColor.dpaper)
-                Text("· SETTINGS")
-                    .font(.system(size: 24, weight: .semibold, design: .monospaced))
-                    .tracking(1.8)
-                    .textCase(.uppercase)
-                    .foregroundStyle(MeshDropColor.dpaperMute)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("设置 · SETTINGS")
+                        .monoTag()
+                    Text("设置")
+                        .font(.system(size: 64, weight: .bold))
+                        .foregroundStyle(MeshDropColor.dpaper)
+                }
                 Spacer()
                 HStack(spacing: 10) {
                     Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 16)

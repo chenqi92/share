@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// 用完全自定义的 ButtonStyle 接管渲染，从根上避免任何系统 focus halo / hover lift。
-private struct _CleanButtonStyle: ButtonStyle {
+struct CleanButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.85 : 1.0)
@@ -20,7 +20,7 @@ struct InvisibleFocusButton<Value: Hashable, Content: View>: View {
         Button(action: action) {
             content()
         }
-        .buttonStyle(_CleanButtonStyle())
+        .buttonStyle(CleanButtonStyle())
         .focused(isFocused, equals: value)
         .focusEffectDisabled()
     }

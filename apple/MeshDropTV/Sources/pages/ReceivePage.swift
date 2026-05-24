@@ -1,23 +1,33 @@
 import SwiftUI
 
+private enum ReceiveFocus: Hashable {
+    case thumb(Int)
+    case ctaPrimary
+    case ctaSave
+    case ctaReject
+}
+
 struct ReceivePage: View {
     @State private var selected: Int = MockData.incomingFromIndex
-    @FocusState private var focusedThumb: Int?
+    @FocusState private var focused: ReceiveFocus?
+
+    private let lastThumbId = MockData.incomingPhotos.last?.id ?? 0
+    private let firstThumbId = MockData.incomingPhotos.first?.id ?? 0
 
     var body: some View {
         HStack(alignment: .top, spacing: 36) {
             VStack(alignment: .leading, spacing: 22) {
                 heroPhoto
                 thumbnailStrip
-                    .focusSection()
                 Spacer(minLength: 0)
                 remoteHint
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(0)
 
             sidePanel
-                .frame(width: 460)
-                .focusSection()
+                .frame(width: 460, alignment: .top)
+                .layoutPriority(1)
         }
     }
 
@@ -45,43 +55,58 @@ struct ReceivePage: View {
     private var thumbnailStrip: some View {
         HStack(spacing: 18) {
             ForEach(MockData.incomingPhotos) { item in
-                InvisibleFocusButton(isFocused: $focusedThumb, value: item.id) {
-                    selected = item.id - 1
-                } content: {
-                    PhotoPlaceholder(hue: item.hue, aspect: 1, corner: 12)
-                        .frame(width: 124, height: 124)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .inset(by: 1.5)
-                                .strokeBorder(selected == item.id - 1 ? MeshDropColor.lime : Color.clear, lineWidth: 3)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .inset(by: 2)
-                                .strokeBorder(MeshDropColor.dpaper.opacity(focusedThumb == item.id ? 0.95 : 0.0), lineWidth: 2.5)
-                        )
-                        .offset(y: focusedThumb == item.id ? -6 : 0)
-                        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focusedThumb)
-                }
+                thumbButton(item)
             }
-            VStack(spacing: 4) {
-                Text("+10")
-                    .font(.system(size: 22, weight: .bold, design: .monospaced))
-                    .foregroundStyle(MeshDropColor.dpaperDim)
-                Text("张")
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(MeshDropColor.dpaperMute)
-            }
-            .frame(width: 124, height: 124)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(MeshDropColor.dink3)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(MeshDropColor.dline, lineWidth: 1)
-            )
+            placeholderTile
         }
+    }
+
+    @ViewBuilder
+    private func thumbButton(_ item: MockData.IncomingPhoto) -> some View {
+        let isFocusedThumb = focused == .thumb(item.id)
+        InvisibleFocusButton(isFocused: $focused, value: ReceiveFocus.thumb(item.id)) {
+            selected = item.id - 1
+        } content: {
+            PhotoPlaceholder(hue: item.hue, aspect: 1, corner: 12)
+                .frame(width: 124, height: 124)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .inset(by: 1.5)
+                        .strokeBorder(selected == item.id - 1 ? MeshDropColor.lime : Color.clear, lineWidth: 3)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .inset(by: 2)
+                        .strokeBorder(MeshDropColor.dpaper.opacity(isFocusedThumb ? 0.95 : 0.0), lineWidth: 2.5)
+                )
+                .animation(.easeInOut(duration: 0.18), value: isFocusedThumb)
+        }
+        // 最后一个 thumb 上按 →，主动把焦点推到 sidePanel 主 CTA，跨过 HStack 边界
+        .onMoveCommand { direction in
+            if item.id == lastThumbId, direction == .right {
+                focused = .ctaPrimary
+            }
+        }
+    }
+
+    private var placeholderTile: some View {
+        VStack(spacing: 4) {
+            Text("+10")
+                .font(.system(size: 22, weight: .bold, design: .monospaced))
+                .foregroundStyle(MeshDropColor.dpaperDim)
+            Text("张")
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(MeshDropColor.dpaperMute)
+        }
+        .frame(width: 124, height: 124)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(MeshDropColor.dink3)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(MeshDropColor.dline, lineWidth: 1)
+        )
     }
 
     private var sidePanel: some View {
@@ -104,10 +129,22 @@ struct ReceivePage: View {
             fileCard
 
             VStack(alignment: .leading, spacing: 12) {
-                CTAButton(title: "接收并播放", subtitle: "OK · 同时进入幻灯片", tone: .lime, fillWidth: true)
+                ctaButton(.ctaPrimary,
+                          title: "接收并播放",
+                          subtitle: "OK · 同时进入幻灯片",
+                          tone: .lime,
+                          fillWidth: true)
                 HStack(spacing: 14) {
-                    CTAButton(title: "仅保存", subtitle: "SAVE",  tone: .ink, fillWidth: true)
-                    CTAButton(title: "不接收", subtitle: "REJECT", tone: .mute, fillWidth: true)
+                    ctaButton(.ctaSave,
+                              title: "仅保存",
+                              subtitle: "SAVE",
+                              tone: .ink,
+                              fillWidth: true)
+                    ctaButton(.ctaReject,
+                              title: "不接收",
+                              subtitle: "REJECT",
+                              tone: .mute,
+                              fillWidth: true)
                 }
             }
             .padding(.top, 4)
@@ -121,6 +158,77 @@ struct ReceivePage: View {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
                 .stroke(MeshDropColor.dline, lineWidth: 1)
         )
+    }
+
+    @ViewBuilder
+    private func ctaButton(_ id: ReceiveFocus,
+                           title: String,
+                           subtitle: String?,
+                           tone: ChipTone,
+                           fillWidth: Bool) -> some View {
+        let isFocusedCTA = focused == id
+        InvisibleFocusButton(isFocused: $focused, value: id) {
+            // mock：本轮不接 backend
+        } content: {
+            HStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(ctaFG(tone))
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                            .tracking(1.3)
+                            .textCase(.uppercase)
+                            .foregroundStyle(ctaFG(tone).opacity(0.65))
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+                if fillWidth { Spacer(minLength: 0) }
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 18)
+            .frame(maxWidth: fillWidth ? .infinity : nil, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(ctaBG(tone))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .inset(by: 2)
+                    .strokeBorder(ctaRing(tone).opacity(isFocusedCTA ? 0.95 : 0.0), lineWidth: 3)
+            )
+            .animation(.easeInOut(duration: 0.18), value: isFocusedCTA)
+        }
+        // 主 CTA 上按 ←，把焦点推回最后一个缩略图
+        .onMoveCommand { direction in
+            if id == .ctaPrimary, direction == .left {
+                focused = .thumb(lastThumbId)
+            }
+        }
+    }
+
+    private func ctaBG(_ tone: ChipTone) -> Color {
+        switch tone {
+        case .lime: return MeshDropColor.lime
+        case .ink:  return MeshDropColor.dink3
+        case .mute: return MeshDropColor.dink2
+        default:    return MeshDropColor.dink3
+        }
+    }
+    private func ctaFG(_ tone: ChipTone) -> Color {
+        switch tone {
+        case .lime: return MeshDropColor.ink
+        case .mute: return MeshDropColor.dpaperDim
+        default:    return MeshDropColor.dpaper
+        }
+    }
+    private func ctaRing(_ tone: ChipTone) -> Color {
+        switch tone {
+        case .lime: return MeshDropColor.ink
+        default:    return MeshDropColor.dpaper
+        }
     }
 
     private var fileCard: some View {

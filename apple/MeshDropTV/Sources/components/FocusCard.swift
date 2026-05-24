@@ -25,8 +25,7 @@ struct FocusCard<Content: View>: View {
                     .inset(by: 2)
                     .strokeBorder(MeshDropColor.dpaper.opacity(focused ? 0.85 : 0.0), lineWidth: 2.5)
             )
-            .offset(y: focused ? -4 : 0)
-            .animation(.spring(response: 0.30, dampingFraction: 0.82), value: focused)
+            .animation(.easeInOut(duration: 0.18), value: focused)
             .focusable(true)
             .focused($focused)
             .focusEffectDisabled()
@@ -72,10 +71,9 @@ struct CTAButton: View {
                     .inset(by: 2)
                     .strokeBorder(ringColor.opacity(focused ? 0.95 : 0.0), lineWidth: 3)
             )
-            .offset(y: focused ? -4 : 0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focused)
+            .animation(.easeInOut(duration: 0.18), value: focused)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(CleanButtonStyle())
         .focused($focused)
         .focusEffectDisabled()
     }
