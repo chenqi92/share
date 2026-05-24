@@ -20,15 +20,21 @@ import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Notes
 import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -47,8 +53,10 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 fun SendBottomSheet(
     onDismiss: () -> Unit,
     onPickDevices: () -> Unit,
+    onSendTextDraft: (String) -> Unit = {},
 ) {
     val mesh = MeshTheme.colors
+    var draft by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -88,18 +96,54 @@ fun SendBottomSheet(
                 QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Notes, label = "文字便签", subtitle = "粘贴 / 写一段", onClick = onPickDevices, accent = true)
             }
 
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
+            AsciiDivider(label = "文字便签 · NOTE")
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(mesh.surface)
+                    .padding(PaddingValues(horizontal = 12.dp, vertical = 12.dp)),
+            ) {
+                BasicTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    textStyle = TextStyle(
+                        fontFamily = Geist, fontWeight = FontWeight.W500,
+                        fontSize = 14.sp, color = mesh.textPrimary,
+                    ),
+                    cursorBrush = SolidColor(mesh.textPrimary),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { inner ->
+                        if (draft.isEmpty()) {
+                            Text(
+                                "写一段，回车选目标设备…",
+                                style = TextStyle(
+                                    fontFamily = GeistMono, fontWeight = FontWeight.W500,
+                                    fontSize = 12.sp, color = mesh.textTertiary,
+                                ),
+                            )
+                        }
+                        inner()
+                    },
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
             Box(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(Lime)
-                    .clickable { onPickDevices() }
+                    .clickable {
+                        if (draft.isNotBlank()) onSendTextDraft(draft.trim())
+                        onPickDevices()
+                    }
                     .padding(PaddingValues(horizontal = 16.dp, vertical = 16.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    "选择目标设备 →",
+                    if (draft.isBlank()) "选择目标设备 →" else "选择目标设备发送 →",
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 16.sp, color = Ink,

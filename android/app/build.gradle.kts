@@ -65,5 +65,8 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
 
+    // Wear OS companion bridge：phone 端通过 DataLayer 接收 wear 命令、推事件。
+    implementation(libs.play.services.wearable)
+
     testImplementation(libs.junit)
 }

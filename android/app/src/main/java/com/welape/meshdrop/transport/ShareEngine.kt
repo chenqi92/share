@@ -84,6 +84,12 @@ class ShareEngine(private val context: Context) {
     private val _trusted = MutableStateFlow<List<TrustRecord>>(emptyList())
     val trusted: StateFlow<List<TrustRecord>> = _trusted.asStateFlow()
 
+    private val _isStarting = MutableStateFlow(false)
+    val isStarting: StateFlow<Boolean> = _isStarting.asStateFlow()
+
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError: StateFlow<String?> = _lastError.asStateFlow()
+
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
     private var acceptJob: Job? = null
@@ -93,26 +99,35 @@ class ShareEngine(private val context: Context) {
 
     fun start() {
         if (listener != null) return
+        _isStarting.value = true
+        _lastError.value = null
         scope.launch {
-            val sock = ServerSocket(0)
-            listener = sock
-            val port = sock.localPort
-            Log.i(TAG, "listening on port $port")
+            try {
+                val sock = ServerSocket(0)
+                listener = sock
+                val port = sock.localPort
+                Log.i(TAG, "listening on port $port")
 
-            discovery.start(port)
-            devicesJob = launch { discovery.devices.collect { _devices.value = it } }
-            _trusted.value = trustStore.snapshot()
+                discovery.start(port)
+                devicesJob = launch { discovery.devices.collect { _devices.value = it } }
+                _trusted.value = trustStore.snapshot()
 
-            acceptJob = launch {
-                while (!sock.isClosed) {
-                    try {
-                        val client = sock.accept()
-                        launch { acceptIncoming(Connection.forIncoming(client)) }
-                    } catch (e: Exception) {
-                        if (!sock.isClosed) Log.e(TAG, "accept failed", e)
-                        break
+                acceptJob = launch {
+                    while (!sock.isClosed) {
+                        try {
+                            val client = sock.accept()
+                            launch { acceptIncoming(Connection.forIncoming(client)) }
+                        } catch (e: Exception) {
+                            if (!sock.isClosed) Log.e(TAG, "accept failed", e)
+                            break
+                        }
                     }
                 }
+                _isStarting.value = false
+            } catch (e: Exception) {
+                Log.e(TAG, "start failed", e)
+                _lastError.value = e.message ?: "启动失败"
+                _isStarting.value = false
             }
         }
     }
@@ -127,6 +142,14 @@ class ShareEngine(private val context: Context) {
         contexts.clear()
         for (ctx in active) ctx.connection.close()
         _devices.value = emptyList()
+        _isStarting.value = false
+    }
+
+    /** UI 调用：消费最近一条错误（关 snack 时用）。 */
+    fun clearLastError() { _lastError.value = null }
+
+    private fun reportError(message: String) {
+        _lastError.value = message
     }
 
     // MARK: - 历史管理
@@ -598,6 +621,7 @@ class ShareEngine(private val context: Context) {
 
     private fun failHistory(id: UUID, reason: String) {
         updateHistoryStatus(id, TransferStatus.Failed(reason))
+        reportError(reason)
     }
 
     // sha256

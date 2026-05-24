@@ -40,9 +40,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.welape.meshdrop.mock.MockChatPreview
 import com.welape.meshdrop.mock.MockChatPreviews
+import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDeviceById
+import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.mock.MockMeData
+import com.welape.meshdrop.transport.ShareEngine
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.MeshAvatar
 import com.welape.meshdrop.ui.components.MeshDropLockup
@@ -71,8 +80,21 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
  * 横屏 / 大屏（WindowWidthSizeClass.Expanded / Medium）使用此布局。
  */
 @Composable
-fun TabletRoot(state: MeshAppState) {
+fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val mesh = MeshTheme.colors
+
+    val realDevicesRaw = engine?.devices?.collectAsState()?.value
+    val realHistoryRaw = engine?.history?.collectAsState()?.value
+    val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
+    val lastError = engine?.lastError?.collectAsState()?.value
+
+    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i) }
+        ?: if (engine == null) MockDevices else emptyList()
+    val chatPreviewsUi: List<MockChatPreview> = realHistoryRaw?.toChatPreviews()
+        ?: if (engine == null) MockChatPreviews else emptyList()
+
+    var pendingDraft by remember { mutableStateOf("") }
+
     Row(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         NavRail(state = state)
         Box(
@@ -89,7 +111,7 @@ fun TabletRoot(state: MeshAppState) {
                 .background(mesh.surface)
                 .padding(top = 16.dp),
         ) {
-            MiddlePanel(state)
+            MiddlePanel(state, previews = chatPreviewsUi, devices = devicesUi)
         }
         Box(
             Modifier
@@ -104,6 +126,10 @@ fun TabletRoot(state: MeshAppState) {
                     selectedId = state.selectedDeviceId,
                     onSelect = { state.selectedDeviceId = it },
                     onTapDevice = { state.openChatDeviceId = it; state.tab = MeshTab.CHAT },
+                    devices = devicesUi,
+                    isStarting = isStarting,
+                    lastError = lastError,
+                    onDismissError = { engine?.clearLastError() },
                 )
                 MeshTab.CHAT -> state.openChatDeviceId?.let { id ->
                     ChatDetailScreen(deviceId = id, onBack = null, showDropOverlay = state.showDropOverlay)
@@ -117,8 +143,26 @@ fun TabletRoot(state: MeshAppState) {
         }
 
         when (state.sheet) {
-            MeshSheet.SEND -> SendBottomSheet(onDismiss = { state.sheet = MeshSheet.NONE }, onPickDevices = { state.sheet = MeshSheet.PICKER })
-            MeshSheet.PICKER -> DevicePickerSheet(state = state, onClose = { state.sheet = MeshSheet.NONE })
+            MeshSheet.SEND -> SendBottomSheet(
+                onDismiss = { state.sheet = MeshSheet.NONE },
+                onPickDevices = { state.sheet = MeshSheet.PICKER },
+                onSendTextDraft = { pendingDraft = it },
+            )
+            MeshSheet.PICKER -> DevicePickerSheet(
+                state = state,
+                onClose = { state.sheet = MeshSheet.NONE },
+                devices = devicesUi,
+                onSendToSelected = { picked ->
+                    val draft = pendingDraft
+                    if (draft.isNotBlank() && engine != null) {
+                        val byId = (realDevicesRaw ?: emptyList()).associateBy { it.id }
+                        picked.forEach { ui ->
+                            byId[ui.id]?.let { engine.sendText(it, draft) }
+                        }
+                        pendingDraft = ""
+                    }
+                },
+            )
             MeshSheet.PAIRING -> PairingSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.FILE_OFFER -> FileOfferSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.ONBOARDING -> OnboardingSheet(onClose = { state.sheet = MeshSheet.NONE })
@@ -197,8 +241,13 @@ private fun RailItem(icon: ImageVector, label: String, selected: Boolean, onClic
 }
 
 @Composable
-private fun MiddlePanel(state: MeshAppState) {
+private fun MiddlePanel(
+    state: MeshAppState,
+    previews: List<MockChatPreview> = MockChatPreviews,
+    devices: List<MockDevice> = MockDevices,
+) {
     val mesh = MeshTheme.colors
+    val byId = devices.associateBy { it.id }
     Column(modifier = Modifier.padding(horizontal = 14.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -230,7 +279,7 @@ private fun MiddlePanel(state: MeshAppState) {
             }
         }
 
-        AsciiDivider(label = "会话 · CONVERSATIONS · ${MockChatPreviews.size}")
+        AsciiDivider(label = "会话 · CONVERSATIONS · ${previews.size}")
 
         Column(
             modifier = Modifier
@@ -238,8 +287,8 @@ private fun MiddlePanel(state: MeshAppState) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            MockChatPreviews.forEach { chat ->
-                val device = MockDeviceById(chat.deviceId) ?: return@forEach
+            previews.forEach { chat ->
+                val device = byId[chat.deviceId] ?: MockDeviceById(chat.deviceId) ?: return@forEach
                 val isSelected = state.openChatDeviceId == chat.deviceId
                 Row(
                     modifier = Modifier

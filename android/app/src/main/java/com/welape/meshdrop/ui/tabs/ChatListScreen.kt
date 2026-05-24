@@ -32,8 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.mock.MockChatPreview
 import com.welape.meshdrop.mock.MockChatPreviews
+import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDeviceById
+import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.MeshAvatar
 import com.welape.meshdrop.ui.components.MeshIconBtn
@@ -49,8 +52,11 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 @Composable
 fun ChatListScreen(
     onOpenChat: (String) -> Unit,
+    previews: List<MockChatPreview> = MockChatPreviews,
+    devices: List<MockDevice> = MockDevices,
 ) {
     val mesh = MeshTheme.colors
+    val byId = devices.associateBy { it.id }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -69,7 +75,7 @@ fun ChatListScreen(
                     ),
                 )
                 Text(
-                    text = "${MockChatPreviews.size} 个会话 · 5 个端到端通道",
+                    text = "${previews.size} 个会话 · 端到端加密",
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = mesh.textTertiary,
@@ -81,18 +87,29 @@ fun ChatListScreen(
         }
 
         Spacer(Modifier.height(8.dp))
-        AsciiDivider(label = "今天 · TODAY · ${MockChatPreviews.size}")
+        AsciiDivider(label = "今天 · TODAY · ${previews.size}")
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            MockChatPreviews.forEach { prev ->
-                ChatListRow(
-                    deviceId = prev.deviceId,
-                    snippet = prev.lastSnippet,
-                    time = prev.lastTime,
-                    unread = prev.unread,
-                    isFile = prev.isFile,
-                    onClick = { onOpenChat(prev.deviceId) },
-                )
+        if (previews.isEmpty()) {
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = "还没有会话 · No conversations yet",
+                style = TextStyle(
+                    fontFamily = GeistMono, fontWeight = FontWeight.W500,
+                    fontSize = 12.sp, color = mesh.textTertiary,
+                ),
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                previews.forEach { prev ->
+                    ChatListRow(
+                        device = byId[prev.deviceId] ?: MockDeviceById(prev.deviceId),
+                        snippet = prev.lastSnippet,
+                        time = prev.lastTime,
+                        unread = prev.unread,
+                        isFile = prev.isFile,
+                        onClick = { onOpenChat(prev.deviceId) },
+                    )
+                }
             }
         }
         Spacer(Modifier.height(80.dp))
@@ -101,7 +118,7 @@ fun ChatListScreen(
 
 @Composable
 private fun ChatListRow(
-    deviceId: String,
+    device: MockDevice?,
     snippet: String,
     time: String,
     unread: Int,
@@ -109,7 +126,7 @@ private fun ChatListRow(
     onClick: () -> Unit,
 ) {
     val mesh = MeshTheme.colors
-    val device = MockDeviceById(deviceId) ?: return
+    device ?: return
     Row(
         modifier = Modifier
             .fillMaxWidth()
