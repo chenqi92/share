@@ -1,36 +1,61 @@
 import SwiftUI
+import UniformTypeIdentifiers
+import MeshDropKit
 
-/// 主页：飘浮设备 + 中央窗口 + gaze reticle 锁定 Lily + 飞行轨迹。
+/// 主页：飘浮设备 + 中央窗口 + gaze reticle 锁定 + 飞行轨迹。
+/// gaze 锁定一台 PeerOrb 后，"捏合" → 弹文件选择 → engine.sendFile。
 struct SpatialNearbyPage: View {
-    @State private var focusedPeerId: String = "lily"
-    @State private var showTrail: Bool = true
+    @EnvironmentObject private var engine: ShareEngine
+    @State private var focusedPeerId: String?
+    @State private var showFileImporter = false
+    @State private var sendTargetId: String?
 
-    private var focusedDevice: MockDevice {
-        MockData.device(focusedPeerId)
+    private var livePeers: [MockDevice] {
+        LivePeerMapper.map(engine.devices)
+    }
+
+    private var focusedDevice: MockDevice? {
+        if let id = focusedPeerId, let p = livePeers.first(where: { $0.id == id }) {
+            return p
+        }
+        return livePeers.first
     }
 
     var body: some View {
         GeometryReader { geo in
             let canvas = geo.size
             ZStack {
-                // 远景：passthrough 替身
                 MDPassthroughBackground(hue: 28)
 
-                // 漂浮的 5 个 PeerOrb（按 dist / angle 散布）
-                ForEach(MockData.devices) { dev in
+                // 漂浮的 PeerOrb（按 dist / angle 散布）
+                ForEach(livePeers) { dev in
                     let pos = peerScreenPos(for: dev, canvas: canvas)
                     PeerOrb(device: dev,
-                            focused: dev.id == focusedPeerId,
-                            showSendCue: dev.id == focusedPeerId)
+                            focused: dev.id == focusedDevice?.id,
+                            showSendCue: dev.id == focusedDevice?.id)
                         .position(pos)
                         .zIndex(zIndex(for: dev))
+                        // gaze + pinch = 单击；先 focus，再 pinch 触发发送
+                        .onTapGesture {
+                            if focusedPeerId == dev.id {
+                                // 已 focus，第二次 pinch → 开文件选择
+                                sendTargetId = dev.id
+                                showFileImporter = true
+                            } else {
+                                focusedPeerId = dev.id
+                            }
+                        }
+                        .contextMenu {
+                            contextMenuButtons(for: dev)
+                        }
+                        .accessibilityLabel("设备 \(dev.who) — pinch 一次锁定，二次发送文件")
                 }
 
                 // 飞行 payload：从中央 self 出发飞向 gaze 锁定的 peer
-                if showTrail {
+                if let f = focusedDevice {
                     FlyingPayload(
                         from: CGPoint(x: canvas.width * 0.5, y: canvas.height * 0.5 + 120),
-                        to:   peerScreenPos(for: focusedDevice, canvas: canvas),
+                        to:   peerScreenPos(for: f, canvas: canvas),
                         color: MD.lime,
                         staticPreview: false
                     )
@@ -40,13 +65,22 @@ struct SpatialNearbyPage: View {
                 MainWindow()
                     .zIndex(20)
 
-                // gaze reticle 浮在 Lily 上空
-                GazeReticle(
-                    radius: 70,
-                    label: "看向 \(focusedDevice.who.uppercased()) · 准备捏合发送"
-                )
-                .position(reticlePosition(canvas: canvas))
-                .zIndex(25)
+                // 空态 / scanning 提示
+                if livePeers.isEmpty {
+                    emptyHint(scanning: engine.isStarting)
+                        .position(x: canvas.width / 2, y: canvas.height * 0.78)
+                        .zIndex(22)
+                }
+
+                // gaze reticle 浮在 focused peer 上空
+                if let f = focusedDevice {
+                    GazeReticle(
+                        radius: 70,
+                        label: "看向 \(f.who.uppercased()) · 准备捏合发送"
+                    )
+                    .position(reticlePosition(for: f, canvas: canvas))
+                    .zIndex(25)
+                }
 
                 // 顶部 status ornament
                 StatusOrnament()
@@ -64,7 +98,59 @@ struct SpatialNearbyPage: View {
                     .zIndex(30)
             }
         }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.item],
+            allowsMultipleSelection: false
+        ) { result in
+            handleFileImporter(result: result)
+        }
     }
+
+    // MARK: - empty / scanning hint
+
+    @ViewBuilder
+    private func emptyHint(scanning: Bool) -> some View {
+        VStack(spacing: 8) {
+            Text(scanning ? "扫描中…" : "等待身边的设备…")
+                .font(.system(size: 22, weight: .bold, design: .rounded))
+                .foregroundStyle(MD.dpaper)
+            Text(scanning
+                 ? "SCANNING · mDNS · _meshdrop._tcp"
+                 : "EMPTY · 让朋友打开 MeshDrop")
+                .font(MDFont.microHi).tracking(1.6)
+                .foregroundStyle(MD.lime)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
+        .glassBackgroundEffect(in: Capsule())
+    }
+
+    // MARK: - 操作
+
+    @ViewBuilder
+    private func contextMenuButtons(for dev: MockDevice) -> some View {
+        Button("发送文件 → \(dev.who)") {
+            sendTargetId = dev.id
+            showFileImporter = true
+        }
+        if let real = engine.devices.first(where: { $0.id == dev.id }) {
+            Button("撤销信任") {
+                engine.revokeTrust(fingerprint: real.fingerprint)
+            }
+        }
+    }
+
+    private func handleFileImporter(result: Result<[URL], Error>) {
+        defer { sendTargetId = nil }
+        guard case .success(let urls) = result, let url = urls.first else { return }
+        guard let target = sendTargetId.flatMap({ id in
+            engine.devices.first(where: { $0.id == id })
+        }) else { return }
+        engine.sendFile(to: target, sourceURL: url)
+    }
+
+    // MARK: - 几何
 
     private func zIndex(for dev: MockDevice) -> Double {
         switch dev.depthLayer {
@@ -74,9 +160,8 @@ struct SpatialNearbyPage: View {
         }
     }
 
-    /// reticle 放在 focused peer 略上方。
-    private func reticlePosition(canvas: CGSize) -> CGPoint {
-        let p = peerScreenPos(for: focusedDevice, canvas: canvas)
+    private func reticlePosition(for dev: MockDevice, canvas: CGSize) -> CGPoint {
+        let p = peerScreenPos(for: dev, canvas: canvas)
         return CGPoint(x: p.x, y: p.y - 110)
     }
 }

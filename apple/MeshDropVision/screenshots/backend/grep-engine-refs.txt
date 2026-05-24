@@ -1,0 +1,39 @@
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:8:    @StateObject private var engine = ShareEngine.shared
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:18:                    engine.start()
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:34:    @EnvironmentObject private var engine: ShareEngine
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:51:            if !engine.pendingFileOffers.isEmpty {
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:59:                   value: engine.pendingFileOffers.count)
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:63:/// 对话页：按 peer 折叠 `engine.history`，每个 peer 一张玻璃 mini-card。
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:65:    @EnvironmentObject private var engine: ShareEngine
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:77:        for item in engine.history {
+apple/MeshDropVision/Sources/MeshDropVisionApp.swift:113:                        Chip(text: "● \(engine.devices.count) PEERS", tone: .lime, mono: true)
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:6:    @EnvironmentObject private var engine: ShareEngine
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:13:                    Text(engine.displayName)
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:24:            if engine.isStarting {
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:27:            } else if engine.devices.isEmpty {
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:31:                Chip(text: "VISIBLE · \(engine.devices.count) 台",
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:34:            if let err = engine.lastError {
+apple/MeshDropVision/Sources/shell/StatusOrnament.swift:47:                Text(shortFingerprint(of: engine.identity.fingerprint))
+apple/MeshDropVision/Sources/shell/MainWindow.swift:8:    @EnvironmentObject private var engine: ShareEngine
+apple/MeshDropVision/Sources/shell/MainWindow.swift:36:            if engine.isStarting {
+apple/MeshDropVision/Sources/shell/MainWindow.swift:38:            } else if engine.devices.isEmpty {
+apple/MeshDropVision/Sources/shell/MainWindow.swift:41:                Chip(text: "● \(engine.devices.count) PEERS", tone: .lime, mono: true)
+apple/MeshDropVision/Sources/shell/MainWindow.swift:49:            if engine.isStarting {
+apple/MeshDropVision/Sources/shell/MainWindow.swift:62:            } else if engine.devices.isEmpty {
+apple/MeshDropVision/Sources/shell/MainWindow.swift:100:            if let recent = engine.history.first {
+apple/MeshDropVision/Sources/shell/MainWindow.swift:130:        let total = engine.history.count
+apple/MeshDropVision/Sources/integration/EngineAdapter.swift:98:/// 把 `engine.history` 中"进行中"那部分映射到 TransfersPage 的飞行任务模型。
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:7:    @EnvironmentObject private var engine: ShareEngine
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:10:        LivePeerMapper.map(engine.devices)
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:14:        LiveTransferMapper.inFlight(from: engine.history,
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:15:                                    selfName: engine.displayName)
+apple/MeshDropVision/Sources/pages/SpatialNearbyPage.swift:6:/// gaze 锁定一台 PeerOrb 后，"捏合" → 弹文件选择 → engine.sendFile。
+---
+残留 MockData. 引用（仅为类型 InFlightTransfer，mock 文件按规定保留作 Preview）：
+apple/MeshDropVision/Sources/integration/EngineAdapter.swift:101:    static func inFlight(from history: [HistoryItem], selfName: String) -> [MockData.InFlightTransfer] {
+apple/MeshDropVision/Sources/integration/EngineAdapter.swift:102:        history.compactMap { item -> MockData.InFlightTransfer? in
+apple/MeshDropVision/Sources/integration/EngineAdapter.swift:118:            let direction: MockData.InFlightTransfer.Direction =
+apple/MeshDropVision/Sources/integration/EngineAdapter.swift:122:            return MockData.InFlightTransfer(
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:13:    private var inFlight: [MockData.InFlightTransfer] {
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:65:    private func endpoints(for tr: MockData.InFlightTransfer,
+apple/MeshDropVision/Sources/pages/TransfersPage.swift:137:    private func transferRow(_ tr: MockData.InFlightTransfer) -> some View {
