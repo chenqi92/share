@@ -1,18 +1,29 @@
 import SwiftUI
+import MeshDropKit
+import UniformTypeIdentifiers
 
 struct SendSheet: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
     @State private var kind: SendKind = .text
     @State private var text: String = ""
+    @State private var showFileImporter: Bool = false
+    @State private var stagedFiles: [URL] = []
 
     enum SendKind: String, CaseIterable, Identifiable {
         case text = "文本"
         case file = "文件"
-        case photo = "照片"
-        case clipboard = "剪贴板"
         var id: String { rawValue }
+    }
+
+    private var target: MockDevice {
+        state.selectedDeviceDisplay(engine: engine)
+    }
+
+    private var realTarget: Device? {
+        engine.realDevice(for: state.selectedDeviceID)
     }
 
     var body: some View {
@@ -31,8 +42,6 @@ struct SendSheet: View {
                         switch kind {
                         case .text:      textBlock
                         case .file:      fileBlock
-                        case .photo:     photoBlock
-                        case .clipboard: clipboardBlock
                         }
                         Spacer(minLength: 30)
                         sendButton
@@ -47,20 +56,29 @@ struct SendSheet: View {
                     Button("取消") { dismiss() }
                 }
             }
+            .fileImporter(
+                isPresented: $showFileImporter,
+                allowedContentTypes: [.data],
+                allowsMultipleSelection: true
+            ) { result in
+                if case .success(let urls) = result {
+                    stagedFiles.append(contentsOf: urls)
+                }
+            }
         }
         .presentationDetents([.medium, .large])
     }
 
     private var targetRow: some View {
         HStack(spacing: 12) {
-            Avatar(initials: state.selectedDevice.initials,
-                   color: state.selectedDevice.color, size: 36, online: true)
+            Avatar(initials: target.initials,
+                   color: target.color, size: 36, online: target.isOnline)
             VStack(alignment: .leading, spacing: 2) {
-                Text("发送给 \(state.selectedDevice.who)")
+                Text(realTarget == nil ? "选择设备" : "发送给 \(target.who)")
                     .font(MeshDropFont.body(15, weight: .semibold))
                 HStack(spacing: 6) {
-                    KindGlyph(state.selectedDevice.kind, size: 10)
-                    Text(state.selectedDevice.name)
+                    KindGlyph(target.kind, size: 10)
+                    Text(target.name)
                         .font(MeshDropFont.mono(10.5))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 }
@@ -108,13 +126,17 @@ struct SendSheet: View {
 
     private var fileBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("FILE · 已选 2 个")
-            FileChip(name: "iOS-mocks-final.zip", size: "48.6 MB", ext: "zip")
-            FileChip(name: "release-notes.md",    size: "4.8 KB",  ext: "md")
-            Button {} label: {
+            AsciiDivider("FILE · 已选 \(stagedFiles.count) 个")
+            ForEach(stagedFiles, id: \.self) { url in
+                let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.int64Value ?? 0
+                FileChip(name: url.lastPathComponent,
+                         size: HistoryItem.byteFormatter.string(fromByteCount: size),
+                         ext: url.pathExtension)
+            }
+            Button { showFileImporter = true } label: {
                 HStack {
                     Image(systemName: "plus.circle")
-                    Text("继续添加文件")
+                    Text(stagedFiles.isEmpty ? "选择文件" : "继续添加文件")
                         .font(MeshDropFont.body(13, weight: .semibold))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 10)
@@ -128,65 +150,43 @@ struct SendSheet: View {
         }
     }
 
-    private var photoBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("PHOTOS · 已选 3 张")
-            HStack(spacing: 6) {
-                ForEach(0..<3) { i in
-                    Photo(hue: 20 + i * 70)
-                        .frame(width: 88, height: 88)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                Spacer()
-            }
+    private var canSend: Bool {
+        guard realTarget != nil else { return false }
+        switch kind {
+        case .text: return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .file: return !stagedFiles.isEmpty
         }
-    }
-
-    private var clipboardBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("CLIPBOARD · 剪贴板")
-            ForEach(Mock.clipboard.prefix(3)) { item in
-                clipboardRow(item)
-            }
-        }
-    }
-
-    private func clipboardRow(_ item: MockClipboardItem) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: item.kind == .link ? "link" : item.kind == .code ? "chevron.left.forwardslash.chevron.right" : "doc.text")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(MeshDropColor.flame)
-                .frame(width: 22)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.body)
-                    .font(item.kind == .code ? MeshDropFont.mono(12) : MeshDropFont.body(13))
-                    .lineLimit(2)
-                Text("\(item.who) · \(item.ago)")
-                    .font(MeshDropFont.mono(10))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
-            }
-            Spacer()
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
-        )
     }
 
     private var sendButton: some View {
-        Button { dismiss() } label: {
+        Button(action: send) {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 15, weight: .bold))
-                Text("发送给 \(state.selectedDevice.who)")
+                Text(realTarget == nil ? "请先选择设备" : "发送给 \(target.who)")
                     .font(MeshDropFont.body(15, weight: .semibold))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .background(Capsule().fill(MeshDropColor.lime))
+            .background(Capsule().fill(canSend ? MeshDropColor.lime : MeshDropColor.lime.opacity(0.4)))
             .foregroundStyle(MeshDropColor.ink)
         }
         .buttonStyle(.plain)
+        .disabled(!canSend)
+    }
+
+    private func send() {
+        guard let target = realTarget else { return }
+        switch kind {
+        case .text:
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            engine.sendText(to: target, content: trimmed)
+        case .file:
+            for url in stagedFiles {
+                engine.sendFile(to: target, sourceURL: url)
+            }
+        }
+        dismiss()
     }
 }

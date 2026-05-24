@@ -1,7 +1,9 @@
 import SwiftUI
+import MeshDropKit
 
 struct PadRoot: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
     @State private var padSection: PadSection = .chat
@@ -14,7 +16,7 @@ struct PadRoot: View {
                 .navigationBarHidden(true)
         } detail: {
             switch padSection {
-            case .chat:      ChatDetailScreen(device: state.selectedDevice)
+            case .chat:      ChatDetailScreen(device: state.selectedDeviceDisplay(engine: engine))
             case .transfers: TransferTab()
             case .history:   HistoryScreen()
             case .settings:  SettingsScreen()

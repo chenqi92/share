@@ -1,8 +1,10 @@
 import SwiftUI
+import MeshDropKit
 
 struct PairingSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject var engine: ShareEngine
 
     var body: some View {
         NavigationStack {
@@ -11,14 +13,16 @@ struct PairingSheet: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        header
-                        AsciiDivider("CODE · 6 字符代码")
-                        bigCode
-                        AsciiDivider("FINGERPRINT · 指纹")
-                        fingerprint
-                        AsciiDivider("STEPS · 三步")
-                        steps
-                        actions
+                        if let pending = engine.pendingPairings.first {
+                            header(pending)
+                            AsciiDivider("FINGERPRINT · 指纹")
+                            fingerprint(pending.peer.humanFingerprint)
+                            AsciiDivider("STEPS · 三步")
+                            steps
+                            actions(pending.id)
+                        } else {
+                            empty
+                        }
                     }
                     .padding(20)
                 }
@@ -33,13 +37,14 @@ struct PairingSheet: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Avatar(initials: "LL", color: Color(red: 1.0, green: 0.70, blue: 0.63), size: 44, ring: .lime, online: true)
+    private func header(_ req: PairingRequest) -> some View {
+        let mock = req.peer.displayMock
+        return HStack(spacing: 12) {
+            Avatar(initials: mock.initials, color: mock.color, size: 44, ring: .lime, online: true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(Mock.pendingPairing.peer) 想配对")
+                Text("\(req.peer.name) 想配对")
                     .font(MeshDropFont.body(15, weight: .semibold))
-                Text(Mock.pendingPairing.deviceName)
+                Text(req.peer.model ?? req.peer.name)
                     .font(MeshDropFont.mono(10.5))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
             }
@@ -48,72 +53,24 @@ struct PairingSheet: View {
         }
     }
 
-    private var bigCode: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 12) {
-                ForEach(Array("QX8K7L"), id: \.self) { ch in
-                    Text(String(ch))
-                        .font(MeshDropFont.display(40, weight: .bold))
-                        .tracking(0.5)
-                        .frame(width: 44, height: 56)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
-                        )
-                }
-            }
-            Text("对端屏幕应当显示与此一致的 6 字符代码")
-                .font(MeshDropFont.body(12))
-                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private var fingerprint: some View {
+    private func fingerprint(_ fp: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 14) {
-                qrPlaceholder
-                Text(Mock.pendingPairing.fingerprint)
-                    .font(MeshDropFont.mono(13, weight: .medium))
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-            }
-        }
-    }
-
-    private var qrPlaceholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-                .frame(width: 90, height: 90)
-            // 假 QR：8x8 黑白方阵
-            VStack(spacing: 2) {
-                ForEach(0..<8) { row in
-                    HStack(spacing: 2) {
-                        ForEach(0..<8) { col in
-                            Rectangle()
-                                .fill(((row * 7 + col * 3) % 3 == 0) ?
-                                      (scheme == .dark ? MeshDropColor.ink : Color.white) :
-                                        .clear)
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                }
-            }
-            .frame(width: 78, height: 78)
+            Text(fp)
+                .font(MeshDropFont.mono(13, weight: .medium))
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
+            Text("对端 MeshDrop 设置里也能看到相同的指纹。两边一致才允许。")
+                .font(MeshDropFont.mono(11))
+                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
     }
 
     private var steps: some View {
         VStack(alignment: .leading, spacing: 10) {
-            stepRow(1, "对端设备显示相同代码")
-            stepRow(2, "确认指纹首两组")
-            stepRow(3, "允许并记住该设备")
+            stepRow(1, "在对端设备上确认 MeshDrop 已可见")
+            stepRow(2, "对比上方指纹首两组")
+            stepRow(3, "允许后下次自动放行")
         }
     }
 
@@ -129,9 +86,23 @@ struct PairingSheet: View {
         }
     }
 
-    private var actions: some View {
+    private var empty: some View {
+        VStack(spacing: 8) {
+            Text("当前没有待配对的设备")
+                .font(MeshDropFont.body(14, weight: .semibold))
+            Text("对端发起连接时会出现在这里")
+                .font(MeshDropFont.mono(11))
+                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
+    }
+
+    private func actions(_ requestID: UUID) -> some View {
         HStack(spacing: 10) {
-            Button { dismiss() } label: {
+            Button {
+                engine.respondToPairing(requestID, decision: .reject)
+                dismiss()
+            } label: {
                 Text("拒绝")
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
@@ -139,7 +110,10 @@ struct PairingSheet: View {
                     .overlay(Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 1))
             }
             .buttonStyle(.plain)
-            Button { dismiss() } label: {
+            Button {
+                engine.respondToPairing(requestID, decision: .trust)
+                dismiss()
+            } label: {
                 Text("允许并记住")
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)

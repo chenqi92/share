@@ -1,8 +1,23 @@
 import SwiftUI
+import MeshDropKit
 
 struct HistoryScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
+    @EnvironmentObject var engine: ShareEngine
+
+    private var today: [MockHistoryItem] {
+        let cal = Calendar.current
+        return engine.history
+            .filter { cal.isDateInToday($0.createdAt) }
+            .map { $0.displayHistory }
+    }
+    private var earlier: [MockHistoryItem] {
+        let cal = Calendar.current
+        return engine.history
+            .filter { !cal.isDateInToday($0.createdAt) }
+            .map { $0.displayHistory }
+    }
 
     var body: some View {
         ZStack {
@@ -10,10 +25,26 @@ struct HistoryScreen: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    AsciiDivider("TODAY · 今天 · \(Mock.history.count) 件")
-                    ForEach(Mock.history) { row($0) }
-                    AsciiDivider("EARLIER · 早些时候")
-                    emptyMore
+                    if today.isEmpty && earlier.isEmpty {
+                        emptyState
+                    } else {
+                        AsciiDivider("TODAY · 今天 · \(today.count) 件")
+                        if today.isEmpty {
+                            Text("今天还没有传输")
+                                .font(MeshDropFont.mono(11))
+                                .foregroundStyle(muted)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 20)
+                        } else {
+                            ForEach(today) { row($0) }
+                        }
+                        AsciiDivider("EARLIER · 早些时候")
+                        if earlier.isEmpty {
+                            emptyMore
+                        } else {
+                            ForEach(earlier) { row($0) }
+                        }
+                    }
                     Spacer(minLength: 40)
                 }
                 .padding(.horizontal, 16)
@@ -25,6 +56,11 @@ struct HistoryScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("关闭") { dismiss() }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                if !engine.history.isEmpty {
+                    Button("清空", role: .destructive) { engine.clearHistory() }
+                }
             }
         }
     }
@@ -56,6 +92,13 @@ struct HistoryScreen: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
         )
+        .contextMenu {
+            Button("删除", role: .destructive) {
+                if let id = UUID(uuidString: h.id) {
+                    engine.removeHistoryItem(id)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -67,13 +110,6 @@ struct HistoryScreen: View {
             ZStack {
                 Photo(hue: 280).frame(width: 30, height: 36)
                     .clipShape(RoundedRectangle(cornerRadius: 6))
-                if (h.count ?? 0) > 1 {
-                    Text("\(h.count!)").font(MeshDropFont.mono(8.5, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(Capsule().fill(MeshDropColor.flame))
-                        .offset(x: 10, y: -14)
-                }
             }
             .frame(width: 30, height: 36)
         case .text:
@@ -111,6 +147,15 @@ struct HistoryScreen: View {
         case .queued:       Chip("·", tone: .outline, mono: true)
         case .failed:       Chip("×", tone: .flame, mono: true)
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Text("空空如也").font(MeshDropFont.body(14, weight: .semibold))
+            Text("发送或接收后会在这里出现")
+                .font(MeshDropFont.mono(11)).foregroundStyle(muted)
+        }
+        .frame(maxWidth: .infinity, minHeight: 200)
     }
 
     private var emptyMore: some View {

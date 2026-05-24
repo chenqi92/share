@@ -1,10 +1,15 @@
 import SwiftUI
+import MeshDropKit
 
 /// iPad NavigationSplitView 左栏 — 顶部 brand + 雷达 + 设备列表 + 节区切换。
 struct DiscoverSidebar: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
     @Binding var section: PadRoot.PadSection
+
+    private var devices: [MockDevice] { engine.displayDevices }
+    private var me: MockMe { engine.displaySelf }
 
     var body: some View {
         ZStack {
@@ -16,7 +21,7 @@ struct DiscoverSidebar: View {
                     topBar
                     radarHeader
                     radar
-                    devices
+                    devicesList
                     sectionList
                     Spacer(minLength: 30)
                 }
@@ -30,7 +35,7 @@ struct DiscoverSidebar: View {
         HStack {
             MeshDropLockup(size: 20)
             Spacer()
-            Chip("LIVE \(Mock.devices.filter(\.isOnline).count)", tone: .lime,
+            Chip("LIVE \(devices.filter(\.isOnline).count)", tone: .lime,
                  mono: true, uppercased: true, icon: "circle.fill")
         }
     }
@@ -39,27 +44,37 @@ struct DiscoverSidebar: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("附近 · Nearby")
                 .font(MeshDropFont.display(22, weight: .bold))
-            Text("scanning · \(Mock.me.ip)/24")
+            Text(engine.isStarting ? "scanning · \(me.ip)/24" : "LAN · \(me.ip)/24")
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
         }
     }
 
     private var radar: some View {
-        Radar(devices: Mock.devices.filter(\.isOnline), mode: .sweep,
-              selectedDevice: state.selectedDevice, diameter: 280)
+        Radar(devices: devices.filter(\.isOnline), mode: .sweep,
+              selectedDevice: state.selectedDeviceDisplay(engine: engine),
+              meIP: me.ip, diameter: 280)
             .frame(maxWidth: .infinity)
     }
 
-    private var devices: some View {
+    @ViewBuilder
+    private var devicesList: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("DEVICES · \(Mock.devices.count)")
-            ForEach(Mock.devices) { d in
-                DeviceCard(d, selected: state.selectedDeviceID == d.id, dense: true)
-                    .onTapGesture {
-                        state.selectedDeviceID = d.id
-                        section = .chat
-                    }
+            AsciiDivider("DEVICES · \(devices.count)")
+            if devices.isEmpty {
+                Text("附近没有设备 · 让朋友也打开试试")
+                    .font(MeshDropFont.mono(11))
+                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+            } else {
+                ForEach(devices) { d in
+                    DeviceCard(d, selected: state.selectedDeviceID == d.id, dense: true)
+                        .onTapGesture {
+                            state.selectedDeviceID = d.id
+                            section = .chat
+                        }
+                }
             }
         }
     }

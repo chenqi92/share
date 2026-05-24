@@ -1,8 +1,18 @@
 import SwiftUI
+import MeshDropKit
 
 struct MeTab: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+
+    private var me: MockMe { engine.displaySelf }
+    private var firstOffer: MockPendingOffer? { engine.pendingFileOffers.first?.displayMock }
+    private var historyToday: Int {
+        let cal = Calendar.current
+        return engine.history.filter { cal.isDateInToday($0.createdAt) }.count
+    }
+    private var trustedCount: Int { engine.trusted.count }
 
     var body: some View {
         ZStack {
@@ -47,19 +57,19 @@ struct MeTab: View {
             Avatar(initials: "ME", color: MeshDropColor.lime.opacity(0.9),
                    size: 56, ring: .lime, online: true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(Mock.me.name)
+                Text(me.name)
                     .font(MeshDropFont.display(20, weight: .bold))
                 HStack(spacing: 6) {
                     KindGlyph(.ios, size: 11)
-                    Text(Mock.me.os)
+                    Text(me.os)
                         .font(MeshDropFont.mono(11))
                     Text("·")
-                    Text(Mock.me.ip)
+                    Text(me.ip)
                         .font(MeshDropFont.mono(11))
                 }
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
 
-                Text(Mock.me.fingerprint)
+                Text(me.fingerprint)
                     .font(MeshDropFont.mono(10.5, weight: .medium))
                     .tracking(0.5)
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.7) : MeshDropColor.ink80)
@@ -78,10 +88,10 @@ struct MeTab: View {
     private var actionList: some View {
         VStack(spacing: 0) {
             actionRow("传输历史", "clock.arrow.circlepath",
-                      detail: "6 条今天") { state.showHistory = true }
+                      detail: "\(historyToday) 条今天") { state.showHistory = true }
             divider
             actionRow("信任管理", "checkmark.shield",
-                      detail: "5 台已配对") { state.showTrustManager = true }
+                      detail: "\(trustedCount) 台已配对") { state.showTrustManager = true }
             divider
             actionRow("配对新设备", "qrcode",
                       detail: "QR / 6 位代码") { state.showPairingSheet = true }
@@ -140,57 +150,66 @@ struct MeTab: View {
             .padding(.leading, 54)
     }
 
+    @ViewBuilder
     private var pendingCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Chip("OFFER", tone: .flame, mono: true, uppercased: true)
-                Text("来自 \(Mock.pendingOffer.peer)")
-                    .font(MeshDropFont.body(13, weight: .semibold))
-                Spacer()
-                Text(Mock.pendingOffer.receivedAt)
-                    .font(MeshDropFont.mono(10))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
-            }
-            FileChip(name: Mock.pendingOffer.fileName,
-                     size: Mock.pendingOffer.fileSize,
-                     ext: "pages")
-            if let note = Mock.pendingOffer.note {
-                Text("便签：\(note)")
-                    .font(MeshDropFont.body(12.5))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.7) : MeshDropColor.ink80)
-                    .padding(10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(scheme == .dark ? MeshDropColor.lime.opacity(0.10) : MeshDropColor.lime.opacity(0.32))
-                    )
-            }
-            HStack(spacing: 8) {
-                Button { state.showOfferSheet = true } label: {
-                    Text("查看并选择")
+        if let offer = firstOffer {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Chip("OFFER", tone: .flame, mono: true, uppercased: true)
+                    Text("来自 \(offer.peer)")
                         .font(MeshDropFont.body(13, weight: .semibold))
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(Capsule().fill(MeshDropColor.lime))
-                        .foregroundStyle(MeshDropColor.ink)
+                    Spacer()
+                    Text(offer.receivedAt)
+                        .font(MeshDropFont.mono(10))
+                        .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 }
-                .buttonStyle(.plain)
-                Button {} label: {
-                    Text("拒绝")
-                        .font(MeshDropFont.body(13, weight: .semibold))
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .overlay(Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 1))
+                FileChip(name: offer.fileName,
+                         size: offer.fileSize,
+                         ext: (offer.fileName as NSString).pathExtension)
+                HStack(spacing: 8) {
+                    Button { state.showOfferSheet = true } label: {
+                        Text("查看并选择")
+                            .font(MeshDropFont.body(13, weight: .semibold))
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(Capsule().fill(MeshDropColor.lime))
+                            .foregroundStyle(MeshDropColor.ink)
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        if let uuid = UUID(uuidString: offer.id) {
+                            engine.respondToFileOffer(uuid, accept: false)
+                        }
+                    } label: {
+                        Text("拒绝")
+                            .font(MeshDropFont.body(13, weight: .semibold))
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .overlay(Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
+            )
+        } else {
+            HStack {
+                Text("暂无待审收件")
+                    .font(MeshDropFont.mono(11))
+                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                 Spacer()
             }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
+            )
         }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
-        )
     }
 }
