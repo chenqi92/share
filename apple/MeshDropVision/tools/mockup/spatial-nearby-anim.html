@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<title>MeshDrop · Spatial Nearby [anim]</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+/* 离屏渲染：每帧通过 ?t=0.xx 控制 payload 在曲线上的进度 + halo 大小 */
+.payload-svg { position: absolute; inset: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<div class="passthrough"></div>
+
+<!-- ===== PeerOrbs（同 spatial-nearby.html，halo 大小随 t 呼吸） ===== -->
+
+<!-- Jiawei -->
+<div class="peer-orb glass" id="orb-jw" style="left: 110px; top: 380px; transform: scale(1.00); z-index: 12;">
+    <div class="halo" data-halo></div>
+    <div class="peer-row">
+        <div class="avatar" style="background: #C7B8FF;">JW</div>
+        <div><div class="name">嘉伟</div><div class="device">Jiawei · iPad</div></div>
+    </div>
+    <div class="meta">
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>ONLINE</div>
+        <div class="chip mono">14 MS</div>
+        <div class="spacer"></div><span class="distance">≈ 1.8 m</span>
+    </div>
+</div>
+
+<!-- Lily focus -->
+<div class="peer-orb glass" id="orb-lily"
+     style="left: 1340px; top: 280px; transform: scale(1.05); z-index: 14;
+            box-shadow: 0 18px 38px rgba(0,0,0,0.55), 0 0 0 1.6px #DDF94B;">
+    <div class="halo" data-halo
+         style="background: radial-gradient(circle, rgba(221,249,75,0.4), rgba(221,249,75,0.03) 55%, transparent 75%);"></div>
+    <div class="peer-row">
+        <div class="avatar ring" style="background: #FFB4A1; margin: 6px;">LL</div>
+        <div><div class="name">李莉</div><div class="device">Lily's MacBook</div></div>
+    </div>
+    <div class="meta">
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>ONLINE</div>
+        <div class="chip mono">18 MS</div>
+        <div class="spacer"></div><span class="distance">≈ 2.4 m</span>
+    </div>
+    <div class="send-cue">
+        <span class="pinch-icon">✥</span>
+        <span>捏合 · 发送 3 张照片 → 李莉</span>
+    </div>
+</div>
+
+<!-- MengXi -->
+<div class="peer-orb glass" id="orb-mx" style="left: 180px; top: 760px; transform: scale(0.92); opacity: 0.92; z-index: 8;">
+    <div class="halo" data-halo></div>
+    <div class="peer-row">
+        <div class="avatar" style="background: #FFD970;">MX</div>
+        <div><div class="name">孟茜</div><div class="device">Meng Xi · iPhone</div></div>
+    </div>
+    <div class="meta">
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>ONLINE</div>
+        <div class="chip mono">26 MS</div><div class="spacer"></div><span class="distance">≈ 3.0 m</span>
+    </div>
+</div>
+
+<!-- Kun -->
+<div class="peer-orb glass" id="orb-kun" style="left: 1380px; top: 780px; transform: scale(0.78); opacity: 0.92; z-index: 8;">
+    <div class="halo" data-halo></div>
+    <div class="peer-row">
+        <div class="avatar" style="background: #B7E5C8;">K</div>
+        <div><div class="name">坤</div><div class="device">Kun · Pixel 8</div></div>
+    </div>
+    <div class="meta">
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>ONLINE</div>
+        <div class="chip mono">32 MS</div><div class="spacer"></div><span class="distance">≈ 4.1 m</span>
+    </div>
+</div>
+
+<!-- DEV01 -->
+<div class="peer-orb glass" id="orb-dev01"
+     style="left: 1500px; top: 540px; transform: scale(0.58); opacity: 0.78; filter: blur(1.4px); z-index: 5;">
+    <div class="halo" data-halo></div>
+    <div class="peer-row">
+        <div class="avatar" style="background: #9AD0FF;">D1</div>
+        <div><div class="name">工位机</div><div class="device">DEV-01 · Win 11</div></div>
+    </div>
+    <div class="meta">
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>ONLINE</div>
+        <div class="chip mono">41 MS</div><div class="spacer"></div><span class="distance">≈ 6.8 m</span>
+    </div>
+</div>
+
+
+<!-- ===== 飞行轨迹 (随 t 移动 payload) ===== -->
+<svg class="payload-svg" width="1800" height="1100" id="trail">
+  <defs>
+    <radialGradient id="g-payload" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#DDF94B" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#DDF94B" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#DDF94B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- 主轨迹 -->
+  <path d="M 900 700 Q 1180 360, 1480 360"
+        fill="none" stroke="#DDF94B" stroke-opacity="0.55"
+        stroke-width="1.4" stroke-dasharray="3 4" stroke-linecap="round"/>
+  <!-- payload (动) -->
+  <g id="payload-grp">
+    <circle id="payload-glow" r="14" fill="url(#g-payload)" opacity="0.5"/>
+    <circle id="payload-core" r="7" fill="#DDF94B"/>
+    <circle id="payload-ring" r="7" fill="none" stroke="#fff" stroke-opacity="0.85" stroke-width="1"/>
+  </g>
+  <!-- 6 个残影粒子 -->
+  <g id="trail-particles"></g>
+</svg>
+
+
+<!-- ===== gaze reticle ===== -->
+<div class="reticle" id="reticle" style="left: 1330px; top: 70px;">
+  <div class="ring">
+    <svg viewBox="0 0 160 160">
+      <circle cx="80" cy="80" r="80" fill="none" stroke="rgba(221,249,75,0.2)" stroke-width="6" id="r-soft"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="#DDF94B"
+              stroke-width="1.4" stroke-linecap="round"
+              stroke-dasharray="92 348" stroke-dashoffset="-8"
+              transform="rotate(-90 80 80)"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="#DDF94B"
+              stroke-width="1.4" stroke-linecap="round"
+              stroke-dasharray="92 348" stroke-dashoffset="-98"
+              transform="rotate(-90 80 80)"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="#DDF94B"
+              stroke-width="1.4" stroke-linecap="round"
+              stroke-dasharray="92 348" stroke-dashoffset="-188"
+              transform="rotate(-90 80 80)"/>
+      <circle cx="80" cy="80" r="70" fill="none" stroke="#DDF94B"
+              stroke-width="1.4" stroke-linecap="round"
+              stroke-dasharray="92 348" stroke-dashoffset="-278"
+              transform="rotate(-90 80 80)"/>
+      <line x1="68" y1="80" x2="74" y2="80" stroke="#DDF94B" stroke-width="1.0" stroke-linecap="round"/>
+      <line x1="86" y1="80" x2="92" y2="80" stroke="#DDF94B" stroke-width="1.0" stroke-linecap="round"/>
+      <line x1="80" y1="68" x2="80" y2="74" stroke="#DDF94B" stroke-width="1.0" stroke-linecap="round"/>
+      <line x1="80" y1="86" x2="80" y2="92" stroke="#DDF94B" stroke-width="1.0" stroke-linecap="round"/>
+      <circle cx="80" cy="80" r="3" fill="#DDF94B"/>
+      <circle cx="80" cy="80" r="6" fill="#DDF94B" opacity="0.35"/>
+    </svg>
+  </div>
+  <div class="label">
+    <span>◉</span><span>看向 LILY · 准备捏合发送</span>
+  </div>
+</div>
+
+
+<!-- 中央主窗口 -->
+<div class="main-window glass" style="left: 610px; top: 240px;">
+    <div class="head">
+        <div style="display:flex; align-items:center; gap: 10px;">
+            <svg viewBox="0 0 24 24" width="26" height="26">
+                <circle cx="9"  cy="12" r="6.5" fill="none" stroke="#E8E3D6" stroke-width="2"/>
+                <circle cx="15" cy="12" r="6.5" fill="none" stroke="#E8E3D6" stroke-width="2"/>
+                <circle cx="12" cy="12" r="1.8" fill="#DDF94B"/>
+            </svg>
+            <div style="display:flex; align-items:baseline; gap:3px;">
+                <span style="font-weight:600; font-size:21px; letter-spacing:-0.5px;">meshdrop</span>
+                <span style="width:6px; height:6px; background:#DDF94B; border-radius:999px;"></span>
+            </div>
+        </div>
+        <div class="chip mono">SPATIAL · 客厅</div>
+        <div class="spacer"></div>
+        <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>5 PEERS</div>
+    </div>
+    <div class="head-rule"></div>
+
+    <div>
+        <div class="hero">你身边的设备</div>
+        <div class="hero" style="display:flex; align-items:baseline; gap:14px;">
+            <span class="accent">都已就位.</span>
+            <span style="color: rgba(232,227,214,0.45); font-size: 22px;">←</span>
+        </div>
+        <div class="hero-sub">看向任意一台设备 · 捏合即发送</div>
+    </div>
+
+    <div class="selected-block">
+        <div class="divider">Selected · 已选 · 3 项 · 12.4 MB</div>
+        <div class="photo-row">
+            <div class="photo"><svg viewBox="0 0 96 124">
+                <defs><linearGradient id="ph1a" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="hsl(16,55%,82%)"/>
+                  <stop offset="60%" stop-color="hsl(34,68%,60%)"/>
+                  <stop offset="100%" stop-color="hsl(66,80%,28%)"/>
+                </linearGradient></defs>
+                <rect width="96" height="124" fill="url(#ph1a)"/>
+                <circle cx="20" cy="32" r="11" fill="#fff" opacity="0.88"/>
+                <path d="M 0 96 L 28 60 L 46 78 L 72 50 L 96 70 L 96 124 L 0 124 Z" fill="hsl(76,65%,18%)"/>
+            </svg></div>
+            <div class="photo"><svg viewBox="0 0 96 124">
+                <defs><linearGradient id="ph2a" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="hsl(220,55%,82%)"/>
+                  <stop offset="60%" stop-color="hsl(238,68%,55%)"/>
+                  <stop offset="100%" stop-color="hsl(270,70%,28%)"/>
+                </linearGradient></defs>
+                <rect width="96" height="124" fill="url(#ph2a)"/>
+                <circle cx="20" cy="32" r="11" fill="#fff" opacity="0.88"/>
+                <path d="M 0 96 L 32 56 L 48 78 L 70 52 L 96 72 L 96 124 L 0 124 Z" fill="hsl(280,55%,20%)"/>
+            </svg></div>
+            <div class="photo"><svg viewBox="0 0 96 124">
+                <defs><linearGradient id="ph3a" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="hsl(156,55%,82%)"/>
+                  <stop offset="60%" stop-color="hsl(178,72%,52%)"/>
+                  <stop offset="100%" stop-color="hsl(206,72%,28%)"/>
+                </linearGradient></defs>
+                <rect width="96" height="124" fill="url(#ph3a)"/>
+                <circle cx="20" cy="32" r="11" fill="#fff" opacity="0.88"/>
+                <path d="M 0 96 L 30 58 L 50 80 L 72 56 L 96 72 L 96 124 L 0 124 Z" fill="hsl(216,62%,20%)"/>
+            </svg></div>
+            <div class="size-block">
+                <div class="size-num">12.4 MB</div>
+                <div class="size-sub">3 张 · jpeg / heic</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="hint-row">
+        <span>◉ GAZE</span>
+        <span class="arrow">→</span>
+        <span>✥ PINCH</span>
+        <span class="arrow">→</span>
+        <span>● HOLD · 上下文</span>
+        <span class="right">E2E · LAN ONLY</span>
+    </div>
+</div>
+
+
+<!-- 顶部 / 底部 ornaments -->
+<div class="ornament" style="left: 700px; top: 28px;">
+    <div class="me">
+        <div class="avatar" style="background:#DDF94B; width:28px; height:28px; font-size:13px;">我</div>
+        <div><div class="name">我</div><div class="ip">192.168.1.42</div></div>
+    </div>
+    <div class="divider-v"></div>
+    <div class="chip lime mono"><span class="dot" style="background:#A8C800"></span>VISIBLE · 可见</div>
+    <div class="chip mono">E2E · CHACHA20</div>
+    <div class="chip mono">LAN ONLY</div>
+    <div style="width:8px"></div>
+    <div class="fingerprint">⌘ ZX8K · L72M · 9FQ3 · 7HD2</div>
+</div>
+
+<div class="tab-ornament" style="position:absolute; left: 700px; top: 1020px;">
+    <div class="tab active">◐ 附近 · Nearby</div>
+    <div class="tab">◌ 对话 · Chats</div>
+    <div class="tab">↕ 传输 · Transfers</div>
+    <div class="tab">▦ 配对 · Pair</div>
+</div>
+
+<div class="close-handle" style="left: 40px; top: 1004px;">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <line x1="2.5" y1="2.5" x2="11.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <line x1="11.5" y1="2.5" x2="2.5" y2="11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+</div>
+
+
+<script>
+// 从 URL ?t=0.42 读取动画进度
+const params = new URLSearchParams(location.search);
+const t = parseFloat(params.get('t') || '0.5');
+
+// 主轨迹曲线参数: (900,700) -> Q(1180,360) -> (1480,360)
+function curve(t) {
+    const o = 1 - t;
+    const x = o*o*900 + 2*o*t*1180 + t*t*1480;
+    const y = o*o*700 + 2*o*t*360  + t*t*360;
+    return { x, y };
+}
+
+// payload 主点
+const cur = curve(t);
+['payload-glow', 'payload-core', 'payload-ring'].forEach(id => {
+    const el = document.getElementById(id);
+    el.setAttribute('cx', cur.x);
+    el.setAttribute('cy', cur.y);
+});
+
+// 6 个残影粒子
+const trailG = document.getElementById('trail-particles');
+for (let i = 1; i <= 6; i++) {
+    const tt = Math.max(0, t - i * 0.06);
+    const p = curve(tt);
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', p.x);
+    c.setAttribute('cy', p.y);
+    c.setAttribute('r', Math.max(2, 8 - i));
+    c.setAttribute('fill', '#DDF94B');
+    c.setAttribute('opacity', Math.max(0, 0.55 - i * 0.08));
+    trailG.appendChild(c);
+}
+
+// halo 呼吸: 振幅 1.0 - 1.10
+const haloPhase = (Math.sin(t * Math.PI * 2) + 1) * 0.5; // 0..1
+const haloScale = 0.92 + haloPhase * 0.18;
+const haloOpacity = 0.85 - haloPhase * 0.45;
+document.querySelectorAll('[data-halo]').forEach((el, i) => {
+    const phase = (haloPhase + i * 0.18) % 1;
+    el.style.transform = `scale(${0.92 + phase * 0.18})`;
+    el.style.opacity = `${0.85 - phase * 0.45}`;
+});
+
+// reticle 软边发光呼吸
+const ringSoft = document.getElementById('r-soft');
+ringSoft.setAttribute('stroke', `rgba(221,249,75,${0.18 + haloPhase * 0.18})`);
+</script>
+
+</body>
+</html>
