@@ -24,8 +24,19 @@ struct GalleryPage: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 28), count: 5)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            header
+        VStack(alignment: .leading, spacing: 20) {
+            PageHeader(
+                tag: "收件箱 · LIBRARY · \(MockData.gallerySummary.count) 件 · \(MockData.gallerySummary.size)",
+                title: "收件箱 ",
+                titleAccentSuffix: MockData.gallerySummary.count
+            ) {
+                HStack(spacing: 12) {
+                    ForEach(GalleryFilter.allCases, id: \.self) { f in
+                        filterChip(f)
+                    }
+                }
+                .focusSection()
+            }
 
             MeshAsciiDivider(label: "TODAY · 今天 · 7 件 · NEW")
                 .padding(.top, 4)
@@ -46,37 +57,6 @@ struct GalleryPage: View {
                 .init(glyph: "OK·长", label: "更多"),
                 .init(glyph: "TV", label: "返回"),
             ])
-        }
-    }
-
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 36) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("收件箱 · LIBRARY")
-                    .monoTag()
-                HStack(spacing: 18) {
-                    Text(MockData.gallerySummary.count)
-                        .font(.system(size: 64, weight: .bold, design: .default))
-                        .foregroundStyle(MeshDropColor.dpaper)
-                    Text("件")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(MeshDropColor.dpaperDim)
-                        .offset(y: -8)
-                    Text("·")
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(MeshDropColor.dpaperMute)
-                    Text(MockData.gallerySummary.size)
-                        .font(.system(size: 44, weight: .bold, design: .monospaced))
-                        .foregroundStyle(MeshDropColor.lime)
-                }
-            }
-            Spacer()
-            HStack(spacing: 12) {
-                ForEach(GalleryFilter.allCases, id: \.self) { f in
-                    filterChip(f)
-                }
-            }
-            .focusSection()
         }
     }
 

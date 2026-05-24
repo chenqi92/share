@@ -24,20 +24,16 @@ struct SettingsPage: View {
     @FocusState private var focusedRow: UUID?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("设置 · SETTINGS")
-                        .monoTag()
-                    Text("设置")
-                        .font(.system(size: 64, weight: .bold))
-                        .foregroundStyle(MeshDropColor.dpaper)
-                }
-                Spacer()
+        VStack(alignment: .leading, spacing: 20) {
+            PageHeader(
+                tag: "设置 · SETTINGS · 可见性 · 安全 · 行为",
+                title: "设置 ",
+                titleAccentSuffix: "Settings"
+            ) {
                 HStack(spacing: 10) {
-                    Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 16)
-                    Chip(text: "E2E", tone: .outline, mono: true, size: 16)
-                    Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 16)
+                    Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 14)
+                    Chip(text: "E2E", tone: .outline, mono: true, size: 14)
+                    Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 14)
                 }
             }
 
