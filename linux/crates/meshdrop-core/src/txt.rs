@@ -45,5 +45,6 @@ pub fn decode(attrs: &HashMap<String, String>) -> Option<Device> {
         fingerprint: fp.clone(),
         port,
         protocol_version: v,
+        host: None,
     })
 }

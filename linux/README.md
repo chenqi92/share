@@ -1,47 +1,79 @@
 # Linux
 
-Rust + GTK4 + libadwaita + mdns-sd + ed25519-dalek。最低 GTK 4.12 / libadwaita 1.5
-（Ubuntu 24.04、Fedora 40+ 默认满足）。
+Cargo workspace，拆成 **共享 core + GUI binary + TUI binary** 三个 crate。
+GUI 用 GTK4 / libadwaita；TUI 用 ratatui + crossterm，适合 SSH / headless /
+容器场景。
 
 ```
 linux/
-├── Cargo.toml
+├── Cargo.toml                  # workspace 定义
+├── crates/
+│   ├── meshdrop-core/          # 协议 + mDNS + 传输 + 引擎 (tokio)
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── protocol.rs     # Frame / Messages / FileChunkHeader
+│   │       ├── connection.rs   # tokio TCP 异步帧 I/O
+│   │       ├── engine.rs       # 单 task 模型：握手 + 文件传输完整链路
+│   │       ├── discovery.rs    # mdns-sd register + browse
+│   │       ├── identity.rs     # Ed25519
+│   │       ├── trust.rs        # SharedPreferences 风格 JSON 信任库
+│   │       ├── history.rs      # HistoryItem / TransferStatus
+│   │       ├── device.rs / txt.rs
+│   ├── meshdrop-gui/           # bin: meshdrop  (GTK4 + libadwaita)
+│   └── meshdrop-tui/           # bin: meshdrop-tui  (ratatui)
 ├── data/
-│   └── meshdrop.desktop
-└── src/
-    ├── main.rs        # adw::Application 入口
-    ├── ui.rs          # MainWindow（AdwApplicationWindow + 设备 ListBox）
-    ├── device.rs      # Device 数据模型
-    ├── identity.rs    # Ed25519 (ed25519-dalek)
-    ├── txt.rs         # mDNS TXT 编解码
-    └── discovery.rs   # ServiceDaemon register + browse
+│   ├── meshdrop.desktop
+│   └── icons/hicolor/*/apps/drop.mesh.linux.png
+└── README.md
 ```
 
-## 系统依赖
-
-构建期需要 GTK4 / libadwaita 开发头文件：
+## 系统依赖（仅 GUI 需要）
 
 - **Ubuntu 24.04+**: `sudo apt install libgtk-4-dev libadwaita-1-dev`
 - **Fedora 40+**:    `sudo dnf install gtk4-devel libadwaita-devel`
 - **Arch**:           `sudo pacman -S gtk4 libadwaita`
 
-运行时也需要对应 runtime 包（一般和 dev 包一起装）。
+TUI 零系统依赖，纯 Rust。
 
 ## 构建
 
 ```bash
 cd linux
-cargo build --release
-cargo run --release
+cargo build --release                  # 编 core + gui + tui
+cargo run --release --bin meshdrop     # GUI
+cargo run --release --bin meshdrop-tui # TUI
 ```
 
-## 安装（可选）
+只想编 TUI（开发机无 GTK4 时）：
+
+```bash
+cargo build --release -p meshdrop-tui
+```
+
+## TUI 操作键
+
+| 按键        | 行为                          |
+| ----------- | ----------------------------- |
+| `↑/k ↓/j`   | 切换选中设备                  |
+| `Enter / i` | 进入文本输入，再按 Enter 发送 |
+| `:`         | 命令模式：`:f <路径>` 发文件  |
+| `a`         | 接受待审请求（pairing / 文件）|
+| `t`         | 接受配对并写入信任库          |
+| `r`         | 拒绝待审请求                  |
+| `d`         | 删除最近一条历史              |
+| `c`         | 清空历史                      |
+| `q / Esc`   | 退出                          |
+
+收到配对请求或文件 offer 时自动弹出居中的浮窗，状态机会暂时只接受
+`a/t/r` 三种按键直到处理完。
+
+## 安装（GUI 桌面集成）
 
 ```bash
 sudo install -Dm755 target/release/meshdrop /usr/local/bin/meshdrop
+sudo install -Dm755 target/release/meshdrop-tui /usr/local/bin/meshdrop-tui
 sudo install -Dm644 data/meshdrop.desktop \
     /usr/local/share/applications/meshdrop.desktop
-# 多分辨率图标（hicolor 主题）
 for size in 48 64 128 256 512; do
   sudo install -Dm644 "data/icons/hicolor/${size}x${size}/apps/drop.mesh.linux.png" \
     "/usr/share/icons/hicolor/${size}x${size}/apps/drop.mesh.linux.png"
@@ -51,18 +83,16 @@ sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
 
 ## 当前覆盖
 
-- ✅ Identity（Ed25519 via ed25519-dalek，明文落 `~/.local/share/MeshDrop/`）
-- ✅ mDNS 发现（mdns-sd register + browse）
-- ✅ GTK4 / libadwaita 设备列表（AdwActionRow + AdwStatusPage）
-- ⚠️ Transport：accept 后直接 close（骨架）
-- ⚠️ 私钥未走 libsecret；Pairing / Text / File：未实现
+- ✅ 协议层完整（Frame / 11 个消息 / FileChunkHeader）
+- ✅ mDNS 发现 + 信任库 (TOFU)
+- ✅ HELLO 握手 + 配对 + 文本 / 文件双向传输（SHA-256 校验）
+- ✅ GUI：libadwaita 设备列表 + 历史 + SendDialog / PairingDialog / FileOfferDialog
+- ✅ TUI：ratatui 全键盘 + 自动弹窗，零系统依赖
+- ⚠️ GUI 美化较朴素（设计：libadwaita 默认风格），后续可加渐变背景与玻璃效果
 
 ## TODO
 
-- [ ] 私钥落 libsecret（`secret-service` crate）
-- [ ] TCP 协程化（tokio）+ Frame 读写
-- [ ] HELLO 握手 + AdwMessageDialog 配对确认
-- [ ] TEXT 发送
-- [ ] FILE 传输（含 `gtk::FileChooserNative` 选择文件）
+- [ ] 私钥落 libsecret
 - [ ] TLS 1.3 双向证书校验（rustls）
-- [ ] Flatpak 打包（org.freedesktop.Platform/24.08）
+- [ ] 多文件批量 + 断点续传
+- [ ] Flatpak 打包

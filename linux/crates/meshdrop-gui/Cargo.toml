@@ -1,0 +1,22 @@
+[package]
+name = "meshdrop-gui"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "meshdrop"
+path = "src/main.rs"
+
+[dependencies]
+meshdrop-core = { path = "../meshdrop-core" }
+
+gtk = { package = "gtk4", version = "0.9", features = ["v4_12"] }
+adw = { package = "libadwaita", version = "0.7", features = ["v1_5"] }
+glib = "0.20"
+
+tokio.workspace = true
+async-channel.workspace = true
+log.workspace = true
+env_logger.workspace = true
+uuid.workspace = true
+anyhow.workspace = true

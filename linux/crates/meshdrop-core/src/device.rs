@@ -49,6 +49,7 @@ pub struct Device {
     pub fingerprint: String,   // 32 hex
     pub port: u16,
     pub protocol_version: u8,
+    pub host: Option<String>,  // mDNS 解析得到的 IP / hostname
 }
 
 impl Device {

@@ -38,7 +38,8 @@ public sealed record Device(
     string? Model,
     string Fingerprint,   // 32 hex
     ushort Port,
-    byte ProtocolVersion = 1
+    byte ProtocolVersion = 1,
+    string? Host = null   // mDNS 解析得到的 IP/hostname；连接时用
 )
 {
     /// <summary>4 字符分组、空格分隔、大写。</summary>
