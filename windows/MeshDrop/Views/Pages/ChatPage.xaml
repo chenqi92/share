@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Pages.ChatPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    xmlns:mock="using:MeshDrop.Mock">
+
+    <Grid Background="{ThemeResource MdPaperBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Peer header -->
+        <Border Grid.Row="0"
+                Background="{ThemeResource MdGlassBrush}"
+                BorderBrush="{ThemeResource MdLineBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,12,20,12">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ctrl:AvatarControl Grid.Column="0" Size="36" Initials="LL" ColorHex="#FFB4A1" ShowRing="Visible"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="-1">
+                    <TextBlock Text="{x:Bind ViewModel.PeerDisplayName, Mode=OneWay}"
+                               FontFamily="{StaticResource MdDisplayFontFamily}"
+                               FontWeight="SemiBold"
+                               FontSize="16"/>
+                    <TextBlock Text="{x:Bind ViewModel.PeerSubtitle, Mode=OneWay}"
+                               FontFamily="{StaticResource MdMonoFontFamily}"
+                               FontSize="10"
+                               Opacity="0.6"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <ctrl:ChipControl Text="E2E" Tone="Lime" Mono="True"/>
+                    <ctrl:ChipControl Text="TRUSTED" Tone="Outline" Mono="True"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 消息流 -->
+        <Grid Grid.Row="1">
+            <ScrollViewer Padding="32,12,32,12" VerticalScrollMode="Enabled">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Messages, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="0"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="mock:MockMessage">
+                            <ctrl:MsgBubble Side="{x:Bind Side}"
+                                            Kind="{x:Bind Kind}"
+                                            Text="{x:Bind Text}"
+                                            Time="{x:Bind Time}"
+                                            Delivered="{x:Bind Delivered}"
+                                            FileName="{x:Bind FileName}"
+                                            FileSize="{x:Bind FileSize}"
+                                            FileExt="{x:Bind FileExt}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- 拖文件 overlay (默认隐藏；MainWindow drag 事件触发显示) -->
+            <Border x:Name="DropOverlay"
+                    Background="#52DDF94B"
+                    BorderBrush="{ThemeResource MdInkBrush}"
+                    BorderThickness="2"
+                    Visibility="Collapsed"
+                    CornerRadius="0">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                    <TextBlock Text="⤓"
+                               FontFamily="{StaticResource MdDisplayFontFamily}"
+                               FontSize="64" FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="放手即发 · Drop to send"
+                               FontFamily="{StaticResource MdDisplayFontFamily}"
+                               FontSize="22" FontWeight="Bold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="{x:Bind ViewModel.DropOverlayText}"
+                               Style="{StaticResource MdMonoTagStyle}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Composer -->
+        <Border Grid.Row="2"
+                Background="{ThemeResource MdCardBrush}"
+                BorderBrush="{ThemeResource MdLineBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="20,12,20,16">
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Style="{StaticResource MdOutlineButtonStyle}">
+                    <TextBlock Text="+ 文件 / 图片 / 文字便签"
+                               FontFamily="{StaticResource MdBodyFontFamily}"/>
+                </Button>
+                <TextBox Grid.Column="1"
+                         PlaceholderText="说点什么…  / 文件夹 即整目录 ZIP 后发送"
+                         AcceptsReturn="False"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         FontFamily="{StaticResource MdBodyFontFamily}"
+                         FontSize="14"
+                         VerticalContentAlignment="Center"/>
+                <Button Grid.Column="2" Style="{StaticResource MdAccentButtonStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="发送"/>
+                        <TextBlock Text="→"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

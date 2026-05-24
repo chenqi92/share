@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="MeshDrop.Views.Dialogs.FileOfferDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    Title=""
+    Background="{ThemeResource MdCardBrush}"
+    Width="540">
+
+    <StackPanel Spacing="14" MinWidth="480">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <ctrl:AvatarControl Size="42" Initials="JW" ColorHex="#C7B8FF"/>
+            <StackPanel VerticalAlignment="Center" Spacing="-1">
+                <TextBlock Text="嘉伟 想发文件给你"
+                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                           FontWeight="SemiBold"
+                           FontSize="18"/>
+                <TextBlock Text="Jiawei · iPad · iPadOS 18.2 · 192.168.1.44"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="10"
+                           Opacity="0.6"/>
+            </StackPanel>
+            <ctrl:ChipControl Text="just now" Tone="Lime" Mono="True" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <ctrl:FileChip Name="规划文档_v0.3.pages" Size="3.4 MB" Ext="PAGES"/>
+
+        <Border CornerRadius="10"
+                Background="{ThemeResource MdPaper2Brush}"
+                Padding="14,12,14,12">
+            <StackPanel Spacing="6">
+                <TextBlock Text="文字便签 · note"
+                           Style="{StaticResource MdMonoTagStyle}"
+                           Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                <TextBlock Text="改完了帮我看下第二章，特别是 §2.3 那段"
+                           FontFamily="{StaticResource MdBodyFontFamily}"
+                           FontSize="13"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <Grid ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" CornerRadius="8" Background="{ThemeResource MdInk06Brush}" Padding="10">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="将保存至" Style="{StaticResource MdMonoTagStyle}"/>
+                    <TextBlock Text="C:\Users\dev\Downloads\MeshDrop\嘉伟\"
+                               FontFamily="{StaticResource MdMonoFontFamily}"
+                               FontSize="10"
+                               Opacity="0.75"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" CornerRadius="8" Background="{ThemeResource MdInk06Brush}" Padding="10">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="校验 · sha-256" Style="{StaticResource MdMonoTagStyle}"/>
+                    <TextBlock Text="完成后自动核对"
+                               FontFamily="{StaticResource MdMonoFontFamily}"
+                               FontSize="10"
+                               Opacity="0.75"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                <TextBlock Text="× 拒绝"/>
+            </Button>
+            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                <TextBlock Text="查看…"/>
+            </Button>
+            <Button Style="{StaticResource MdAccentButtonStyle}">
+                <TextBlock Text="✓ 接收 · 3.4 MB"/>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>

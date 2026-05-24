@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Pages.TrustPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    xmlns:mock="using:MeshDrop.Mock">
+
+    <Grid Background="{ThemeResource MdPaperBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Padding="24,18,24,10" Spacing="6">
+            <TextBlock Text="已配对 · Trust manager"
+                       FontFamily="{StaticResource MdDisplayFontFamily}"
+                       FontWeight="Bold"
+                       FontSize="28"
+                       CharacterSpacing="-25"/>
+            <TextBlock Text="4 台设备已通过指纹验证。撤销后下次连接需重新双向确认。"
+                       FontFamily="{StaticResource MdMonoFontFamily}"
+                       FontSize="11"
+                       Opacity="0.65"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Padding="24,4,24,18">
+            <StackPanel Spacing="10">
+                <!-- 表头 -->
+                <Border CornerRadius="8" Background="{ThemeResource MdPaper2Brush}" Padding="14,8,14,8">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="140"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="DEVICE"      Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Grid.Column="1" Text="OS"          Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Grid.Column="2" Text="FINGERPRINT" Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Grid.Column="3" Text="PAIRED ON"   Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Grid.Column="4" Text="LAST SEEN"   Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Grid.Column="5" Text="ACTION"      Style="{StaticResource MdMonoTagStyle}"/>
+                    </Grid>
+                </Border>
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Trusted, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="6"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="mock:MockTrust">
+                            <Border CornerRadius="10"
+                                    Background="{ThemeResource MdCardBrush}"
+                                    BorderBrush="{ThemeResource MdLineBrush}"
+                                    BorderThickness="1"
+                                    Padding="14,10,14,10">
+                                <Grid ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200"/>
+                                        <ColumnDefinition Width="140"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Vertical" Spacing="-1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Who}"
+                                                   FontFamily="{StaticResource MdBodyFontFamily}"
+                                                   FontWeight="SemiBold" FontSize="13"/>
+                                        <TextBlock Text="{x:Bind DeviceName}"
+                                                   FontFamily="{StaticResource MdMonoFontFamily}"
+                                                   FontSize="10" Opacity="0.55"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Os}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="11" Opacity="0.8" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind Fingerprint}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="11"
+                                               Foreground="{ThemeResource MdLimeDeepBrush}"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="3" Text="{x:Bind PairedOn}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="11" Opacity="0.65" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="4" Text="{x:Bind LastSeen}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="11" Opacity="0.65" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="5" Style="{StaticResource MdOutlineButtonStyle}" VerticalAlignment="Center">
+                                        <TextBlock Text="撤销信任"/>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <ctrl:AsciiDivider Label="── PENDING · 待审 · 1 ──" Margin="0,12,0,0"/>
+
+                <Border CornerRadius="12"
+                        Background="{ThemeResource MdLimeFaintBrush}"
+                        BorderBrush="{ThemeResource MdLimeBrush}"
+                        BorderThickness="1"
+                        Padding="14">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <ctrl:AvatarControl Size="36" Initials="LL" ColorHex="#FFB4A1"/>
+                            <StackPanel VerticalAlignment="Center" Spacing="-1">
+                                <TextBlock Text="李莉 · Lily's MacBook"
+                                           FontFamily="{StaticResource MdBodyFontFamily}"
+                                           FontWeight="SemiBold" FontSize="14"/>
+                                <TextBlock Text="8s ago · 同 LAN"
+                                           FontFamily="{StaticResource MdMonoFontFamily}"
+                                           FontSize="10" Opacity="0.6"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Text="ZX8K · L72M · 9FQ3 · 7HD2 · M1P6 · QA8N · KZ9R · X3WF"
+                                   FontFamily="{StaticResource MdMonoFontFamily}"
+                                   FontSize="13"
+                                   Foreground="{ThemeResource MdLimeDeepBrush}"
+                                   TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Style="{StaticResource MdAccentButtonStyle}">
+                                <TextBlock Text="✓ 允许并记住"/>
+                            </Button>
+                            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                                <TextBlock Text="允许一次"/>
+                            </Button>
+                            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                                <TextBlock Text="× 拒绝"/>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

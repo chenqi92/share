@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.MeshDropLogo"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 两个重叠圆环 (stroke) + 中间 lime 实心圆点 (viewBox 24x24) -->
+    <Grid Width="{x:Bind Size, Mode=OneWay}"
+          Height="{x:Bind Size, Mode=OneWay}">
+        <Viewbox>
+            <Grid Width="24" Height="24">
+                <Ellipse Width="13" Height="13"
+                         Stroke="{x:Bind RingBrush, Mode=OneWay}"
+                         StrokeThickness="2"
+                         HorizontalAlignment="Left"
+                         VerticalAlignment="Center"
+                         Margin="2.5,0,0,0"/>
+                <Ellipse Width="13" Height="13"
+                         Stroke="{x:Bind RingBrush, Mode=OneWay}"
+                         StrokeThickness="2"
+                         HorizontalAlignment="Right"
+                         VerticalAlignment="Center"
+                         Margin="0,0,2.5,0"/>
+                <Ellipse Width="3.6" Height="3.6"
+                         Fill="{ThemeResource MdLimeBrush}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+            </Grid>
+        </Viewbox>
+    </Grid>
+</UserControl>

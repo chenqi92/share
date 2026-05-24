@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Pages.TransfersPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    xmlns:mock="using:MeshDrop.Mock">
+
+    <Grid Background="{ThemeResource MdPaperBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="24,18,24,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="传输 · Transfers"
+                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                           FontWeight="Bold"
+                           FontSize="28"
+                           CharacterSpacing="-25"/>
+                <TextBlock Text="6 个任务 · 2 进行中"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="11"
+                           Opacity="0.65"/>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <ctrl:ChipControl Text="全部" Tone="Ink"/>
+                <ctrl:ChipControl Text="活跃 · 2" Tone="Outline"/>
+                <ctrl:ChipControl Text="已完成" Tone="Outline"/>
+            </StackPanel>
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Padding="24,8,24,18" VerticalScrollMode="Enabled">
+            <StackPanel Spacing="14">
+                <!-- 3 DashTile -->
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <ctrl:DashTile Grid.Column="0"
+                                   Label="── SESSION · 传输总量 ──"
+                                   Value="{x:Bind ViewModel.SessionValue}"
+                                   Hint="自 09:12 起"
+                                   AccentBrush="{ThemeResource MdLimeDeepBrush}"
+                                   Bars="{x:Bind ViewModel.SessionBars}"/>
+                    <ctrl:DashTile Grid.Column="1"
+                                   Label="── UP ↑ · 上行 ──"
+                                   Value="{x:Bind ViewModel.UpValue}"
+                                   Hint="峰值 58.2 MB/s"
+                                   AccentBrush="{ThemeResource MdFlameBrush}"
+                                   Bars="{x:Bind ViewModel.UploadBars}"/>
+                    <ctrl:DashTile Grid.Column="2"
+                                   Label="── DOWN ↓ · 下行 ──"
+                                   Value="{x:Bind ViewModel.DownValue}"
+                                   Hint="峰值 14.1 MB/s"
+                                   AccentBrush="{ThemeResource MdSkyBrush}"
+                                   Bars="{x:Bind ViewModel.DownloadBars}"/>
+                </Grid>
+
+                <ctrl:AsciiDivider Label="── TASKS · 任务列表 · 6 ──"/>
+
+                <ItemsControl ItemsSource="{x:Bind ViewModel.All, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="mock:MockTransfer">
+                            <ctrl:TransferRowControl Name="{x:Bind Name}"
+                                                     Size="{x:Bind Size}"
+                                                     Ext="{x:Bind Ext}"
+                                                     FromTo="{x:Bind FromToText}"
+                                                     State="{x:Bind State}"
+                                                     Progress="{x:Bind Progress}"
+                                                     Speed="{x:Bind Speed}"
+                                                     Eta="{x:Bind Eta}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

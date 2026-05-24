@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.AsciiDivider"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid ColumnSpacing="8" VerticalAlignment="Center">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Rectangle Grid.Column="0" Height="1" Fill="{ThemeResource MdLineBrush}" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1"
+                   Text="{x:Bind Label, Mode=OneWay}"
+                   Style="{StaticResource MdAsciiDividerStyle}"/>
+        <Rectangle Grid.Column="2" Height="1" Fill="{ThemeResource MdLineBrush}" VerticalAlignment="Center"/>
+    </Grid>
+</UserControl>

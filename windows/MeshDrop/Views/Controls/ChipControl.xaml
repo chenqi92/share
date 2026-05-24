@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.ChipControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border x:Name="Pill"
+            Height="{StaticResource MdChipHeight}"
+            CornerRadius="{StaticResource MdRadiusChip}"
+            Padding="8,0,8,0"
+            VerticalAlignment="Center"
+            BorderThickness="0">
+        <TextBlock x:Name="Label"
+                   Text="{x:Bind Text, Mode=OneWay}"
+                   VerticalAlignment="Center"
+                   FontSize="11"
+                   FontWeight="SemiBold"/>
+    </Border>
+</UserControl>

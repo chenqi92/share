@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.AvatarControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Width="{x:Bind Size, Mode=OneWay}"
+          Height="{x:Bind Size, Mode=OneWay}">
+        <Ellipse x:Name="RingHalo"
+                 Stroke="{ThemeResource MdLimeBrush}"
+                 StrokeThickness="2"
+                 Margin="-3"
+                 Visibility="{x:Bind ShowRing, Mode=OneWay}"/>
+        <Border CornerRadius="999"
+                Background="{x:Bind FillBrush, Mode=OneWay}">
+            <TextBlock Text="{x:Bind Initials, Mode=OneWay}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontFamily="{StaticResource MdDisplayFontFamily}"
+                       FontWeight="SemiBold"
+                       FontSize="{x:Bind InitialsSize, Mode=OneWay}"
+                       Foreground="#FF0A0A0A"/>
+        </Border>
+    </Grid>
+</UserControl>

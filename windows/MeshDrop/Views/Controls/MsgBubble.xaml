@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.MsgBubble"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid x:Name="Root" Margin="0,4,0,4">
+        <Border x:Name="Bubble"
+                MaxWidth="520"
+                Padding="12,8,12,8"
+                CornerRadius="16,16,16,6">
+            <StackPanel x:Name="Body" Spacing="6">
+                <!-- 文本气泡 -->
+                <TextBlock x:Name="TextRun"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           FontFamily="{StaticResource MdBodyFontFamily}"
+                           FontSize="14"
+                           Text="{x:Bind Text, Mode=OneWay}"/>
+                <!-- 文件气泡 -->
+                <Grid x:Name="FileRow" Visibility="Collapsed" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" Width="34" Height="42" CornerRadius="4"
+                            Background="{ThemeResource MdCardBrush}"
+                            BorderBrush="{ThemeResource MdLineBrush}"
+                            BorderThickness="1">
+                        <TextBlock x:Name="FileExtText"
+                                   Text="{x:Bind FileExt, Mode=OneWay}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource MdMonoFontFamily}"
+                                   FontSize="9"
+                                   FontWeight="SemiBold"
+                                   Foreground="{ThemeResource MdInk60Brush}"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="{x:Bind FileName, Mode=OneWay}"
+                                   FontFamily="{StaticResource MdBodyFontFamily}"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{x:Bind FileSize, Mode=OneWay}"
+                                   FontFamily="{StaticResource MdMonoFontFamily}"
+                                   FontSize="10"
+                                   Opacity="0.6"/>
+                    </StackPanel>
+                </Grid>
+                <!-- 时间戳行 -->
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                    <TextBlock x:Name="TimeText"
+                               Text="{x:Bind Time, Mode=OneWay}"
+                               FontFamily="{StaticResource MdMonoFontFamily}"
+                               FontSize="10"
+                               Opacity="0.55"/>
+                    <TextBlock x:Name="DeliveredText"
+                               Visibility="Collapsed"
+                               Text="· 已送达"
+                               FontFamily="{StaticResource MdMonoFontFamily}"
+                               FontSize="10"
+                               Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
