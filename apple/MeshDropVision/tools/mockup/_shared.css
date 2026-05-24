@@ -1,0 +1,400 @@
+/* MeshDrop · visionOS HTML 高保真 mockup 共享样式
+ * 1:1 复刻 Sources/theme/MeshDropColor.swift 中的 token。
+ * 仅用于离线渲染 4 张截图 + 简短动画帧 — 真实运行时见 Sources/。
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+    --ink: #0A0A0A;
+    --paper: #F5F2EC;
+    --dink: #0E0C09;
+    --dink2: #181612;
+    --dpaper: #E8E3D6;
+    --lime: #DDF94B;
+    --lime-deep: #A8C800;
+    --flame: #FF5A2C;
+    --sky: #4DB8FF;
+    --error: #C4322B;
+
+    --glass-stroke: rgba(255,255,255,0.14);
+    --glass-stroke-hi: rgba(255,255,255,0.28);
+    --glass-tint: rgba(255,255,255,0.04);
+
+    --font-display: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono:    'Geist Mono', ui-monospace, SF Mono, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+    width: 1800px;
+    height: 1100px;
+    overflow: hidden;
+    font-family: var(--font-display);
+    color: var(--dpaper);
+    background: #000;
+    position: relative;
+}
+
+/* ── passthrough 背景 ─────────────────────────────────── */
+.passthrough {
+    position: absolute; inset: 0;
+    background:
+        radial-gradient(at 88% 75%, rgba(255,90,44,0.06), transparent 46%),
+        radial-gradient(at 18% 22%, rgba(255,255,255,0.07), transparent 38%),
+        linear-gradient(180deg,
+            hsl(28, 18%, 10%) 0%,
+            hsl(46, 12%, 6%) 60%,
+            hsl(68, 5%, 4%) 100%);
+}
+.passthrough.blue {
+    background:
+        radial-gradient(at 88% 75%, rgba(77,184,255,0.06), transparent 46%),
+        radial-gradient(at 18% 22%, rgba(255,255,255,0.07), transparent 38%),
+        linear-gradient(180deg,
+            hsl(220, 18%, 10%) 0%,
+            hsl(240, 12%, 6%) 60%,
+            hsl(260, 5%, 4%) 100%);
+}
+.passthrough.warm {
+    background:
+        radial-gradient(at 88% 75%, rgba(196,50,43,0.06), transparent 46%),
+        radial-gradient(at 18% 22%, rgba(255,255,255,0.07), transparent 38%),
+        linear-gradient(180deg,
+            hsl(12, 18%, 10%) 0%,
+            hsl(30, 12%, 6%) 60%,
+            hsl(50, 5%, 4%) 100%);
+}
+.passthrough.cool {
+    background:
+        radial-gradient(at 18% 22%, rgba(255,255,255,0.07), transparent 38%),
+        linear-gradient(180deg,
+            hsl(156, 18%, 9%) 0%,
+            hsl(180, 12%, 5%) 60%,
+            hsl(200, 5%, 4%) 100%);
+}
+
+/* 暖光 / 远景 noise 让 glass 真的反射点东西 */
+.passthrough::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='0.8' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.06 0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ── 标准磨砂玻璃面板 ──────────────────────────────────── */
+.glass {
+    position: relative;
+    background: var(--glass-tint);
+    backdrop-filter: blur(80px) saturate(180%);
+    -webkit-backdrop-filter: blur(80px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    border-radius: 28px;
+    overflow: hidden;
+}
+.glass::before {
+    content: '';
+    position: absolute; inset: 1px;
+    border-radius: inherit;
+    border: 1px solid var(--glass-stroke-hi);
+    pointer-events: none;
+    opacity: 0.65;
+    mix-blend-mode: overlay;
+}
+
+/* ── chip ──────────────────────────────────────────────── */
+.chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 10px;
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 600;
+    border-radius: 999px;
+    border: 0.8px solid rgba(255,255,255,0.18);
+    color: rgba(232,227,214,0.78);
+}
+.chip.mono { font-family: var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; }
+.chip.lime { background: var(--lime); border-color: rgba(168,200,0,0.55); color: var(--ink); }
+.chip.ink { background: var(--ink); color: var(--paper); border-color: rgba(255,255,255,0.10); }
+.chip.flame { background: var(--flame); color: #fff; border-color: rgba(199,62,21,0.7); }
+.chip.sky { background: var(--sky); color: var(--ink); border-color: rgba(77,184,255,0.6); }
+.chip.mute { background: rgba(255,255,255,0.06); }
+.chip .dot {
+    width: 6px; height: 6px; border-radius: 999px;
+    display: inline-block;
+}
+
+/* ── ASCII divider ─────────────────────────────────────── */
+.divider {
+    display: flex; align-items: center; gap: 12px;
+    color: rgba(232,227,214,0.45);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+.divider::before, .divider::after {
+    content: ''; flex: 1; height: 0.6px;
+    background: rgba(255,255,255,0.18);
+}
+
+/* ── Avatar ─────────────────────────────────────────────── */
+.avatar {
+    width: 42px; height: 42px; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--ink);
+    border: 0.5px solid rgba(0,0,0,0.18);
+    flex-shrink: 0;
+}
+.avatar.ring { box-shadow: 0 0 0 3.5px var(--lime); }
+
+/* ── PeerOrb ───────────────────────────────────────────── */
+.peer-orb {
+    position: absolute;
+    width: 260px; padding: 16px 18px;
+    transform-origin: center;
+    transition: transform 200ms ease-out;
+}
+.peer-orb .peer-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    margin-bottom: 10px;
+}
+.peer-orb .peer-row .name {
+    color: var(--dpaper);
+    font-size: 15px; font-weight: 600;
+}
+.peer-orb .peer-row .device {
+    color: rgba(232,227,214,0.65);
+    font-size: 12px; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 160px;
+}
+.peer-orb .meta {
+    display: flex; gap: 6px; align-items: center;
+}
+.peer-orb .meta .spacer { flex: 1; }
+.peer-orb .meta .distance {
+    font-family: var(--font-mono);
+    font-size: 10.5px; letter-spacing: 0.05em;
+    color: rgba(232,227,214,0.55);
+}
+.peer-orb .halo {
+    position: absolute; inset: -90px; border-radius: 999px;
+    background: radial-gradient(circle, rgba(221,249,75,0.30), rgba(221,249,75,0.02) 50%, transparent 70%);
+    z-index: -1;
+    mix-blend-mode: plus-lighter;
+}
+.peer-orb .send-cue {
+    margin-top: 10px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(221,249,75,0.16);
+    border: 0.8px solid rgba(221,249,75,0.55);
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: rgba(232,227,214,0.92);
+    font-size: 12px; font-weight: 500;
+}
+.peer-orb .send-cue .pinch-icon {
+    color: var(--lime); font-size: 12px;
+}
+
+/* ── 状态 ornament ────────────────────────────────────── */
+.ornament {
+    position: absolute;
+    background: var(--glass-tint);
+    backdrop-filter: blur(80px) saturate(180%);
+    -webkit-backdrop-filter: blur(80px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    border-radius: 999px;
+    padding: 10px 16px;
+    display: inline-flex; align-items: center; gap: 14px;
+}
+.ornament .divider-v {
+    width: 0.6px; height: 22px; background: rgba(255,255,255,0.12);
+}
+.ornament .me {
+    display: flex; align-items: center; gap: 10px;
+}
+.ornament .me .name {
+    color: var(--dpaper); font-size: 12px; font-weight: 500;
+}
+.ornament .me .ip {
+    color: rgba(232,227,214,0.55);
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.05em;
+}
+.ornament .fingerprint {
+    color: rgba(232,227,214,0.78);
+    font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.05em;
+}
+
+/* ── 底 tab ornament ──────────────────────────────────── */
+.tab-ornament {
+    display: inline-flex; gap: 4px;
+    padding: 8px 12px;
+    background: var(--glass-tint);
+    backdrop-filter: blur(80px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    border-radius: 999px;
+}
+.tab-ornament .tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; min-width: 110px;
+    border-radius: 999px;
+    color: rgba(232,227,214,0.75);
+    font-size: 12px; font-weight: 500;
+    justify-content: center;
+}
+.tab-ornament .tab.active {
+    background: rgba(221,249,75,0.18);
+    border: 1px solid rgba(221,249,75,0.55);
+    color: var(--lime);
+}
+
+/* close handle */
+.close-handle {
+    position: absolute;
+    width: 56px; height: 56px;
+    background: var(--glass-tint);
+    backdrop-filter: blur(80px) saturate(180%);
+    border: 1px solid var(--glass-stroke);
+    border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(232,227,214,0.85);
+}
+
+/* ── gaze reticle ─────────────────────────────────────── */
+.reticle {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    pointer-events: none;
+}
+.reticle .ring {
+    width: 160px; height: 160px; position: relative;
+}
+.reticle .ring svg { width: 100%; height: 100%; }
+.reticle .label {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    background: rgba(221,249,75,0.10);
+    border: 0.8px solid rgba(221,249,75,0.55);
+    border-radius: 999px;
+    color: var(--lime);
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.13em; text-transform: uppercase;
+}
+
+/* ── 飞行轨迹 ────────────────────────────────────────── */
+.trail-svg {
+    position: absolute; inset: 0;
+    pointer-events: none;
+}
+
+/* main window 主面板 */
+.main-window {
+    position: absolute;
+    width: 580px;
+    border-radius: 38px;
+    padding: 28px 36px;
+    display: flex; flex-direction: column; gap: 0;
+}
+
+.main-window .head {
+    display: flex; align-items: center; gap: 14px;
+}
+.main-window .spacer { flex: 1; }
+
+.main-window .head-rule {
+    height: 0.6px; background: rgba(255,255,255,0.10);
+    margin: 18px 0;
+}
+
+.main-window .hero {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: -0.5px;
+    color: var(--dpaper);
+    line-height: 1.05;
+}
+.main-window .hero .accent { color: var(--lime); }
+.main-window .hero-sub {
+    color: rgba(232,227,214,0.65);
+    font-size: 14px; margin-top: 8px;
+}
+
+.main-window .selected-block {
+    margin-top: 26px; display: flex; flex-direction: column; gap: 12px;
+}
+
+.main-window .photo-row {
+    display: flex; gap: 12px; align-items: center;
+}
+.photo {
+    width: 96px; height: 124px;
+    border-radius: 12px;
+    overflow: hidden; position: relative;
+    border: 0.8px solid rgba(255,255,255,0.18);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+}
+.photo svg { width: 100%; height: 100%; display: block; }
+
+.main-window .size-block { text-align: right; flex: 1; }
+.main-window .size-num {
+    font-family: var(--font-mono);
+    font-size: 22px; font-weight: 700;
+    color: var(--dpaper);
+}
+.main-window .size-sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: rgba(232,227,214,0.55);
+}
+
+.main-window .hint-row {
+    display: flex; gap: 16px; align-items: center;
+    margin-top: 22px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(232,227,214,0.65);
+}
+.main-window .hint-row .arrow { color: rgba(232,227,214,0.35); }
+.main-window .hint-row .right { margin-left: auto; color: var(--lime-deep); font-weight: 600; }
+
+/* CTA */
+.cta {
+    flex: 1; min-height: 56px;
+    border-radius: 18px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    font-size: 16px; font-weight: 600;
+    cursor: default;
+}
+.cta .sub {
+    font-family: var(--font-mono);
+    font-size: 10.5px; letter-spacing: 0.13em;
+    opacity: 0.65; font-weight: 500; text-transform: uppercase;
+}
+.cta.ghost {
+    background: rgba(255,255,255,0.06);
+    border: 0.8px solid rgba(255,255,255,0.20);
+    color: var(--dpaper);
+}
+.cta.accent {
+    background: var(--lime);
+    border: 0.8px solid rgba(168,200,0,0.4);
+    color: var(--ink);
+}
+
+/* mono number tag */
+.mono { font-family: var(--font-mono); letter-spacing: 0.05em; }
+.mono-up { font-family: var(--font-mono); letter-spacing: 0.13em; text-transform: uppercase; }
