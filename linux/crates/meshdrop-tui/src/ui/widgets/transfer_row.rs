@@ -54,7 +54,7 @@ fn top_line<'a>(theme: &Theme, t: &Transfer) -> Line<'a> {
             format!(" [{}]  ", t.ext.to_uppercase()),
             Style::default().fg(ext_color).add_modifier(Modifier::BOLD),
         ),
-        Span::styled(t.name, Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD)),
+        Span::styled(t.name.clone(), Style::default().fg(theme.ink()).add_modifier(Modifier::BOLD)),
         Span::styled(
             format!("   {}", t.size),
             Style::default().fg(theme.muted()),
@@ -98,10 +98,10 @@ fn bottom_line<'a>(theme: &Theme, t: &Transfer) -> Line<'a> {
             Style::default().fg(color).add_modifier(Modifier::BOLD),
         ),
     ];
-    if let Some(speed) = t.speed {
+    if let Some(speed) = t.speed.as_deref() {
         spans.push(Span::styled(format!("   {}", speed), Style::default().fg(theme.muted())));
     }
-    if let Some(eta) = t.eta {
+    if let Some(eta) = t.eta.as_deref() {
         spans.push(Span::styled(format!("   ETA {}", eta), Style::default().fg(theme.muted())));
     }
     Line::from(spans)

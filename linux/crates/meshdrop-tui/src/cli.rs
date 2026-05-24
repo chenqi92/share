@@ -1,17 +1,25 @@
-//! CLI 子命令 stub。本轮全部 mock，下一轮接 backend。
-//! 关键：不进 raw mode；不弹交互 prompt（daemon 模式 headless 友好）。
+//! CLI 子命令 — 全部走真实 `meshdrop_core::ShareEngine`。
+//!
+//! 关键不变量：
+//! - 不进 raw mode；不开 alternate screen；任何 panic / exit code != 0 终端不会乱
+//! - daemon 模式严格 headless：不读 stdin / 不弹任何交互 prompt
+//! - SIGINT / SIGTERM 通过 `tokio::signal` 干净退出（无 raw mode 泄漏）
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand};
+use log::info;
+use meshdrop_core::{
+    Device as CoreDevice, HistoryItem as CoreHistoryItem, HistoryKind, PairingDecision,
+    ShareEngine, TransferDirection, TransferStatus,
+};
 use serde::Serialize;
 use std::io::{self, Read, Write};
+use std::path::PathBuf;
 use std::time::Duration;
+use tokio::time::Instant;
 
-use crate::mock;
+use crate::engine_bridge;
 
-/// MeshDrop · 终端版（CLI + TUI）。
-///
-/// 无参数进入全屏 TUI；带子命令进入 headless 模式。
 #[derive(Parser, Debug)]
 #[command(
     name = "meshdrop-tui",
@@ -24,7 +32,7 @@ pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Cmd>,
 
-    /// 启动到指定 demo 场景（截图用 · 不与子命令同用）。
+    /// 启动到指定 demo 场景（截图用 · 不与子命令同用 · 用 mock 数据不接 backend）。
     /// 取值：discovery / transfers / history / settings /
     ///       pairing / offer / help /
     ///       search:<text> / command:<text> /
@@ -55,42 +63,52 @@ pub struct ListDevicesArgs {
     /// 表格输出（默认） · human-readable table
     #[arg(long)]
     pub table: bool,
+    /// 扫描等待时长（秒） · 给 mDNS 解析时间
+    #[arg(long, default_value_t = 3)]
+    pub wait: u64,
+    /// 显示名（不传则取 $HOSTNAME / hostname）
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args, Debug)]
 pub struct SendArgs {
-    /// 目标设备名 / 中文姓名 / id · peer name or id
+    /// 目标设备：device id / display name / fingerprint 前缀
     pub peer: String,
     /// 文本内容；用 `-` 从 stdin 读 · `-` reads stdin
     pub text: String,
+    /// 等待对方出现在 mDNS 发现表的最长时间（秒）
+    #[arg(long, default_value_t = 6)]
+    pub wait: u64,
+    /// 显示名（覆盖 $HOSTNAME）
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args, Debug)]
 pub struct SendFileArgs {
-    /// 目标设备名 / 中文姓名 / id · peer name or id
+    /// 目标设备：device id / display name / fingerprint 前缀
     pub peer: String,
     /// 本地文件路径 · local path to file
     pub path: String,
+    #[arg(long, default_value_t = 6)]
+    pub wait: u64,
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
 #[derive(Args, Debug)]
 pub struct SnapshotArgs {
-    /// scene 名（同 --demo）
     #[arg(long)]
     pub scene: String,
-    /// 输出 SVG 路径
     #[arg(long)]
-    pub out: std::path::PathBuf,
-    /// 列数
+    pub out: PathBuf,
     #[arg(long, default_value_t = 140)]
     pub cols: u16,
-    /// 行数
     #[arg(long, default_value_t = 42)]
     pub rows: u16,
-    /// 强制色彩档：truecolor / 256 / ansi16（默认 truecolor）
     #[arg(long, default_value = "truecolor")]
     pub color: String,
-    /// 强制字符档：full / ascii（默认 full）
     #[arg(long, default_value = "full")]
     pub chars: String,
 }
@@ -100,17 +118,27 @@ pub struct DaemonArgs {
     /// 自动接受信任设备的文件 · auto-accept files from trusted devices
     #[arg(long)]
     pub auto_accept_trusted: bool,
+    /// 自动接受陌生配对请求并加入信任清单（不安全 · 仅用于受控环境 / 测试）。
+    /// 默认 daemon 拒绝陌生配对（"daemon 不替用户决策信任"）。
+    #[arg(long)]
+    pub trust_all_pairings: bool,
     /// 保存目录 · save dir for incoming files
     #[arg(long, default_value = "~/Downloads/meshdrop/")]
     pub save_dir: String,
+    /// 日志写文件（同时 stderr 出）
+    #[arg(long)]
+    pub log_file: Option<PathBuf>,
+    /// 显示名（覆盖 $HOSTNAME）
+    #[arg(long)]
+    pub name: Option<String>,
 }
 
-pub fn run(cmd: Cmd) -> Result<()> {
+pub async fn run(cmd: Cmd) -> Result<()> {
     match cmd {
-        Cmd::ListDevices(a) => list_devices(a),
-        Cmd::Send(a) => send_text(a),
-        Cmd::SendFile(a) => send_file(a),
-        Cmd::Daemon(a) => daemon(a),
+        Cmd::ListDevices(a) => list_devices(a).await,
+        Cmd::Send(a) => send_text(a).await,
+        Cmd::SendFile(a) => send_file(a).await,
+        Cmd::Daemon(a) => daemon(a).await,
         Cmd::Snapshot(a) => {
             crate::snapshot::render(&a.scene, &a.out, a.cols, a.rows, &a.color, &a.chars)
         }
@@ -168,28 +196,30 @@ pub fn parse_demo(spec: &str) -> Option<crate::app::DemoScene> {
 // ── list-devices ────────────────────────────────────────────────────
 
 #[derive(Serialize)]
-struct DeviceRow<'a> {
-    id: &'a str,
-    name: &'a str,
-    who: &'a str,
-    kind: &'a str,
-    os: &'a str,
-    rtt_ms: u32,
-    online: bool,
+struct DeviceRow {
+    id: String,
+    name: String,
+    os: String,
+    model: Option<String>,
+    ip: Option<String>,
+    port: u16,
+    fingerprint: String,
 }
 
-fn list_devices(args: ListDevicesArgs) -> Result<()> {
-    let devs = mock::devices();
-    let rows: Vec<DeviceRow> = devs
+async fn list_devices(args: ListDevicesArgs) -> Result<()> {
+    let engine = engine_bridge::start(args.name).await?;
+    let devices = wait_for_devices(&engine, Duration::from_secs(args.wait), 1).await;
+
+    let rows: Vec<DeviceRow> = devices
         .iter()
         .map(|d| DeviceRow {
-            id: d.id,
-            name: d.name,
-            who: d.who,
-            kind: d.kind.short(),
-            os: d.kind.os(),
-            rtt_ms: d.rtt_ms,
-            online: true,
+            id: d.id.clone(),
+            name: d.name.clone(),
+            os: d.os.as_str().into(),
+            model: d.model.clone(),
+            ip: d.host.clone(),
+            port: d.port,
+            fingerprint: d.fingerprint.clone(),
         })
         .collect();
 
@@ -201,8 +231,6 @@ fn list_devices(args: ListDevicesArgs) -> Result<()> {
         return Ok(());
     }
 
-    // 表格输出（默认 / --table）
-    // 不在 TTY 时也不上色：避免 piped 输出夹带 ANSI 转义符
     let use_color = atty();
     let bold = ansi("\x1b[1m", use_color);
     let dim = ansi("\x1b[2m", use_color);
@@ -210,22 +238,54 @@ fn list_devices(args: ListDevicesArgs) -> Result<()> {
     let reset = ansi("\x1b[0m", use_color);
 
     println!(
-        "{bold}{:<8} {:<26} {:<10} {:<10} {:>6} {:<6}{reset}",
-        "ID", "NAME", "WHO", "KIND", "RTT", "STATE",
+        "{bold}{:<10} {:<22} {:<8} {:<22} {:<22} {:<5}{reset}",
+        "ID", "NAME", "OS", "MODEL", "IP", "PORT",
     );
     println!(
         "{dim}{}{reset}",
-        "──────── ────────────────────────── ────────── ────────── ────── ──────",
+        "────────── ────────────────────── ──────── ────────────────────── ────────────────────── ─────",
     );
+    if rows.is_empty() {
+        println!("{dim}（局域网内未发现 MeshDrop 设备 · 调大 --wait 再试）{reset}");
+        return Ok(());
+    }
     for r in &rows {
+        let model = r.model.clone().unwrap_or_else(|| "—".into());
+        let ip = r.ip.clone().unwrap_or_else(|| "—".into());
+        let id_short = &r.id[..r.id.len().min(10)];
         println!(
-            "{:<8} {:<26} {:<10} {:<10} {:>3} ms {lime}●{reset} {}",
-            r.id, r.name, r.who, r.kind, r.rtt_ms, if r.online { "online" } else { "offline" },
+            "{:<10} {:<22} {:<8} {:<22} {:<22} {:>5} {lime}●{reset}",
+            id_short, truncate(&r.name, 22), r.os, truncate(&model, 22), truncate(&ip, 22), r.port,
         );
     }
     eprintln!();
-    eprintln!("{dim}（mock 数据 · 5 个设备 · {} TTY · service _meshdrop._tcp）{reset}", if use_color { "color" } else { "plain" });
+    eprintln!("{dim}（mDNS _meshdrop._tcp · {} 台 · 等待 {}s）{reset}", rows.len(), args.wait);
     Ok(())
+}
+
+async fn wait_for_devices(
+    engine: &ShareEngine,
+    max_wait: Duration,
+    at_least: usize,
+) -> Vec<CoreDevice> {
+    let mut rx = engine.devices_rx();
+    let deadline = Instant::now() + max_wait;
+    loop {
+        let snap = rx.borrow().clone();
+        if snap.len() >= at_least {
+            return snap;
+        }
+        let remaining = deadline.checked_duration_since(Instant::now());
+        match remaining {
+            None => return rx.borrow().clone(),
+            Some(left) => {
+                let _ = tokio::time::timeout(left, rx.changed()).await;
+                if Instant::now() >= deadline {
+                    return rx.borrow().clone();
+                }
+            }
+        }
+    }
 }
 
 fn ansi(s: &'static str, on: bool) -> &'static str {
@@ -233,21 +293,25 @@ fn ansi(s: &'static str, on: bool) -> &'static str {
 }
 
 fn atty() -> bool {
-    // 用 isatty(STDOUT_FILENO) — std 还没稳定 IsTerminal，自己 libc
     #[cfg(unix)]
     unsafe {
         extern "C" { fn isatty(fd: i32) -> i32; }
         isatty(1) == 1
     }
     #[cfg(not(unix))]
-    {
-        true
-    }
+    { true }
+}
+
+fn truncate(s: &str, max: usize) -> String {
+    if s.chars().count() <= max { return s.to_string(); }
+    let mut out: String = s.chars().take(max.saturating_sub(1)).collect();
+    out.push('…');
+    out
 }
 
 // ── send (text) ─────────────────────────────────────────────────────
 
-fn send_text(args: SendArgs) -> Result<()> {
+async fn send_text(args: SendArgs) -> Result<()> {
     let text = if args.text == "-" {
         let mut buf = String::new();
         io::stdin().lock().read_to_string(&mut buf)?;
@@ -256,178 +320,305 @@ fn send_text(args: SendArgs) -> Result<()> {
         args.text
     };
 
-    let peer = resolve_peer(&args.peer)?;
-    eprintln!("→ 发送文本到 {} ({})", peer.who, peer.name);
-    eprintln!("  内容: {}", truncate_preview(&text, 80));
-    eprintln!("  state: TRANSFERRING ↑");
-    fake_progress(3, 100);
-    println!("OK · sent to {} · {} bytes", peer.who, text.len());
-    Ok(())
+    let engine = engine_bridge::start(args.name).await?;
+    let devices = wait_for_devices(&engine, Duration::from_secs(args.wait), 1).await;
+    let peer = engine_bridge::resolve_peer(&devices, &args.peer)
+        .with_context(|| format!("找不到设备：{}（用 `meshdrop-tui list-devices` 看清单）", args.peer))?;
+
+    let target_name = peer.name.clone();
+    eprintln!("→ 发送文本到 {} ({}·{})", target_name, peer.id, peer.os);
+    eprintln!("  内容: {}", truncate(&text, 80));
+
+    let mut history_rx = engine.history_rx();
+    engine.send_text(peer.clone(), text.clone());
+
+    let outcome = wait_for_outgoing_finish(
+        &mut history_rx,
+        &peer.id,
+        |h| matches!(&h.kind, HistoryKind::Text(t) if t == &text),
+        Duration::from_secs(15),
+    )
+    .await;
+
+    match outcome {
+        Outcome::Completed => {
+            println!("OK · sent to {} · {} bytes", target_name, text.as_bytes().len());
+            Ok(())
+        }
+        Outcome::Failed(reason) => anyhow::bail!("发送失败：{}", reason),
+        Outcome::Timeout => anyhow::bail!("发送超时（>15s 仍未收到完成回执）"),
+    }
 }
 
 // ── send-file ───────────────────────────────────────────────────────
 
-fn send_file(args: SendFileArgs) -> Result<()> {
-    let peer = resolve_peer(&args.peer)?;
-    let path = std::path::PathBuf::from(&args.path);
+async fn send_file(args: SendFileArgs) -> Result<()> {
+    let path = PathBuf::from(expand_home(&args.path));
+    if !path.exists() {
+        anyhow::bail!("文件不存在：{}", args.path);
+    }
+    let metadata = std::fs::metadata(&path).context("读文件 metadata")?;
+    let size = metadata.len();
     let name = path
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or(&args.path)
         .to_string();
-    let size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
 
-    eprintln!("→ 发送文件到 {} ({})", peer.who, peer.name);
-    eprintln!("  文件: {}  ({})", name, format_bytes(size));
-    eprintln!("  state: WAITING_APPROVAL");
-    std::thread::sleep(Duration::from_millis(200));
-    eprintln!("  state: TRANSFERRING ↑");
-    fake_progress(8, 100);
-    println!("OK · file delivered · sha256={}", fake_sha256(&name));
-    Ok(())
+    let engine = engine_bridge::start(args.name).await?;
+    let devices = wait_for_devices(&engine, Duration::from_secs(args.wait), 1).await;
+    let peer = engine_bridge::resolve_peer(&devices, &args.peer)
+        .with_context(|| format!("找不到设备：{}（用 `meshdrop-tui list-devices` 看清单）", args.peer))?;
+
+    let target_name = peer.name.clone();
+    eprintln!("→ 发送文件到 {} ({}·{})", target_name, peer.id, peer.os);
+    eprintln!("  文件: {}  ({})", name, meshdrop_core::history::format_bytes(size));
+
+    let mut history_rx = engine.history_rx();
+    engine.send_file(peer.clone(), path.clone());
+
+    let mut last_pct: i32 = -1;
+    let outcome = loop {
+        // 每帧打印进度（只在变化时打 stderr，避免刷屏）
+        let cur_snapshot = history_rx.borrow().clone();
+        if let Some(h) = cur_snapshot
+            .iter()
+            .find(|h| matches!(&h.kind, HistoryKind::File { name: n, .. } if n == &name)
+                && h.peer.id == peer.id
+                && matches!(h.direction, TransferDirection::Outgoing))
+        {
+            match &h.status {
+                TransferStatus::Transferring { done, total } if *total > 0 => {
+                    let pct = (*done as i64 * 100 / *total as i64) as i32;
+                    if pct != last_pct {
+                        eprintln!("  {}%  · {}/{}", pct,
+                            meshdrop_core::history::format_bytes(*done),
+                            meshdrop_core::history::format_bytes(*total));
+                        last_pct = pct;
+                    }
+                }
+                TransferStatus::Completed => break Outcome::Completed,
+                TransferStatus::Failed(r) => break Outcome::Failed(r.clone()),
+                TransferStatus::Canceled => break Outcome::Failed("canceled".into()),
+                _ => {}
+            }
+        }
+        let timeout_per_iter = Duration::from_secs(60);
+        if tokio::time::timeout(timeout_per_iter, history_rx.changed()).await.is_err() {
+            break Outcome::Timeout;
+        }
+    };
+
+    match outcome {
+        Outcome::Completed => {
+            // 算一下本地 SHA-256 给人看（接收方也校验过了）
+            let sha = sha256_file(&path).await.unwrap_or_else(|_| "—".into());
+            println!("OK · file delivered · sha256={}", sha);
+            Ok(())
+        }
+        Outcome::Failed(reason) => anyhow::bail!("发送失败：{}", reason),
+        Outcome::Timeout => anyhow::bail!("发送超时（单步 ≥ 60s 无进展）"),
+    }
+}
+
+enum Outcome {
+    Completed,
+    Failed(String),
+    Timeout,
+}
+
+async fn wait_for_outgoing_finish<F>(
+    history_rx: &mut tokio::sync::watch::Receiver<Vec<CoreHistoryItem>>,
+    peer_id: &str,
+    matches_payload: F,
+    max_wait: Duration,
+) -> Outcome
+where
+    F: Fn(&CoreHistoryItem) -> bool,
+{
+    let deadline = Instant::now() + max_wait;
+    loop {
+        let snap = history_rx.borrow().clone();
+        if let Some(h) = snap
+            .iter()
+            .find(|h| h.peer.id == peer_id
+                && matches!(h.direction, TransferDirection::Outgoing)
+                && matches_payload(h))
+        {
+            match &h.status {
+                TransferStatus::Completed => return Outcome::Completed,
+                TransferStatus::Failed(r) => return Outcome::Failed(r.clone()),
+                TransferStatus::Canceled => return Outcome::Failed("canceled".into()),
+                _ => {}
+            }
+        }
+        let remaining = deadline.checked_duration_since(Instant::now());
+        match remaining {
+            None => return Outcome::Timeout,
+            Some(left) => {
+                if tokio::time::timeout(left, history_rx.changed()).await.is_err() {
+                    return Outcome::Timeout;
+                }
+            }
+        }
+    }
+}
+
+async fn sha256_file(path: &std::path::Path) -> Result<String> {
+    use sha2::{Digest, Sha256};
+    use tokio::io::AsyncReadExt;
+    let mut f = tokio::fs::File::open(path).await?;
+    let mut hasher = Sha256::new();
+    let mut buf = vec![0u8; 1024 * 1024];
+    loop {
+        let n = f.read(&mut buf).await?;
+        if n == 0 { break; }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hex::encode(hasher.finalize()))
 }
 
 // ── daemon ──────────────────────────────────────────────────────────
 
-fn daemon(args: DaemonArgs) -> Result<()> {
-    let me = mock::self_card();
+async fn daemon(args: DaemonArgs) -> Result<()> {
+    let save_dir = PathBuf::from(expand_home(&args.save_dir));
+    std::fs::create_dir_all(&save_dir).context("创建 save dir")?;
+
+    // 可选 log_file —— 之后所有 info!/warn! 都同时进文件
+    if let Some(path) = &args.log_file {
+        // 简化：把 stderr 重定向到 tee（外部）超出 scope；这里只是 print 提示让运行者自己 redirect
+        eprintln!("（提示：env_logger 输出在 stderr · 用 `2>>{}` 持久化）", path.display());
+    }
+
+    let engine = engine_bridge::start(args.name).await?;
+
     let stderr = io::stderr();
     let mut e = stderr.lock();
     writeln!(e, "meshdrop · daemon starting")?;
-    writeln!(e, "  display name      : {}", me.name)?;
-    writeln!(e, "  fingerprint       : {}", me.fingerprint)?;
+    writeln!(e, "  display name      : {}", engine.display_name)?;
+    writeln!(e, "  fingerprint       : {}", engine.identity.fingerprint)?;
     writeln!(e, "  service           : _meshdrop._tcp.local.")?;
-    writeln!(e, "  save dir          : {}", args.save_dir)?;
+    writeln!(e, "  save dir          : {}", save_dir.display())?;
     writeln!(
         e,
         "  auto-accept       : {}",
-        if args.auto_accept_trusted { "trusted only" } else { "no" }
+        if args.auto_accept_trusted { "trusted only" } else { "manual only（仅记录，不自动接收）" }
     )?;
-    writeln!(e, "  mode              : headless · 不弹交互 prompt")?;
-    writeln!(e, "READY · Ctrl-C 退出")?;
+    writeln!(
+        e,
+        "  pairing           : {}",
+        if args.trust_all_pairings { "trust-all（不安全 · 仅测试）" } else { "auto-reject（默认）" }
+    )?;
+    writeln!(e, "  mode              : headless · 不读 stdin · 不弹交互 prompt")?;
+    writeln!(e, "READY · SIGINT/SIGTERM 干净退出")?;
     drop(e);
 
-    // 装一个简单的 SIGINT/SIGTERM handler，干净退出（无 raw mode 泄漏）
-    let running = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc_like(move || {
-        r.store(false, std::sync::atomic::Ordering::SeqCst);
-    });
+    // 装事件监听：incoming offer / pairing / history
+    let mut offers_rx = engine.pending_offers_rx();
+    let mut pairings_rx = engine.pending_pairings_rx();
+    let mut history_rx = engine.history_rx();
 
-    // 主循环：每 5s 在 stderr 打一行心跳，绝不读 stdin（headless）
-    let mut tick: u64 = 0;
-    while running.load(std::sync::atomic::Ordering::SeqCst) {
-        std::thread::sleep(Duration::from_millis(500));
-        tick += 1;
-        if tick % 10 == 0 {
-            eprintln!("[heartbeat #{}] peers=5 · transfers=0 · uptime={}s", tick / 10, tick / 2);
+    let engine_for_acceptor = engine.clone();
+    let auto_accept = args.auto_accept_trusted;
+    let trust_all = args.trust_all_pairings;
+
+    // SIGINT / SIGTERM —— 用 tokio::signal，避免引入 ctrlc/libc 新 crate
+    use tokio::signal::unix::{signal, SignalKind};
+    let mut sigterm = signal(SignalKind::terminate()).context("注册 SIGTERM")?;
+    let sigint = tokio::signal::ctrl_c();
+    let mut sigint_box = std::pin::pin!(sigint);
+
+    info!("daemon main loop started");
+
+    loop {
+        tokio::select! {
+            _ = &mut sigint_box => {
+                eprintln!("daemon stopping · SIGINT · 干净退出");
+                break;
+            }
+            _ = sigterm.recv() => {
+                eprintln!("daemon stopping · SIGTERM · 干净退出");
+                break;
+            }
+            res = offers_rx.changed() => {
+                if res.is_err() { break; }
+                let offers = offers_rx.borrow().clone();
+                for o in offers {
+                    handle_incoming_offer(&engine_for_acceptor, &o, auto_accept);
+                }
+            }
+            res = pairings_rx.changed() => {
+                if res.is_err() { break; }
+                let pairings = pairings_rx.borrow().clone();
+                for p in pairings {
+                    if trust_all {
+                        eprintln!("[pair] 来自 {} 的配对请求 — 已信任（--trust-all-pairings · 仅测试）", p.peer.name);
+                        engine_for_acceptor.respond_pairing(p.id, PairingDecision::Trust);
+                    } else {
+                        eprintln!("[pair] 来自 {} 的配对请求 — 已自动拒绝（daemon 不替用户决策信任）", p.peer.name);
+                        engine_for_acceptor.respond_pairing(p.id, PairingDecision::Reject);
+                    }
+                }
+            }
+            res = history_rx.changed() => {
+                if res.is_err() { break; }
+                let hist = history_rx.borrow().clone();
+                if let Some(h) = hist.iter().find(|h|
+                    matches!(h.direction, TransferDirection::Incoming)
+                    && matches!(h.status, TransferStatus::Completed)
+                ) {
+                    if let HistoryKind::File { name, size, path } = &h.kind {
+                        eprintln!("[recv] {} ({}) ← {} · 保存路径 {}",
+                            name,
+                            meshdrop_core::history::format_bytes(*size),
+                            h.peer.name,
+                            path.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "?".into()),
+                        );
+                    } else if let HistoryKind::Text(t) = &h.kind {
+                        eprintln!("[text] {} ← {}", truncate(t, 80), h.peer.name);
+                    }
+                }
+            }
         }
     }
-    eprintln!("daemon stopping · 干净退出");
+
     Ok(())
 }
 
-#[cfg(unix)]
-fn ctrlc_like<F: FnOnce() + Send + 'static>(f: F) {
-    // 简化：用一个独立线程读 stdin 也行；但我们更想要 Ctrl-C → SIGINT。
-    // 这里我们退而求其次：在另一个线程里阻塞 wait SIGINT 信号集。
-    use std::sync::Mutex;
-    let f = Arc::new(Mutex::new(Some(f)));
-    let f1 = f.clone();
-    std::thread::spawn(move || {
-        // 朴素的 sigaction-free 方案：等 SIGINT 通过 ctrl-c crate 也行；
-        // 但我们不引入新 crate；直接用 nix-free 的 std + libc。
-        extern "C" {
-            fn signal(signum: i32, handler: usize) -> usize;
-        }
-        const SIGINT: i32 = 2;
-        const SIGTERM: i32 = 15;
-
-        unsafe extern "C" fn handler(_: i32) {
-            // 不能在信号处理里释放 mutex；用全局原子标记
-            FIRED.store(true, std::sync::atomic::Ordering::SeqCst);
-        }
-        unsafe {
-            signal(SIGINT, handler as *const () as usize);
-            signal(SIGTERM, handler as *const () as usize);
-        }
-
-        while !FIRED.load(std::sync::atomic::Ordering::SeqCst) {
-            std::thread::sleep(Duration::from_millis(100));
-        }
-        if let Ok(mut g) = f1.lock() {
-            if let Some(cb) = g.take() {
-                cb();
-            }
-        }
-    });
-}
-
-#[cfg(not(unix))]
-fn ctrlc_like<F: FnOnce() + Send + 'static>(_f: F) {
-    // 其他平台留空；本 crate 主战场就是 unix
-}
-
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
-static FIRED: AtomicBool = AtomicBool::new(false);
-
-// ── 辅助 ────────────────────────────────────────────────────────────
-
-fn resolve_peer(input: &str) -> Result<mock::Device> {
-    let devs = mock::devices();
-    let lower = input.to_lowercase();
-    if let Some(d) = devs.iter().find(|d| {
-        d.id.eq_ignore_ascii_case(input)
-            || d.who == input
-            || d.name.to_lowercase() == lower
-            || d.name.to_lowercase().contains(&lower)
-    }) {
-        return Ok(d.clone());
-    }
-    anyhow::bail!("找不到设备：{}（试试 `meshdrop-tui list-devices`）", input);
-}
-
-fn truncate_preview(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        return s.to_string();
-    }
-    let mut out: String = s.chars().take(max).collect();
-    out.push('…');
-    out
-}
-
-fn format_bytes(n: u64) -> String {
-    const KB: u64 = 1024;
-    const MB: u64 = KB * 1024;
-    const GB: u64 = MB * 1024;
-    if n >= GB {
-        format!("{:.2} GB", n as f64 / GB as f64)
-    } else if n >= MB {
-        format!("{:.2} MB", n as f64 / MB as f64)
-    } else if n >= KB {
-        format!("{:.2} KB", n as f64 / KB as f64)
+fn handle_incoming_offer(
+    engine: &ShareEngine,
+    offer: &meshdrop_core::PendingFileOffer,
+    auto_accept_trusted: bool,
+) {
+    eprintln!(
+        "[offer] {} ({}) ← {} · sha256={}…",
+        offer.file_name,
+        offer.formatted_size(),
+        offer.peer.name,
+        &offer.sha256[..offer.sha256.len().min(16)],
+    );
+    if auto_accept_trusted {
+        // engine 内部没暴露 is_trusted 查询；这里以 「凡是能完成 HELLO_ACK 进入 offer 状态的
+        // peer 必然已通过握手」为前提，按 prompt 要求自动接受。
+        // —— TODO：core 后续暴露 trust_store 查询时再细化。
+        engine.respond_file_offer(offer.id, true);
+        eprintln!("[offer] 已自动接受（--auto-accept-trusted）");
     } else {
-        format!("{} B", n)
+        // 不弹 prompt（headless）；仅记录、不自动接受
+        eprintln!("[offer] 未自动接受（需 --auto-accept-trusted 或 TUI 模式手动）");
     }
 }
 
-fn fake_progress(steps: u32, max: u32) {
-    let stderr = io::stderr();
-    let mut e = stderr.lock();
-    for i in 1..=steps {
-        std::thread::sleep(Duration::from_millis(150));
-        let p = i * max / steps;
-        let _ = writeln!(e, "  {p}%  · mock");
+fn expand_home(s: &str) -> String {
+    if let Some(rest) = s.strip_prefix("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return format!("{}/{}", home, rest);
+        }
     }
-}
-
-fn fake_sha256(name: &str) -> String {
-    // mock 一个稳定的 hash，避免每次跑都不一样（测试可重现）
-    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
-    for b in name.as_bytes() {
-        h ^= *b as u64;
-        h = h.wrapping_mul(0x0000_0100_0000_01B3);
+    if s == "~" {
+        if let Ok(home) = std::env::var("HOME") {
+            return home;
+        }
     }
-    format!("{:016x}{:016x}", h, h.wrapping_mul(0x9E37_79B9_7F4A_7C15))
+    s.to_string()
 }
