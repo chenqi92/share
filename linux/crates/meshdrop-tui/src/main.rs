@@ -1,30 +1,27 @@
-//! MeshDrop TUI — ratatui 终端界面，适合 SSH / headless / 容器场景。
+//! MeshDrop · 终端版入口。
+//! - 无参数 → 进全屏 TUI（raw mode + alternate screen）
+//! - 带子命令 → 走 CLI headless 路径，不进 raw mode、不开 alternate screen
 //!
-//! 按键：
-//!   ↑/k, ↓/j      切换设备
-//!   Enter         发送文本到选中设备（i 进入输入模式）
-//!   :             进入命令模式（:f <path> 发文件）
-//!   a / r         接受 / 拒绝待审请求（配对或文件 offer）
-//!   t             接受配对并信任
-//!   d             删除选中的历史项
-//!   c             清空历史
-//!   q / Esc       退出
-//!
-mod app;
+//! 这是关键：CLI 路径 panic / exit code != 0 时终端不会乱。
 
 use anyhow::Result;
+use clap::Parser;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use meshdrop_core::{Identity, ShareEngine};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io::stdout;
-use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
+
+mod app;
+mod cli;
+mod input;
+mod mock;
+mod ui;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -32,45 +29,56 @@ async fn main() -> Result<()> {
         .target(env_logger::Target::Stderr)
         .init();
 
-    let identity = Arc::new(Identity::load_or_create()?);
-    let display_name = std::env::var("HOSTNAME")
-        .ok()
-        .or_else(|| std::fs::read_to_string("/etc/hostname").ok().map(|s| s.trim().to_string()))
-        .unwrap_or_else(|| "Linux".to_string());
-    let model = std::fs::read_to_string("/sys/class/dmi/id/product_name")
-        .ok().map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let parsed = cli::Cli::parse();
+    match parsed.command {
+        Some(cmd) => cli::run(cmd),
+        None => run_tui().await,
+    }
+}
 
-    let engine = ShareEngine::start(identity, display_name, model).await?;
-
-    // 终端初始化
+async fn run_tui() -> Result<()> {
+    // ── 终端进入 ───────────────────────────────────────────────
     enable_raw_mode()?;
     let mut out = stdout();
     execute!(out, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(out);
     let mut terminal = Terminal::new(backend)?;
 
-    // 键盘事件 → tokio channel（不阻塞 render）
+    // 一旦进了 raw mode，任何 panic 都必须 best-effort 恢复终端
+    let _guard = TerminalGuard;
+
+    // ── 键盘事件 → tokio channel ───────────────────────────────
     let (key_tx, key_rx) = mpsc::unbounded_channel();
-    std::thread::spawn(move || -> Result<()> {
+    std::thread::spawn(move || {
         loop {
-            if event::poll(Duration::from_millis(100))? {
-                if let Event::Key(k) = event::read()? {
-                    if k.kind == KeyEventKind::Press {
-                        if key_tx.send(k).is_err() { break; }
-                        if k.code == KeyCode::Char('q') || k.code == KeyCode::Esc { break; }
+            if event::poll(Duration::from_millis(100)).unwrap_or(false) {
+                if let Ok(Event::Key(k)) = event::read() {
+                    if k.kind == KeyEventKind::Press && key_tx.send(k).is_err() {
+                        break;
                     }
                 }
             }
+            if key_tx.is_closed() {
+                break;
+            }
         }
-        Ok(())
     });
 
-    let result = app::run(&mut terminal, engine, key_rx).await;
+    let result = app::run(&mut terminal, key_rx).await;
 
-    // 终端恢复
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture)?;
-    terminal.show_cursor()?;
+    // ── 终端恢复 ───────────────────────────────────────────────
+    let _ = disable_raw_mode();
+    let _ = execute!(terminal.backend_mut(), LeaveAlternateScreen, DisableMouseCapture);
+    let _ = terminal.show_cursor();
 
     result
+}
+
+/// Panic safety：unwind 时也得把终端复位。
+struct TerminalGuard;
+impl Drop for TerminalGuard {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+        let _ = execute!(stdout(), LeaveAlternateScreen, DisableMouseCapture);
+    }
 }
