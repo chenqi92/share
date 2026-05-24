@@ -2,9 +2,13 @@ import SwiftUI
 
 @main
 struct MeshDropWatchApp: App {
+    @StateObject private var engine = WatchEngineProxy.shared
+
     var body: some Scene {
         WindowGroup {
             RootView(initialTab: Self.initialTabFromArgs())
+                .environmentObject(engine)
+                .onAppear { engine.start() }
         }
     }
 
@@ -33,10 +37,10 @@ struct RootView: View {
             NearbyPage()
                 .tag(0)
                 .containerBackground(MD.dink, for: .tabView)
-            ReceivePage(offer: Mock.pendingOffer)
+            ReceivePage()
                 .tag(1)
                 .containerBackground(MD.dink, for: .tabView)
-            TransferPage(transfer: Mock.runningTransfer)
+            TransferPage()
                 .tag(2)
                 .containerBackground(MD.dink, for: .tabView)
             ComplicationView()
