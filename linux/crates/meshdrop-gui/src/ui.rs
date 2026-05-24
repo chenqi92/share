@@ -21,7 +21,18 @@ const PAGES: &[(&str, &str, &str)] = &[
     ("empty",     "空态 · States",   "○"),
 ];
 
+/// 公开给 main / screenshots 模式使用：返回 window + stack 句柄。
+pub struct Shell {
+    pub window: adw::ApplicationWindow,
+    pub stack: gtk::Stack,
+}
+
 pub fn build(app: &adw::Application) {
+    let shell = build_shell(app);
+    shell.window.present();
+}
+
+pub fn build_shell(app: &adw::Application) -> Shell {
     theme::install();
 
     let window = adw::ApplicationWindow::builder()
@@ -36,9 +47,9 @@ pub fn build(app: &adw::Application) {
 
     // ── HeaderBar ──
     let header = adw::HeaderBar::new();
-    header.set_show_title(false);
 
     let title_pack = gtk::Box::new(gtk::Orientation::Horizontal, 10);
+    title_pack.set_halign(gtk::Align::Center);
     title_pack.append(&meshdrop_logo::lockup(22, meshdrop_logo::LogoTone::Dark));
     title_pack.append(&chip::chip_with_dot("LIVE · LAN", chip::Tone::Mute, "#A8C800"));
     header.set_title_widget(Some(&title_pack));
@@ -104,11 +115,11 @@ pub fn build(app: &adw::Application) {
 
     // 顶栏按钮回调
     let win_for_pair = window.clone();
-    pair_btn.connect_clicked(move |_| dialogs::pairing::present(&win_for_pair));
+    pair_btn.connect_clicked(move |_| { dialogs::pairing::present(&win_for_pair); });
     let win_for_offer = window.clone();
-    offer_btn.connect_clicked(move |_| dialogs::file_offer::present(&win_for_offer));
+    offer_btn.connect_clicked(move |_| { dialogs::file_offer::present(&win_for_offer); });
     let win_for_intro = window.clone();
-    intro_btn.connect_clicked(move |_| dialogs::onboarding::present(&win_for_intro));
+    intro_btn.connect_clicked(move |_| { dialogs::onboarding::present(&win_for_intro); });
 
     let app_for_theme = app.clone();
     let cur = Rc::new(RefCell::new(theme::ColorMode::Auto));
@@ -129,9 +140,9 @@ pub fn build(app: &adw::Application) {
     });
 
     let win_for_send = window.clone();
-    send_btn.connect_clicked(move |_| dialogs::file_offer::present(&win_for_send));
+    send_btn.connect_clicked(move |_| { dialogs::file_offer::present(&win_for_send); });
 
-    window.present();
+    Shell { window, stack }
 }
 
 struct Sidebar {

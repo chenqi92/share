@@ -40,11 +40,9 @@ windowhandle,
   color: @meshdrop_ink;
 }
 
-.dark window,
-.dark windowhandle,
-.dark .background,
-window.dark,
-window.dark windowhandle {
+window.meshdrop-dark,
+window.meshdrop-dark windowhandle,
+window.meshdrop-dark .background {
   background-color: @meshdrop_dink;
   color: @meshdrop_dpaper;
 }
@@ -57,7 +55,7 @@ headerbar {
   box-shadow: none;
   min-height: 44px;
 }
-.dark headerbar { background-color: @meshdrop_dink; color: @meshdrop_dpaper; }
+window.meshdrop-dark headerbar { background-color: @meshdrop_dink; color: @meshdrop_dpaper; }
 
 headerbar > windowhandle { background-color: transparent; }
 
@@ -92,7 +90,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   letter-spacing: -1px;
   color: @meshdrop_ink;
 }
-.dark .meshdrop-hero { color: @meshdrop_dpaper; }
+.meshdrop-dark .meshdrop-hero { color: @meshdrop_dpaper; }
 
 .meshdrop-section {
   font-family: "Space Grotesk", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
@@ -101,20 +99,20 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   letter-spacing: -0.5px;
   color: @meshdrop_ink;
 }
-.dark .meshdrop-section { color: @meshdrop_dpaper; }
+.meshdrop-dark .meshdrop-section { color: @meshdrop_dpaper; }
 
 .meshdrop-card-title {
   font-size: 14px;
   font-weight: 700;
   color: @meshdrop_ink;
 }
-.dark .meshdrop-card-title { color: @meshdrop_dpaper; }
+.meshdrop-dark .meshdrop-card-title { color: @meshdrop_dpaper; }
 
 .meshdrop-body { font-size: 13px; color: @meshdrop_ink; }
-.dark .meshdrop-body { color: @meshdrop_dpaper; }
+.meshdrop-dark .meshdrop-body { color: @meshdrop_dpaper; }
 
 .meshdrop-muted { color: @meshdrop_ink45; font-size: 11px; }
-.dark .meshdrop-muted { color: @meshdrop_dpaper45; }
+.meshdrop-dark .meshdrop-muted { color: @meshdrop_dpaper45; }
 
 .meshdrop-meta {
   font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
@@ -122,7 +120,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   color: @meshdrop_ink45;
   letter-spacing: 0.2px;
 }
-.dark .meshdrop-meta { color: @meshdrop_dpaper45; }
+.meshdrop-dark .meshdrop-meta { color: @meshdrop_dpaper45; }
 
 .meshdrop-ascii-divider {
   font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
@@ -132,7 +130,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   text-transform: uppercase;
   color: alpha(#0A0A0A, 0.45);
 }
-.dark .meshdrop-ascii-divider { color: alpha(#E8E3D6, 0.5); }
+.meshdrop-dark .meshdrop-ascii-divider { color: alpha(#E8E3D6, 0.5); }
 
 /* ───── card ──────────────────────────────────────────── */
 .meshdrop-card {
@@ -141,7 +139,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   border: 1px solid @meshdrop_line;
   padding: 14px 16px;
 }
-.dark .meshdrop-card { background: @meshdrop_dink2; border-color: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-card { background: @meshdrop_dink2; border-color: @meshdrop_dline; }
 
 .meshdrop-card-flat {
   background: @meshdrop_paper2;
@@ -149,13 +147,13 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   padding: 12px 14px;
   border: 1px solid @meshdrop_line;
 }
-.dark .meshdrop-card-flat { background: @meshdrop_dink3; border-color: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-card-flat { background: @meshdrop_dink3; border-color: @meshdrop_dline; }
 
 .meshdrop-sidebar {
   background: @meshdrop_paper2;
   border-right: 1px solid @meshdrop_line;
 }
-.dark .meshdrop-sidebar { background: @meshdrop_dink2; border-right-color: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-sidebar { background: @meshdrop_dink2; border-right-color: @meshdrop_dline; }
 
 .meshdrop-statusbar {
   background: @meshdrop_paper;
@@ -163,7 +161,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   padding: 6px 14px;
   min-height: 24px;
 }
-.dark .meshdrop-statusbar { background: @meshdrop_dink; border-top-color: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-statusbar { background: @meshdrop_dink; border-top-color: @meshdrop_dline; }
 
 /* ───── chip ──────────────────────────────────────────── */
 .meshdrop-chip {
@@ -177,7 +175,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   background: @meshdrop_ink06;
   color: @meshdrop_ink60;
 }
-.dark .meshdrop-chip.tone-mute {
+.meshdrop-dark .meshdrop-chip.tone-mute {
   background: alpha(#FFFFFF, 0.08);
   color: @meshdrop_dpaper60;
 }
@@ -189,7 +187,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   background: @meshdrop_ink;
   color: @meshdrop_paper;
 }
-.dark .meshdrop-chip.tone-ink {
+.meshdrop-dark .meshdrop-chip.tone-ink {
   background: @meshdrop_dpaper;
   color: @meshdrop_dink;
 }
@@ -198,7 +196,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   color: @meshdrop_ink60;
   box-shadow: inset 0 0 0 1px @meshdrop_line;
 }
-.dark .meshdrop-chip.tone-outline {
+.meshdrop-dark .meshdrop-chip.tone-outline {
   color: @meshdrop_dpaper60;
   box-shadow: inset 0 0 0 1px @meshdrop_dline;
 }
@@ -228,7 +226,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   padding: 8px 12px;
   border: 1px solid @meshdrop_line;
 }
-.dark .meshdrop-bubble-in {
+.meshdrop-dark .meshdrop-bubble-in {
   background: alpha(#FFFFFF, 0.07);
   color: @meshdrop_dpaper;
   border-color: @meshdrop_dline;
@@ -240,7 +238,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   border-radius: 16px 6px 16px 16px;
   padding: 8px 12px;
 }
-.dark .meshdrop-bubble-out {
+.meshdrop-dark .meshdrop-bubble-out {
   background: @meshdrop_lime;
   color: @meshdrop_ink;
 }
@@ -251,7 +249,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   color: @meshdrop_ink45;
   letter-spacing: 0.4px;
 }
-.dark .meshdrop-bubble-time { color: @meshdrop_dpaper45; }
+.meshdrop-dark .meshdrop-bubble-time { color: @meshdrop_dpaper45; }
 
 .meshdrop-bubble-delivered { color: @meshdrop_lime_deep; }
 
@@ -265,7 +263,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   border-radius: 8px;
   border: 1px solid @meshdrop_dline;
 }
-.dark .meshdrop-terminal { background: #04060A; border-color: alpha(#DDF94B, 0.15); }
+.meshdrop-dark .meshdrop-terminal { background: #04060A; border-color: alpha(#DDF94B, 0.15); }
 
 /* ───── sidebar 行（device row 选中态） ───────────────── */
 .meshdrop-device-row {
@@ -276,14 +274,14 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
 .meshdrop-device-row:hover {
   background: alpha(#0A0A0A, 0.04);
 }
-.dark .meshdrop-device-row:hover {
+.meshdrop-dark .meshdrop-device-row:hover {
   background: alpha(#FFFFFF, 0.05);
 }
 .meshdrop-device-row.selected {
   background: @meshdrop_lime_soft;
   box-shadow: inset 0 0 0 1px @meshdrop_lime;
 }
-.dark .meshdrop-device-row.selected {
+.meshdrop-dark .meshdrop-device-row.selected {
   background: alpha(#DDF94B, 0.16);
   box-shadow: inset 0 0 0 1px @meshdrop_lime;
 }
@@ -299,13 +297,13 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   box-shadow: none;
 }
 .meshdrop-nav-row:hover { background: alpha(#0A0A0A, 0.05); }
-.dark .meshdrop-nav-row { color: @meshdrop_dpaper60; }
-.dark .meshdrop-nav-row:hover { background: alpha(#FFFFFF, 0.06); }
+.meshdrop-dark .meshdrop-nav-row { color: @meshdrop_dpaper60; }
+.meshdrop-dark .meshdrop-nav-row:hover { background: alpha(#FFFFFF, 0.06); }
 .meshdrop-nav-row.active {
   background: @meshdrop_ink;
   color: @meshdrop_paper;
 }
-.dark .meshdrop-nav-row.active {
+.meshdrop-dark .meshdrop-nav-row.active {
   background: @meshdrop_dpaper;
   color: @meshdrop_dink;
 }
@@ -320,7 +318,7 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
   min-height: 30px;
   min-width: 30px;
 }
-.dark .meshdrop-iconbtn { color: @meshdrop_dpaper; border-color: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-iconbtn { color: @meshdrop_dpaper; border-color: @meshdrop_dline; }
 .meshdrop-iconbtn:hover { background: alpha(#0A0A0A, 0.04); }
 .meshdrop-iconbtn.accent {
   background: @meshdrop_lime;
@@ -339,7 +337,7 @@ progressbar > trough {
   border-radius: 2px;
   min-height: 4px;
 }
-.dark progressbar > trough { background-color: alpha(#FFFFFF, 0.08); }
+.meshdrop-dark progressbar > trough { background-color: alpha(#FFFFFF, 0.08); }
 progressbar > trough > progress {
   background-color: @meshdrop_lime_deep;
   border-radius: 2px;
@@ -359,7 +357,7 @@ entry, textview text {
   padding: 0 10px;
   box-shadow: none;
 }
-.dark entry, .dark textview text {
+.meshdrop-dark entry, .meshdrop-dark textview text {
   background: @meshdrop_dink2;
   color: @meshdrop_dpaper;
   border-color: @meshdrop_dline;
@@ -378,7 +376,7 @@ button.suggested-action {
   color: @meshdrop_paper;
   border: none;
 }
-.dark button.suggested-action {
+.meshdrop-dark button.suggested-action {
   background: @meshdrop_lime;
   color: @meshdrop_ink;
 }
@@ -392,7 +390,7 @@ button.destructive-action {
   background: @meshdrop_line;
   min-height: 1px;
 }
-.dark .meshdrop-divider-line { background: @meshdrop_dline; }
+.meshdrop-dark .meshdrop-divider-line { background: @meshdrop_dline; }
 
 /* ───── DropTarget 高亮 ───────────────────────────────── */
 .meshdrop-drop-active {
@@ -408,7 +406,7 @@ button.destructive-action {
   padding: 10px 12px;
   border: 1px solid @meshdrop_line;
 }
-.dark .meshdrop-trust-row {
+.meshdrop-dark .meshdrop-trust-row {
   background: @meshdrop_dink2;
   border-color: @meshdrop_dline;
 }
@@ -423,7 +421,7 @@ button.destructive-action {
   font-size: 11px;
   font-weight: 600;
 }
-.dark .meshdrop-radar-label {
+.meshdrop-dark .meshdrop-radar-label {
   background: @meshdrop_dink2;
   color: @meshdrop_dpaper;
   border-color: @meshdrop_dline;
@@ -444,7 +442,7 @@ button.destructive-action {
   border-top: 1px solid @meshdrop_line;
   padding: 10px 14px;
 }
-.dark .meshdrop-composer {
+.meshdrop-dark .meshdrop-composer {
   background: @meshdrop_dink2;
   border-top-color: @meshdrop_dline;
 }
@@ -456,9 +454,9 @@ window.dialog {
   background: @meshdrop_card;
   color: @meshdrop_ink;
 }
-.dark popover > contents,
-.dark dialog,
-.dark window.dialog {
+.meshdrop-dark popover > contents,
+.meshdrop-dark dialog,
+.meshdrop-dark window.dialog {
   background: @meshdrop_dink2;
   color: @meshdrop_dpaper;
 }
@@ -471,7 +469,7 @@ listbox row:selected {
   background: @meshdrop_lime_soft;
   color: @meshdrop_ink;
 }
-.dark listbox row:selected {
+.meshdrop-dark listbox row:selected {
   background: alpha(#DDF94B, 0.16);
   color: @meshdrop_dpaper;
 }

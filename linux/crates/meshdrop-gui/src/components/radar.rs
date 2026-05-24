@@ -2,9 +2,9 @@
 //! sweep 旋转扫描臂（4.5s 一圈）+ pulse 设备点呼吸（2.6s）+ 3 环 + N/E/S/W 罗盘字母。
 //! 设备点用 `gtk::Fixed` 容器另起一层，可点击。
 
+use super::text;
 use crate::mock::MockDevice;
 use adw::prelude::*;
-use gtk::cairo::{FontSlant, FontWeight};
 use std::cell::Cell;
 use std::rc::Rc;
 use std::time::Instant;
@@ -87,22 +87,9 @@ fn center_card() -> gtk::Box {
         cr.arc(w/2.0, h/2.0, w.min(h)/2.0 - 1.0, 0.0, std::f64::consts::TAU);
         cr.fill().ok();
         cr.set_source_rgba(221.0/255.0, 249.0/255.0, 75.0/255.0, 0.95);
-        cr.select_font_face("Space Grotesk", FontSlant::Normal, FontWeight::Bold);
-        cr.set_font_size(12.0);
-        if let Ok(ext) = cr.text_extents("YOU") {
-            cr.move_to(w/2.0 - ext.width()/2.0 - ext.x_bearing(),
-                       h/2.0 - 4.0 - ext.y_bearing()/2.0);
-            let _ = cr.show_text("YOU");
-        }
+        text::draw_centered(cr, w/2.0, h/2.0 - 7.0, "YOU", "Space Grotesk", 13.0, true);
         cr.set_source_rgba(0.95, 0.95, 0.9, 0.7);
-        cr.select_font_face("Geist Mono", FontSlant::Normal, FontWeight::Normal);
-        cr.set_font_size(7.5);
-        let ip = "192.168.1.42";
-        if let Ok(ext) = cr.text_extents(ip) {
-            cr.move_to(w/2.0 - ext.width()/2.0 - ext.x_bearing(),
-                       h/2.0 + 10.0 - ext.y_bearing()/2.0);
-            let _ = cr.show_text(ip);
-        }
+        text::draw_centered(cr, w/2.0, h/2.0 + 9.0, "192.168.1.42", "Geist Mono", 8.0, false);
     });
     b.append(&area);
     b
@@ -157,18 +144,12 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
     cr.move_to(cx, cy - max_r); cr.line_to(cx, cy + max_r);
     cr.stroke().ok();
 
-    cr.select_font_face("Geist Mono", FontSlant::Normal, FontWeight::Bold);
-    cr.set_font_size(9.0);
     cr.set_source_rgba(0.04, 0.04, 0.04, 0.30);
-    for (label, dx, dy) in [("N", 0.0, -max_r - 12.0),
-                             ("E", max_r + 10.0, 4.0),
-                             ("S", 0.0, max_r + 16.0),
-                             ("W", -max_r - 16.0, 4.0)] {
-        if let Ok(ext) = cr.text_extents(label) {
-            cr.move_to(cx + dx - ext.width() / 2.0 - ext.x_bearing(),
-                       cy + dy - ext.height() / 2.0 - ext.y_bearing());
-            let _ = cr.show_text(label);
-        }
+    for (label, dx, dy) in [("N", 0.0, -max_r - 8.0),
+                             ("E", max_r + 12.0, 0.0),
+                             ("S", 0.0, max_r + 8.0),
+                             ("W", -max_r - 12.0, 0.0)] {
+        text::draw_centered(cr, cx + dx, cy + dy, label, "Geist Mono", 10.0, true);
     }
 
     // sweep arm（4.5s/圈，lime 透明渐变扇形）
@@ -222,14 +203,7 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
         }
 
         // who 标签（在点上方略偏左）
-        cr.select_font_face("Space Grotesk", FontSlant::Normal, FontWeight::Bold);
-        cr.set_font_size(10.0);
         cr.set_source_rgba(0.04, 0.04, 0.04, 0.85);
-        let who = d.who;
-        if let Ok(ext) = cr.text_extents(who) {
-            cr.move_to(x - ext.width() / 2.0 - ext.x_bearing(),
-                       y - 14.0 - ext.y_bearing()/2.0);
-            let _ = cr.show_text(who);
-        }
+        text::draw_centered(cr, x, y - 18.0, d.who, "Space Grotesk", 11.0, true);
     }
 }

@@ -14,7 +14,7 @@ const STEPS: &[(&str, &str, &str)] = &[
      "顶栏状态条会显示 mDNS 注册情况、加密套件、剪贴板同步条数和当前局域网摘要——一眼判断「这次为什么发不出去」。"),
 ];
 
-pub fn present(parent: &impl IsA<gtk::Window>) {
+pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     let win = adw::Window::builder()
         .transient_for(parent)
         .modal(true)
@@ -75,6 +75,7 @@ pub fn present(parent: &impl IsA<gtk::Window>) {
     let win_c = win.clone();
     start.connect_clicked(move |_| win_c.close());
     win.present();
+    win
 }
 
 fn step_row(glyph: &str, title: &str, body: &str) -> gtk::Box {

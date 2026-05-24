@@ -1,8 +1,7 @@
 //! 圆形 Avatar：彩色背景 + initials 字符，可选双层 ring。
-//! 直接用 cairo 自绘；initials 用 cairo toy text API（轻量，免 pangocairo 依赖）。
 
+use super::text;
 use adw::prelude::*;
-use gtk::cairo::{FontSlant, FontWeight};
 
 #[derive(Copy, Clone)]
 #[allow(dead_code)]
@@ -39,15 +38,8 @@ pub fn avatar(initials: &str, color_hex: &str, size: i32, ring: Ring) -> gtk::Dr
         cr.arc(cx, cy, radius, 0.0, std::f64::consts::TAU);
         cr.fill().ok();
 
-        cr.select_font_face("Space Grotesk", FontSlant::Normal, FontWeight::Bold);
-        cr.set_font_size(radius * 0.95);
         cr.set_source_rgba(0.04, 0.04, 0.04, 0.88);
-        if let Ok(ext) = cr.text_extents(&initials) {
-            let tx = cx - ext.width() / 2.0 - ext.x_bearing();
-            let ty = cy - ext.height() / 2.0 - ext.y_bearing();
-            cr.move_to(tx, ty);
-            let _ = cr.show_text(&initials);
-        }
+        text::draw_centered(cr, cx, cy, &initials, "Space Grotesk", radius * 0.9, true);
     });
     area
 }

@@ -2,6 +2,7 @@
 //! 全部基于 GTK4 widget；雷达 / 速度图 / logo 走 cairo 自绘。
 
 pub mod meshdrop_logo;
+pub mod text;
 pub mod avatar;
 pub mod chip;
 pub mod kind_glyph;

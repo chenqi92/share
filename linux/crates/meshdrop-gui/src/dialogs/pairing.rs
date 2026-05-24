@@ -3,9 +3,8 @@
 use crate::components::{ascii_divider, avatar, chip};
 use crate::mock;
 use adw::prelude::*;
-use gtk::cairo::{FontSlant, FontWeight};
 
-pub fn present(parent: &impl IsA<gtk::Window>) {
+pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     let p = mock::pending_pairing();
 
     let win = adw::Window::builder()
@@ -145,6 +144,7 @@ pub fn present(parent: &impl IsA<gtk::Window>) {
     trust.connect_clicked(move |_| win_c.close());
 
     win.present();
+    win
 }
 
 fn fake_qr(size: i32) -> gtk::DrawingArea {
@@ -211,7 +211,6 @@ fn fake_qr(size: i32) -> gtk::DrawingArea {
         cr.arc(cx, cy, 1.6, 0.0, std::f64::consts::TAU);
         cr.fill().ok();
 
-        let _ = (FontSlant::Normal, FontWeight::Bold);
     });
     area
 }

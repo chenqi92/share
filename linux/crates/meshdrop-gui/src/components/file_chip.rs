@@ -1,8 +1,8 @@
 //! FileChip：纸样 icon + 文件名 + 大小（可选进度）。
 //! "纸样"用 cairo 自绘（白底 + 右上折角 + mono 大写扩展名彩色）。
 
+use super::text;
 use adw::prelude::*;
-use gtk::cairo::{FontSlant, FontWeight};
 
 pub fn chip(name: &str, size: &str, ext: &str, progress: Option<u32>) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
@@ -81,16 +81,9 @@ fn paper_icon(ext: &str, w: i32, h: i32) -> gtk::DrawingArea {
         cr.set_source_rgba(r, g, b, 1.0);
         cr.fill().ok();
 
-        // ext 文字
-        cr.select_font_face("Geist Mono", FontSlant::Normal, FontWeight::Bold);
-        cr.set_font_size(8.0);
+        // ext 文字（pango，自动 fallback）
         cr.set_source_rgb(1.0, 1.0, 1.0);
-        if let Ok(ext) = cr.text_extents(&ext_up) {
-            let tx2 = tx + tw / 2.0 - ext.width() / 2.0 - ext.x_bearing();
-            let ty2 = ty + tag_h / 2.0 - ext.height() / 2.0 - ext.y_bearing();
-            cr.move_to(tx2, ty2);
-            let _ = cr.show_text(&ext_up);
-        }
+        text::draw_centered(cr, tx + tw / 2.0, ty + tag_h / 2.0, &ext_up, "Geist Mono", 9.0, true);
     });
     area
 }

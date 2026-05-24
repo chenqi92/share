@@ -4,7 +4,7 @@ use crate::components::{ascii_divider, avatar, chip, file_chip};
 use crate::mock;
 use adw::prelude::*;
 
-pub fn present(parent: &impl IsA<gtk::Window>) {
+pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     let offer = mock::pending_offer();
 
     let win = adw::Window::builder()
@@ -106,4 +106,5 @@ pub fn present(parent: &impl IsA<gtk::Window>) {
     accept.connect_clicked(move |_| win_c.close());
 
     win.present();
+    win
 }
