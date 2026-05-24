@@ -4,52 +4,49 @@ import ShareKit
 struct ContentView: View {
     @EnvironmentObject var engine: ShareEngine
 
-    /// 当前要弹 pairing sheet 的请求。绑定到 pendingPairings 的第一个元素。
     private var currentPairing: Binding<PairingRequest?> {
-        Binding(
-            get: { engine.pendingPairings.first },
-            set: { _ in /* 通过 respondToPairing 改 */ }
-        )
+        Binding(get: { engine.pendingPairings.first }, set: { _ in })
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-            DeviceListView()
-            InboxView()
-        }
-        .sheet(item: currentPairing) { req in
-            PairingSheet(request: req)
-                .environmentObject(engine)
-        }
-    }
+        ZStack {
+            BackgroundGradient()
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .font(.title2)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(engine.displayName)
-                    .font(.headline)
-                Text("指纹 \(engine.identity.fingerprint.prefix(8)) …")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospaced()
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(engine.devices.count) 个可见设备")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if !engine.trusted.isEmpty {
-                    Text("已信任 \(engine.trusted.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 24) {
+                        SelfBanner()
+                        DeviceArea()
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
+                    .padding(.bottom, 28)
+                }
+
+                if !engine.inbox.isEmpty {
+                    InboxView()
                 }
             }
         }
-        .padding(16)
+        .frame(minWidth: 560, minHeight: 520)
+        .sheet(item: currentPairing) { req in
+            PairingSheet(request: req).environmentObject(engine)
+        }
+    }
+}
+
+/// 渐变背景。两端配色保持一致，营造统一品牌。
+struct BackgroundGradient: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0.84, green: 0.92, blue: 1.0),
+                Color(red: 0.92, green: 0.88, blue: 1.0),
+                Color(red: 1.0, green: 0.93, blue: 0.95),
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .ignoresSafeArea()
     }
 }

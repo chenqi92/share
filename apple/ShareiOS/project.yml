@@ -22,8 +22,9 @@ targets:
     platform: iOS
     sources:
       - Sources
-    resources:
-      - Resources
+      - path: Resources
+        excludes:
+          - Info.plist     # Info.plist 由 info.path 单独处理，避免重复加入
     info:
       path: Resources/Info.plist
       properties:
@@ -48,7 +49,8 @@ targets:
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: drop.mesh.ios
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
+        PRODUCT_NAME: MeshDrop
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 2U97K3U27A

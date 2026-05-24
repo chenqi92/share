@@ -3,69 +3,52 @@ import ShareKit
 
 struct ContentView: View {
     @EnvironmentObject var engine: ShareEngine
+    @Environment(\.horizontalSizeClass) var hSize
 
     private var currentPairing: Binding<PairingRequest?> {
-        Binding(
-            get: { engine.pendingPairings.first },
-            set: { _ in /* 通过 respondToPairing 改 */ }
-        )
+        Binding(get: { engine.pendingPairings.first }, set: { _ in })
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                backgroundGradient
-                    .ignoresSafeArea()
+                backgroundGradient.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    selfCard
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                    DeviceListView()
-                    InboxView()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        SelfCard()
+                            .padding(.horizontal, sidePadding)
+                            .padding(.top, 12)
+                        DeviceListView()
+                    }
+                    // iPad 屏宽过大时把内容压在中间宽度上限内，避免一行铺满显得空
+                    .frame(maxWidth: contentMaxWidth)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, engine.inbox.isEmpty ? 24 : 280)
+                }
+
+                if !engine.inbox.isEmpty {
+                    VStack { Spacer(); InboxView() }
                 }
             }
             .navigationTitle("MeshDrop")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(hSize == .regular ? .large : .inline)
         }
         .sheet(item: currentPairing) { req in
-            PairingSheet(request: req)
-                .environmentObject(engine)
+            PairingSheet(request: req).environmentObject(engine)
         }
     }
 
-    private var selfCard: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "antenna.radiowaves.left.and.right")
-                .font(.title2)
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(engine.displayName)
-                    .font(.headline)
-                Text(engine.identity.fingerprint.prefix(16))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospaced()
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("\(engine.devices.count) 可见")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                if !engine.trusted.isEmpty {
-                    Text("已信任 \(engine.trusted.count)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(16)
-        .liquidGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
+    private var sidePadding: CGFloat { hSize == .regular ? 32 : 16 }
+    private var contentMaxWidth: CGFloat? { hSize == .regular ? 900 : nil }
 
     private var backgroundGradient: some View {
         LinearGradient(
-            colors: [Color.blue.opacity(0.20), Color.purple.opacity(0.18), Color.pink.opacity(0.15)],
+            colors: [
+                Color(red: 0.84, green: 0.92, blue: 1.0),
+                Color(red: 0.92, green: 0.88, blue: 1.0),
+                Color(red: 1.0, green: 0.93, blue: 0.95),
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

@@ -21,8 +21,9 @@ targets:
     platform: macOS
     sources:
       - Sources
-    resources:
-      - Resources
+      - path: Resources
+        excludes:
+          - Info.plist     # Info.plist 由 info.path 单独处理，避免重复加入
     info:
       path: Resources/Info.plist
       properties:
@@ -46,10 +47,12 @@ targets:
         com.apple.security.files.user-selected.read-write: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: drop.mesh.mac
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
+        PRODUCT_NAME: MeshDrop
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 2U97K3U27A
     dependencies:
       - package: ShareKit
         product: ShareKit
