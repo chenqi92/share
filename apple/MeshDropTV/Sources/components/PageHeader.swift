@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// 所有 page 顶部统一 header：固定高度 110pt，monoTag (14pt) + 大字 (44pt) 起点 y 完全一致。
-/// 右侧 trailing 区给 chips / 状态 / actions 使用。
+/// 所有 page 顶部统一 header：固定高度 96pt。
+///
+/// 内部结构（两行 visual rhythm，所有 page 完全一致）：
+/// - 第一行 (y=0)：左侧 monoTag (14pt uppercase) + 右侧 trailing chips
+/// - 第二行 (y≈22)：48pt 大字标题（可选 lime accent suffix）
 struct PageHeader<Trailing: View>: View {
     var tag: String
     var title: String
@@ -22,31 +25,37 @@ struct PageHeader<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 24) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            // 第一行：tag 左 + trailing 右，高度严格匹配 14pt monoTag
+            HStack(alignment: .center, spacing: 16) {
                 Text(tag)
                     .monoTag()
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text(title)
+                Spacer(minLength: 16)
+                trailing()
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            .frame(height: 22)
+
+            // 第二行：大字标题
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text(title)
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundStyle(MeshDropColor.dpaper)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                if let suffix = titleAccentSuffix {
+                    Text(suffix)
                         .font(.system(size: 48, weight: .bold))
-                        .foregroundStyle(MeshDropColor.dpaper)
+                        .foregroundStyle(titleAccentColor)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
-                    if let suffix = titleAccentSuffix {
-                        Text(suffix)
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(titleAccentColor)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
                 }
             }
-            Spacer(minLength: 16)
-            trailing()
-                .fixedSize(horizontal: true, vertical: false)
+            .frame(height: 56, alignment: .leading)
         }
-        .frame(height: 110, alignment: .bottom)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: 96, alignment: .top)
     }
 }
