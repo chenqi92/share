@@ -4,6 +4,12 @@
 *.bak
 *.log
 
+# 设计源稿（jsx 预览 / 截图）— 本地保留，不入库
+design/shar/
+# 但 logo 源 PNG 入库，给 iconforge 用
+!design/logo-light.png
+!design/logo-dark.png
+
 # Apple / Xcode
 # xcodeproj 由 xcodegen 从 project.yml 生成，不入库（避免机器路径污染 diff）
 xcuserdata/
