@@ -1,0 +1,46 @@
+$ curl -sS -i http://127.0.0.1:7384/
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 2494
+Server: MeshDrop-Gateway/0.1
+Connection: close
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+... (placeholder UI, 6-char pairing code input)
+
+$ curl -sS -i http://127.0.0.1:7384/api/v1/info
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 64
+Server: MeshDrop-Gateway/0.1
+Connection: close
+
+{ "v": 1, "service": "meshdrop-gateway", "code_required": true }
+
+$ curl -sS -i -X POST -d "WRONGCODE" http://127.0.0.1:7384/api/v1/auth
+HTTP/1.1 401 Unauthorized
+Content-Type: application/json
+Content-Length: 35
+Server: MeshDrop-Gateway/0.1
+Connection: close
+
+{"ok":false,"error":"invalid_code"}
+
+$ curl -sS -i http://127.0.0.1:7384/nope
+HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=utf-8
+Content-Length: 9
+Server: MeshDrop-Gateway/0.1
+Connection: close
+
+not found
+
+$ curl -sS -i http://127.0.0.1:7384/api/v1/control
+HTTP/1.1 501 Not Implemented
+Content-Type: text/plain; charset=utf-8
+Content-Length: 27
+Server: MeshDrop-Gateway/0.1
+Connection: close
+
+not implemented in v0.1

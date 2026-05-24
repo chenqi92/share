@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct HistoryPage: View {
+    @EnvironmentObject var state: AppState
+
     var body: some View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
@@ -14,23 +16,18 @@ struct HistoryPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
-                    Chip(text: "12 ITEMS", tone: .outline, mono: true)
-                    Chip(text: "2.41 GB",  tone: .outline, mono: true)
+                    Chip(text: "\(state.engineHistory.count) ITEMS", tone: .outline, mono: true)
                 }
 
-                AsciiDivider(text: "TODAY · 今天 · 6 件")
+                if state.engineHistory.isEmpty {
+                    emptyView
+                } else {
+                    AsciiDivider(text: "RECENT · 最近 · \(state.engineHistory.count) 件")
 
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(MockHistory.all) { h in
-                        historyCard(h)
-                    }
-                }
-
-                AsciiDivider(text: "YESTERDAY · 昨天 · 4 件")
-
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                    ForEach(0..<3) { i in
-                        yesterdayCard(i)
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        ForEach(state.engineHistory) { h in
+                            historyCard(h)
+                        }
                     }
                 }
             }
@@ -39,6 +36,26 @@ struct HistoryPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MeshDropColor.background)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "tray")
+                .font(.system(size: 42, weight: .light))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Text("还没有历史记录")
+                .font(MeshDropFont.body(size: 14, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textPrimary)
+            Text("发出去 / 收到的传输会显示在这里")
+                .font(MeshDropFont.body(size: 12))
+                .foregroundStyle(MeshDropColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(MeshDropColor.cardBg)
+        )
     }
 
     @ViewBuilder

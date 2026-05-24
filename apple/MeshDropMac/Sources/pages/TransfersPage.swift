@@ -12,24 +12,29 @@ struct TransfersPage: View {
                     SpeedChart(bars: MockSpeed.uploadBars,
                                color: MeshDropColor.flame,
                                title: "上行 · UP",
-                               subtitle: "8.4 MB/s",
+                               subtitle: "—",
                                arrow: "↑")
                         .frame(maxWidth: .infinity)
                     SpeedChart(bars: MockSpeed.downloadBars,
                                color: MeshDropColor.sky,
                                title: "下行 · DOWN",
-                               subtitle: "11.7 MB/s",
+                               subtitle: "—",
                                arrow: "↓")
                         .frame(maxWidth: .infinity)
                     sessionTotal
                         .frame(width: 220)
                 }
 
-                AsciiDivider(text: "TASKS · 6 任务 · 2 进行 · 1 排队 · 3 完成")
+                let transfers = engineTransfers
+                AsciiDivider(text: "TASKS · \(transfers.count) 任务 · \(transfers.filter { $0.state == .sending || $0.state == .receiving }.count) 进行 · \(transfers.filter { $0.state == .done }.count) 完成")
 
-                VStack(spacing: 10) {
-                    ForEach(MockTransfer.all) { item in
-                        TransferRow(item: item)
+                if transfers.isEmpty {
+                    emptyView
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(transfers) { item in
+                            TransferRow(item: item)
+                        }
                     }
                 }
             }
@@ -40,8 +45,58 @@ struct TransfersPage: View {
         .background(MeshDropColor.background)
     }
 
+    /// 把 engineHistory 中的文件项投影成 MockTransfer，供 TransferRow 复用。
+    private var engineTransfers: [MockTransfer] {
+        state.engineHistory.compactMap { h in
+            guard h.kind == .file, let name = h.name, let size = h.size else { return nil }
+            let fromTo: (from: String, to: String) = h.dir == .outgoing
+                ? ("我", h.peer)
+                : (h.peer, "我")
+            let prog = h.progress ?? 0
+            let st: TransferState
+            switch h.status {
+            case .done: st = .done
+            case .transferring: st = h.dir == .outgoing ? .sending : .receiving
+            case .queued: st = .queued
+            case .failed: st = .failed
+            }
+            return MockTransfer(
+                name: name,
+                size: size,
+                ext: h.ext ?? "bin",
+                from: fromTo.from,
+                to: fromTo.to,
+                progress: prog,
+                state: st,
+                speed: nil,
+                eta: nil
+            )
+        }
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 36, weight: .light))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Text("当前没有传输")
+                .font(MeshDropFont.body(size: 14, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textPrimary)
+            Text("拖文件到设备头像即可开始")
+                .font(MeshDropFont.body(size: 12))
+                .foregroundStyle(MeshDropColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(MeshDropColor.cardBg)
+        )
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
+            let transfers = engineTransfers
             HStack {
                 Text("传输")
                     .font(MeshDropFont.hero(34))
@@ -52,25 +107,15 @@ struct TransfersPage: View {
                     .tracking(-1)
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
-                filterChip(text: "全部", count: 6, active: state.transferFilter == nil) { state.transferFilter = nil }
-                filterChip(text: "进行中", count: 2, active: state.transferFilter == .sending) { state.transferFilter = .sending }
-                filterChip(text: "已完成", count: 3, active: state.transferFilter == .done) { state.transferFilter = .done }
-                filterChip(text: "失败",   count: 0, active: state.transferFilter == .failed) { state.transferFilter = .failed }
+                filterChip(text: "全部", count: transfers.count, active: state.transferFilter == nil) { state.transferFilter = nil }
+                filterChip(text: "进行中", count: transfers.filter { $0.state == .sending || $0.state == .receiving }.count, active: state.transferFilter == .sending) { state.transferFilter = .sending }
+                filterChip(text: "已完成", count: transfers.filter { $0.state == .done }.count, active: state.transferFilter == .done) { state.transferFilter = .done }
+                filterChip(text: "失败",   count: transfers.filter { $0.state == .failed }.count, active: state.transferFilter == .failed) { state.transferFilter = .failed }
             }
             HStack(spacing: 8) {
-                Text("6 个任务 · 2 进行中 · 1 排队 · 3 已完成")
+                Text("\(transfers.count) 个任务 · \(transfers.filter { $0.state == .sending || $0.state == .receiving }.count) 进行中 · \(transfers.filter { $0.state == .done }.count) 已完成")
                     .font(MeshDropFont.mono(size: 11))
                     .foregroundStyle(MeshDropColor.textMuted)
-                Text("·")
-                    .foregroundStyle(MeshDropColor.textMuted)
-                Text("↑ 11.5 MB/s")
-                    .font(MeshDropFont.mono(size: 11, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.flame)
-                Text("·")
-                    .foregroundStyle(MeshDropColor.textMuted)
-                Text("↓ 11.7 MB/s")
-                    .font(MeshDropFont.mono(size: 11, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.sky)
             }
         }
     }

@@ -1,9 +1,11 @@
 import SwiftUI
 import AppKit
+import MeshDropKit
 
 @main
 struct MeshDropMacApp: App {
     @StateObject private var state = AppState()
+    @StateObject private var gateway = GatewayService()
 
     init() {
         MeshDropFont.register()
@@ -16,7 +18,16 @@ struct MeshDropMacApp: App {
         WindowGroup("MeshDrop") {
             AppShell()
                 .environmentObject(state)
+                .environmentObject(gateway)
                 .preferredColorScheme(nil)   // 跟随系统
+                .onAppear {
+                    ShareEngine.shared.start()
+                    gateway.startIfEnabled()
+                }
+                .onDisappear {
+                    ShareEngine.shared.stop()
+                    gateway.stop()
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unifiedCompact)
@@ -31,7 +42,9 @@ struct MeshDropMacApp: App {
         }
 
         Settings {
-            SettingsPage().environmentObject(state)
+            SettingsPage()
+                .environmentObject(state)
+                .environmentObject(gateway)
                 .frame(minWidth: 720, minHeight: 560)
         }
 

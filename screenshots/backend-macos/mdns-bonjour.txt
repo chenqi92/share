@@ -1,0 +1,9 @@
+$ dns-sd -B _meshdrop._tcp
+Browsing for _meshdrop._tcp
+DATE: ---Mon 25 May 2026---
+ 0:32:03.057  ...STARTING...
+Timestamp     A/R    Flags  if Domain               Service Type         Instance Name
+ 0:32:03.058  Add        3  15 local.               _meshdrop._tcp.      fb6360765fe648b6b56a4b51cdec0528
+ 0:32:03.058  Add        3  15 local.               _meshdrop._tcp.      41a251aced6142ceb13bfd82973f0b63
+ 0:32:03.058  Add        3   1 local.               _meshdrop._tcp.      a6fe034eb141456c9b73ba2d1eddac78
+ 0:32:03.058  Add        2  15 local.               _meshdrop._tcp.      a6fe034eb141456c9b73ba2d1eddac78

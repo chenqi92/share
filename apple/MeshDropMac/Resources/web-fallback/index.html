@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MeshDrop · Web Gateway</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #F4EFE3; color: #1B1B1B;
+               font-family: -apple-system, "Helvetica Neue", "PingFang SC", sans-serif; }
+  .wrap { max-width: 520px; margin: 8vh auto; padding: 32px; background: #fff;
+          border-radius: 18px; box-shadow: 0 8px 32px rgba(0,0,0,.08); }
+  h1 { font-size: 28px; margin: 0 0 4px 0; letter-spacing: -.5px; }
+  .tag { display: inline-block; padding: 2px 8px; border: 1px solid #C7BFAB; border-radius: 4px;
+         font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: #6D6862; }
+  p { color: #4A4742; line-height: 1.6; }
+  .code-input { display: flex; gap: 8px; margin-top: 16px; }
+  input { flex: 1; padding: 10px 12px; border: 1px solid #C7BFAB; border-radius: 8px;
+          font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 16px; letter-spacing: 4px;
+          text-transform: uppercase; }
+  button { padding: 10px 18px; border: 0; background: #D6F26B; color: #1B1B1B;
+           border-radius: 8px; font-weight: 600; cursor: pointer; }
+  .ok  { color: #4A7B1A; }
+  .err { color: #B23A1A; }
+  footer { margin-top: 18px; font-family: ui-monospace, monospace; font-size: 11px; color: #8C857C; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>MeshDrop</h1>
+    <div class="tag">LAN · WEB GATEWAY · v0.1</div>
+    <p>这是本机为浏览器端 MeshDrop 提供的局域网入口。请输入桌面端 <b>设置 → Web 访问</b> 中显示的 6 字符配对码。</p>
+    <div class="code-input">
+      <input id="code" placeholder="LR4 · K7M" autocapitalize="characters" />
+      <button onclick="auth()">进入</button>
+    </div>
+    <div id="msg" style="margin-top:10px;"></div>
+    <footer>注：v0.1 仅校验配对码；WebSocket 控制通道（/api/v1/control）将在 v0.2 启用，届时启用 TLS 自签证书。</footer>
+  </div>
+<script>
+  async function auth() {
+    const raw = document.getElementById('code').value.replace(/\s|·/g, '').toUpperCase();
+    const r = await fetch('/api/v1/auth', { method:'POST', body: raw });
+    const msg = document.getElementById('msg');
+    if (r.ok) { msg.textContent = '✓ 配对码正确（WS 通道 v0.2 启用）'; msg.className = 'ok'; }
+    else      { msg.textContent = '× 配对码不对'; msg.className = 'err'; }
+  }
+</script>
+</body></html>

@@ -28,6 +28,11 @@ public final class ShareEngine: ObservableObject {
     @Published public private(set) var identity: Identity
     @Published public var displayName: String
 
+    /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
+    @Published public private(set) var isStarting: Bool = false
+    /// 最近一次启动 / 网络层错误的可读文案，nil 表示无错。
+    @Published public private(set) var lastError: String?
+
     private var discovery: Discovery?
     private let trustStore = TrustStore()
     private var devicesTask: Task<Void, Never>?
@@ -42,6 +47,8 @@ public final class ShareEngine: ObservableObject {
 
     public func start() {
         guard discovery == nil else { return }
+        isStarting = true
+        lastError = nil
         do {
             let d = try Discovery(
                 identity: identity,
@@ -57,11 +64,22 @@ public final class ShareEngine: ObservableObject {
             devicesTask = Task { [weak self] in
                 guard let self else { return }
                 for await list in d.devices {
-                    await MainActor.run { self.devices = list }
+                    await MainActor.run {
+                        self.devices = list
+                        // 收到首批设备 / 至少完成一轮浏览后视为不再扫描
+                        if self.isStarting { self.isStarting = false }
+                    }
                 }
             }
             Task { await refreshTrusted() }
+            // 即使 LAN 上暂时一台都没有也算启动完成；3 秒后清掉 isStarting
+            Task { [weak self] in
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run { self?.isStarting = false }
+            }
         } catch {
+            isStarting = false
+            lastError = error.localizedDescription
             log.error("ShareEngine start failed: \(error.localizedDescription)")
         }
     }
@@ -72,9 +90,19 @@ public final class ShareEngine: ObservableObject {
         devicesTask?.cancel()
         devicesTask = nil
         devices = []
+        isStarting = false
         let active = Array(contexts.values)
         contexts.removeAll()
         Task { for ctx in active { await ctx.connection.close() } }
+    }
+
+    /// 清空最近的错误（UI toast 关闭时调用）。
+    public func clearLastError() {
+        lastError = nil
+    }
+
+    public func setDisplayName(_ name: String) {
+        displayName = name
     }
 
     // MARK: - 历史管理

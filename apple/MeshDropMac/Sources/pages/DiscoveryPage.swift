@@ -9,7 +9,7 @@ struct DiscoveryPage: View {
                 // 标题区
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {
-                        Text("附近 5 台设备")
+                        Text("附近 \(state.engineDevices.count) 台设备")
                             .font(MeshDropFont.hero(34))
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textPrimary)
@@ -24,19 +24,40 @@ struct DiscoveryPage: View {
                     HStack(spacing: 6) {
                         Text("⟳")
                             .font(MeshDropFont.mono(size: 12, weight: .bold))
-                            .foregroundStyle(MeshDropColor.limeDeep)
-                        Text("扫描中 · scanning LAN · 192.168.1.0/24 · mDNS+uTP")
+                            .foregroundStyle(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
+                        Text(state.isScanning
+                             ? "扫描中 · scanning LAN · \(state.localIPSummary) · mDNS"
+                             : "已就绪 · ready · \(state.localIPSummary) · mDNS+uTP")
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
+                    }
+                    if let err = state.lastError {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(MeshDropColor.error)
+                            Text("网络出错 — \(err)")
+                                .font(MeshDropFont.body(size: 11.5))
+                                .foregroundStyle(MeshDropColor.error)
+                            Spacer()
+                            Text("关闭")
+                                .font(MeshDropFont.body(size: 11, weight: .semibold))
+                                .foregroundStyle(MeshDropColor.textSecondary)
+                                .onTapGesture { state.clearError() }
+                        }
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(MeshDropColor.error.opacity(0.08))
+                        )
                     }
                 }
 
                 // 主网格：左 stats + 右 radar
                 HStack(alignment: .top, spacing: 18) {
                     VStack(alignment: .leading, spacing: 14) {
-                        statBlock(label: "ONLINE",   value: "5", color: MeshDropColor.limeDeep)
-                        statBlock(label: "BUSY",     value: "0", color: MeshDropColor.flame)
-                        statBlock(label: "OFFLINE",  value: "2", color: MeshDropColor.ink45)
+                        statBlock(label: "ONLINE",   value: "\(state.engineDevices.filter { $0.online }.count)", color: MeshDropColor.limeDeep)
+                        statBlock(label: "TRUSTED",  value: "\(state.engineTrusted.count)", color: MeshDropColor.flame)
+                        statBlock(label: "PENDING",  value: "\((state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0))", color: MeshDropColor.ink45)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("快速操作")
@@ -51,11 +72,16 @@ struct DiscoveryPage: View {
                     .frame(width: 220)
 
                     VStack(spacing: 0) {
-                        Radar(devices: MockDevice.all,
-                              variant: .sweep,
-                              selectedDeviceID: state.selectedDeviceID,
-                              staticTime: 1.4)
-                            .frame(height: 460)
+                        if state.engineDevices.isEmpty {
+                            emptyDeviceCard
+                                .frame(height: 460)
+                        } else {
+                            Radar(devices: state.engineDevices,
+                                  variant: .sweep,
+                                  selectedDeviceID: state.selectedDeviceID,
+                                  staticTime: 1.4)
+                                .frame(height: 460)
+                        }
 
                         HStack(spacing: 8) {
                             Text("⤓")
@@ -85,12 +111,16 @@ struct DiscoveryPage: View {
                     )
                 }
 
-                AsciiDivider(text: "TODAY · 今天 · 5 件")
+                AsciiDivider(text: "TODAY · 今天 · \(state.engineHistory.count) 件")
 
                 // 今日活动
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(MockHistory.all.prefix(4)) { h in
-                        historyCardCompact(h)
+                if state.engineHistory.isEmpty {
+                    emptyHistoryCard
+                } else {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                        ForEach(state.engineHistory.prefix(4)) { h in
+                            historyCardCompact(h)
+                        }
                     }
                 }
             }
@@ -100,6 +130,40 @@ struct DiscoveryPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MeshDropColor.background)
+    }
+
+    private var emptyDeviceCard: some View {
+        VStack(spacing: 12) {
+            Spacer()
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .font(.system(size: 48, weight: .light))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Text("附近没有 MeshDrop 设备")
+                .font(MeshDropFont.body(size: 14, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textPrimary)
+            Text("让朋友也打开 MeshDrop · 同一 Wi-Fi 即可")
+                .font(MeshDropFont.body(size: 12))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var emptyHistoryCard: some View {
+        VStack(spacing: 6) {
+            Text("还没有传输记录")
+                .font(MeshDropFont.body(size: 12.5, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textSecondary)
+            Text("发出去 / 收到的第一份内容会显示在这里")
+                .font(MeshDropFont.body(size: 11))
+                .foregroundStyle(MeshDropColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(MeshDropColor.cardBg)
+        )
     }
 
     @ViewBuilder

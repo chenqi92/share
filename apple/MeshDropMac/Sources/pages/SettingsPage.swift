@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsPage: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var gateway: GatewayService
     @State private var visibleToAll = true
     @State private var requireFingerprint = true
     @State private var autoAcceptFromTrusted = true
@@ -10,6 +11,7 @@ struct SettingsPage: View {
     @State private var startAtLogin = true
     @State private var showInMenuBar = true
     @State private var keepHistoryDays = 30
+    @State private var displayNameEdit = ""
 
     var body: some View {
         PageScroll {
@@ -28,17 +30,24 @@ struct SettingsPage: View {
                 }
 
                 section("可见性 · Visibility") {
-                    field("显示名称", trailing:
-                        Text(state.displayName)
-                            .font(MeshDropFont.body(size: 13, weight: .semibold))
+                    HStack {
+                        Text("显示名称")
+                            .font(MeshDropFont.body(size: 12.5))
                             .foregroundStyle(MeshDropColor.textPrimary)
-                            .frame(width: 240, alignment: .trailing)
-                            .multilineTextAlignment(.trailing)
-                    )
+                        Spacer(minLength: 12)
+                        TextField("", text: $displayNameEdit, onCommit: {
+                            state.applyDisplayName(displayNameEdit)
+                        })
+                        .textFieldStyle(.roundedBorder)
+                        .font(MeshDropFont.body(size: 13, weight: .semibold))
+                        .frame(width: 240)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
                     toggle("局域网可见 · Visible on LAN", on: $visibleToAll)
                     toggle("仅显示已配对设备", on: .constant(false))
                     field("设备类型", trailing:
-                        Text("MAC · \(MockMe.os)")
+                        Text("MAC · macOS")
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
@@ -46,7 +55,7 @@ struct SettingsPage: View {
 
                 section("安全 · Security") {
                     field("指纹（X25519）", trailing:
-                        Text(MockMe.fullFingerprint)
+                        Text(state.localFingerprintFull)
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textSecondary)
                             .frame(width: 380, alignment: .trailing)
@@ -54,16 +63,23 @@ struct SettingsPage: View {
                     )
                     toggle("接收前必须验证对方指纹", on: $requireFingerprint)
                     toggle("陌生设备首次配对要求确认", on: .constant(true))
-                    Button("查看 / 复制完整指纹 · QR 码…") {}
-                        .buttonStyle(.plain)
-                        .font(MeshDropFont.body(size: 12, weight: .semibold))
-                        .foregroundStyle(MeshDropColor.limeDeep)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(MeshDropColor.divider, lineWidth: 1)
-                        )
+                    Button("查看 / 复制完整指纹 · QR 码…") {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(state.localFingerprintFull, forType: .string)
+                    }
+                    .buttonStyle(.plain)
+                    .font(MeshDropFont.body(size: 12, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.limeDeep)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(MeshDropColor.divider, lineWidth: 1)
+                    )
+                }
+
+                section("Web 访问 · Web Gateway") {
+                    PairingCodeView()
                 }
 
                 section("接收 · Receive") {
@@ -120,6 +136,7 @@ struct SettingsPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MeshDropColor.background)
+        .onAppear { if displayNameEdit.isEmpty { displayNameEdit = state.displayName } }
     }
 
     @ViewBuilder
