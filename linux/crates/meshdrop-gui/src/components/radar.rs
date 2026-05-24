@@ -3,9 +3,9 @@
 //! 设备点用 `gtk::Fixed` 容器另起一层，可点击。
 
 use super::text;
-use crate::mock::MockDevice;
+use crate::view::ViewDevice;
 use adw::prelude::*;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::time::Instant;
 
@@ -15,9 +15,30 @@ pub struct Radar {
     pub area: gtk::DrawingArea,
     pub fixed: gtk::Fixed,
     pub selected: Rc<Cell<Option<usize>>>,
+    pub devices: Rc<RefCell<Vec<ViewDevice>>>,
 }
 
-pub fn build(devices: &[MockDevice], selected_initial: Option<usize>) -> Radar {
+impl Radar {
+    /// 用最新设备列表刷新 radar：替换内部数据 + 重建 label widgets。
+    pub fn set_devices(&self, devs: Vec<ViewDevice>) {
+        *self.devices.borrow_mut() = devs.clone();
+        while let Some(child) = self.fixed.first_child() {
+            self.fixed.remove(&child);
+        }
+        for (i, d) in devs.iter().enumerate() {
+            let lbl_box = device_label_box(d);
+            if Some(i) == self.selected.get() { lbl_box.add_css_class("selected"); }
+            self.fixed.put(&lbl_box, 0.0, 0.0);
+        }
+        let (w, h) = (self.area.width() as f64, self.area.height() as f64);
+        if w > 0.0 && h > 0.0 {
+            layout_labels(&self.fixed, w, h, &devs);
+        }
+        self.area.queue_draw();
+    }
+}
+
+pub fn build(devices: &[ViewDevice], selected_initial: Option<usize>) -> Radar {
     let area = gtk::DrawingArea::builder()
         .content_width(420)
         .content_height(420)
@@ -25,14 +46,16 @@ pub fn build(devices: &[MockDevice], selected_initial: Option<usize>) -> Radar {
         .vexpand(true)
         .build();
     let start = Instant::now();
-    let devs: Vec<MockDevice> = devices.to_vec();
+    let devices_rc: Rc<RefCell<Vec<ViewDevice>>> =
+        Rc::new(RefCell::new(devices.to_vec()));
     let selected: Rc<Cell<Option<usize>>> = Rc::new(Cell::new(selected_initial));
 
-    let dev_for_draw = devs.clone();
+    let dev_for_draw = devices_rc.clone();
     let sel_for_draw = selected.clone();
     area.set_draw_func(move |_, cr, w, h| {
+        let devs = dev_for_draw.borrow();
         draw_radar(cr, w as f64, h as f64, start.elapsed().as_secs_f64(),
-                   &dev_for_draw, sel_for_draw.get());
+                   &devs, sel_for_draw.get());
     });
     area.add_tick_callback(move |a, _| {
         a.queue_draw();
@@ -44,13 +67,9 @@ pub fn build(devices: &[MockDevice], selected_initial: Option<usize>) -> Radar {
     fixed.set_halign(gtk::Align::Fill);
     fixed.set_valign(gtk::Align::Fill);
 
-    // 中心 YOU 节点
     let center = center_card();
-    // 居中放置：用 size_allocate 时间无法直接做，简化：放在 (0,0) 由 area 的中心绘制。
-    // GTK4 Fixed 不参与 layout，所以我们在 overlay 中只放 device label，YOU 标签直接画。
 
-    // device labels（小胶囊，浮在对应坐标）
-    for (i, d) in devs.iter().enumerate() {
+    for (i, d) in devices_rc.borrow().iter().enumerate() {
         let lbl_box = device_label_box(d);
         let cls = if Some(i) == selected.get() { Some("selected") } else { None };
         if let Some(c) = cls { lbl_box.add_css_class(c); }
@@ -59,9 +78,10 @@ pub fn build(devices: &[MockDevice], selected_initial: Option<usize>) -> Radar {
 
     let area_clone = area.clone();
     let fixed_clone = fixed.clone();
-    let devs_clone = devs.clone();
+    let devs_for_resize = devices_rc.clone();
     area.connect_resize(move |_, w, h| {
-        layout_labels(&fixed_clone, w as f64, h as f64, &devs_clone);
+        let devs = devs_for_resize.borrow();
+        layout_labels(&fixed_clone, w as f64, h as f64, &devs);
         area_clone.queue_draw();
     });
 
@@ -72,7 +92,7 @@ pub fn build(devices: &[MockDevice], selected_initial: Option<usize>) -> Radar {
     center.set_halign(gtk::Align::Center);
     center.set_valign(gtk::Align::Center);
 
-    Radar { root: overlay, area, fixed, selected }
+    Radar { root: overlay, area, fixed, selected, devices: devices_rc }
 }
 
 fn center_card() -> gtk::Box {
@@ -95,16 +115,17 @@ fn center_card() -> gtk::Box {
     b
 }
 
-fn device_label_box(d: &crate::mock::MockDevice) -> gtk::Box {
+fn device_label_box(d: &ViewDevice) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 4);
     row.add_css_class("meshdrop-radar-label");
-    let txt = format!("{}  ·  {} ms  ·  {}", d.who, d.rtt_ms, d.os);
+    let rtt = if d.rtt_ms > 0 { format!("{} ms", d.rtt_ms) } else { "—".into() };
+    let txt = format!("{}  ·  {}  ·  {}", d.who, rtt, d.os);
     let lb = gtk::Label::new(Some(&txt));
     row.append(&lb);
     row
 }
 
-fn layout_labels(fixed: &gtk::Fixed, w: f64, h: f64, devs: &[crate::mock::MockDevice]) {
+fn layout_labels(fixed: &gtk::Fixed, w: f64, h: f64, devs: &[ViewDevice]) {
     let cx = w / 2.0;
     let cy = h / 2.0;
     let max_r = (w.min(h) / 2.0) * 0.9;
@@ -125,7 +146,7 @@ fn layout_labels(fixed: &gtk::Fixed, w: f64, h: f64, devs: &[crate::mock::MockDe
 }
 
 fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
-              devs: &[crate::mock::MockDevice], selected: Option<usize>) {
+              devs: &[ViewDevice], selected: Option<usize>) {
     let cx = w / 2.0;
     let cy = h / 2.0;
     let max_r = (w.min(h) / 2.0) * 0.9;
@@ -204,6 +225,6 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
 
         // who 标签（在点上方略偏左）
         cr.set_source_rgba(0.04, 0.04, 0.04, 0.85);
-        text::draw_centered(cr, x, y - 18.0, d.who, "Space Grotesk", 11.0, true);
+        text::draw_centered(cr, x, y - 18.0, &d.who, "Space Grotesk", 11.0, true);
     }
 }

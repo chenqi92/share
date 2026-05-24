@@ -3,7 +3,16 @@
 
 use adw::prelude::*;
 
-pub fn divider(label: &str) -> gtk::Box {
+pub struct Divider {
+    pub root: gtk::Box,
+    pub label: gtk::Label,
+}
+
+impl Divider {
+    pub fn set_text(&self, t: &str) { self.label.set_text(t); }
+}
+
+pub fn build(label: &str) -> Divider {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     row.set_valign(gtk::Align::Center);
 
@@ -23,5 +32,10 @@ pub fn divider(label: &str) -> gtk::Box {
     row.append(&l_line);
     row.append(&lb);
     row.append(&r_line);
-    row
+    Divider { root: row, label: lb }
+}
+
+/// 老接口：返回 Box，便于现有 callsite 直接 append。
+pub fn divider(label: &str) -> gtk::Box {
+    build(label).root
 }

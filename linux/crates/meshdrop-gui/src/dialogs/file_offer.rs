@@ -1,11 +1,25 @@
-//! File Offer 弹窗：来自对方的文件 + 可选文字便签。
+//! File Offer 弹窗：从 engine.pending_offers_rx 取第一条挂起请求。
+//! Accept / Reject 直接调用 engine.respond_file_offer。
 
 use crate::components::{ascii_divider, avatar, chip, file_chip};
+use crate::engine_bridge::AppHandle;
 use crate::mock;
 use adw::prelude::*;
+use meshdrop_core::history::format_bytes;
+use std::rc::Rc;
+use uuid::Uuid;
 
-pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
-    let offer = mock::pending_offer();
+struct OfferView {
+    peer_name: String,
+    initials: String,
+    file_name: String,
+    file_size: String,
+    file_ext: String,
+    offer_id: Option<Uuid>,
+}
+
+pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -> adw::Window {
+    let view = build_view(handle);
 
     let win = adw::Window::builder()
         .transient_for(parent)
@@ -29,52 +43,35 @@ pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     title.set_halign(gtk::Align::Start);
     root.append(&title);
 
-    // peer 卡片
     let card = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     card.add_css_class("meshdrop-card");
-    card.append(&avatar::avatar("嘉", "#C7B8FF", 40, avatar::Ring::None));
+    card.append(&avatar::avatar(&view.initials, "#C7B8FF", 40, avatar::Ring::None));
     let col = gtk::Box::new(gtk::Orientation::Vertical, 2);
     col.set_hexpand(true);
-    let nm = gtk::Label::new(Some(offer.device_name));
+    let nm = gtk::Label::new(Some(&view.peer_name));
     nm.add_css_class("meshdrop-card-title");
     nm.set_halign(gtk::Align::Start);
     col.append(&nm);
-    let who = gtk::Label::new(Some(&format!("来自 · {} · {}", offer.peer, offer.received_at)));
+    let who = gtk::Label::new(Some("等待你接收 · pending"));
     who.add_css_class("meshdrop-meta");
     who.set_halign(gtk::Align::Start);
     col.append(&who);
     card.append(&col);
-    card.append(&chip::chip("E2E · TRUSTED", chip::Tone::Lime, true));
+    card.append(&chip::chip("E2E", chip::Tone::Lime, true));
     root.append(&card);
 
-    // 文件
     root.append(&ascii_divider::divider("── FILE · 文件 ──"));
     let file_card = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     file_card.add_css_class("meshdrop-card");
-    file_card.append(&file_chip::chip(offer.file_name, offer.file_size, "pages", None));
+    file_card.append(&file_chip::chip(&view.file_name, &view.file_size, &view.file_ext, None));
     root.append(&file_card);
 
-    // 文字便签
-    if let Some(note) = offer.note {
-        root.append(&ascii_divider::divider("── NOTE · 文字便签 ──"));
-        let note_card = gtk::Box::new(gtk::Orientation::Vertical, 0);
-        note_card.add_css_class("meshdrop-card-flat");
-        let lb = gtk::Label::new(Some(note));
-        lb.set_wrap(true);
-        lb.set_xalign(0.0);
-        lb.set_halign(gtk::Align::Start);
-        lb.add_css_class("meshdrop-body");
-        note_card.append(&lb);
-        root.append(&note_card);
-    }
-
-    // 保存路径
     let save_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     save_row.set_margin_top(8);
     let save_lb = gtk::Label::new(Some("保存到"));
     save_lb.add_css_class("meshdrop-ascii-divider");
     save_row.append(&save_lb);
-    let path_lb = gtk::Label::new(Some("~/Downloads/MeshDrop/嘉伟/"));
+    let path_lb = gtk::Label::new(Some(&format!("~/Downloads/MeshDrop/{}/", view.peer_name)));
     path_lb.add_css_class("meshdrop-mono");
     path_lb.set_halign(gtk::Align::Start);
     save_row.append(&path_lb);
@@ -85,7 +82,6 @@ pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     save_row.append(&change);
     root.append(&save_row);
 
-    // 按钮
     let btn_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     btn_row.set_halign(gtk::Align::End);
     btn_row.set_margin_top(12);
@@ -100,11 +96,53 @@ pub fn present(parent: &impl IsA<gtk::Window>) -> adw::Window {
     toolbar.set_content(Some(&root));
     win.set_content(Some(&toolbar));
 
+    let oid = view.offer_id;
+    let h_for_buttons = handle.cloned();
+
     let win_c = win.clone();
-    reject.connect_clicked(move |_| win_c.close());
+    let h_c = h_for_buttons.clone();
+    reject.connect_clicked(move |_| {
+        if let (Some(h), Some(id)) = (&h_c, oid) {
+            h.respond_offer(id, false);
+        }
+        win_c.close();
+    });
     let win_c = win.clone();
-    accept.connect_clicked(move |_| win_c.close());
+    let h_c = h_for_buttons.clone();
+    accept.connect_clicked(move |_| {
+        if let (Some(h), Some(id)) = (&h_c, oid) {
+            h.respond_offer(id, true);
+        }
+        win_c.close();
+    });
 
     win.present();
     win
+}
+
+fn build_view(handle: Option<&Rc<AppHandle>>) -> OfferView {
+    match handle.and_then(|h| h.pending_offers().into_iter().next()) {
+        Some(o) => {
+            let ext = o.file_name.rsplit_once('.').map(|(_, e)| e).unwrap_or("file").to_string();
+            OfferView {
+                peer_name: o.peer.name.clone(),
+                initials: crate::view::initials_of(&o.peer.name),
+                file_name: o.file_name.clone(),
+                file_size: format_bytes(o.file_size),
+                file_ext: ext,
+                offer_id: Some(o.id),
+            }
+        }
+        None => {
+            let m = mock::pending_offer();
+            OfferView {
+                peer_name: m.peer.to_string(),
+                initials: "嘉".into(),
+                file_name: m.file_name.to_string(),
+                file_size: m.file_size.to_string(),
+                file_ext: "pages".into(),
+                offer_id: None,
+            }
+        }
+    }
 }

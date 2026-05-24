@@ -1,10 +1,14 @@
-//! Trust Manager 页：已配对设备表格 + 指纹列 + 撤销按钮。
+//! Trust Manager 页：已配对设备表格。
+//! 真 engine 模式下：从 TrustStore::snapshot() 读取。
 
 use crate::components::{ascii_divider, avatar, chip, icon_btn};
+use crate::engine_bridge::AppHandle;
 use crate::mock;
+use crate::view::ViewTrustEntry;
 use adw::prelude::*;
+use std::rc::Rc;
 
-pub fn build() -> gtk::Widget {
+pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let root = gtk::Box::new(gtk::Orientation::Vertical, 14);
     root.set_margin_top(18);
     root.set_margin_bottom(18);
@@ -21,13 +25,12 @@ pub fn build() -> gtk::Widget {
     let sp = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     sp.set_hexpand(true);
     title_row.append(&sp);
-    title_row.append(&chip::chip(
-        &format!("{} 台 · DEVICES", mock::trust().len()),
-        chip::Tone::Mute, true));
+    let count_chip = chip::chip("0 台 · DEVICES", chip::Tone::Mute, true);
+    title_row.append(&count_chip);
     root.append(&title_row);
 
     let hint = gtk::Label::new(Some(
-        "信任记录写在 ~/.config/meshdrop/trust.json。撤销后下次对方发起会再次出现配对弹窗。"));
+        "信任记录写在 ~/.local/share/meshdrop/trust.json。撤销后下次对方发起会再次出现配对弹窗。"));
     hint.add_css_class("meshdrop-muted");
     hint.set_halign(gtk::Align::Start);
     hint.set_wrap(true);
@@ -35,7 +38,6 @@ pub fn build() -> gtk::Widget {
 
     root.append(&ascii_divider::divider("── PAIRED · 已配对 ──"));
 
-    // 表头
     let header = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     header.set_margin_start(12);
     header.set_margin_end(12);
@@ -53,50 +55,96 @@ pub fn build() -> gtk::Widget {
         .vexpand(true)
         .build();
     let list = gtk::Box::new(gtk::Orientation::Vertical, 8);
-
-    for entry in mock::trust() {
-        list.append(&trust_row(&entry));
-    }
     scroll.set_child(Some(&list));
     root.append(&scroll);
+
+    let entries: Vec<ViewTrustEntry> = match handle {
+        Some(h) => h.engine.trust_store.snapshot().iter()
+            .map(ViewTrustEntry::from_record).collect(),
+        None => mock::trust().iter().map(|t| ViewTrustEntry {
+            who: t.who.to_string(),
+            device_name: t.device_name.to_string(),
+            fingerprint: t.fingerprint.to_string(),
+            paired_at: t.paired_at.to_string(),
+            last_seen: t.last_seen.to_string(),
+        }).collect(),
+    };
+    let n = entries.len();
+    fill_trust(&list, &entries, handle);
+    count_chip.set_tooltip_text(Some(&format!("共 {} 台", n)));
+    title_row.queue_draw();
+
+    // Trust store 没有 watch；订阅 devices_rx 触发刷新作为代理
+    // （配对成功后 device 会重新发现，刷新代价低）。
+    if let Some(h) = handle {
+        let list_c = list.clone();
+        let h_c = h.clone();
+        h.observe(h.engine.devices_rx(), move |_| {
+            let snap: Vec<ViewTrustEntry> = h_c.engine.trust_store.snapshot()
+                .iter().map(ViewTrustEntry::from_record).collect();
+            fill_trust(&list_c, &snap, Some(&h_c));
+        });
+    }
 
     root.upcast()
 }
 
-fn trust_row(entry: &mock::TrustEntry) -> gtk::Box {
+fn fill_trust(list: &gtk::Box, entries: &[ViewTrustEntry], handle: Option<&Rc<AppHandle>>) {
+    while let Some(child) = list.first_child() {
+        list.remove(&child);
+    }
+    if entries.is_empty() {
+        let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
+        card.add_css_class("meshdrop-card");
+        let t = gtk::Label::new(Some("还没有配对的设备"));
+        t.add_css_class("meshdrop-card-title");
+        t.set_halign(gtk::Align::Start);
+        card.append(&t);
+        let h = gtk::Label::new(Some("当对方首次连接时会弹出配对窗，确认后写入信任库。"));
+        h.add_css_class("meshdrop-muted");
+        h.set_halign(gtk::Align::Start);
+        h.set_wrap(true);
+        card.append(&h);
+        list.append(&card);
+        return;
+    }
+    for entry in entries {
+        list.append(&trust_row(entry, handle));
+    }
+}
+
+fn trust_row(entry: &ViewTrustEntry, handle: Option<&Rc<AppHandle>>) -> gtk::Box {
     let row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     row.add_css_class("meshdrop-trust-row");
 
-    // 设备列
     let dev = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     dev.set_size_request(200, -1);
-    dev.append(&avatar::avatar(initials(entry.who), seed_color(entry.who), 30, avatar::Ring::None));
+    dev.append(&avatar::avatar(&initials(&entry.who), seed_color(&entry.who), 30, avatar::Ring::None));
     let col = gtk::Box::new(gtk::Orientation::Vertical, 1);
-    let who = gtk::Label::new(Some(entry.who));
+    let who = gtk::Label::new(Some(&entry.who));
     who.add_css_class("meshdrop-card-title");
     who.set_halign(gtk::Align::Start);
     col.append(&who);
-    let dn = gtk::Label::new(Some(entry.device_name));
+    let dn = gtk::Label::new(Some(&entry.device_name));
     dn.add_css_class("meshdrop-meta");
     dn.set_halign(gtk::Align::Start);
     col.append(&dn);
     dev.append(&col);
     row.append(&dev);
 
-    // 指纹列
-    let fp = gtk::Label::new(Some(entry.fingerprint));
+    let fp = gtk::Label::new(Some(&entry.fingerprint));
     fp.add_css_class("meshdrop-mono");
     fp.set_size_request(260, -1);
     fp.set_xalign(0.0);
     row.append(&fp);
 
-    let paired = gtk::Label::new(Some(entry.paired_at));
+    let paired = gtk::Label::new(Some(&entry.paired_at));
     paired.add_css_class("meshdrop-meta");
     paired.set_size_request(110, -1);
     paired.set_xalign(0.0);
     row.append(&paired);
 
-    let last = gtk::Label::new(Some(entry.last_seen));
+    let last = gtk::Label::new(Some(&entry.last_seen));
     last.add_css_class("meshdrop-meta");
     last.set_size_request(130, -1);
     last.set_xalign(0.0);
@@ -104,31 +152,24 @@ fn trust_row(entry: &mock::TrustEntry) -> gtk::Box {
 
     let btn = icon_btn::icon_btn("撤销", "撤销信任", icon_btn::IconBtnTone::Danger);
     btn.set_size_request(90, -1);
+    if let Some(h) = handle {
+        let h_c = h.clone();
+        let fp_raw = entry.fingerprint.replace([' ', '·'], "").to_lowercase();
+        btn.connect_clicked(move |_| {
+            h_c.engine.trust_store.revoke(&fp_raw);
+        });
+    }
     row.append(&btn);
 
     row
 }
 
-fn initials(who: &str) -> &str {
-    // 中文首字
-    if who.starts_with(|c: char| c.is_ascii()) {
-        &who[..1.min(who.len())]
-    } else {
-        let first = who.chars().next().unwrap_or('·');
-        // 返回 &str 不太好；这里改成静态映射。
-        match first {
-            '李' => "李", '坤' => "坤", '嘉' => "嘉", '孟' => "孟", '工' => "工",
-            _ => "·",
-        }
-    }
+fn initials(who: &str) -> String {
+    if let Some(first) = who.chars().next() {
+        first.to_string()
+    } else { "·".to_string() }
 }
+
 fn seed_color(who: &str) -> &str {
-    match who {
-        "李莉" => "#FFB4A1",
-        "坤"   => "#B7E5C8",
-        "嘉伟" => "#C7B8FF",
-        "孟茜" => "#FFD970",
-        "工位机" => "#9AD0FF",
-        _ => "#E2DCCD",
-    }
+    crate::view::palette_color(who.bytes().map(|b| b as usize).sum())
 }

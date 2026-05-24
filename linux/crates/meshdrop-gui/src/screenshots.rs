@@ -35,7 +35,7 @@ pub fn run(app: &adw::Application, out_dir: &str) {
     let out_dir = out_dir.to_string();
     std::fs::create_dir_all(&out_dir).ok();
 
-    let shell = ui::build_shell(app);
+    let shell = ui::build_shell(app, None);
     shell.window.set_default_size(1280, 820);
     shell.window.present();
     pump_ms(700);
@@ -56,7 +56,7 @@ pub fn run(app: &adw::Application, out_dir: &str) {
     log::info!("📸  shell-light");
 
     // ── 弹窗（light）──
-    let pair = dialogs::pairing::present(&shell.window);
+    let pair = dialogs::pairing::present(&shell.window, None);
     pair.set_default_size(560, 720);
     pump_ms(600);
     snapshot_window(&pair, &format!("{}/linux-gui-pairing-light.png", out_dir));
@@ -64,7 +64,7 @@ pub fn run(app: &adw::Application, out_dir: &str) {
     pair.close();
     pump_ms(150);
 
-    let offer = dialogs::file_offer::present(&shell.window);
+    let offer = dialogs::file_offer::present(&shell.window, None);
     offer.set_default_size(520, 520);
     pump_ms(600);
     snapshot_window(&offer, &format!("{}/linux-gui-receive-light.png", out_dir));
@@ -95,7 +95,7 @@ pub fn run(app: &adw::Application, out_dir: &str) {
     snapshot_window(&shell.window, &format!("{}/linux-gui-shell-dark.png", out_dir));
     log::info!("📸  shell-dark");
 
-    let pair = dialogs::pairing::present(&shell.window);
+    let pair = dialogs::pairing::present(&shell.window, None);
     pair.set_default_size(560, 720);
     pump_ms(600);
     snapshot_window(&pair, &format!("{}/linux-gui-pairing-dark.png", out_dir));
@@ -103,7 +103,7 @@ pub fn run(app: &adw::Application, out_dir: &str) {
     pair.close();
     pump_ms(150);
 
-    let offer = dialogs::file_offer::present(&shell.window);
+    let offer = dialogs::file_offer::present(&shell.window, None);
     offer.set_default_size(520, 520);
     pump_ms(600);
     snapshot_window(&offer, &format!("{}/linux-gui-receive-dark.png", out_dir));

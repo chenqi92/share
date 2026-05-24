@@ -29,3 +29,13 @@ anyhow = "1"
 thiserror = "2"
 log = "0.4"
 env_logger = "0.11"
+
+# Web Gateway 依赖（backend 接入轮新增）
+rustls = "0.23"
+rustls-pemfile = "2"
+tokio-rustls = "0.26"
+tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+rcgen = "0.13"
+httparse = "1.9"
+futures-util = "0.3"
+sha1 = "0.10"
