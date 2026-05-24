@@ -1,0 +1,55 @@
+name: ShareMac
+options:
+  bundleIdPrefix: drop.mesh
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: zh-Hans
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.10"
+
+packages:
+  ShareKit:
+    path: ../
+
+targets:
+  ShareMac:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    resources:
+      - Resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleName: MeshDrop
+        CFBundleDisplayName: 至汝
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSLocalNetworkUsageDescription: 用于发现同一网络下的 MeshDrop 设备
+        NSBonjourServices:
+          - _meshdrop._tcp
+        NSHumanReadableCopyright: "© 2026 MeshDrop"
+        LSApplicationCategoryType: public.app-category.utilities
+    entitlements:
+      path: ShareMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.network.server: true
+        com.apple.security.files.user-selected.read-only: true
+        com.apple.security.files.user-selected.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: drop.mesh.mac
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - package: ShareKit
+        product: ShareKit

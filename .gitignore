@@ -1,0 +1,47 @@
+# 通用
+.DS_Store
+*.swp
+*.bak
+*.log
+
+# Apple / Xcode
+# xcodeproj 由 xcodegen 从 project.yml 生成，不入库（避免机器路径污染 diff）
+xcuserdata/
+*.xcodeproj/
+*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+.build/
+.swiftpm/
+Package.resolved
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/captures/
+android/.idea/
+*.iml
+*.apk
+*.aab
+
+# Windows / .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+*.nupkg
+packages/
+artifacts/
+
+# Linux / Rust
+linux/target/
+linux/Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+!.vscode/settings.json
+*.iml

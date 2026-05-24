@@ -1,0 +1,29 @@
+[versions]
+agp = "8.7.3"
+kotlin = "2.1.0"
+coreKtx = "1.15.0"
+lifecycle = "2.8.7"
+activityCompose = "1.9.3"
+composeBom = "2024.12.01"
+serialization = "1.7.3"
+
+[libraries]
+androidx-core-ktx                = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
+androidx-lifecycle-runtime-ktx   = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+androidx-activity-compose        = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+compose-bom                      = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+compose-ui                       = { module = "androidx.compose.ui:ui" }
+compose-ui-graphics              = { module = "androidx.compose.ui:ui-graphics" }
+compose-ui-tooling               = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview       = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3                = { module = "androidx.compose.material3:material3" }
+compose-material-icons-extended  = { module = "androidx.compose.material:material-icons-extended" }
+kotlinx-serialization-json       = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose      = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
