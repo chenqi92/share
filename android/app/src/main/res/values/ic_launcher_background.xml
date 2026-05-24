@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 与 logo 周边渐变色一致的浅白，避免 adaptive icon mask 后边缘断层 -->
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- MeshDrop paper #F5F2EC 报纸感主背景 -->
+    <color name="ic_launcher_background">#F5F2EC</color>
 </resources>
