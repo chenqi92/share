@@ -1,0 +1,113 @@
+/* ─── MeshDrop · COMMON §5 design tokens ────────────────────────────── */
+
+:root,
+[data-theme='light'] {
+  /* mono / ink scale */
+  --ink: #0a0a0a;
+  --ink-80: rgba(10, 10, 10, 0.8);
+  --ink-60: rgba(10, 10, 10, 0.6);
+  --ink-45: rgba(10, 10, 10, 0.45);
+  --ink-30: rgba(10, 10, 10, 0.3);
+  --ink-12: rgba(10, 10, 10, 0.12);
+  --ink-06: rgba(10, 10, 10, 0.06);
+
+  /* paper */
+  --paper: #f5f2ec;
+  --paper2: #ede8dd;
+  --card: #ffffff;
+  --line: #e2dccd;
+
+  /* dark mirror (kept defined so cross-mode references still resolve) */
+  --dink: #0e0c09;
+  --dink2: #181612;
+  --dink3: #23201a;
+  --dpaper: #e8e3d6;
+  --dline: rgba(255, 255, 255, 0.1);
+
+  /* accent triad */
+  --lime: #ddf94b;
+  --lime-deep: #a8c800;
+  --flame: #ff5a2c;
+  --flame-deep: #c73e15;
+  --sky: #4db8ff;
+  --error: #c4322b;
+
+  /* semantic aliases driven by theme */
+  --bg: var(--paper);
+  --bg2: var(--paper2);
+  --surface: var(--card);
+  --text: var(--ink);
+  --text-mute: var(--ink-60);
+  --text-faint: var(--ink-45);
+  --border: var(--line);
+
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(10, 10, 10, 0.06);
+  --lime-fill: rgba(221, 249, 75, 0.32);
+  --flame-fill: rgba(255, 90, 44, 0.16);
+  --sky-fill: rgba(77, 184, 255, 0.16);
+  --shadow-card: 0 1px 0 rgba(10, 10, 10, 0.04), 0 12px 32px -16px rgba(10, 10, 10, 0.18);
+  --hero-grad: radial-gradient(120% 80% at 10% 0%, rgba(221, 249, 75, 0.22), transparent 60%),
+               radial-gradient(120% 80% at 100% 0%, rgba(255, 90, 44, 0.16), transparent 55%),
+               linear-gradient(180deg, #f8f5ee, #f1ece1);
+  --outgoing-bg: var(--ink);
+  --outgoing-text: var(--paper);
+}
+
+[data-theme='dark'] {
+  --bg: var(--dink);
+  --bg2: var(--dink2);
+  --surface: var(--dink2);
+  --text: var(--dpaper);
+  --text-mute: rgba(255, 255, 255, 0.62);
+  --text-faint: rgba(255, 255, 255, 0.42);
+  --border: var(--dline);
+
+  --glass-bg: rgba(255, 255, 255, 0.025);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --lime-fill: rgba(221, 249, 75, 0.16);
+  --flame-fill: rgba(255, 90, 44, 0.16);
+  --sky-fill: rgba(77, 184, 255, 0.18);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.02),
+    0 16px 40px -16px rgba(0, 0, 0, 0.6);
+  --hero-grad: radial-gradient(120% 80% at 8% 0%, rgba(221, 249, 75, 0.18), transparent 60%),
+               radial-gradient(120% 80% at 100% 0%, rgba(255, 90, 44, 0.18), transparent 55%),
+               linear-gradient(180deg, #14110d, #0e0c09);
+  --outgoing-bg: var(--lime);
+  --outgoing-text: var(--ink);
+}
+
+/* tiny utility classes that map cleanly to design vocab */
+.text-mute { color: var(--text-mute); }
+.text-faint { color: var(--text-faint); }
+
+.mono-tag {
+  font-family: 'Geist Mono', ui-monospace, Menlo, monospace;
+  font-weight: 600;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.hero-grad {
+  background: var(--hero-grad);
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--glass-border);
+}
+
+.lime-fill { background: var(--lime-fill); }
+.flame-fill { background: var(--flame-fill); }
+.sky-fill { background: var(--sky-fill); }
+
+/* scrollbar — minimal */
+.scroll-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }

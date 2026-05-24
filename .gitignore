@@ -46,6 +46,13 @@ artifacts/
 linux/target/
 linux/Cargo.lock
 
+# Web (Vite + React)
+web/node_modules/
+web/dist/
+web/.vite/
+web/*.tsbuildinfo
+web/node_modules/.tmp/
+
 # IDE
 .idea/
 .vscode/
