@@ -54,6 +54,8 @@ pub struct ShareEngine {
     pub identity: Arc<Identity>,
     pub display_name: String,
     pub model: Option<String>,
+    pub listen_port: u16,
+    pub trust_store: TrustStore,
     cmd_tx: mpsc::UnboundedSender<UserCmd>,
     devices_rx: watch::Receiver<Vec<Device>>,
     history_rx: watch::Receiver<Vec<HistoryItem>>,
@@ -73,6 +75,7 @@ impl ShareEngine {
         info!("ShareEngine listening on port {}", port);
 
         let discovery = discovery::start(identity.clone(), display_name.clone(), model.clone(), port)?;
+        let devices_rx = discovery.devices_rx.clone();
 
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel::<UserCmd>();
         let (internal_tx, internal_rx) = mpsc::unbounded_channel::<InternalCmd>();
@@ -96,11 +99,12 @@ impl ShareEngine {
         });
 
         // 主任务
+        let trust_store = TrustStore::new()?;
         let state = State {
             identity: identity.clone(),
             display_name: display_name.clone(),
             model: model.clone(),
-            trust_store: TrustStore::new()?,
+            trust_store: trust_store.clone(),
             history: Vec::new(),
             pending_pairings: Vec::new(),
             pending_offers: Vec::new(),
@@ -113,23 +117,12 @@ impl ShareEngine {
         };
         tokio::spawn(run_main_loop(state, cmd_rx, internal_rx));
 
-        // 设备列表通过 discovery 直接暴露
-        let devices_rx = {
-            // 重新订阅 discovery devices — discovery 已 move 进 state，
-            // 实际上我们用 state 维护一个 fork。这里先用 watch 桥接。
-            let (tx, rx) = watch::channel(Vec::new());
-            let cmd_tx_clone = cmd_tx.clone();
-            tokio::spawn(async move {
-                // 让 main loop 发 SubscribeDevices 命令拿 rx
-                let _ = cmd_tx_clone.send(UserCmd::SubscribeDevices(tx));
-            });
-            rx
-        };
-
         Ok(ShareEngine {
             identity,
             display_name,
             model,
+            listen_port: port,
+            trust_store,
             cmd_tx,
             devices_rx,
             history_rx,
@@ -177,7 +170,6 @@ enum UserCmd {
     RespondOffer { id: Uuid, accept: bool },
     RemoveHistory(Uuid),
     ClearHistory,
-    SubscribeDevices(watch::Sender<Vec<Device>>),
 }
 
 enum InternalCmd {
@@ -277,10 +269,6 @@ async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
         UserCmd::ClearHistory => {
             state.history.clear();
             let _ = state.history_tx.send(state.history.clone());
-        }
-        UserCmd::SubscribeDevices(_tx) => {
-            // discovery 已经在 state._discovery 里，devices_rx 调用方应该用 discovery 的 rx
-            // 这里只是 placeholder：不实施 forwarding（让 caller 直接拿 discovery rx）
         }
     }
 }

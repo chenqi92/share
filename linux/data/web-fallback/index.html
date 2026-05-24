@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MeshDrop · Web Gateway</title>
+<style>
+  :root {
+    --ink: #0a0a0a;
+    --paper: #e2dccd;
+    --lime: #ddf94b;
+    --mute: #6f6a5e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #e2dccd; --paper: #0a0a0a; --mute: #9b9587; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink);
+    font-family: ui-sans-serif, system-ui, sans-serif; padding: 40px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .card {
+    max-width: 520px; width: 100%; padding: 32px;
+    border: 1px solid var(--ink); border-radius: 4px;
+  }
+  h1 {
+    font-size: 28px; margin: 0 0 4px; letter-spacing: -0.5px;
+    font-family: "Space Grotesk", ui-sans-serif, sans-serif;
+  }
+  .sub { color: var(--mute); margin-bottom: 28px; font-size: 14px; }
+  label { display: block; font-size: 12px; letter-spacing: 1px; margin-bottom: 8px;
+    text-transform: uppercase; color: var(--mute); }
+  input[type=text] {
+    width: 100%; padding: 14px 16px; font-size: 22px; letter-spacing: 6px;
+    font-family: ui-monospace, "Geist Mono", monospace; text-transform: uppercase;
+    background: transparent; color: var(--ink); border: 1px solid var(--ink);
+    border-radius: 4px; outline: none;
+  }
+  input[type=text]:focus { border-color: var(--lime); }
+  button {
+    margin-top: 16px; padding: 12px 18px; font-size: 14px; font-weight: 600;
+    background: var(--ink); color: var(--paper); border: none; border-radius: 4px;
+    cursor: pointer; letter-spacing: 1px;
+  }
+  button:hover { background: var(--lime); color: var(--ink); }
+  .msg { margin-top: 14px; font-size: 13px; }
+  .ok { color: #2a7d2f; }
+  .err { color: #c43c2c; }
+  .footer { margin-top: 28px; font-size: 11px; color: var(--mute); text-align: center; }
+  code { font-family: ui-monospace, "Geist Mono", monospace; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>MeshDrop · Web</h1>
+  <p class="sub">通过这台 Linux 主机加入局域网 MeshDrop 网络。</p>
+  <label for="code">6 字符邀请码 · Pairing code</label>
+  <input id="code" type="text" placeholder="ABC-D23" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  <button id="go">解锁 · Unlock</button>
+  <div class="msg" id="msg"></div>
+  <div class="footer">在 native client 的设置页可以看到 6 字符邀请码。</div>
+</div>
+<script>
+  const $ = (s) => document.querySelector(s);
+  $('#go').addEventListener('click', async () => {
+    const code = $('#code').value.trim();
+    if (!code) return;
+    $('#msg').textContent = '校验中…';
+    $('#msg').className = 'msg';
+    try {
+      const res = await fetch('/api/v1/pair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        $('#msg').textContent = '✓ 已解锁。后续 UI 将在 v0.2 提供。当前页面是 placeholder。';
+        $('#msg').className = 'msg ok';
+      } else {
+        $('#msg').textContent = '邀请码不对 · ' + (data.error || '');
+        $('#msg').className = 'msg err';
+      }
+    } catch (e) {
+      $('#msg').textContent = '网络错误 · ' + e;
+      $('#msg').className = 'msg err';
+    }
+  });
+  $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#go').click(); });
+</script>
+</body>
+</html>

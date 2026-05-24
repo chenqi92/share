@@ -8,13 +8,17 @@ name = "meshdrop"
 path = "src/main.rs"
 
 [dependencies]
-# 本轮 UI-FIRST：所有数据来自 mock.rs，不接 meshdrop-core 真实引擎。
-# core 仍保留在 workspace 中，下一轮再桥接。
+meshdrop-core = { path = "../meshdrop-core" }
 
 gtk = { package = "gtk4", version = "0.9", features = ["v4_12"] }
 adw = { package = "libadwaita", version = "0.7", features = ["v1_5"] }
 glib = "0.20"
 pangocairo = "0.20"
 
+tokio.workspace = true
+async-channel.workspace = true
+anyhow.workspace = true
+dirs.workspace = true
+uuid.workspace = true
 log.workspace = true
 env_logger.workspace = true

@@ -1,22 +1,29 @@
 //! MeshDrop GUI 入口（GTK4 / libadwaita）。
 //!
-//! 本轮 UI-FIRST：所有页面由 mock 数据驱动，不接 backend。等所有端 UI 对齐后，
-//! 下一轮再把 meshdrop-core 的 ShareEngine 桥接回来。
+//! 启动流程：
+//!   1. 建 tokio runtime + meshdrop-core::ShareEngine（mDNS + TCP listener）
+//!   2. 启 Web Gateway（默认 :7384，rustls + 6 字符 pairing code）
+//!   3. 进 GTK 主循环：ui::build_shell 接收 AppHandle，按 watch::Receiver
+//!      订阅 engine 状态，更新 sidebar / pages / dialogs
 //!
-//! 隐藏的 `--screenshots <dir>` 模式：用 GTK4 snapshot API 把全部 page + dialog
-//! × light/dark 渲染成 PNG 并退出（用于 PR 截图）。
+//! `--screenshots <dir>` 模式跳过 engine 启动，纯 mock 渲染（PR 截图用）。
 
 mod components;
 mod dialogs;
+mod engine_bridge;
 mod mock;
 mod notify;
 mod pages;
 mod screenshots;
 mod theme;
 mod ui;
+mod view;
 
 use adw::prelude::*;
 use gtk::glib;
+use std::rc::Rc;
+
+use engine_bridge::AppHandle;
 
 const APP_ID: &str = "com.welape.meshdrop.linux";
 
@@ -32,15 +39,12 @@ fn main() -> glib::ExitCode {
             Some("screenshots".to_string())
         } else { None });
 
-    // adw::Application 默认会拦截命令行参数并报错。用 HANDLES_COMMAND_LINE
-    // 防止内置 default-handler 把我们的 --screenshots 视为非法。
     let app = adw::Application::builder()
         .application_id(APP_ID)
         .flags(gtk::gio::ApplicationFlags::NON_UNIQUE
              | gtk::gio::ApplicationFlags::HANDLES_COMMAND_LINE)
         .build();
 
-    // 让 application 不去校验命令行：我们直接消费掉。
     app.connect_command_line(move |a, _cl| {
         a.activate();
         0
@@ -52,7 +56,15 @@ fn main() -> glib::ExitCode {
     if let Some(dir) = screenshot_dir {
         app.connect_activate(move |a| screenshots::run(a, &dir));
     } else {
-        app.connect_activate(ui::build);
+        // 真启动：先建 AppHandle，再交给 UI
+        let handle = match AppHandle::start() {
+            Ok(h) => Some(Rc::new(h)),
+            Err(e) => {
+                log::error!("AppHandle 启动失败：{}", e);
+                None
+            }
+        };
+        app.connect_activate(move |a| ui::build(a, handle.clone()));
     }
     app.run()
 }

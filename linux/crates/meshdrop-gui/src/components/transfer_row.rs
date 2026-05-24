@@ -2,17 +2,17 @@
 //! 状态色对应 §5：sending=flame ↑ / receiving=sky ↓ / done=limeDeep ✓ / failed=error × / queued=ink45 ·
 
 use crate::components::{chip, file_chip};
-use crate::mock::{TransferRow, TransferState};
+use crate::mock::TransferState;
+use crate::view::ViewTransferRow;
 use adw::prelude::*;
 
-pub fn row(item: &TransferRow) -> gtk::Box {
+pub fn row(item: &ViewTransferRow) -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     card.add_css_class("meshdrop-card");
 
-    // 顶部：file_chip + 状态 chip + arrow
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     top.set_valign(gtk::Align::Center);
-    top.append(&file_chip::chip(item.name, item.size, item.ext, None));
+    top.append(&file_chip::chip(&item.name, &item.size, &item.ext, None));
 
     let state_box = gtk::Box::new(gtk::Orientation::Vertical, 4);
     state_box.set_halign(gtk::Align::End);
@@ -38,7 +38,6 @@ pub fn row(item: &TransferRow) -> gtk::Box {
     top.append(&state_box);
     card.append(&top);
 
-    // 进度条 + speed / eta
     let bottom = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     let bar = gtk::ProgressBar::new();
     bar.set_fraction(item.progress as f64 / 100.0);
@@ -47,7 +46,7 @@ pub fn row(item: &TransferRow) -> gtk::Box {
     bar.set_valign(gtk::Align::Center);
     bottom.append(&bar);
 
-    let meta_str = match (item.speed, item.eta, item.progress) {
+    let meta_str = match (item.speed.as_deref(), item.eta.as_deref(), item.progress) {
         (Some(sp), Some(eta), _) => format!("{}  ·  ETA {}  ·  {}%", sp, eta, item.progress),
         (None,     Some(eta), 100) => format!("✓ {}  ·  {}", item.state.label_cn(), eta),
         (None,     None,      0)   => "排队中…".to_string(),
