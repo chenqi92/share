@@ -1,57 +1,120 @@
 import SwiftUI
 
 struct TransferPage: View {
-    let transfer: MockTransfer
+    @ObservedObject var proxy: WatchEngineProxy = .shared
+
+    /// Preview / 调试用：直接喂 VM 跳过 proxy。
+    var debugTransfer: WatchTransferVM? = nil
+
+    private var transfer: WatchTransferVM? {
+        if let debugTransfer { return debugTransfer }
+        guard let p = proxy.transfers.values.first else { return nil }
+        return WatchTransferVM(bridge: p)
+    }
+
+    private var isOffline: Bool { debugTransfer == nil && !proxy.isOnline }
 
     var body: some View {
         ZStack {
             MD.dink.ignoresSafeArea()
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 8) {
-                    header
-
-                    progressBlock
-
-                    HStack(spacing: 4) {
-                        directionArrow
-                        Text("→")
-                            .font(MDFont.mono(11, weight: .bold))
-                            .foregroundColor(MD.dim)
-                        Text(transfer.peer)
-                            .font(MDFont.display(13, weight: .semibold))
-                            .foregroundColor(MD.dpaper)
-                        Spacer()
-                    }
-
-                    FileChipMini(name: transfer.name, size: transfer.size, ext: transfer.ext, progress: transfer.progress)
-
-                    statRow
-
-                    Text("传输由手机继续 · 手表只显示进度")
-                        .font(MDFont.mono(10, weight: .medium))
-                        .tracking(0.8)
-                        .foregroundColor(MD.dim)
-                        .padding(.top, 4)
+                if isOffline {
+                    offlineCard
+                        .padding(.horizontal, 10)
+                        .padding(.top, 6)
+                } else if let transfer {
+                    contentCard(transfer)
+                } else {
+                    idleCard
+                        .padding(.horizontal, 10)
+                        .padding(.top, 6)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
             }
         }
     }
 
-    private var header: some View {
+    private func contentCard(_ transfer: WatchTransferVM) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header(transfer)
+
+            progressBlock(transfer)
+
+            HStack(spacing: 4) {
+                directionArrow(transfer)
+                Text("→")
+                    .font(MDFont.mono(11, weight: .bold))
+                    .foregroundColor(MD.dim)
+                Text(transfer.peer.isEmpty ? "—" : transfer.peer)
+                    .font(MDFont.display(13, weight: .semibold))
+                    .foregroundColor(MD.dpaper)
+                Spacer()
+            }
+
+            FileChipMini(name: transfer.name, size: transfer.size, ext: transfer.ext, progress: transfer.progress)
+
+            statRow(transfer)
+
+            Text("传输由手机继续 · 手表只显示进度")
+                .font(MDFont.mono(10, weight: .medium))
+                .tracking(0.8)
+                .foregroundColor(MD.dim)
+                .padding(.top, 4)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    private var offlineCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("OFFLINE")
+                .font(MDFont.mono(10, weight: .bold))
+                .tracking(1.4)
+                .foregroundColor(MD.dim)
+            Text("iPhone 不在身边")
+                .font(MDFont.display(14, weight: .semibold))
+                .foregroundColor(MD.dpaper)
+            Text("传输进度暂停更新")
+                .font(MDFont.body(11, weight: .regular))
+                .foregroundColor(MD.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(MD.dink2))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(MD.dline, lineWidth: 0.5))
+    }
+
+    private var idleCard: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("空闲 · IDLE")
+                .font(MDFont.mono(10, weight: .bold))
+                .tracking(1.4)
+                .foregroundColor(MD.dim)
+            Text("当前无传输")
+                .font(MDFont.display(14, weight: .semibold))
+                .foregroundColor(MD.dpaper)
+            Text("发起后会在这里看到进度")
+                .font(MDFont.body(11, weight: .regular))
+                .foregroundColor(MD.muted)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(MD.dink2))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(MD.dline, lineWidth: 0.5))
+    }
+
+    private func header(_ transfer: WatchTransferVM) -> some View {
         HStack(spacing: 6) {
-            Circle().fill(stateColor).frame(width: 6, height: 6)
-            Text(stateLabel)
+            Circle().fill(stateColor(transfer)).frame(width: 6, height: 6)
+            Text(stateLabel(transfer))
                 .font(MDFont.mono(11, weight: .bold))
                 .tracking(1.6)
-                .foregroundColor(stateColor)
+                .foregroundColor(stateColor(transfer))
             Spacer()
             MeshDropMark(size: 12)
         }
     }
 
-    private var progressBlock: some View {
+    private func progressBlock(_ transfer: WatchTransferVM) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text("\(transfer.progress)")
@@ -66,7 +129,7 @@ struct TransferPage: View {
             GeometryReader { g in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 2).fill(MD.dline).frame(height: 4)
-                    RoundedRectangle(cornerRadius: 2).fill(stateColor)
+                    RoundedRectangle(cornerRadius: 2).fill(stateColor(transfer))
                         .frame(width: g.size.width * CGFloat(transfer.progress) / 100.0, height: 4)
                 }
             }
@@ -74,10 +137,10 @@ struct TransferPage: View {
         }
     }
 
-    private var statRow: some View {
+    private func statRow(_ transfer: WatchTransferVM) -> some View {
         HStack(spacing: 10) {
             if let speed = transfer.speed {
-                statItem(label: "速度", value: speed, color: stateColor)
+                statItem(label: "速度", value: speed, color: stateColor(transfer))
             }
             if let eta = transfer.eta {
                 statItem(label: "剩余", value: eta, color: MD.dpaper)
@@ -97,13 +160,13 @@ struct TransferPage: View {
         }
     }
 
-    private var directionArrow: some View {
+    private func directionArrow(_ transfer: WatchTransferVM) -> some View {
         Text(transfer.direction == .outgoing ? "↑" : "↓")
             .font(MDFont.mono(12, weight: .bold))
             .foregroundColor(transfer.direction == .outgoing ? MD.flame : MD.sky)
     }
 
-    private var stateColor: Color {
+    private func stateColor(_ transfer: WatchTransferVM) -> Color {
         switch transfer.state {
         case .sending:   return MD.flame
         case .receiving: return MD.sky
@@ -113,7 +176,7 @@ struct TransferPage: View {
         }
     }
 
-    private var stateLabel: String {
+    private func stateLabel(_ transfer: WatchTransferVM) -> String {
         switch transfer.state {
         case .sending:   return "SENDING ↑"
         case .receiving: return "RECEIVING ↓"
@@ -125,5 +188,5 @@ struct TransferPage: View {
 }
 
 #Preview {
-    TransferPage(transfer: Mock.runningTransfer)
+    TransferPage(debugTransfer: WatchTransferVM(mock: Mock.runningTransfer))
 }
