@@ -8,14 +8,16 @@ name = "meshdrop-tui"
 path = "src/main.rs"
 
 [dependencies]
-meshdrop-core = { path = "../meshdrop-core" }
-
 ratatui = "0.29"
 crossterm = "0.28"
 
-tokio.workspace = true
-async-channel.workspace = true
-log.workspace = true
-env_logger.workspace = true
-uuid.workspace = true
-anyhow.workspace = true
+clap = { version = "4", features = ["derive"] }
+dialoguer = "0.11"
+
+tokio = { workspace = true }
+async-channel = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
