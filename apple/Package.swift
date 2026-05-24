@@ -2,23 +2,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "ShareKit",
+    name: "MeshDropKit",
     platforms: [
         .iOS(.v17),
         .macOS(.v14),
     ],
     products: [
-        .library(name: "ShareKit", targets: ["ShareKit"]),
+        .library(name: "MeshDropKit", targets: ["MeshDropKit"]),
     ],
     targets: [
         .target(
-            name: "ShareKit",
-            path: "Sources/ShareKit"
+            name: "MeshDropKit",
+            path: "Sources/MeshDropKit"
         ),
         .testTarget(
-            name: "ShareKitTests",
-            dependencies: ["ShareKit"],
-            path: "Tests/ShareKitTests"
+            name: "MeshDropKitTests",
+            dependencies: ["MeshDropKit"],
+            path: "Tests/MeshDropKitTests"
         ),
     ]
 )
