@@ -19,7 +19,7 @@ public extension View {
     @ViewBuilder
     func liquidGlass<S: Shape>(in shape: S) -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
         } else {
             self.background(.ultraThinMaterial, in: shape)
@@ -34,7 +34,7 @@ public extension View {
     @ViewBuilder
     func liquidGlassContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, *) {
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, visionOS 26.0, *) {
             GlassEffectContainer { content() }
         } else {
             ZStack { content() }

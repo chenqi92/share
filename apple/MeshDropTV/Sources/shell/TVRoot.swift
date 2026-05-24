@@ -1,7 +1,10 @@
 import SwiftUI
+import MeshDropKit
 
 struct TVRoot: View {
-    @State private var tab: TVTab = .receive
+    @EnvironmentObject private var engine: ShareEngine
+    @State private var tab: TVTab = .nearby
+    @State private var didAutoSwitchForOffer: UUID?
 
     var body: some View {
         ZStack {
@@ -9,20 +12,17 @@ struct TVRoot: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // 1. Top bar：固定 112pt
-                TVTopBar(selection: $tab)
+                TVTopBar(selection: $tab, deviceCount: engine.devices.count)
                     .frame(height: 112)
                     .frame(maxWidth: .infinity)
                     .transaction { txn in txn.disablesAnimations = true }
 
-                // 2. PageHeader：固定 96pt，由 root 渲染，所有 page 共用同一坐标系
                 pageHeader
                     .padding(.horizontal, 90)
                     .padding(.top, 16)
                     .padding(.bottom, 12)
                     .transaction { txn in txn.disablesAnimations = true }
 
-                // 3. Page main content：拿剩余空间
                 Group {
                     switch tab {
                     case .receive:  ReceivePage()
@@ -41,56 +41,75 @@ struct TVRoot: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .preferredColorScheme(.dark)
+        // 有新 incoming offer 时自动跳到 receive tab
+        .onChange(of: engine.pendingFileOffers.first?.id) { _, newOfferId in
+            guard let newOfferId, newOfferId != didAutoSwitchForOffer else { return }
+            didAutoSwitchForOffer = newOfferId
+            tab = .receive
+        }
     }
 
     @ViewBuilder
     private var pageHeader: some View {
         switch tab {
         case .receive:
-            PageHeader(
-                tag: "接收 · RECEIVE · 来自 \(MockData.incomingPeer.who)",
-                title: "孟茜想发给你 ",
-                titleAccentSuffix: "18 张照片"
-            ) {
-                HStack(spacing: 10) {
-                    Chip(text: "● E2E", tone: .lime, mono: true, size: 14)
-                    Chip(text: "9MS · LAN", tone: .outline, mono: true, size: 14)
+            if let offer = engine.pendingFileOffers.first {
+                PageHeader(
+                    tag: "接收 · RECEIVE · 来自 \(offer.peer.name)",
+                    title: "\(offer.peer.name) 想发给你 ",
+                    titleAccentSuffix: offer.fileName
+                ) {
+                    HStack(spacing: 10) {
+                        Chip(text: "● E2E", tone: .lime, mono: true, size: 14)
+                        Chip(text: "LAN", tone: .outline, mono: true, size: 14)
+                    }
+                }
+            } else {
+                PageHeader(
+                    tag: "接收 · RECEIVE · 等候中",
+                    title: "等手机推过来 ",
+                    titleAccentSuffix: "Ready."
+                ) {
+                    HStack(spacing: 10) {
+                        Chip(text: engineNetTag, tone: .lime, mono: true, size: 14)
+                        Chip(text: "\(engine.devices.count) 台可见", tone: .outline, mono: true, size: 14)
+                    }
                 }
             }
         case .nearby:
             PageHeader(
-                tag: "附近 · NEARBY · READY 待机",
+                tag: "附近 · NEARBY · \(engine.devices.isEmpty ? "扫描中" : "READY 待机")",
                 title: "这台电视，谁都能 ",
                 titleAccentSuffix: "ping."
             ) {
                 HStack(spacing: 10) {
-                    Chip(text: "● 客厅 LAN", tone: .lime, mono: true, size: 14)
-                    Chip(text: "5 台可见", tone: .outline, mono: true, size: 14)
+                    Chip(text: engineNetTag, tone: .lime, mono: true, size: 14)
+                    Chip(text: "\(engine.devices.count) 台可见", tone: .outline, mono: true, size: 14)
                 }
             }
         case .gallery:
+            let inbox = engine.history.filter { $0.isInboxFile }
             PageHeader(
-                tag: "收件箱 · LIBRARY · \(MockData.gallerySummary.count) 件 · \(MockData.gallerySummary.size)",
+                tag: "收件箱 · LIBRARY · \(inbox.count) 件",
                 title: "收件箱 ",
-                titleAccentSuffix: MockData.gallerySummary.count
+                titleAccentSuffix: "\(inbox.count)"
             ) {
                 HStack(spacing: 12) {
                     Chip(text: "全部 · ALL", tone: .lime, mono: true, size: 14)
                     Chip(text: "图片 · PHOTOS", tone: .outline, mono: true, size: 14)
                     Chip(text: "文件 · FILES", tone: .outline, mono: true, size: 14)
-                    Chip(text: "今天 · TODAY", tone: .outline, mono: true, size: 14)
                 }
             }
         case .pairing:
             PageHeader(
-                tag: "待配对 · PAIRING · 把代码发给对方",
+                tag: "待配对 · PAIRING · 比对指纹",
                 title: "把代码发给 ",
                 titleAccentSuffix: "对方"
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "LAN ONLY", tone: .lime, mono: true, size: 14)
                     Chip(text: "E2E · CHACHA20", tone: .outline, mono: true, size: 14)
-                    Chip(text: "65 秒后过期", tone: .outline, mono: true, size: 14)
+                    Chip(text: "\(engine.pendingPairings.count) 待审", tone: .outline, mono: true, size: 14)
                 }
             }
         case .settings:
@@ -106,5 +125,9 @@ struct TVRoot: View {
                 }
             }
         }
+    }
+
+    private var engineNetTag: String {
+        engine.devices.isEmpty ? "● 扫描中" : "● 客厅 LAN"
     }
 }

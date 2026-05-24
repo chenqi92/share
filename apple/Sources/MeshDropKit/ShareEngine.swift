@@ -694,10 +694,12 @@ public final class ShareEngine: ObservableObject {
     // MARK: - 平台默认信息
 
     private static func defaultDisplayName() -> String {
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         return UIDeviceWrapper.name
-        #else
+        #elseif os(macOS)
         return Host.current().localizedName ?? "Mac"
+        #else
+        return "MeshDrop"
         #endif
     }
 
@@ -723,7 +725,7 @@ public final class ShareEngine: ObservableObject {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 import UIKit
 private enum UIDeviceWrapper {
     static var name: String { UIDevice.current.name }

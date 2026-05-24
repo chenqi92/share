@@ -1,49 +1,159 @@
 import SwiftUI
+import MeshDropKit
 
 private enum ReceiveFocus: Hashable {
-    case thumb(Int)
     case ctaPrimary
-    case ctaSave
     case ctaReject
 }
 
 struct ReceivePage: View {
-    @State private var selected: Int = MockData.incomingFromIndex
+    @EnvironmentObject private var engine: ShareEngine
     @FocusState private var focused: ReceiveFocus?
 
-    private let lastThumbId = MockData.incomingPhotos.last?.id ?? 0
-    private let firstThumbId = MockData.incomingPhotos.first?.id ?? 0
-
     var body: some View {
+        if let offer = engine.pendingFileOffers.first {
+            activeOffer(offer)
+        } else {
+            emptyState
+        }
+    }
+
+    // MARK: - 等候态
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 28) {
+            HStack(alignment: .top, spacing: 36) {
+                VStack(alignment: .leading, spacing: 18) {
+                    placeholderHero
+                    Spacer(minLength: 0)
+                    RemoteHint(items: [
+                        .init(glyph: "TV", label: "返回主屏"),
+                    ])
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(0)
+
+                waitingPanel
+                    .frame(width: 460, alignment: .top)
+                    .layoutPriority(1)
+            }
+        }
+    }
+
+    private var placeholderHero: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(MeshDropColor.dink2)
+            .overlay(
+                VStack(spacing: 14) {
+                    Text("WAITING")
+                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .tracking(3)
+                        .foregroundStyle(MeshDropColor.dpaperMute)
+                    Text("等手机推过来…")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(MeshDropColor.dpaperDim)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(MeshDropColor.dline, lineWidth: 1)
+            )
+            .aspectRatio(3.0 / 2.0, contentMode: .fit)
+    }
+
+    private var waitingPanel: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("空闲 · IDLE")
+                .monoTag()
+            Text("没有正在传入的内容。\n在你手机上打开 MeshDrop，把照片或文件推到「\(engine.displayName)」。")
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundStyle(MeshDropColor.dpaper)
+                .lineSpacing(6)
+
+            MeshAsciiDivider(label: "附近 · NEARBY · \(engine.devices.count) 台")
+
+            VStack(alignment: .leading, spacing: 12) {
+                if engine.devices.isEmpty {
+                    Text("附近还没有 MeshDrop 设备。")
+                        .font(.system(size: 18))
+                        .foregroundStyle(MeshDropColor.dpaperMute)
+                } else {
+                    ForEach(engine.devices.prefix(5), id: \.id) { d in
+                        peerRow(d)
+                    }
+                }
+            }
+        }
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(MeshDropColor.dink2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(MeshDropColor.dline, lineWidth: 1)
+        )
+    }
+
+    private func peerRow(_ d: Device) -> some View {
+        HStack(spacing: 14) {
+            Avatar(initials: d.displayInitials,
+                   color: MeshDropColor.lime.opacity(0.65),
+                   size: 38)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(d.name)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(MeshDropColor.dpaper)
+                    .lineLimit(1)
+                Text("\(EngineAdapters.osLabel(for: d.os)) · \(d.id.prefix(8))")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(MeshDropColor.dpaperMute)
+                    .lineLimit(1)
+            }
+            Spacer()
+        }
+    }
+
+    // MARK: - 有 offer
+
+    @ViewBuilder
+    private func activeOffer(_ offer: PendingFileOffer) -> some View {
         HStack(alignment: .top, spacing: 36) {
             VStack(alignment: .leading, spacing: 18) {
-                heroPhoto
-                thumbnailStrip
+                offerHero(offer)
                 Spacer(minLength: 0)
-                remoteHint
+                RemoteHint(items: [
+                    .init(glyph: "OK",  label: "接收并保存"),
+                    .init(glyph: "▶︎", label: "拒绝"),
+                    .init(glyph: "TV",  label: "返回"),
+                ])
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .layoutPriority(0)
 
-            sidePanel
+            sidePanel(offer)
                 .frame(width: 460, alignment: .top)
                 .layoutPriority(1)
         }
+        .onAppear { focused = .ctaPrimary }
     }
 
-    private var heroPhoto: some View {
-        ZStack(alignment: .topLeading) {
-            let item = MockData.incomingPhotos[max(0, min(selected, MockData.incomingPhotos.count - 1))]
-            PhotoPlaceholder(hue: item.hue, aspect: 3.0 / 2.0, corner: 24)
+    private func offerHero(_ offer: PendingFileOffer) -> some View {
+        let hue = hueFromName(offer.fileName)
+        return ZStack(alignment: .topLeading) {
+            PhotoPlaceholder(hue: hue, aspect: 3.0 / 2.0, corner: 24)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(MeshDropColor.dline, lineWidth: 1)
                 )
 
             HStack(spacing: 10) {
-                Text("\(item.label)").font(.system(size: 18, weight: .bold, design: .monospaced))
+                Text("INCOMING")
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    .tracking(2)
                 Text("·").foregroundStyle(MeshDropColor.dpaperMute)
-                Text(MockData.incomingFileExt).font(.system(size: 18, weight: .bold, design: .monospaced))
+                Text(offer.formattedSize)
+                    .font(.system(size: 18, weight: .bold, design: .monospaced))
             }
             .foregroundStyle(MeshDropColor.dpaper)
             .padding(.horizontal, 16).padding(.vertical, 8)
@@ -52,99 +162,43 @@ struct ReceivePage: View {
         }
     }
 
-    private var thumbnailStrip: some View {
-        HStack(spacing: 18) {
-            ForEach(MockData.incomingPhotos) { item in
-                thumbButton(item)
-            }
-            placeholderTile
-        }
-    }
-
-    @ViewBuilder
-    private func thumbButton(_ item: MockData.IncomingPhoto) -> some View {
-        let isFocusedThumb = focused == .thumb(item.id)
-        InvisibleFocusButton(isFocused: $focused, value: ReceiveFocus.thumb(item.id)) {
-            selected = item.id - 1
-        } content: {
-            PhotoPlaceholder(hue: item.hue, aspect: 1, corner: 12)
-                .frame(width: 124, height: 124)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .inset(by: 1.5)
-                        .strokeBorder(selected == item.id - 1 ? MeshDropColor.lime : Color.clear, lineWidth: 3)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .inset(by: 2)
-                        .strokeBorder(MeshDropColor.dpaper.opacity(isFocusedThumb ? 0.95 : 0.0), lineWidth: 2.5)
-                )
-                .animation(.easeInOut(duration: 0.18), value: isFocusedThumb)
-        }
-        // 最后一个 thumb 上按 →，主动把焦点推到 sidePanel 主 CTA，跨过 HStack 边界
-        .onMoveCommand { direction in
-            if item.id == lastThumbId, direction == .right {
-                focused = .ctaPrimary
-            }
-        }
-    }
-
-    private var placeholderTile: some View {
-        VStack(spacing: 4) {
-            Text("+10")
-                .font(.system(size: 22, weight: .bold, design: .monospaced))
-                .foregroundStyle(MeshDropColor.dpaperDim)
-            Text("张")
-                .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                .foregroundStyle(MeshDropColor.dpaperMute)
-        }
-        .frame(width: 124, height: 124)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(MeshDropColor.dink3)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(MeshDropColor.dline, lineWidth: 1)
-        )
-    }
-
-    private var sidePanel: some View {
+    private func sidePanel(_ offer: PendingFileOffer) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("来自 · FROM")
                 .monoTag()
 
             HStack(spacing: 18) {
-                Avatar(initials: MockData.incomingPeer.initials, color: MockData.incomingPeer.color, size: 84, ring: MeshDropColor.lime)
+                Avatar(initials: offer.peer.displayInitials,
+                       color: MeshDropColor.lime.opacity(0.85),
+                       size: 84,
+                       ring: MeshDropColor.lime)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(MockData.incomingPeer.who)
+                    Text(offer.peer.name)
                         .font(.system(size: 30, weight: .bold))
                         .foregroundStyle(MeshDropColor.dpaper)
-                    Text(MockData.incomingPeer.name)
+                    Text("\(EngineAdapters.osLabel(for: offer.peer.os)) · \(offer.peer.humanFingerprint.prefix(14))…")
                         .font(.system(size: 16, weight: .semibold, design: .monospaced))
                         .foregroundStyle(MeshDropColor.dpaperMute)
+                        .lineLimit(1)
                 }
             }
 
-            fileCard
+            fileCard(offer)
 
             VStack(alignment: .leading, spacing: 12) {
                 ctaButton(.ctaPrimary,
-                          title: "接收并播放",
-                          subtitle: "OK · 同时进入幻灯片",
+                          title: "接收并保存",
+                          subtitle: "OK · ACCEPT",
                           tone: .lime,
-                          fillWidth: true)
-                HStack(spacing: 14) {
-                    ctaButton(.ctaSave,
-                              title: "仅保存",
-                              subtitle: "SAVE",
-                              tone: .ink,
-                              fillWidth: true)
-                    ctaButton(.ctaReject,
-                              title: "不接收",
-                              subtitle: "REJECT",
-                              tone: .mute,
-                              fillWidth: true)
+                          fillWidth: true) {
+                    engine.respondToFileOffer(offer.id, accept: true)
+                }
+                ctaButton(.ctaReject,
+                          title: "不接收",
+                          subtitle: "REJECT",
+                          tone: .mute,
+                          fillWidth: true) {
+                    engine.respondToFileOffer(offer.id, accept: false)
                 }
             }
             .padding(.top, 4)
@@ -165,11 +219,10 @@ struct ReceivePage: View {
                            title: String,
                            subtitle: String?,
                            tone: ChipTone,
-                           fillWidth: Bool) -> some View {
+                           fillWidth: Bool,
+                           action: @escaping () -> Void) -> some View {
         let isFocusedCTA = focused == id
-        InvisibleFocusButton(isFocused: $focused, value: id) {
-            // mock：本轮不接 backend
-        } content: {
+        InvisibleFocusButton(isFocused: $focused, value: id, action: action) {
             HStack(spacing: 18) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
@@ -201,12 +254,6 @@ struct ReceivePage: View {
             )
             .animation(.easeInOut(duration: 0.18), value: isFocusedCTA)
         }
-        // 主 CTA 上按 ←，把焦点推回最后一个缩略图
-        .onMoveCommand { direction in
-            if id == .ctaPrimary, direction == .left {
-                focused = .thumb(lastThumbId)
-            }
-        }
     }
 
     private func ctaBG(_ tone: ChipTone) -> Color {
@@ -231,21 +278,21 @@ struct ReceivePage: View {
         }
     }
 
-    private var fileCard: some View {
+    private func fileCard(_ offer: PendingFileOffer) -> some View {
         HStack(spacing: 16) {
-            FileTile(ext: MockData.incomingFileExt, hue: 0.55)
+            FileTile(ext: ext(of: offer.fileName), hue: hueFromName(offer.fileName))
                 .frame(width: 76, height: 92)
             VStack(alignment: .leading, spacing: 6) {
-                Text(MockData.incomingFileName)
+                Text(offer.fileName)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(MeshDropColor.dpaper)
                     .lineLimit(1)
-                Text(MockData.incomingFileBytes)
+                Text(offer.formattedSize)
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .foregroundStyle(MeshDropColor.dpaperMute)
                 HStack(spacing: 8) {
                     Chip(text: "● E2E", tone: .lime, mono: true, size: 13)
-                    Chip(text: "9ms · LAN", tone: .outline, mono: true, size: 13)
+                    Chip(text: "LAN", tone: .outline, mono: true, size: 13)
                 }
                 .padding(.top, 4)
             }
@@ -258,12 +305,17 @@ struct ReceivePage: View {
         )
     }
 
-    private var remoteHint: some View {
-        RemoteHint(items: [
-            .init(glyph: "← →", label: "切换缩略图"),
-            .init(glyph: "OK",  label: "接收并播放"),
-            .init(glyph: "▶︎", label: "幻灯片"),
-            .init(glyph: "TV", label: "返回"),
-        ])
+    private func ext(of name: String) -> String {
+        let last = (name as NSString).pathExtension
+        return last.isEmpty ? "FILE" : last.uppercased()
+    }
+
+    private func hueFromName(_ name: String) -> Double {
+        var h: UInt64 = 0xcbf29ce484222325
+        for b in name.utf8 {
+            h ^= UInt64(b)
+            h = h &* 0x100000001b3
+        }
+        return Double(h % 100) / 100.0
     }
 }
