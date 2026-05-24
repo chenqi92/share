@@ -21,6 +21,7 @@ data class Device(
     val fingerprint: String,    // 32 hex
     val port: Int,
     val protocolVersion: Int = 1,
+    val host: String? = null,   // mDNS 解析得到的 IP / hostname（连接时用）
 ) {
     /** 把 32 hex 指纹切成 8 组 4 位大写，空格分隔。 */
     val humanFingerprint: String

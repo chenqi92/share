@@ -1,15 +1,14 @@
 package drop.mesh
 
 import android.app.Application
-import drop.mesh.data.Identity
-import drop.mesh.data.IdentityStore
+import drop.mesh.transport.ShareEngine
 
 class ShareApplication : Application() {
-    lateinit var identity: Identity
+    lateinit var engine: ShareEngine
         private set
 
     override fun onCreate() {
         super.onCreate()
-        identity = IdentityStore.loadOrCreate(this)
+        engine = ShareEngine(this)
     }
 }

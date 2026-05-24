@@ -7,29 +7,27 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import drop.mesh.ui.LocalEngine
 import drop.mesh.ui.ShareApp
 import drop.mesh.ui.theme.MeshDropTheme
-import drop.mesh.viewmodel.DeviceListViewModel
 
 class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) viewModel.start()
+        if (granted) appEngine().start()
     }
 
-    private lateinit var viewModel: DeviceListViewModel
+    private fun appEngine() = (application as ShareApplication).engine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val vm: DeviceListViewModel = viewModel()
-            viewModel = vm
-            MeshDropTheme {
-                ShareApp(viewModel = vm)
+            CompositionLocalProvider(LocalEngine provides appEngine()) {
+                MeshDropTheme { ShareApp() }
             }
         }
         ensurePermissionThenStart()
@@ -40,18 +38,15 @@ class MainActivity : ComponentActivity() {
             val granted = ContextCompat.checkSelfPermission(
                 this, Manifest.permission.NEARBY_WIFI_DEVICES
             ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                viewModel.start()
-            } else {
-                permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
-            }
+            if (granted) appEngine().start()
+            else permissionLauncher.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
         } else {
-            viewModel.start()
+            appEngine().start()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::viewModel.isInitialized) viewModel.stop()
+        appEngine().stop()
     }
 }
