@@ -1,0 +1,477 @@
+/* MeshDrop · GTK4 CSS · paper + lime 报纸感设计语言。
+ * 强制覆盖 libadwaita / GNOME 默认蓝色 accent。
+ */
+
+/* ───── TOKEN ─────────────────────────────────────────── */
+@define-color meshdrop_paper       #F5F2EC;
+@define-color meshdrop_paper2      #EDE8DD;
+@define-color meshdrop_card        #FFFFFF;
+@define-color meshdrop_ink         #0A0A0A;
+@define-color meshdrop_ink80       alpha(#0A0A0A, 0.80);
+@define-color meshdrop_ink60       alpha(#0A0A0A, 0.60);
+@define-color meshdrop_ink45       alpha(#0A0A0A, 0.45);
+@define-color meshdrop_ink30       alpha(#0A0A0A, 0.30);
+@define-color meshdrop_ink12       alpha(#0A0A0A, 0.12);
+@define-color meshdrop_ink06       alpha(#0A0A0A, 0.06);
+@define-color meshdrop_line        #E2DCCD;
+@define-color meshdrop_lime        #DDF94B;
+@define-color meshdrop_lime_deep   #A8C800;
+@define-color meshdrop_lime_soft   alpha(#DDF94B, 0.32);
+@define-color meshdrop_flame       #FF5A2C;
+@define-color meshdrop_flame_deep  #C73E15;
+@define-color meshdrop_sky         #4DB8FF;
+@define-color meshdrop_error       #C4322B;
+
+@define-color meshdrop_dink        #0E0C09;
+@define-color meshdrop_dink2       #181612;
+@define-color meshdrop_dink3       #23201A;
+@define-color meshdrop_dpaper      #E8E3D6;
+@define-color meshdrop_dpaper60    alpha(#E8E3D6, 0.6);
+@define-color meshdrop_dpaper45    alpha(#E8E3D6, 0.5);
+@define-color meshdrop_dline       alpha(#FFFFFF, 0.10);
+@define-color meshdrop_dline_soft  alpha(#FFFFFF, 0.06);
+
+/* ───── 全局：强制 paper 主背景，不要 GNOME 默认 ───── */
+window,
+window.background,
+windowhandle,
+.background {
+  background-color: @meshdrop_paper;
+  color: @meshdrop_ink;
+}
+
+.dark window,
+.dark windowhandle,
+.dark .background,
+window.dark,
+window.dark windowhandle {
+  background-color: @meshdrop_dink;
+  color: @meshdrop_dpaper;
+}
+
+/* HeaderBar 走 paper（不要灰色） */
+headerbar {
+  background-color: @meshdrop_paper;
+  color: @meshdrop_ink;
+  border: none;
+  box-shadow: none;
+  min-height: 44px;
+}
+.dark headerbar { background-color: @meshdrop_dink; color: @meshdrop_dpaper; }
+
+headerbar > windowhandle { background-color: transparent; }
+
+/* libadwaita ToolbarView 顶栏分隔线 */
+toolbarview > .top-bar,
+toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
+
+/* ───── 字体 ───────────────────────────────────────────── */
+/* GTK CSS 不支持 @font-face；字体由 main.rs 通过 fontconfig 注册。
+ * 此处只指定 family，找不到时降级到系统 sans。 */
+
+* {
+  font-family: "Geist", "PingFang SC", "Noto Sans SC", -apple-system, system-ui, sans-serif;
+}
+
+.meshdrop-display {
+  font-family: "Space Grotesk", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.meshdrop-mono,
+.mono {
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+}
+
+/* ───── 文字阶梯 ───────────────────────────────────────── */
+.meshdrop-hero {
+  font-family: "Space Grotesk", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  color: @meshdrop_ink;
+}
+.dark .meshdrop-hero { color: @meshdrop_dpaper; }
+
+.meshdrop-section {
+  font-family: "Space Grotesk", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: @meshdrop_ink;
+}
+.dark .meshdrop-section { color: @meshdrop_dpaper; }
+
+.meshdrop-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: @meshdrop_ink;
+}
+.dark .meshdrop-card-title { color: @meshdrop_dpaper; }
+
+.meshdrop-body { font-size: 13px; color: @meshdrop_ink; }
+.dark .meshdrop-body { color: @meshdrop_dpaper; }
+
+.meshdrop-muted { color: @meshdrop_ink45; font-size: 11px; }
+.dark .meshdrop-muted { color: @meshdrop_dpaper45; }
+
+.meshdrop-meta {
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 10px;
+  color: @meshdrop_ink45;
+  letter-spacing: 0.2px;
+}
+.dark .meshdrop-meta { color: @meshdrop_dpaper45; }
+
+.meshdrop-ascii-divider {
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: alpha(#0A0A0A, 0.45);
+}
+.dark .meshdrop-ascii-divider { color: alpha(#E8E3D6, 0.5); }
+
+/* ───── card ──────────────────────────────────────────── */
+.meshdrop-card {
+  background: @meshdrop_card;
+  border-radius: 14px;
+  border: 1px solid @meshdrop_line;
+  padding: 14px 16px;
+}
+.dark .meshdrop-card { background: @meshdrop_dink2; border-color: @meshdrop_dline; }
+
+.meshdrop-card-flat {
+  background: @meshdrop_paper2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid @meshdrop_line;
+}
+.dark .meshdrop-card-flat { background: @meshdrop_dink3; border-color: @meshdrop_dline; }
+
+.meshdrop-sidebar {
+  background: @meshdrop_paper2;
+  border-right: 1px solid @meshdrop_line;
+}
+.dark .meshdrop-sidebar { background: @meshdrop_dink2; border-right-color: @meshdrop_dline; }
+
+.meshdrop-statusbar {
+  background: @meshdrop_paper;
+  border-top: 1px solid @meshdrop_line;
+  padding: 6px 14px;
+  min-height: 24px;
+}
+.dark .meshdrop-statusbar { background: @meshdrop_dink; border-top-color: @meshdrop_dline; }
+
+/* ───── chip ──────────────────────────────────────────── */
+.meshdrop-chip {
+  border-radius: 999px;
+  padding: 2px 10px;
+  min-height: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.meshdrop-chip.tone-mute {
+  background: @meshdrop_ink06;
+  color: @meshdrop_ink60;
+}
+.dark .meshdrop-chip.tone-mute {
+  background: alpha(#FFFFFF, 0.08);
+  color: @meshdrop_dpaper60;
+}
+.meshdrop-chip.tone-lime {
+  background: @meshdrop_lime;
+  color: @meshdrop_ink;
+}
+.meshdrop-chip.tone-ink {
+  background: @meshdrop_ink;
+  color: @meshdrop_paper;
+}
+.dark .meshdrop-chip.tone-ink {
+  background: @meshdrop_dpaper;
+  color: @meshdrop_dink;
+}
+.meshdrop-chip.tone-outline {
+  background: transparent;
+  color: @meshdrop_ink60;
+  box-shadow: inset 0 0 0 1px @meshdrop_line;
+}
+.dark .meshdrop-chip.tone-outline {
+  color: @meshdrop_dpaper60;
+  box-shadow: inset 0 0 0 1px @meshdrop_dline;
+}
+.meshdrop-chip.tone-flame {
+  background: @meshdrop_flame;
+  color: #FFFFFF;
+}
+.meshdrop-chip.tone-sky {
+  background: @meshdrop_sky;
+  color: @meshdrop_ink;
+}
+.meshdrop-chip.tone-error {
+  background: alpha(#C4322B, 0.14);
+  color: @meshdrop_error;
+}
+.meshdrop-chip.mono {
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ───── 聊天气泡 ───────────────────────────────────────── */
+.meshdrop-bubble-in {
+  background: @meshdrop_card;
+  color: @meshdrop_ink;
+  border-radius: 6px 16px 16px 16px;
+  padding: 8px 12px;
+  border: 1px solid @meshdrop_line;
+}
+.dark .meshdrop-bubble-in {
+  background: alpha(#FFFFFF, 0.07);
+  color: @meshdrop_dpaper;
+  border-color: @meshdrop_dline;
+}
+
+.meshdrop-bubble-out {
+  background: @meshdrop_ink;
+  color: @meshdrop_paper;
+  border-radius: 16px 6px 16px 16px;
+  padding: 8px 12px;
+}
+.dark .meshdrop-bubble-out {
+  background: @meshdrop_lime;
+  color: @meshdrop_ink;
+}
+
+.meshdrop-bubble-time {
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 10px;
+  color: @meshdrop_ink45;
+  letter-spacing: 0.4px;
+}
+.dark .meshdrop-bubble-time { color: @meshdrop_dpaper45; }
+
+.meshdrop-bubble-delivered { color: @meshdrop_lime_deep; }
+
+/* ───── 终端块（discovery details 仿 Windows） ─────────── */
+.meshdrop-terminal {
+  background: @meshdrop_ink;
+  color: @meshdrop_lime;
+  font-family: "Geist Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid @meshdrop_dline;
+}
+.dark .meshdrop-terminal { background: #04060A; border-color: alpha(#DDF94B, 0.15); }
+
+/* ───── sidebar 行（device row 选中态） ───────────────── */
+.meshdrop-device-row {
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+}
+.meshdrop-device-row:hover {
+  background: alpha(#0A0A0A, 0.04);
+}
+.dark .meshdrop-device-row:hover {
+  background: alpha(#FFFFFF, 0.05);
+}
+.meshdrop-device-row.selected {
+  background: @meshdrop_lime_soft;
+  box-shadow: inset 0 0 0 1px @meshdrop_lime;
+}
+.dark .meshdrop-device-row.selected {
+  background: alpha(#DDF94B, 0.16);
+  box-shadow: inset 0 0 0 1px @meshdrop_lime;
+}
+
+/* ───── sidebar 一级导航按钮 ───────────────────────────── */
+.meshdrop-nav-row {
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: @meshdrop_ink80;
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+.meshdrop-nav-row:hover { background: alpha(#0A0A0A, 0.05); }
+.dark .meshdrop-nav-row { color: @meshdrop_dpaper60; }
+.dark .meshdrop-nav-row:hover { background: alpha(#FFFFFF, 0.06); }
+.meshdrop-nav-row.active {
+  background: @meshdrop_ink;
+  color: @meshdrop_paper;
+}
+.dark .meshdrop-nav-row.active {
+  background: @meshdrop_dpaper;
+  color: @meshdrop_dink;
+}
+
+/* ───── IconBtn ───────────────────────────────────────── */
+.meshdrop-iconbtn {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid @meshdrop_line;
+  color: @meshdrop_ink;
+  min-height: 30px;
+  min-width: 30px;
+}
+.dark .meshdrop-iconbtn { color: @meshdrop_dpaper; border-color: @meshdrop_dline; }
+.meshdrop-iconbtn:hover { background: alpha(#0A0A0A, 0.04); }
+.meshdrop-iconbtn.accent {
+  background: @meshdrop_lime;
+  color: @meshdrop_ink;
+  border-color: @meshdrop_lime_deep;
+}
+.meshdrop-iconbtn.accent:hover { background: @meshdrop_lime_deep; }
+.meshdrop-iconbtn.danger {
+  color: @meshdrop_error;
+  border-color: alpha(#C4322B, 0.4);
+}
+
+/* ───── 进度条配色 ─────────────────────────────────────── */
+progressbar > trough {
+  background-color: alpha(#0A0A0A, 0.08);
+  border-radius: 2px;
+  min-height: 4px;
+}
+.dark progressbar > trough { background-color: alpha(#FFFFFF, 0.08); }
+progressbar > trough > progress {
+  background-color: @meshdrop_lime_deep;
+  border-radius: 2px;
+}
+progressbar.sending > trough > progress { background-color: @meshdrop_flame; }
+progressbar.receiving > trough > progress { background-color: @meshdrop_sky; }
+progressbar.done > trough > progress { background-color: @meshdrop_lime_deep; }
+progressbar.failed > trough > progress { background-color: @meshdrop_error; }
+
+/* ───── Entry / TextView ──────────────────────────────── */
+entry, textview text {
+  background: @meshdrop_card;
+  color: @meshdrop_ink;
+  border: 1px solid @meshdrop_line;
+  border-radius: 10px;
+  min-height: 32px;
+  padding: 0 10px;
+  box-shadow: none;
+}
+.dark entry, .dark textview text {
+  background: @meshdrop_dink2;
+  color: @meshdrop_dpaper;
+  border-color: @meshdrop_dline;
+}
+entry:focus, textview:focus-within text {
+  border-color: @meshdrop_lime_deep;
+  box-shadow: inset 0 0 0 1px @meshdrop_lime_deep;
+}
+
+/* search */
+.meshdrop-search { padding: 0 10px; }
+
+/* ───── Button 覆盖 ───────────────────────────────────── */
+button.suggested-action {
+  background: @meshdrop_ink;
+  color: @meshdrop_paper;
+  border: none;
+}
+.dark button.suggested-action {
+  background: @meshdrop_lime;
+  color: @meshdrop_ink;
+}
+button.destructive-action {
+  background: @meshdrop_error;
+  color: #FFFFFF;
+}
+
+/* ───── ASCII divider 容器 ────────────────────────────── */
+.meshdrop-divider-line {
+  background: @meshdrop_line;
+  min-height: 1px;
+}
+.dark .meshdrop-divider-line { background: @meshdrop_dline; }
+
+/* ───── DropTarget 高亮 ───────────────────────────────── */
+.meshdrop-drop-active {
+  background: @meshdrop_lime_soft;
+  box-shadow: inset 0 0 0 2px @meshdrop_lime_deep;
+  border-radius: 14px;
+}
+
+/* ───── Trust 表格行 ──────────────────────────────────── */
+.meshdrop-trust-row {
+  background: @meshdrop_card;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid @meshdrop_line;
+}
+.dark .meshdrop-trust-row {
+  background: @meshdrop_dink2;
+  border-color: @meshdrop_dline;
+}
+
+/* ───── 雷达 label ────────────────────────────────────── */
+.meshdrop-radar-label {
+  background: @meshdrop_card;
+  color: @meshdrop_ink;
+  border: 1px solid @meshdrop_line;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.dark .meshdrop-radar-label {
+  background: @meshdrop_dink2;
+  color: @meshdrop_dpaper;
+  border-color: @meshdrop_dline;
+}
+.meshdrop-radar-label.selected {
+  background: @meshdrop_flame;
+  color: #FFFFFF;
+  border-color: @meshdrop_flame_deep;
+}
+
+/* ───── Speed chart legend ────────────────────────────── */
+.meshdrop-legend-up { color: @meshdrop_flame; }
+.meshdrop-legend-down { color: @meshdrop_sky; }
+
+/* ───── Composer 区 ───────────────────────────────────── */
+.meshdrop-composer {
+  background: @meshdrop_card;
+  border-top: 1px solid @meshdrop_line;
+  padding: 10px 14px;
+}
+.dark .meshdrop-composer {
+  background: @meshdrop_dink2;
+  border-top-color: @meshdrop_dline;
+}
+
+/* ───── popover / dialog 背景 ─────────────────────────── */
+popover > contents,
+dialog,
+window.dialog {
+  background: @meshdrop_card;
+  color: @meshdrop_ink;
+}
+.dark popover > contents,
+.dark dialog,
+.dark window.dialog {
+  background: @meshdrop_dink2;
+  color: @meshdrop_dpaper;
+}
+
+/* ───── ListBox 行去默认背景 ──────────────────────────── */
+listbox, listbox row {
+  background: transparent;
+}
+listbox row:selected {
+  background: @meshdrop_lime_soft;
+  color: @meshdrop_ink;
+}
+.dark listbox row:selected {
+  background: alpha(#DDF94B, 0.16);
+  color: @meshdrop_dpaper;
+}

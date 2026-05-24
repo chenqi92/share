@@ -2,7 +2,9 @@
 Name=MeshDrop
 Comment=Cross-platform LAN share
 Exec=meshdrop
-Icon=drop.mesh.linux
+Icon=com.welape.meshdrop.linux
+Keywords=share;lan;drop;wifi;p2p;
+StartupWMClass=com.welape.meshdrop.linux
 Terminal=false
 Type=Application
 Categories=Network;FileTransfer;Utility;

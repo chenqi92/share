@@ -23,7 +23,7 @@ linux/
 │   └── meshdrop-tui/           # bin: meshdrop-tui  (ratatui)
 ├── data/
 │   ├── meshdrop.desktop
-│   └── icons/hicolor/*/apps/drop.mesh.linux.png
+│   └── icons/hicolor/*/apps/com.welape.meshdrop.linux.png
 └── README.md
 ```
 
@@ -75,8 +75,8 @@ sudo install -Dm755 target/release/meshdrop-tui /usr/local/bin/meshdrop-tui
 sudo install -Dm644 data/meshdrop.desktop \
     /usr/local/share/applications/meshdrop.desktop
 for size in 48 64 128 256 512; do
-  sudo install -Dm644 "data/icons/hicolor/${size}x${size}/apps/drop.mesh.linux.png" \
-    "/usr/share/icons/hicolor/${size}x${size}/apps/drop.mesh.linux.png"
+  sudo install -Dm644 "data/icons/hicolor/${size}x${size}/apps/com.welape.meshdrop.linux.png" \
+    "/usr/share/icons/hicolor/${size}x${size}/apps/com.welape.meshdrop.linux.png"
 done
 sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
 ```
@@ -86,9 +86,9 @@ sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
 - ✅ 协议层完整（Frame / 11 个消息 / FileChunkHeader）
 - ✅ mDNS 发现 + 信任库 (TOFU)
 - ✅ HELLO 握手 + 配对 + 文本 / 文件双向传输（SHA-256 校验）
-- ✅ GUI：libadwaita 设备列表 + 历史 + SendDialog / PairingDialog / FileOfferDialog
+- ✅ GUI：libadwaita 设备列表 + 历史 + SendDialog / PairingDialog / FileOfferDialog（已接 backend，旧 UI）
 - ✅ TUI：ratatui 全键盘 + 自动弹窗，零系统依赖
-- ⚠️ GUI 美化较朴素（设计：libadwaita 默认风格），后续可加渐变背景与玻璃效果
+- ✅ GUI v2：按 MeshDrop 设计语言（paper + lime + 报纸感）重做，11 张页面 mock 驱动，等待与 backend 重新对接
 
 ## TODO
 

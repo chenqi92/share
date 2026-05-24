@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="com.welape.meshdrop.linux" path="/com/welape/meshdrop/linux/">
+    <key name="theme" type="s">
+      <choices>
+        <choice value="auto"/>
+        <choice value="light"/>
+        <choice value="dark"/>
+      </choices>
+      <default>"auto"</default>
+      <summary>外观模式</summary>
+      <description>跟随系统 / 浅色 / 深色</description>
+    </key>
+    <key name="visibility" type="s">
+      <choices>
+        <choice value="visible"/>
+        <choice value="invisible"/>
+        <choice value="trusted-only"/>
+      </choices>
+      <default>"visible"</default>
+      <summary>本机可见性</summary>
+    </key>
+    <key name="auto-accept-text" type="b">
+      <default>false</default>
+      <summary>自动接收文本便签</summary>
+    </key>
+    <key name="auto-accept-known" type="b">
+      <default>true</default>
+      <summary>已信任设备自动接收文件</summary>
+    </key>
+    <key name="download-dir" type="s">
+      <default>""</default>
+      <summary>下载目录（空 = 默认 ~/Downloads/MeshDrop）</summary>
+    </key>
+  </schema>
+</schemalist>
