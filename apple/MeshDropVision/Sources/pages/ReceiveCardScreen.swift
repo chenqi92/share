@@ -1,56 +1,90 @@
 import SwiftUI
+import MeshDropKit
 
-/// 接收弹卡：左侧大 glass（文档预览，倾斜 -3°）+ 中央 glass（来源 / 备注 / 双 CTA）。
+/// 接收弹卡：左侧文档预览（玻璃 -3°）+ 中央 glass（来源 / 备注 / 双 CTA）。
+/// 真接 `engine.pendingFileOffers.first`，双 CTA 走 `respondToFileOffer`。
 struct ReceiveCardScreen: View {
+    @EnvironmentObject private var engine: ShareEngine
+
+    private var offer: PendingFileOffer? { engine.pendingFileOffers.first }
+
     var body: some View {
         GeometryReader { geo in
             let canvas = geo.size
             ZStack {
                 MDPassthroughBackground(hue: 220)
 
-                // 右上角 sender PeerOrb（嘉伟）
-                let senderPos = CGPoint(x: canvas.width - 220, y: 150)
-                PeerOrb(device: MockData.device("jiawei"), focused: false)
-                    .position(senderPos)
-
-                // 中央 glass panel：核心 CTA
-                let centerPos = CGPoint(x: canvas.width * 0.62, y: canvas.height * 0.50)
-                receiveCenterCard
-                    .position(centerPos)
-
-                // 文档预览面板（左，倾斜 -3°）
-                let leftPos = CGPoint(x: canvas.width * 0.27, y: canvas.height * 0.50)
-                docPreviewCard
-                    .rotation3DEffect(.degrees(-3), axis: (0, 1, 0))
-                    .position(leftPos)
-
-                // dashed 连接线：从右上 sender 到中央卡片
-                Path { p in
-                    p.move(to: CGPoint(x: senderPos.x - 110, y: senderPos.y + 40))
-                    p.addQuadCurve(to: CGPoint(x: centerPos.x + 80, y: centerPos.y - 120),
-                                   control: CGPoint(x: centerPos.x + 220, y: centerPos.y - 220))
+                if let offer {
+                    content(for: offer, canvas: canvas)
+                } else {
+                    waitingPlaceholder
+                        .position(x: canvas.width * 0.5, y: canvas.height * 0.5)
                 }
-                .stroke(MD.sky.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 1.2, lineCap: .round, dash: [4, 5]))
 
-                // 顶部 status ornament
                 StatusOrnament()
                     .position(x: canvas.width / 2, y: 44)
             }
         }
     }
 
+    @ViewBuilder
+    private func content(for offer: PendingFileOffer, canvas: CGSize) -> some View {
+        let senderMock = LivePeerMapper.mockDevice(from: offer.peer, index: 0, total: 1)
+        let senderPos  = CGPoint(x: canvas.width - 220, y: 150)
+
+        // 右上 sender PeerOrb（来源）
+        PeerOrb(device: senderMock, focused: false)
+            .position(senderPos)
+
+        // 中央 CTA 卡
+        let centerPos = CGPoint(x: canvas.width * 0.62, y: canvas.height * 0.50)
+        receiveCenterCard(for: offer, sender: senderMock)
+            .position(centerPos)
+
+        // 左侧 doc 预览
+        let leftPos = CGPoint(x: canvas.width * 0.27, y: canvas.height * 0.50)
+        docPreviewCard(for: offer)
+            .rotation3DEffect(.degrees(-3), axis: (0, 1, 0))
+            .position(leftPos)
+
+        // dashed 连接线
+        Path { p in
+            p.move(to: CGPoint(x: senderPos.x - 110, y: senderPos.y + 40))
+            p.addQuadCurve(to: CGPoint(x: centerPos.x + 80, y: centerPos.y - 120),
+                           control: CGPoint(x: centerPos.x + 220, y: centerPos.y - 220))
+        }
+        .stroke(MD.sky.opacity(0.55),
+                style: StrokeStyle(lineWidth: 1.2, lineCap: .round, dash: [4, 5]))
+    }
+
+    private var waitingPlaceholder: some View {
+        GlassCard(corner: 28) {
+            VStack(spacing: 12) {
+                Text("没有待审的文件")
+                    .font(MDFont.heroSmall).foregroundStyle(MD.dpaper)
+                Text("WAITING · 等朋友捏合发送")
+                    .font(MDFont.microHi).tracking(1.6)
+                    .foregroundStyle(MD.dpaper.opacity(0.55))
+            }
+            .padding(36)
+            .frame(width: 420, height: 200)
+        }
+    }
+
     // MARK: 左：文档预览
-    private var docPreviewCard: some View {
+    @ViewBuilder
+    private func docPreviewCard(for offer: PendingFileOffer) -> some View {
+        let ext = (offer.fileName as NSString).pathExtension.uppercased()
         GlassCard(corner: 28) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
-                    docIcon
+                    docIcon(ext: ext.isEmpty ? "FILE" : ext)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(MockData.pendingOffer.fileName)
+                        Text(offer.fileName)
                             .font(MDFont.cardTitle)
                             .foregroundStyle(MD.dpaper)
-                        Text("\(MockData.pendingOffer.fileSize) · \(MockData.pendingOffer.pageCount)")
+                            .lineLimit(2)
+                        Text("\(offer.formattedSize) · SHA-256 \(String(offer.sha256.prefix(8)))…")
                             .font(MDFont.micro).mdMonoTracking()
                             .foregroundStyle(MD.dpaper.opacity(0.55))
                     }
@@ -58,23 +92,24 @@ struct ReceiveCardScreen: View {
                     Chip(text: "● E2E", tone: .lime, mono: true)
                 }
 
-                // 假"页面" preview
+                // 占位预览（协议 v1 不传 thumbnail）
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("2026 Q1 设计规划")
+                    Text(offer.fileName)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(MD.ink)
-                    Text("§1  目标")
+                    Text("发送方：\(offer.peer.name)")
                         .font(MDFont.bodyEmph)
                         .foregroundStyle(MD.ink.opacity(0.85))
-                    Text("围绕 MeshDrop 跨端一致性,在 2026 Q1 把五端 UI 统一到\n新的报纸 + lime 设计语言.")
+                    Text("接收后会保存到 ~/Documents/MeshDrop/\(offer.peer.name)/")
                         .font(MDFont.body)
                         .foregroundStyle(MD.ink.opacity(0.72))
                     Spacer().frame(height: 4)
-                    Text("§2  端任务拆分")
+                    Text("校验 · CHECKSUM")
                         .font(MDFont.bodyEmph)
                         .foregroundStyle(MD.ink.opacity(0.85))
-                    Text("§2.1 macOS · 玻璃 sidebar + 雷达\n§2.2 iOS · 单手 + 卡片层叠\n§2.3 visionOS · 空间漂浮 + gaze/pinch")
-                        .font(MDFont.body)
+                    Text(formattedFingerprint(offer.sha256))
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .tracking(1.2)
                         .foregroundStyle(MD.ink.opacity(0.72))
                 }
                 .padding(18)
@@ -84,9 +119,8 @@ struct ReceiveCardScreen: View {
                 )
 
                 HStack(spacing: 10) {
-                    Chip(text: "PDF", tone: .outline, mono: true)
-                    Chip(text: "3.4 MB", tone: .outline, mono: true)
-                    Chip(text: "12 页", tone: .outline, mono: true)
+                    Chip(text: ext.isEmpty ? "FILE" : ext, tone: .outline, mono: true)
+                    Chip(text: offer.formattedSize, tone: .outline, mono: true)
                     Spacer()
                     Text("已加密 · 待你接收")
                         .font(MDFont.micro)
@@ -99,7 +133,7 @@ struct ReceiveCardScreen: View {
         .shadow(color: .black.opacity(0.5), radius: 36, x: 0, y: 18)
     }
 
-    private var docIcon: some View {
+    private func docIcon(ext: String) -> some View {
         ZStack(alignment: .bottomLeading) {
             RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .fill(Color.white)
@@ -107,7 +141,6 @@ struct ReceiveCardScreen: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 4).stroke(Color.black.opacity(0.2), lineWidth: 0.5)
                 )
-            // 折角
             Path { p in
                 p.move(to: CGPoint(x: 22, y: 0))
                 p.addLine(to: CGPoint(x: 30, y: 0))
@@ -115,8 +148,7 @@ struct ReceiveCardScreen: View {
                 p.closeSubpath()
             }
             .fill(Color.black.opacity(0.08))
-            // ext label
-            Text("PDF")
+            Text(String(ext.prefix(4)))
                 .font(.system(size: 8, weight: .heavy, design: .monospaced))
                 .foregroundStyle(MD.flame)
                 .padding(.leading, 4)
@@ -126,34 +158,34 @@ struct ReceiveCardScreen: View {
     }
 
     // MARK: 中：CTA
-    private var receiveCenterCard: some View {
+    private func receiveCenterCard(for offer: PendingFileOffer, sender: MockDevice) -> some View {
         GlassCard(corner: 32) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
                     Chip(text: "INCOMING · 接收", tone: .sky, mono: true, leadingDot: Color.white)
                     Spacer()
-                    Text(MockData.pendingOffer.receivedAt.uppercased())
+                    Text(receivedAtLabel(offer.receivedAt))
                         .font(MDFont.micro).tracking(1.4)
                         .foregroundStyle(MD.dpaper.opacity(0.45))
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("看一眼,捏合,")
+                    Text("看一眼，捏合，")
                         .font(MDFont.hero)
                         .foregroundStyle(MD.dpaper)
-                    Text("就收到.")
+                    Text("就收到。")
                         .font(MDFont.hero)
                         .foregroundStyle(MD.lime)
                 }
 
                 // 发送者卡（嵌入式）
                 HStack(spacing: 12) {
-                    Avatar(initials: "JW",
-                           color: MockData.device("jiawei").color,
+                    Avatar(initials: sender.initials,
+                           color: sender.color,
                            size: 40)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("嘉伟").font(MDFont.cardTitle).foregroundStyle(MD.dpaper)
-                        Text("Jiawei · iPad · 9 ms · 已配对 ● 已验证指纹")
+                        Text(sender.who).font(MDFont.cardTitle).foregroundStyle(MD.dpaper)
+                        Text("\(sender.name) · \(sender.os) · fp \(String(offer.peer.fingerprint.prefix(8)))…")
                             .font(MDFont.micro).mdMonoTracking()
                             .foregroundStyle(MD.dpaper.opacity(0.55))
                     }
@@ -168,17 +200,18 @@ struct ReceiveCardScreen: View {
                         )
                 )
 
-                // note 便签
+                // 文件信息
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
-                        Image(systemName: "tag.fill").font(.system(size: 10, weight: .semibold))
-                        Text("便签 · NOTE").font(MDFont.chipMono).tracking(1.6)
+                        Image(systemName: "doc.fill").font(.system(size: 10, weight: .semibold))
+                        Text("文件 · FILE").font(MDFont.chipMono).tracking(1.6)
                     }
                     .foregroundStyle(MD.dpaper.opacity(0.55))
 
-                    Text("\u{201C}\(MockData.pendingOffer.note)\u{201D}")
+                    Text(offer.fileName)
                         .font(MDFont.body)
                         .foregroundStyle(MD.dpaper.opacity(0.92))
+                        .lineLimit(2)
                 }
                 .padding(14)
                 .background(
@@ -190,8 +223,20 @@ struct ReceiveCardScreen: View {
 
                 // 双 CTA
                 HStack(spacing: 12) {
-                    ctaButton(label: "不接收", subtitle: "DECLINE", tone: .ghost)
-                    ctaButton(label: "捏合接收", subtitle: "PINCH · ACCEPT", tone: .accent)
+                    Button {
+                        engine.respondToFileOffer(offer.id, accept: false)
+                    } label: {
+                        ctaLabel(label: "不接收", subtitle: "DECLINE", tone: .ghost)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        engine.respondToFileOffer(offer.id, accept: true)
+                    } label: {
+                        ctaLabel(label: "捏合接收", subtitle: "PINCH · ACCEPT", tone: .accent)
+                    }
+                    .buttonStyle(.plain)
+                    .hoverEffect(.lift)
                 }
                 Text("或:看着这张卡片说\u{201C}接收\u{201D}")
                     .font(MDFont.micro).mdMonoTracking()
@@ -205,7 +250,7 @@ struct ReceiveCardScreen: View {
 
     enum CTATone { case ghost, accent }
 
-    private func ctaButton(label: String, subtitle: String, tone: CTATone) -> some View {
+    private func ctaLabel(label: String, subtitle: String, tone: CTATone) -> some View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.system(size: 16, weight: .semibold, design: .rounded))
@@ -224,5 +269,24 @@ struct ReceiveCardScreen: View {
                         lineWidth: 0.8)
                 )
         )
+    }
+
+    private func receivedAtLabel(_ date: Date) -> String {
+        let delta = max(0, Int(Date().timeIntervalSince(date)))
+        if delta < 5 { return "JUST NOW" }
+        if delta < 60 { return "\(delta)S AGO" }
+        return "\(delta / 60)M AGO"
+    }
+
+    private func formattedFingerprint(_ hex: String) -> String {
+        let upper = hex.uppercased()
+        var chunks: [String] = []
+        var idx = upper.startIndex
+        while idx < upper.endIndex {
+            let end = upper.index(idx, offsetBy: 8, limitedBy: upper.endIndex) ?? upper.endIndex
+            chunks.append(String(upper[idx..<end]))
+            idx = end
+        }
+        return chunks.prefix(4).joined(separator: " · ")
     }
 }

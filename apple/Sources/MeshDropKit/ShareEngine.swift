@@ -724,7 +724,7 @@ public final class ShareEngine: ObservableObject {
     // MARK: - 平台默认信息
 
     private static func defaultDisplayName() -> String {
-        #if os(iOS) || os(tvOS)
+        #if os(iOS) || os(tvOS) || os(visionOS)
         return UIDeviceWrapper.name
         #elseif os(macOS)
         return Host.current().localizedName ?? "Mac"
@@ -741,7 +741,7 @@ public final class ShareEngine: ObservableObject {
         var buf = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.model", &buf, &size, nil, 0)
         return String(cString: buf)
-        #elseif os(iOS)
+        #elseif os(iOS) || os(tvOS) || os(visionOS)
         var sys = utsname()
         uname(&sys)
         return withUnsafePointer(to: &sys.machine) {
@@ -755,7 +755,7 @@ public final class ShareEngine: ObservableObject {
     }
 }
 
-#if os(iOS) || os(tvOS)
+#if os(iOS) || os(tvOS) || os(visionOS)
 import UIKit
 private enum UIDeviceWrapper {
     static var name: String { UIDevice.current.name }

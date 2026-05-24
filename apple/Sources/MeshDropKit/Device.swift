@@ -4,12 +4,14 @@ public enum DeviceOS: String, Codable, Sendable, CaseIterable {
     case ios, android, macos, windows, linux
 
     public static var current: DeviceOS {
-        #if os(iOS)
-        return .ios
-        #elseif os(macOS)
+        #if os(macOS)
         return .macos
+        #elseif os(iOS) || os(tvOS) || os(visionOS) || os(watchOS)
+        // 协议 v1 的 os 枚举只有 ios/android/macos/windows/linux；
+        // tvOS/visionOS/watchOS 暂时统一以 .ios 广告（model 字段携带真实机型）。
+        return .ios
         #else
-        return .linux  // 占位；Apple 端只会跑 iOS/macOS
+        return .linux
         #endif
     }
 }

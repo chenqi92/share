@@ -1,65 +1,86 @@
 import SwiftUI
+import MeshDropKit
 
-/// 配对页：6 字符短码 block + 完整指纹 + "捏合确认" CTA + 对端 PeerOrb 在侧。
+/// 配对页：把短码 + 完整指纹 + "捏合确认" CTA 接到真实 `engine.pendingPairings.first`。
+/// 没有待审请求时显示等待 placeholder。
 struct PairingPage: View {
+    @EnvironmentObject private var engine: ShareEngine
+
+    private var request: PairingRequest? { engine.pendingPairings.first }
+
     var body: some View {
         GeometryReader { geo in
             let canvas = geo.size
             ZStack {
                 MDPassthroughBackground(hue: 156)
 
-                // 对端 PeerOrb（李莉，左上角悬浮）
-                PeerOrb(device: MockData.device("lily"), focused: true)
-                    .position(x: canvas.width * 0.22, y: canvas.height * 0.32)
+                if let request {
+                    let peerMock = LivePeerMapper.mockDevice(from: request.peer, index: 0, total: 1)
+                    PeerOrb(device: peerMock, focused: true)
+                        .position(x: canvas.width * 0.22, y: canvas.height * 0.32)
 
-                // dashed 连线（peer → 中央卡）
-                Path { p in
-                    p.move(to: CGPoint(x: canvas.width * 0.22 + 130, y: canvas.height * 0.32 + 40))
-                    p.addQuadCurve(
-                        to: CGPoint(x: canvas.width * 0.5 - 200, y: canvas.height * 0.5),
-                        control: CGPoint(x: canvas.width * 0.36, y: canvas.height * 0.30))
+                    Path { p in
+                        p.move(to: CGPoint(x: canvas.width * 0.22 + 130, y: canvas.height * 0.32 + 40))
+                        p.addQuadCurve(
+                            to: CGPoint(x: canvas.width * 0.5 - 200, y: canvas.height * 0.5),
+                            control: CGPoint(x: canvas.width * 0.36, y: canvas.height * 0.30))
+                    }
+                    .stroke(MD.lime.opacity(0.55),
+                            style: StrokeStyle(lineWidth: 1.2, lineCap: .round, dash: [4, 5]))
+
+                    pairingCard(for: request)
+                        .position(x: canvas.width * 0.58, y: canvas.height * 0.50)
+                } else {
+                    waitingPlaceholder
+                        .position(x: canvas.width * 0.5, y: canvas.height * 0.5)
                 }
-                .stroke(MD.lime.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 1.2, lineCap: .round, dash: [4, 5]))
 
-                // 中央配对卡片
-                pairingCard
-                    .position(x: canvas.width * 0.58, y: canvas.height * 0.50)
-
-                // 顶部 status ornament
                 StatusOrnament()
                     .position(x: canvas.width / 2, y: 44)
-                // 底 tab
                 TabOrnamentStatic(current: .pairing)
                     .position(x: canvas.width / 2, y: canvas.height - 50)
             }
         }
     }
 
-    private var pairingCard: some View {
+    private var waitingPlaceholder: some View {
+        GlassCard(corner: 28) {
+            VStack(spacing: 10) {
+                Text("没有待审的配对")
+                    .font(MDFont.heroSmall).foregroundStyle(MD.dpaper)
+                Text("WAITING · 让对方先尝试发送给你")
+                    .font(MDFont.microHi).tracking(1.6)
+                    .foregroundStyle(MD.dpaper.opacity(0.55))
+            }
+            .padding(40)
+            .frame(width: 440, height: 220)
+        }
+    }
+
+    private func pairingCard(for req: PairingRequest) -> some View {
         GlassCard(corner: 32) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
                     Chip(text: "FIRST PAIRING · 首次配对",
                          tone: .lime, mono: true, leadingDot: MD.limeDeep)
                     Spacer()
-                    Text("WAITING · 等待对端确认")
+                    Text("WAITING · 等你确认")
                         .font(MDFont.microHi).tracking(1.6)
                         .foregroundStyle(MD.dpaper.opacity(0.55))
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("和李莉的 MacBook")
+                    Text("和 \(req.peer.name)")
                         .font(MDFont.heroSmall)
                         .foregroundStyle(MD.dpaper)
-                    Text("对一下这串字符,确认是同一台.")
+                    Text("对一下这串字符，确认是同一台。")
                         .font(MDFont.body)
                         .foregroundStyle(MD.dpaper.opacity(0.6))
                 }
 
-                // 6 字符短码（大字号 block）
+                // 短码 = 真指纹前 6 hex 按 2 字符分 3 组
                 HStack(spacing: 12) {
-                    ForEach(splitShortCode(MockData.pairing.shortCode), id: \.self) { chunk in
+                    ForEach(shortCodeChunks(req.peer.fingerprint), id: \.self) { chunk in
                         Text(chunk)
                             .font(.system(size: 34, weight: .heavy, design: .monospaced))
                             .tracking(2)
@@ -80,7 +101,7 @@ struct PairingPage: View {
                 ASCIIDivider(label: "Fingerprint · 完整指纹 · ED25519")
 
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(splitFingerprint(MockData.pairing.fingerprintFull), id: \.self) { row in
+                    ForEach(fingerprintRows(req.peer.humanFingerprint), id: \.self) { row in
                         Text(row)
                             .font(.system(size: 15, weight: .semibold, design: .monospaced))
                             .tracking(1.4)
@@ -94,16 +115,27 @@ struct PairingPage: View {
                         .strokeBorder(Color.white.opacity(0.14), lineWidth: 0.6)
                 )
 
-                // 双 CTA
                 HStack(spacing: 12) {
-                    pairingCTA(title: "不,这台不对",
-                               subtitle: "REJECT", accent: false)
-                    pairingCTA(title: "✥ 捏合确认 · 是同一台",
-                               subtitle: "PINCH · CONFIRM",
-                               accent: true)
+                    Button {
+                        engine.respondToPairing(req.id, decision: .reject)
+                    } label: {
+                        pairingCTA(title: "不，这台不对",
+                                   subtitle: "REJECT", accent: false)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        engine.respondToPairing(req.id, decision: .trust)
+                    } label: {
+                        pairingCTA(title: "✥ 捏合确认 · 是同一台",
+                                   subtitle: "PINCH · CONFIRM",
+                                   accent: true)
+                    }
+                    .buttonStyle(.plain)
+                    .hoverEffect(.lift)
                 }
 
-                Text("一旦确认,这台设备会被记住;以后互发不再弹此卡片.")
+                Text("一旦确认，这台设备会被记住；以后互发不再弹此卡片。")
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.45))
             }
@@ -131,14 +163,23 @@ struct PairingPage: View {
         )
     }
 
-    /// 把 "QX-7M-93" 拆成 ["QX", "7M", "93"]
-    private func splitShortCode(_ code: String) -> [String] {
-        code.split(separator: "-").map(String.init)
+    /// 从 32 hex 指纹取前 6 个字符，分成 3 组 2 字符。
+    private func shortCodeChunks(_ fp: String) -> [String] {
+        let upper = fp.uppercased()
+        let prefix = String(upper.prefix(6))
+        var chunks: [String] = []
+        var idx = prefix.startIndex
+        while idx < prefix.endIndex {
+            let end = prefix.index(idx, offsetBy: 2, limitedBy: prefix.endIndex) ?? prefix.endIndex
+            chunks.append(String(prefix[idx..<end]))
+            idx = end
+        }
+        return chunks
     }
 
-    /// 把完整指纹按 4 组 / 行显示。
-    private func splitFingerprint(_ fp: String) -> [String] {
-        let groups = fp.components(separatedBy: " · ")
+    /// 人眼指纹（8 组 4 hex 空格分隔）按每行 4 组拆。
+    private func fingerprintRows(_ human: String) -> [String] {
+        let groups = human.split(separator: " ").map(String.init)
         var rows: [String] = []
         var buf: [String] = []
         for g in groups {

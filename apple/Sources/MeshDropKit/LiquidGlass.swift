@@ -18,8 +18,10 @@ import SwiftUI
 public extension View {
     @ViewBuilder
     func liquidGlass<S: Shape>(in shape: S) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, visionOS 26.0, *) {
+        // visionOS SDK 把 `.glassEffect` 标为 unavailable，需要在编译期就排除，
+        // 不能仅靠 `@available` 运行期门。其余平台仍按 26.0 可用性回退。
+        #if compiler(>=6.2) && !os(visionOS)
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
         } else {
             self.background(.ultraThinMaterial, in: shape)
@@ -29,12 +31,12 @@ public extension View {
         #endif
     }
 
-    /// 容器版本：让一组子视图作为 Liquid Glass 元素协同变形。iOS/macOS 26+ 用
-    /// `GlassEffectContainer`，旧版退化为普通 ZStack。
+    /// 容器版本：让一组子视图作为 Liquid Glass 元素协同变形。iOS/macOS/tvOS 26+
+    /// 用 `GlassEffectContainer`，visionOS / 旧版退化为普通 ZStack。
     @ViewBuilder
     func liquidGlassContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, visionOS 26.0, *) {
+        #if compiler(>=6.2) && !os(visionOS)
+        if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
             GlassEffectContainer { content() }
         } else {
             ZStack { content() }

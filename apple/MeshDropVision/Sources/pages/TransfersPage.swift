@@ -1,34 +1,49 @@
 import SwiftUI
+import MeshDropKit
 
-/// 进行中传输：3 个文件分别从 self / Kun 飞向不同 peer。
-/// 中央同时显示一个简洁的"任务列表"玻璃面板（与传统列表风不同 — 是 spatial-friendly 的紧凑式）。
+/// 进行中传输：飞行轨迹根据真实 outgoing/incoming history 实时绘制；
+/// 中央"飞行中"任务面板显示每个 transfer 的真实 byte 进度。
 struct TransfersPage: View {
+    @EnvironmentObject private var engine: ShareEngine
+
+    private var livePeers: [MockDevice] {
+        LivePeerMapper.map(engine.devices)
+    }
+
+    private var inFlight: [MockData.InFlightTransfer] {
+        LiveTransferMapper.inFlight(from: engine.history,
+                                    selfName: engine.displayName)
+    }
+
+    private var outBps: UInt64 { 0 } // 协议暂不暴露速率，留 placeholder
+    private var inBps:  UInt64 { 0 }
 
     var body: some View {
         GeometryReader { geo in
             let canvas = geo.size
-            let selfPos   = CGPoint(x: canvas.width * 0.5, y: canvas.height * 0.5)
-            let mxPos     = peerScreenPos(for: MockData.device("mengxi"), canvas: canvas)
-            let jwPos     = peerScreenPos(for: MockData.device("jiawei"), canvas: canvas)
-            let kunPos    = peerScreenPos(for: MockData.device("kun"),    canvas: canvas)
-
+            let selfPos = CGPoint(x: canvas.width * 0.5, y: canvas.height * 0.5)
             ZStack {
                 MDPassthroughBackground(hue: 12)
 
-                // 5 个 peer 静态浮岛
-                ForEach(MockData.devices) { dev in
+                // 静态浮岛：真实 peer
+                ForEach(livePeers) { dev in
                     PeerOrb(device: dev)
                         .position(peerScreenPos(for: dev, canvas: canvas))
                         .zIndex(zIndex(for: dev))
                 }
 
-                // 3 条飞行轨迹（与 MockData.inFlight 对齐）
-                FlyingPayload(from: selfPos, to: mxPos,  color: MD.flame, staticPreview: true)
-                    .zIndex(15)
-                FlyingPayload(from: selfPos, to: jwPos,  color: MD.flame, staticPreview: true)
-                    .zIndex(15)
-                FlyingPayload(from: kunPos,  to: selfPos, color: MD.sky,  staticPreview: true)
-                    .zIndex(15)
+                // 真实飞行轨迹：根据 transfer.peer + direction 决定起终点
+                ForEach(inFlight) { tr in
+                    if let trailEndpoints = endpoints(for: tr, selfPos: selfPos, canvas: canvas) {
+                        FlyingPayload(
+                            from: trailEndpoints.from,
+                            to:   trailEndpoints.to,
+                            color: tr.direction == .outgoing ? MD.flame : MD.sky,
+                            staticPreview: false
+                        )
+                        .zIndex(15)
+                    }
+                }
 
                 // 中央"飞行中"任务面板
                 inFlightPanel
@@ -44,6 +59,25 @@ struct TransfersPage: View {
                     .position(x: canvas.width / 2, y: canvas.height - 50)
                     .zIndex(50)
             }
+        }
+    }
+
+    private func endpoints(for tr: MockData.InFlightTransfer,
+                           selfPos: CGPoint,
+                           canvas: CGSize) -> (from: CGPoint, to: CGPoint)? {
+        let peerId: String
+        switch tr.direction {
+        case .outgoing: peerId = tr.toId
+        case .incoming: peerId = tr.fromId
+        }
+        guard let peer = livePeers.first(where: { $0.id == peerId }) else {
+            return nil
+        }
+        let peerPos = peerScreenPos(for: peer, canvas: canvas)
+        if tr.direction == .outgoing {
+            return (from: selfPos, to: peerPos)
+        } else {
+            return (from: peerPos, to: selfPos)
         }
     }
 
@@ -63,20 +97,21 @@ struct TransfersPage: View {
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(MD.dpaper)
                     Spacer()
-                    Chip(text: "● 3 ACTIVE", tone: .flame, mono: true)
-                    Chip(text: "↑ 11.5 MB/s", tone: .outline, mono: true)
-                    Chip(text: "↓ 11.7 MB/s", tone: .outline, mono: true)
+                    Chip(text: "● \(inFlight.count) ACTIVE",
+                         tone: inFlight.isEmpty ? .outline : .flame, mono: true)
                 }
 
-                ASCIIDivider(label: "OUTGOING · 上行 · 我 → 朋友")
-
-                ForEach(MockData.inFlight) { tr in
-                    transferRow(tr)
+                if inFlight.isEmpty {
+                    emptyState
+                } else {
+                    ASCIIDivider(label: "ACTIVE · 进行中")
+                    ForEach(inFlight) { tr in
+                        transferRow(tr)
+                    }
+                    Text("看向轨迹任意一段 · 捏合可暂停 / 取消")
+                        .font(MDFont.micro).mdMonoTracking()
+                        .foregroundStyle(MD.dpaper.opacity(0.45))
                 }
-
-                Text("看向轨迹任意一段 · 捏合可暂停 / 取消")
-                    .font(MDFont.micro).mdMonoTracking()
-                    .foregroundStyle(MD.dpaper.opacity(0.45))
             }
             .padding(.horizontal, 26)
             .padding(.vertical, 22)
@@ -85,12 +120,24 @@ struct TransfersPage: View {
         .shadow(color: .black.opacity(0.5), radius: 36, x: 0, y: 22)
     }
 
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Spacer()
+            Text("没有进行中的传输")
+                .font(MDFont.cardTitle).foregroundStyle(MD.dpaper)
+            Text("EMPTY · 在附近页面 pinch 一台设备试试")
+                .font(MDFont.microHi).tracking(1.6)
+                .foregroundStyle(MD.dpaper.opacity(0.6))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder
     private func transferRow(_ tr: MockData.InFlightTransfer) -> some View {
         let isOut = (tr.direction == .outgoing)
         let stateColor: Color = isOut ? MD.flame : MD.sky
         HStack(spacing: 14) {
-            // 文件 icon
             fileIcon(ext: tr.ext, accent: stateColor)
                 .frame(width: 38, height: 46)
 
@@ -105,7 +152,6 @@ struct TransfersPage: View {
                         .foregroundStyle(stateColor)
                 }
 
-                // progress bar
                 GeometryReader { g in
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.white.opacity(0.08))
@@ -122,12 +168,6 @@ struct TransfersPage: View {
                     Text("\(Int(tr.progress * 100))%")
                         .font(MDFont.microHi).mdMonoTracking()
                         .foregroundStyle(stateColor)
-                    Text(tr.speed)
-                        .font(MDFont.micro).mdMonoTracking()
-                        .foregroundStyle(MD.dpaper.opacity(0.6))
-                    Text("ETA \(tr.eta)")
-                        .font(MDFont.micro).mdMonoTracking()
-                        .foregroundStyle(MD.dpaper.opacity(0.6))
                     Spacer()
                     Chip(text: isOut ? "SENDING" : "RECEIVING",
                          tone: isOut ? .flame : .sky, mono: true)
@@ -138,7 +178,10 @@ struct TransfersPage: View {
 
     private func peerName(for id: String) -> String {
         if id == "me" { return "我" }
-        return MockData.device(id).who
+        if let p = livePeers.first(where: { $0.id == id }) {
+            return p.who
+        }
+        return String(id.prefix(8))
     }
 
     private func fileIcon(ext: String, accent: Color) -> some View {
@@ -155,7 +198,7 @@ struct TransfersPage: View {
                 p.closeSubpath()
             }
             .fill(Color.black.opacity(0.08))
-            Text(ext.uppercased())
+            Text(String(ext.uppercased().prefix(4)))
                 .font(.system(size: 9, weight: .heavy, design: .monospaced))
                 .foregroundStyle(accent)
                 .padding(.leading, 5)
