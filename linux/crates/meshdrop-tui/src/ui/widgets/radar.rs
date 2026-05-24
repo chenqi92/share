@@ -1,7 +1,10 @@
-//! 雷达 widget。两个变体并存：
-//!   sweep — 扫描臂 4.5s/圈 + 同心圆 + 罗盘 NESW
-//!   pulse — 设备点呼吸 halo（2.6s 周期）
-//! 字符 fallback：unicode 模式用 braille / dot marker，ascii 模式用 Dot。
+//! 雷达 widget。4 个变体（PROMPT §7.9）：
+//!   sweep — 扫描臂 4.5s/圈 + 同心圆 + 罗盘 NESW（默认）
+//!   pulse — 设备点呼吸 halo（2.6s 周期），不画扫描臂
+//!   grid  — 圆形点阵铺底
+//!   orbit — 设备点沿轨道缓慢公转
+//!
+//! 字符 fallback：unicode 模式用 braille marker，ascii 模式用 dot marker。
 
 use crate::mock::Device;
 use crate::ui::theme::{CharTier, Theme};
@@ -15,6 +18,34 @@ use ratatui::Frame;
 use std::f64::consts::PI;
 use std::time::Instant;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Variant {
+    Sweep,
+    Pulse,
+    Grid,
+    Orbit,
+}
+
+impl Variant {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "sweep" => Some(Variant::Sweep),
+            "pulse" => Some(Variant::Pulse),
+            "grid" => Some(Variant::Grid),
+            "orbit" => Some(Variant::Orbit),
+            _ => None,
+        }
+    }
+    pub fn label(self) -> &'static str {
+        match self {
+            Variant::Sweep => "SWEEP",
+            Variant::Pulse => "PULSE",
+            Variant::Grid => "GRID",
+            Variant::Orbit => "ORBIT",
+        }
+    }
+}
+
 pub fn render(
     f: &mut Frame,
     area: Rect,
@@ -22,6 +53,7 @@ pub fn render(
     devices: &[Device],
     selected_idx: Option<usize>,
     start: Instant,
+    variant: Variant,
 ) {
     let block = Block::default()
         .borders(Borders::ALL)
@@ -29,9 +61,22 @@ pub fn render(
         .border_style(Style::default().fg(theme.line()))
         .title(Line::from(vec![
             Span::raw(" "),
-            Span::styled("RADAR", Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {}  雷达 ", theme.small_dot()), Style::default().fg(theme.muted())),
-            Span::styled(format!("[{}]", theme.label_color_tier()), Style::default().fg(theme.muted())),
+            Span::styled(
+                "RADAR",
+                Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("  {}  雷达 ", theme.small_dot()),
+                Style::default().fg(theme.muted()),
+            ),
+            Span::styled(
+                format!("[{}]", variant.label()),
+                Style::default().fg(theme.lime()).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                format!("  {}  {}", theme.small_dot(), theme.label_color_tier()),
+                Style::default().fg(theme.muted()),
+            ),
             Span::raw(" "),
         ]));
 
@@ -50,6 +95,7 @@ pub fn render(
     let sweep_period = 4.5_f64;
     let sweep_angle = (elapsed % sweep_period) / sweep_period * 2.0 * PI;
     let pulse_period = 2.6_f64;
+    let orbit_period = 60.0_f64; // 60s 一圈，慢
 
     let devs: Vec<Device> = devices.to_vec();
     let selected = selected_idx;
@@ -63,20 +109,52 @@ pub fn render(
             paint_compass(ctx, muted);
             paint_rings(ctx, muted);
             paint_crosshair(ctx, muted);
-            paint_sweep(ctx, sweep_angle, lime);
+
+            match variant {
+                Variant::Sweep => paint_sweep(ctx, sweep_angle, lime),
+                Variant::Pulse => {}
+                Variant::Grid => paint_grid(ctx, muted),
+                Variant::Orbit => {}
+            }
+
             paint_center(ctx, ink, lime_deep);
 
             for (i, d) in devs.iter().enumerate() {
                 let r = (d.dist as f64).clamp(0.0, 1.0) * 80.0;
-                let theta = (d.angle as f64).to_radians();
+                let base_theta = (d.angle as f64).to_radians();
+                let theta = if variant == Variant::Orbit {
+                    base_theta + (elapsed / orbit_period) * 2.0 * PI
+                } else {
+                    base_theta
+                };
                 let x = r * theta.cos();
                 let y = r * theta.sin();
                 let is_sel = selected == Some(i);
 
-                // 呼吸 halo
+                // halo 呼吸（pulse 变体放大；sweep/grid 适中；orbit 也保留一圈）
                 let phase = ((elapsed + (i as f64) * 0.3) % pulse_period) / pulse_period;
-                let halo_r = 6.0 + 6.0 * (1.0 - phase);
+                let halo_base = match variant {
+                    Variant::Pulse => 10.0,
+                    Variant::Grid => 7.0,
+                    Variant::Orbit => 6.0,
+                    Variant::Sweep => 6.0,
+                };
+                let halo_swing = match variant {
+                    Variant::Pulse => 10.0,
+                    _ => 6.0,
+                };
+                let halo_r = halo_base + halo_swing * (1.0 - phase);
                 paint_circle(ctx, x, y, halo_r, if is_sel { flame } else { lime });
+                if variant == Variant::Pulse {
+                    // 第二圈外环让脉冲更明显
+                    paint_circle(
+                        ctx,
+                        x,
+                        y,
+                        halo_r + 4.0 * (1.0 - phase),
+                        if is_sel { flame } else { lime_deep },
+                    );
+                }
 
                 // 中心 dot
                 ctx.draw(&ratatui::widgets::canvas::Points {
@@ -84,12 +162,10 @@ pub fn render(
                     color: if is_sel { flame } else { lime },
                 });
 
-                // selected 时画从中心到 dot 的 dashed line
                 if is_sel {
                     paint_dashed(ctx, 0.0, 0.0, x, y, flame);
                 }
 
-                // label
                 ctx.print(
                     x + 6.0,
                     y,
@@ -112,6 +188,8 @@ pub fn render(
     f.render_widget(canvas, area);
 }
 
+// ── 装饰 ─────────────────────────────────────────────────────────
+
 fn paint_compass(ctx: &mut Context, c: Color) {
     let s = Style::default().fg(c).add_modifier(Modifier::BOLD);
     ctx.print(-3.0,  92.0, Span::styled("N", s));
@@ -127,7 +205,6 @@ fn paint_rings(ctx: &mut Context, c: Color) {
 }
 
 fn paint_crosshair(ctx: &mut Context, c: Color) {
-    // 中心轻十字（不画到边缘，避免与圆环视觉冲突）
     let n = 60;
     for i in 0..n {
         let t = (i as f64 / n as f64) * 2.0 - 1.0;
@@ -138,15 +215,12 @@ fn paint_crosshair(ctx: &mut Context, c: Color) {
 }
 
 fn paint_sweep(ctx: &mut Context, angle: f64, c: Color) {
-    // 扫描臂：3 段不同亮度的射线模拟"渐变拖尾"
     for k in 0..40 {
         let r = (k as f64 / 40.0) * 80.0;
-        let a = angle;
-        let x = r * a.cos();
-        let y = r * a.sin();
+        let x = r * angle.cos();
+        let y = r * angle.sin();
         ctx.draw(&ratatui::widgets::canvas::Points { coords: &[(x, y)], color: c });
     }
-    // 拖尾：稍微偏后的两条短线
     for offset in [0.08_f64, 0.16_f64] {
         let a = angle - offset;
         for k in 0..28 {
@@ -158,8 +232,26 @@ fn paint_sweep(ctx: &mut Context, angle: f64, c: Color) {
     }
 }
 
+/// Grid 变体：在圆形雷达盘内铺点阵，每 8 单位一个。
+fn paint_grid(ctx: &mut Context, c: Color) {
+    let step: f64 = 8.0;
+    let mut x: f64 = -80.0;
+    while x <= 80.0 {
+        let mut y: f64 = -80.0;
+        while y <= 80.0 {
+            if (x * x + y * y).sqrt() <= 80.0 {
+                ctx.draw(&ratatui::widgets::canvas::Points {
+                    coords: &[(x, y)],
+                    color: c,
+                });
+            }
+            y += step;
+        }
+        x += step;
+    }
+}
+
 fn paint_center(ctx: &mut Context, ink: Color, accent: Color) {
-    // 中心 6×6 实心块 + YOU 字样
     for dx in -5..=5 {
         for dy in -3..=3 {
             ctx.draw(&ratatui::widgets::canvas::Points {

@@ -6,3 +6,4 @@ pub mod status_bar;
 pub mod ascii_divider;
 pub mod transfer_row;
 pub mod meshdrop_logo;
+pub mod settings_page;

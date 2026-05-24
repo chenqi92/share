@@ -21,6 +21,7 @@ mod app;
 mod cli;
 mod input;
 mod mock;
+mod settings;
 mod ui;
 
 #[tokio::main]
@@ -32,11 +33,14 @@ async fn main() -> Result<()> {
     let parsed = cli::Cli::parse();
     match parsed.command {
         Some(cmd) => cli::run(cmd),
-        None => run_tui().await,
+        None => {
+            let demo = parsed.demo.as_deref().and_then(cli::parse_demo);
+            run_tui(demo).await
+        }
     }
 }
 
-async fn run_tui() -> Result<()> {
+async fn run_tui(demo: Option<app::DemoScene>) -> Result<()> {
     // ── 终端进入 ───────────────────────────────────────────────
     enable_raw_mode()?;
     let mut out = stdout();
@@ -64,7 +68,7 @@ async fn run_tui() -> Result<()> {
         }
     });
 
-    let result = app::run(&mut terminal, key_rx).await;
+    let result = app::run(&mut terminal, key_rx, demo).await;
 
     // ── 终端恢复 ───────────────────────────────────────────────
     let _ = disable_raw_mode();

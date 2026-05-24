@@ -24,6 +24,7 @@ pub enum Page {
     Discovery,
     Transfers,
     History,
+    Settings,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -108,6 +109,7 @@ fn translate_normal(key: KeyEvent) -> Action {
         KeyCode::F(1) => Action::SwitchPage(Page::Discovery),
         KeyCode::F(2) => Action::SwitchPage(Page::Transfers),
         KeyCode::F(3) => Action::SwitchPage(Page::History),
+        KeyCode::F(4) => Action::SwitchPage(Page::Settings),
         KeyCode::Enter | KeyCode::Char('i') => Action::EnterInputText,
         KeyCode::Char(':') => Action::EnterCommand,
         KeyCode::Char('/') => Action::EnterSearch,

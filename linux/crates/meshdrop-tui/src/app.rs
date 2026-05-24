@@ -14,16 +14,30 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::input::{translate, Action, Focus, Mode, Page};
 use crate::mock;
+use crate::settings::{SetResult, Settings};
 use crate::ui::modals::{self, file_offer, pairing as pairing_modal, send};
 use crate::ui::theme::Theme;
 use crate::ui::widgets::{
-    ascii_divider, chip, device_list, history as history_widget, radar, status_bar, transfer_row,
+    ascii_divider, chip, device_list, history as history_widget, radar, settings_page, status_bar,
+    transfer_row,
 };
 use crate::ui::{help, widgets::meshdrop_logo};
+
+/// 启动场景（--demo 给截图用）
+#[derive(Clone, Debug, Default)]
+pub struct DemoScene {
+    pub page: Option<Page>,
+    pub mode: Option<Mode>,
+    pub input: Option<String>,
+    pub show_pairing: bool,
+    pub show_offer: bool,
+    pub radar: Option<crate::ui::widgets::radar::Variant>,
+}
 
 pub struct App {
     pub theme: Theme,
     pub me: mock::SelfCard,
+    pub settings: Settings,
 
     pub devices: Vec<mock::Device>,
     pub history: Vec<mock::HistoryItem>,
@@ -56,6 +70,8 @@ impl App {
         let history = mock::history();
         let transfers = mock::transfers();
         let clip = mock::clipboard();
+        let mut settings = Settings::default();
+        settings.display_name = me.name.clone();
 
         let mut device_state = ListState::default();
         device_state.select(Some(0));
@@ -65,6 +81,7 @@ impl App {
         Self {
             theme,
             me,
+            settings,
             devices,
             history,
             transfers,
@@ -81,6 +98,47 @@ impl App {
             status: String::new(),
             start: Instant::now(),
             quit: false,
+        }
+    }
+
+    pub fn apply_demo(&mut self, scene: DemoScene) {
+        if let Some(p) = scene.page {
+            self.page = p;
+            self.focus = match p {
+                Page::Discovery => Focus::Devices,
+                Page::Transfers => Focus::Transfers,
+                Page::History => Focus::History,
+                Page::Settings => Focus::Devices,
+            };
+        }
+        if let Some(r) = scene.radar {
+            self.settings.radar = r;
+        }
+        if scene.show_pairing {
+            self.pending_pairing = Some(mock::pending_pairing());
+            self.mode = Mode::Pairing;
+        }
+        if scene.show_offer {
+            self.pending_offer = Some(mock::pending_offer());
+            self.mode = Mode::FileOffer;
+        }
+        if let Some(m) = scene.mode {
+            // Pairing/FileOffer 已被上面设置；这里只在 normal/input/cmd/search/help 时覆盖
+            if !matches!(m, Mode::Pairing | Mode::FileOffer) {
+                self.mode = m;
+            }
+        }
+        if let Some(s) = scene.input {
+            match self.mode {
+                Mode::Search => {
+                    self.input = s.clone();
+                    self.filter = s;
+                }
+                Mode::InputText | Mode::Command => {
+                    self.input = s;
+                }
+                _ => {}
+            }
         }
     }
 
@@ -203,9 +261,21 @@ impl App {
                     self.status = "没有选中设备".into();
                 }
             }
-            ["set", kv] => {
-                self.status = format!("（mock）配置变更：{}", kv);
-            }
+            ["set", kv] => match self.settings.apply(kv) {
+                SetResult::Ok { key, value } => {
+                    if key == "displayName" {
+                        self.me.name = value.clone();
+                    }
+                    self.status = format!("set {} = {}", key, value);
+                }
+                SetResult::UnknownKey(k) => self.status = format!("未知设置项：{}", k),
+                SetResult::BadValue { key, value } => {
+                    self.status = format!("非法值：{}={}", key, value);
+                }
+                SetResult::Syntax => {
+                    self.status = "语法：:set key=value（如 :set radar=pulse）".into();
+                }
+            },
             _ => self.status = format!("未知命令：{}", cmd),
         }
     }
@@ -230,8 +300,12 @@ fn ext_of(name: &str) -> &str {
 pub async fn run<B: ratatui::backend::Backend>(
     terminal: &mut Terminal<B>,
     mut key_rx: UnboundedReceiver<KeyEvent>,
+    demo: Option<DemoScene>,
 ) -> Result<()> {
     let mut app = App::new();
+    if let Some(scene) = demo {
+        app.apply_demo(scene);
+    }
     let tick = Duration::from_millis(120);
 
     loop {
@@ -267,6 +341,7 @@ fn apply(app: &mut App, action: Action) {
                 Page::Discovery => Focus::Devices,
                 Page::Transfers => Focus::Transfers,
                 Page::History => Focus::History,
+                Page::Settings => Focus::Devices,
             };
         }
         Action::EnterInputText => {
@@ -447,6 +522,7 @@ fn render_tabs(f: &mut Frame, area: Rect, app: &App) {
         (Page::Discovery, "F1", "DISCOVERY · 发现"),
         (Page::Transfers, "F2", "TRANSFERS · 传输"),
         (Page::History,   "F3", "HISTORY · 历史"),
+        (Page::Settings,  "F4", "SETTINGS · 设置"),
     ] {
         let active = page == app.page;
         let chip_text = format!("{} {}", key, label);
@@ -468,6 +544,7 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
         Page::Discovery => render_discovery(f, area, app),
         Page::Transfers => render_transfers(f, area, app),
         Page::History => render_history_page(f, area, app),
+        Page::Settings => settings_page::render(f, area, &app.theme, &app.me, &app.settings),
     }
 }
 
@@ -522,6 +599,7 @@ fn render_discovery(f: &mut Frame, area: Rect, app: &mut App) {
         &radar_devices,
         sel_idx,
         app.start,
+        app.settings.radar,
     );
 
     render_info_panel(f, bot[1], app);

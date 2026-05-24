@@ -23,6 +23,14 @@ use crate::mock;
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Cmd>,
+
+    /// 启动到指定 demo 场景（截图用 · 不与子命令同用）。
+    /// 取值：discovery / transfers / history / settings /
+    ///       pairing / offer / help /
+    ///       search:<text> / command:<text> /
+    ///       radar:sweep|pulse|grid|orbit
+    #[arg(long, value_name = "SCENE", global = false)]
+    pub demo: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -80,6 +88,54 @@ pub fn run(cmd: Cmd) -> Result<()> {
         Cmd::SendFile(a) => send_file(a),
         Cmd::Daemon(a) => daemon(a),
     }
+}
+
+/// 解析 --demo SCENE 字符串成 DemoScene；不识别的返回 None。
+pub fn parse_demo(spec: &str) -> Option<crate::app::DemoScene> {
+    use crate::app::DemoScene;
+    use crate::input::{Mode, Page};
+    use crate::ui::widgets::radar::Variant;
+
+    let mut scene = DemoScene::default();
+    let lower = spec.trim().to_ascii_lowercase();
+    let (head, tail) = match lower.split_once(':') {
+        Some((h, t)) => (h.trim(), Some(t.trim().to_string())),
+        None => (lower.as_str(), None),
+    };
+    match head {
+        "discovery" | "main" => scene.page = Some(Page::Discovery),
+        "transfers" | "transfer" => scene.page = Some(Page::Transfers),
+        "history" => scene.page = Some(Page::History),
+        "settings" | "set" => scene.page = Some(Page::Settings),
+        "pairing" | "pair" => {
+            scene.page = Some(Page::Discovery);
+            scene.show_pairing = true;
+        }
+        "offer" | "fileoffer" | "file-offer" => {
+            scene.page = Some(Page::Discovery);
+            scene.show_offer = true;
+        }
+        "help" => {
+            scene.page = Some(Page::Discovery);
+            scene.mode = Some(Mode::Help);
+        }
+        "search" => {
+            scene.page = Some(Page::Discovery);
+            scene.mode = Some(Mode::Search);
+            scene.input = tail.clone().or_else(|| Some("孟".into()));
+        }
+        "command" | "cmd" => {
+            scene.page = Some(Page::Discovery);
+            scene.mode = Some(Mode::Command);
+            scene.input = tail.clone().or_else(|| Some("f /tmp/demo.zip".into()));
+        }
+        "radar" => {
+            scene.page = Some(Page::Discovery);
+            scene.radar = tail.as_deref().and_then(Variant::parse).or(Some(Variant::Pulse));
+        }
+        _ => return None,
+    }
+    Some(scene)
 }
 
 // ── list-devices ────────────────────────────────────────────────────
