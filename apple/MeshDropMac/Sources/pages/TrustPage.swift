@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct TrustPage: View {
+    @EnvironmentObject var state: AppState
+
     var body: some View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
@@ -21,24 +23,36 @@ struct TrustPage: View {
                     .font(MeshDropFont.body(size: 12))
                     .foregroundStyle(MeshDropColor.textSecondary)
 
-                AsciiDivider(text: "PAIRED · 已配对 · 6 台")
+                AsciiDivider(text: "PAIRED · 已配对 · \(state.engineTrusted.count) 台")
 
-                tableHeader
+                if state.engineTrusted.isEmpty {
+                    Text("还没有已配对的设备。和别人互发第一份内容会触发配对。")
+                        .font(MeshDropFont.body(size: 12))
+                        .foregroundStyle(MeshDropColor.textMuted)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(MeshDropColor.cardBg)
+                        )
+                } else {
+                    tableHeader
 
-                VStack(spacing: 0) {
-                    ForEach(Array(MockTrustedDevice.all.enumerated()), id: \.element.id) { i, t in
-                        row(t)
-                        if i < MockTrustedDevice.all.count - 1 {
-                            Rectangle()
-                                .fill(MeshDropColor.divider)
-                                .frame(height: 1)
+                    VStack(spacing: 0) {
+                        ForEach(Array(state.engineTrusted.enumerated()), id: \.element.id) { i, t in
+                            row(t)
+                            if i < state.engineTrusted.count - 1 {
+                                Rectangle()
+                                    .fill(MeshDropColor.divider)
+                                    .frame(height: 1)
+                            }
                         }
                     }
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(MeshDropColor.cardBg)
+                    )
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(MeshDropColor.cardBg)
-                )
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 22)
@@ -107,16 +121,19 @@ struct TrustPage: View {
             }
             .frame(width: 110, alignment: .leading)
 
-            Text("撤销 · Revoke")
-                .font(MeshDropFont.body(size: 11, weight: .semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(MeshDropColor.error, lineWidth: 1)
-                )
-                .foregroundStyle(MeshDropColor.error)
-                .frame(width: 100, alignment: .trailing)
+            Button { state.revokeTrust(fingerprint: t.id) } label: {
+                Text("撤销 · Revoke")
+                    .font(MeshDropFont.body(size: 11, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(MeshDropColor.error, lineWidth: 1)
+                    )
+                    .foregroundStyle(MeshDropColor.error)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 100, alignment: .trailing)
         }
         .padding(.vertical, 10)
         .padding(.horizontal, 14)

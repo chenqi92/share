@@ -46,12 +46,23 @@ struct Sidebar: View {
             .padding(.bottom, 14)
 
             // 主导航
-            navItem(.discovery, title: "附近 · Nearby", badge: "5", system: "antenna.radiowaves.left.and.right")
-            navItem(.chat,       title: "对话 · Chat",      badge: "3", system: "bubble.left.and.bubble.right")
-            navItem(.transfers,  title: "传输 · Transfers", badge: "2", system: "arrow.up.arrow.down")
-            navItem(.history,    title: "历史 · History",   badge: "12", system: "clock.arrow.circlepath")
-            navItem(.clipboard,  title: "剪贴板 · Clipboard", badge: "5", system: "doc.on.clipboard")
-            navItem(.trust,      title: "已配对 · Paired",  badge: nil,  system: "person.2.badge.key")
+            let devicesCount = state.engineDevices.count
+            let activeTransfers = state.engineHistory.filter { $0.status == .transferring }.count
+            let pendingBadge = (state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0)
+            navItem(.discovery, title: "附近 · Nearby",
+                    badge: devicesCount > 0 ? "\(devicesCount)" : nil,
+                    system: "antenna.radiowaves.left.and.right")
+            navItem(.chat,       title: "对话 · Chat",      badge: nil, system: "bubble.left.and.bubble.right")
+            navItem(.transfers,  title: "传输 · Transfers",
+                    badge: activeTransfers > 0 ? "\(activeTransfers)" : nil,
+                    system: "arrow.up.arrow.down")
+            navItem(.history,    title: "历史 · History",
+                    badge: state.engineHistory.isEmpty ? nil : "\(state.engineHistory.count)",
+                    system: "clock.arrow.circlepath")
+            navItem(.clipboard,  title: "剪贴板 · Clipboard", badge: nil, system: "doc.on.clipboard")
+            navItem(.trust,      title: "已配对 · Paired",
+                    badge: pendingBadge > 0 ? "\(pendingBadge)" : nil,
+                    system: "person.2.badge.key")
             navItem(.settings,   title: "设置 · Settings",  badge: nil,  system: "gearshape")
 
             // 附近 device cards
@@ -61,7 +72,7 @@ struct Sidebar: View {
                         .font(MeshDropFont.body(size: 11, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textSecondary)
                     Spacer()
-                    Text("5")
+                    Text("\(state.engineDevices.count)")
                         .font(MeshDropFont.mono(size: 10))
                         .foregroundStyle(MeshDropColor.textMuted)
                 }
@@ -69,51 +80,29 @@ struct Sidebar: View {
                 .padding(.top, 14)
                 .padding(.bottom, 6)
 
-                ForEach(MockDevice.all) { dev in
-                    DeviceCard(device: dev, selected: dev.id == state.selectedDeviceID)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 1)
-                        .onTapGesture {
-                            state.selectedDeviceID = dev.id
-                            state.tab = .chat
-                        }
+                if state.engineDevices.isEmpty {
+                    VStack(spacing: 4) {
+                        Text(state.isScanning ? "扫描中 · scanning…" : "附近暂无设备")
+                            .font(MeshDropFont.mono(size: 11))
+                            .foregroundStyle(MeshDropColor.textMuted)
+                        Text("让朋友也打开 MeshDrop 试试")
+                            .font(MeshDropFont.body(size: 11))
+                            .foregroundStyle(MeshDropColor.textMuted)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                } else {
+                    ForEach(state.engineDevices) { dev in
+                        DeviceCard(device: dev, selected: dev.id == state.selectedDeviceID)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 1)
+                            .onTapGesture {
+                                state.selectedDeviceID = dev.id
+                                state.tab = .chat
+                            }
+                    }
                 }
             }
-
-            // 剪贴板同步卡片
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("剪贴板已同步")
-                        .font(MeshDropFont.body(size: 11, weight: .semibold))
-                        .foregroundStyle(MeshDropColor.textSecondary)
-                    Spacer()
-                    Text("⌘V")
-                        .font(MeshDropFont.mono(size: 9, weight: .semibold))
-                        .foregroundStyle(MeshDropColor.textMuted)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(MeshDropColor.divider, lineWidth: 0.5)
-                        )
-                }
-                Text(MockClip.all[0].body)
-                    .font(MeshDropFont.mono(size: 11))
-                    .foregroundStyle(MeshDropColor.textPrimary)
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-                Text("from \(MockClip.all[0].who) · 8s ago")
-                    .font(MeshDropFont.mono(size: 10))
-                    .foregroundStyle(MeshDropColor.textMuted)
-            }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(MeshDropColor.limeFill)
-            )
-            .padding(.horizontal, 12)
-            .padding(.top, 14)
 
             Spacer(minLength: 12)
 
@@ -124,7 +113,7 @@ struct Sidebar: View {
                     Text("\(state.displayName)")
                         .font(MeshDropFont.body(size: 12.5, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text(MockMe.visibility)
+                    Text(state.isScanning ? "扫描中 · scanning LAN" : "可见 · Visible · LAN")
                         .font(MeshDropFont.mono(size: 9.5))
                         .foregroundStyle(MeshDropColor.limeDeep)
                 }

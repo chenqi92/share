@@ -2,6 +2,8 @@ import SwiftUI
 
 /// 常驻菜单栏 dropdown · drop target + Nearby + 6 项快捷操作。
 struct MenuBarDropdown: View {
+    @EnvironmentObject var state: AppState
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -68,17 +70,25 @@ struct MenuBarDropdown: View {
                     .meshTag()
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
-                Text("5")
+                Text("\(state.engineDevices.count)")
                     .font(MeshDropFont.mono(size: 10))
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 4)
 
-            ForEach(MockDevice.all.prefix(4)) { dev in
-                DeviceCard(device: dev, selected: false)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 1)
+            if state.engineDevices.isEmpty {
+                Text(state.isScanning ? "扫描中…" : "附近暂无设备")
+                    .font(MeshDropFont.mono(size: 11))
+                    .foregroundStyle(MeshDropColor.textMuted)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            } else {
+                ForEach(state.engineDevices.prefix(4)) { dev in
+                    DeviceCard(device: dev, selected: false)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 1)
+                }
             }
         }
         .padding(.bottom, 8)
@@ -117,12 +127,12 @@ struct MenuBarDropdown: View {
 
     private var footer: some View {
         HStack {
-            Circle().fill(MeshDropColor.limeDeep).frame(width: 6, height: 6)
-            Text("ONLINE · \(MockMe.ip)")
+            Circle().fill(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep).frame(width: 6, height: 6)
+            Text("\(state.isScanning ? "SCANNING" : "ONLINE") · \(state.localIPSummary)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
             Spacer()
-            Text("FP \(MockMe.fingerprint.prefix(15))…")
+            Text("FP \(state.localFingerprintShort)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
         }

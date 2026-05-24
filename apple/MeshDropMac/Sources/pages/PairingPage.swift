@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct PairingPage: View {
+    @EnvironmentObject var state: AppState
+
     var body: some View {
         PageScroll {
             VStack(spacing: 22) {
@@ -54,61 +56,84 @@ struct PairingPage: View {
                         step(2, "对比两端的 X25519 指纹（4 字符 × 8 组）目视一致")
                         step(3, "双方点 \"允许并记住\"，从此自动信任")
 
-                        AsciiDivider(text: "待审 · PENDING · 1")
+                        AsciiDivider(text: state.enginePairing == nil ? "待审 · PENDING · 0" : "待审 · PENDING · 1")
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
-                                Avatar(initials: "LL", color: Color(hex: 0xFFB4A1), size: 32, ring: true)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(MockPendingPairing.sample.deviceName)
-                                        .font(MeshDropFont.body(size: 13, weight: .semibold))
-                                        .foregroundStyle(MeshDropColor.textPrimary)
-                                    Text("\(MockPendingPairing.sample.peer) · \(MockPendingPairing.sample.receivedAt)")
-                                        .font(MeshDropFont.mono(size: 10))
-                                        .foregroundStyle(MeshDropColor.textMuted)
+                        if let p = state.enginePairing {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    Avatar(initials: String(p.peer.prefix(2)),
+                                           color: Color(hex: 0xFFB4A1), size: 32, ring: true)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(p.deviceName)
+                                            .font(MeshDropFont.body(size: 13, weight: .semibold))
+                                            .foregroundStyle(MeshDropColor.textPrimary)
+                                        Text("\(p.peer) · \(p.receivedAt)")
+                                            .font(MeshDropFont.mono(size: 10))
+                                            .foregroundStyle(MeshDropColor.textMuted)
+                                    }
+                                }
+                                Text("FP \(p.fingerprint)")
+                                    .font(MeshDropFont.mono(size: 11))
+                                    .foregroundStyle(MeshDropColor.textSecondary)
+                                    .padding(10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(MeshDropColor.cardBg2)
+                                    )
+
+                                HStack {
+                                    Spacer()
+                                    Button {
+                                        state.rejectCurrentPairing()
+                                    } label: {
+                                        Text("拒绝")
+                                            .font(MeshDropFont.body(size: 12, weight: .semibold))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 7)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(MeshDropColor.divider, lineWidth: 1)
+                                            )
+                                            .foregroundStyle(MeshDropColor.textSecondary)
+                                    }
+                                    .buttonStyle(.plain)
+                                    Button {
+                                        state.acceptCurrentPairing(trust: true)
+                                    } label: {
+                                        Text("允许并记住")
+                                            .font(MeshDropFont.body(size: 12, weight: .semibold))
+                                            .padding(.horizontal, 14)
+                                            .padding(.vertical, 7)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(MeshDropColor.lime)
+                                            )
+                                            .foregroundStyle(MeshDropColor.ink)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            Text("FP \(MockPendingPairing.sample.fingerprint)")
-                                .font(MeshDropFont.mono(size: 11))
-                                .foregroundStyle(MeshDropColor.textSecondary)
-                                .padding(10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(MeshDropColor.limeFill)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(MeshDropColor.lime, lineWidth: 1)
+                                    )
+                            )
+                        } else {
+                            Text("当前没有待审请求")
+                                .font(MeshDropFont.body(size: 12))
+                                .foregroundStyle(MeshDropColor.textMuted)
+                                .padding(14)
+                                .frame(maxWidth: .infinity)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 8)
+                                    RoundedRectangle(cornerRadius: 12)
                                         .fill(MeshDropColor.cardBg2)
                                 )
-
-                            HStack {
-                                Spacer()
-                                Text("拒绝")
-                                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(MeshDropColor.divider, lineWidth: 1)
-                                    )
-                                    .foregroundStyle(MeshDropColor.textSecondary)
-                                Text("允许并记住")
-                                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .fill(MeshDropColor.lime)
-                                    )
-                                    .foregroundStyle(MeshDropColor.ink)
-                            }
                         }
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(MeshDropColor.limeFill)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(MeshDropColor.lime, lineWidth: 1)
-                                )
-                        )
                     }
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(20)

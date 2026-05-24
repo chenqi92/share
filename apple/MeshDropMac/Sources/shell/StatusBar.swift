@@ -2,16 +2,18 @@ import SwiftUI
 
 /// 底部 mono 状态条。
 struct StatusBar: View {
+    @EnvironmentObject var state: AppState
+
     var body: some View {
         HStack(spacing: 14) {
             Circle()
-                .fill(MeshDropColor.limeDeep)
+                .fill(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
                 .frame(width: 6, height: 6)
-            Text("LAN ONLINE")
+            Text(state.isScanning ? "SCANNING LAN" : "LAN ONLINE")
                 .meshTag()
-                .foregroundStyle(MeshDropColor.limeDeep)
+                .foregroundStyle(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
             Divider().frame(height: 12)
-            Text("\(MockMe.ip)/24")
+            Text("\(state.localIPSummary)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
             Divider().frame(height: 12)
@@ -19,11 +21,20 @@ struct StatusBar: View {
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
             Spacer()
+            if let err = state.lastError {
+                Text("ERR · \(err)")
+                    .font(MeshDropFont.mono(size: 10, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.error)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .onTapGesture { state.clearError() }
+                Divider().frame(height: 12)
+            }
             Text("E2E · X25519+ChaCha20")
                 .meshTag()
                 .foregroundStyle(MeshDropColor.textSecondary)
             Divider().frame(height: 12)
-            Text("FP \(MockMe.fingerprint)")
+            Text("FP \(state.localFingerprintShort)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
