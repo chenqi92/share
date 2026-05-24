@@ -28,6 +28,14 @@ android/app/build/
 android/local.properties
 android/captures/
 android/.idea/
+
+# Wear OS
+wearos/.gradle/
+wearos/build/
+wearos/app/build/
+wearos/local.properties
+wearos/captures/
+wearos/.idea/
 *.iml
 *.apk
 *.aab

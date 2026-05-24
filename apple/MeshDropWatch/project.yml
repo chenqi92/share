@@ -1,0 +1,48 @@
+name: MeshDropWatch
+options:
+  bundleIdPrefix: com.welape.meshdrop
+  deploymentTarget:
+    watchOS: "10.0"
+  developmentLanguage: zh-Hans
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.10"
+
+targets:
+  MeshDropWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - Sources
+      - path: Resources
+        excludes:
+          - Info.plist
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleName: MeshDrop
+        CFBundleDisplayName: MeshDrop
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WKApplication: true
+        WKWatchOnly: true
+        UIRequiredDeviceCapabilities:
+          - watch-companion
+        WKSupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: 用于发现同一网络下的 MeshDrop 设备
+        NSBonjourServices:
+          - _meshdrop._tcp
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.watch
+        PRODUCT_NAME: MeshDrop
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
