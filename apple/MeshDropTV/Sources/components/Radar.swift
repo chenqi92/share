@@ -1,25 +1,29 @@
 import SwiftUI
 
 /// 巨型雷达：中心黑圆 + 3 环 + sweep 旋转扫描臂 + 设备点 pulse halo。
+/// 动画用 TimelineView(.animation) 驱动，避免 tvOS 上 Canvas 内 withAnimation 不刷新。
 struct MeshRadar: View {
     var devices: [MeshDevice]
     var diameter: CGFloat = 720
-    @State private var sweepAngle: Double = 0
-    @State private var pulsePhase: Double = 0
 
     var body: some View {
-        ZStack {
-            backdrop
-            rings
-            sweepArm
-            compassMarks
-            ForEach(Array(devices.enumerated()), id: \.element.id) { idx, d in
-                dot(d, index: idx)
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let sweepAngle = (t.truncatingRemainder(dividingBy: 4.5)) / 4.5 * 360.0
+            let pulsePhase = (t.truncatingRemainder(dividingBy: 2.6)) / 2.6 * .pi * 2
+
+            ZStack {
+                backdrop
+                rings
+                sweepArm(angle: sweepAngle)
+                compassMarks
+                ForEach(Array(devices.enumerated()), id: \.element.id) { idx, d in
+                    dot(d, index: idx, phase: pulsePhase)
+                }
+                centerYou
             }
-            centerYou
+            .frame(width: diameter, height: diameter)
         }
-        .frame(width: diameter, height: diameter)
-        .onAppear { animate() }
     }
 
     private var radius: CGFloat { diameter / 2 }
@@ -42,7 +46,7 @@ struct MeshRadar: View {
         ZStack {
             ForEach([0.33, 0.66, 1.0], id: \.self) { f in
                 Circle()
-                    .stroke(MeshDropColor.dline, style: StrokeStyle(lineWidth: 1.4, dash: [3, 6]))
+                    .stroke(Color.white.opacity(0.22), style: StrokeStyle(lineWidth: 1.5, dash: [5, 9]))
                     .frame(width: diameter * f, height: diameter * f)
             }
             // 十字线
@@ -52,42 +56,44 @@ struct MeshRadar: View {
                 p.move(to: CGPoint(x: radius, y: 0))
                 p.addLine(to: CGPoint(x: radius, y: diameter))
             }
-            .stroke(MeshDropColor.dlineSoft, style: StrokeStyle(lineWidth: 1, dash: [3, 6]))
+            .stroke(Color.white.opacity(0.12), style: StrokeStyle(lineWidth: 1, dash: [4, 8]))
         }
     }
 
-    private var sweepArm: some View {
-        Canvas { ctx, sz in
-            let center = CGPoint(x: sz.width / 2, y: sz.height / 2)
-            let r = min(sz.width, sz.height) / 2
-            ctx.translateBy(x: center.x, y: center.y)
-            ctx.rotate(by: .degrees(sweepAngle))
-            let arc = Path { p in
-                p.move(to: .zero)
-                p.addArc(center: .zero, radius: r,
-                         startAngle: .degrees(-12), endAngle: .degrees(0),
-                         clockwise: false)
-                p.closeSubpath()
-            }
-            ctx.fill(
-                arc,
-                with: .conicGradient(
-                    Gradient(colors: [
-                        MeshDropColor.lime.opacity(0),
-                        MeshDropColor.lime.opacity(0.0),
-                        MeshDropColor.lime.opacity(0.45),
-                    ]),
-                    center: .zero, angle: .degrees(-6)
+    private func sweepArm(angle: Double) -> some View {
+        ZStack {
+            // 扫描扇形（用渐变 mask 叠加 lime）
+            Circle()
+                .trim(from: 0, to: 0.08)
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [
+                            MeshDropColor.lime.opacity(0),
+                            MeshDropColor.lime.opacity(0.50),
+                        ]),
+                        center: .center,
+                        startAngle: .degrees(-30),
+                        endAngle: .degrees(0)
+                    ),
+                    style: StrokeStyle(lineWidth: radius, lineCap: .butt)
                 )
-            )
-            // sweep 主臂线
-            var arm = Path()
-            arm.move(to: .zero)
-            arm.addLine(to: CGPoint(x: r, y: 0))
-            ctx.stroke(arm, with: .color(MeshDropColor.lime.opacity(0.9)), lineWidth: 2)
+                .frame(width: radius, height: radius)
+                .rotationEffect(.degrees(angle - 90))
+                .blendMode(.plusLighter)
+
+            // 主扫描臂：从圆心到边缘一条 lime 实线
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [MeshDropColor.lime.opacity(0.0), MeshDropColor.lime],
+                        startPoint: .leading, endPoint: .trailing
+                    )
+                )
+                .frame(width: radius, height: 2)
+                .offset(x: radius / 2)
+                .rotationEffect(.degrees(angle - 90))
         }
         .frame(width: diameter, height: diameter)
-        .blendMode(.plusLighter)
     }
 
     private var compassMarks: some View {
@@ -102,14 +108,14 @@ struct MeshRadar: View {
         .tracking(2)
     }
 
-    private func dot(_ d: MeshDevice, index: Int) -> some View {
+    private func dot(_ d: MeshDevice, index: Int, phase: Double) -> some View {
         let r = radius * d.dist
-        let angle = Angle(degrees: d.angle - 90)  // 0 度朝上
+        let angle = Angle(degrees: d.angle - 90)
         let cx = CGFloat(cos(angle.radians)) * r
         let cy = CGFloat(sin(angle.radians)) * r
-        let phase = pulsePhase + Double(index) * 0.3
-        let pulseScale = 0.85 + 0.30 * (0.5 + 0.5 * sin(phase))
-        let pulseOpacity = 0.20 + 0.20 * (0.5 - 0.5 * sin(phase))
+        let localPhase = phase + Double(index) * 0.6
+        let pulseScale = 0.85 + 0.30 * (0.5 + 0.5 * sin(localPhase))
+        let pulseOpacity = 0.22 + 0.18 * (0.5 - 0.5 * sin(localPhase))
         return ZStack {
             Circle()
                 .fill(MeshDropColor.lime.opacity(pulseOpacity))
@@ -134,7 +140,7 @@ struct MeshRadar: View {
                 .frame(width: 110, height: 110)
                 .overlay(
                     Circle()
-                        .stroke(MeshDropColor.lime, lineWidth: 2)
+                        .strokeBorder(MeshDropColor.lime, lineWidth: 2)
                 )
             VStack(spacing: 2) {
                 Text("TV").font(MeshDropFont.monoM()).foregroundStyle(MeshDropColor.lime)
@@ -142,15 +148,6 @@ struct MeshRadar: View {
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(MeshDropColor.dpaperMute)
             }
-        }
-    }
-
-    private func animate() {
-        withAnimation(.linear(duration: 4.5).repeatForever(autoreverses: false)) {
-            sweepAngle = 360
-        }
-        withAnimation(.linear(duration: 2.6).repeatForever(autoreverses: false)) {
-            pulsePhase = .pi * 2
         }
     }
 }

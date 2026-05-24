@@ -9,6 +9,7 @@ struct ReceivePage: View {
             VStack(alignment: .leading, spacing: 22) {
                 heroPhoto
                 thumbnailStrip
+                    .focusSection()
                 Spacer(minLength: 0)
                 remoteHint
             }
@@ -16,6 +17,7 @@ struct ReceivePage: View {
 
             sidePanel
                 .frame(width: 460)
+                .focusSection()
         }
     }
 

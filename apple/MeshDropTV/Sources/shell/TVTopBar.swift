@@ -87,10 +87,9 @@ struct TVTopBar: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .inset(by: 1)
-                    .strokeBorder(strokeColor(isActive: isActive, isFocused: isFocused), lineWidth: 1.5)
+                    .strokeBorder(strokeColor(isActive: isActive, isFocused: isFocused), lineWidth: 2)
             )
-            .offset(y: isFocused ? -3 : 0)
-            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isFocused)
+            .animation(.easeInOut(duration: 0.18), value: isFocused)
         }
     }
 
