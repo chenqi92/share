@@ -21,6 +21,7 @@ enum TVTab: String, CaseIterable, Identifiable {
 
 struct TVTopBar: View {
     @Binding var selection: TVTab
+    var deviceCount: Int = 0
     @FocusState private var focusedTab: TVTab?
 
     var body: some View {
@@ -40,8 +41,10 @@ struct TVTopBar: View {
             Spacer()
 
             HStack(spacing: 12) {
-                Circle().fill(MeshDropColor.lime).frame(width: 10, height: 10)
-                Text("客厅 · LIVING ROOM · 5 台")
+                Circle()
+                    .fill(deviceCount > 0 ? MeshDropColor.lime : MeshDropColor.dpaperMute)
+                    .frame(width: 10, height: 10)
+                Text(statusLabel)
                     .font(.system(size: 15, weight: .semibold, design: .monospaced))
                     .tracking(1.2)
                     .textCase(.uppercase)
@@ -53,6 +56,11 @@ struct TVTopBar: View {
         }
         .padding(.horizontal, 90)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+
+    private var statusLabel: String {
+        if deviceCount == 0 { return "客厅 · LIVING ROOM · 扫描中" }
+        return "客厅 · LIVING ROOM · \(deviceCount) 台"
     }
 
     @ViewBuilder
