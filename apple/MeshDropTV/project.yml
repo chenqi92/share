@@ -1,0 +1,64 @@
+name: MeshDropTV
+options:
+  bundleIdPrefix: com.welape.meshdrop
+  deploymentTarget:
+    tvOS: "17.0"
+  developmentLanguage: zh-Hans
+  schemePathPrefix: "../"
+  generateEmptyDirectories: true
+
+schemes:
+  MeshDropTV:
+    build:
+      targets:
+        MeshDropTV: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.10"
+
+targets:
+  MeshDropTV:
+    type: application
+    platform: tvOS
+    sources:
+      - Sources
+      - path: Resources
+        excludes:
+          - Info.plist
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleName: MeshDropTV
+        CFBundleDisplayName: MeshDrop
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIRequiredDeviceCapabilities:
+          - arm64
+        UIUserInterfaceStyle: Dark
+        UILaunchScreen: {}
+        NSLocalNetworkUsageDescription: 用于发现同一网络下的 MeshDrop 设备
+        NSBonjourServices:
+          - _meshdrop._tcp
+        NSHumanReadableCopyright: "© 2026 MeshDrop"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.tv
+        PRODUCT_NAME: MeshDropTV
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: "NO"
+        CODE_SIGNING_ALLOWED: "NO"
