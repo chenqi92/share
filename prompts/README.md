@@ -8,7 +8,7 @@
 | --- | --- |
 | `COMMON.md` | 所有端 AI 必读的共享上下文（品牌 / tokens / 字体 / 组件 / mock 数据 / 11 条不能做）|
 | `DESIGN_SPEC.md` | 更深的设计规范权威参考（细节版） |
-| `01-macos.md` ~ `06-linux-tui.md` | 6 个端各自的特定指令 |
+| `01-macos.md` ~ `10-web.md` | 10 个端各自的特定指令 |
 | `TESTING_AND_ACCEPTANCE.md` | 跨端测试矩阵 + 8 个互通用例 + 验收 checklist |
 | `feed.sh` | 一键拼接 `COMMON.md + 端 prompt` 输出完整 prompt |
 
@@ -47,6 +47,10 @@ cat COMMON.md 01-macos.md | pbcopy
 | Windows | ★★★★ | 中（WinUI 3 标准，需注意避开 Fluent 默认蓝） |
 | Linux GUI | ★★★ | 中（GTK4 较少 boilerplate，但需写 CSS） |
 | Linux TUI | ★★ | 弱也行（ratatui 模式简单，但要做色彩 fallback） |
+| tvOS | ★★★ | 中（焦点态 + 巨型字号设计为主） |
+| visionOS | ★★★★★ | 强（空间布局 + 玻璃 + gaze/pinch 隐喻） |
+| watch（Apple + Wear OS） | ★★★ | 中（双端共一份 prompt，注意 ≥ 10pt） |
+| web | ★★★ | 中（React + Tailwind，dark by default） |
 
 ## 验收
 

@@ -174,7 +174,7 @@ NEARBY
 ### Toast (incoming)
 
 ```
-┌─ meshdrop — __INTERNET_MESHDROPING__      now × ─┐
+┌─ meshdrop — Internet Sharing      now × ─┐
 │                                       │
 │ [Avatar 坤] 坤 想发文件给你          │
 │             IMG_4821~4838.heic       │

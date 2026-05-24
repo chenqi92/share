@@ -26,6 +26,10 @@ MeshDrop Prompt 拼接 · 用法
   windows        → 04-windows.md
   linux-gui      → 05-linux-gui.md
   linux-tui      → 06-linux-tui.md
+  tvos           → 07-tvos.md
+  visionos       → 08-visionos.md
+  watch          → 09-watch.md
+  web            → 10-web.md
 
 例:
   ./feed.sh macos | pbcopy
@@ -45,6 +49,10 @@ case "$1" in
   windows)    file="04-windows.md" ;;
   linux-gui)  file="05-linux-gui.md" ;;
   linux-tui)  file="06-linux-tui.md" ;;
+  tvos)       file="07-tvos.md" ;;
+  visionos)   file="08-visionos.md" ;;
+  watch)      file="09-watch.md" ;;
+  web)        file="10-web.md" ;;
   *)
     echo "未知 platform: $1" >&2
     echo >&2
