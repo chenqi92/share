@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Controls.Radar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="Root" Width="{x:Bind Diameter, Mode=OneWay}" Height="{x:Bind Diameter, Mode=OneWay}">
+        <!-- 背景 grid（极淡 grid 变体） -->
+        <Canvas x:Name="GridLayer"/>
+
+        <!-- 3 同心圆 -->
+        <Ellipse x:Name="Ring1"
+                 Stroke="{ThemeResource MdLineBrush}"
+                 StrokeThickness="1"
+                 StrokeDashArray="2,3"
+                 Opacity="0.6"
+                 Margin="0"/>
+        <Ellipse x:Name="Ring2"
+                 Stroke="{ThemeResource MdLineBrush}"
+                 StrokeThickness="1"
+                 StrokeDashArray="2,3"
+                 Opacity="0.45"/>
+        <Ellipse x:Name="Ring3"
+                 Stroke="{ThemeResource MdLineBrush}"
+                 StrokeThickness="1"
+                 StrokeDashArray="2,3"
+                 Opacity="0.3"/>
+
+        <!-- 十字线 + N/E/S/W 罗盘字母 -->
+        <Canvas x:Name="CompassLayer"/>
+
+        <!-- Sweep 扫描臂 -->
+        <Canvas x:Name="SweepLayer">
+            <Canvas.RenderTransform>
+                <RotateTransform x:Name="SweepRotate" Angle="0"/>
+            </Canvas.RenderTransform>
+        </Canvas>
+
+        <!-- 设备点层 -->
+        <Canvas x:Name="DotsLayer"/>
+
+        <!-- 中心 60x60 黑圆：YOU + IP -->
+        <Border x:Name="CenterDisc"
+                Width="62" Height="62"
+                CornerRadius="999"
+                Background="{ThemeResource MdInkBrush}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="-2">
+                <TextBlock Text="YOU"
+                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                           FontWeight="Bold"
+                           FontSize="11"
+                           Foreground="{ThemeResource MdLimeBrush}"
+                           HorizontalAlignment="Center"
+                           CharacterSpacing="100"/>
+                <TextBlock x:Name="CenterIp"
+                           Text="192.168.1.42"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="8"
+                           Foreground="#88FFFFFF"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

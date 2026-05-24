@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="MeshDropColors.xaml"/>
+        <ResourceDictionary Source="MeshDropFonts.xaml"/>
+    </ResourceDictionary.MergedDictionaries>
+
+    <!-- 常用半径 / 间距 -->
+    <CornerRadius x:Key="MdRadiusSmall">6</CornerRadius>
+    <CornerRadius x:Key="MdRadiusCard">14</CornerRadius>
+    <CornerRadius x:Key="MdRadiusBubble">16</CornerRadius>
+    <CornerRadius x:Key="MdRadiusChip">999</CornerRadius>
+
+    <Thickness x:Key="MdPagePadding">24,20,24,20</Thickness>
+    <Thickness x:Key="MdCardPadding">14,12,14,12</Thickness>
+
+    <!-- chip 高度 (COMMON §7.3) -->
+    <x:Double x:Key="MdChipHeight">20</x:Double>
+
+    <!-- 状态栏 -->
+    <x:Double x:Key="MdStatusBarHeight">26</x:Double>
+
+    <!-- ASCII Divider 样式 -->
+    <Style x:Key="MdAsciiDividerStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MdMonoFontFamily}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Opacity" Value="0.45"/>
+        <Setter Property="CharacterSpacing" Value="150"/>
+    </Style>
+
+    <!-- 大写 mono tag 样式 -->
+    <Style x:Key="MdMonoTagStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MdMonoFontFamily}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="CharacterSpacing" Value="150"/>
+        <Setter Property="Opacity" Value="0.7"/>
+    </Style>
+
+    <!-- 终端字段标签样式 -->
+    <Style x:Key="MdTerminalLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MdMonoFontFamily}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="Foreground" Value="#FF606060"/>
+    </Style>
+
+    <Style x:Key="MdTerminalValueStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MdMonoFontFamily}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="Foreground" Value="#FFDDF94B"/>
+    </Style>
+
+    <!-- Sidebar nav 按钮基础样式 -->
+    <Style x:Key="MdNavButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="14,9,12,9"/>
+        <Setter Property="FontFamily" Value="{StaticResource MdBodyFontFamily}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+    </Style>
+
+    <!-- 主按钮（accent=lime） -->
+    <Style x:Key="MdAccentButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource MdLimeBrush}"/>
+        <Setter Property="Foreground" Value="#FF0A0A0A"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="14,8,14,8"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="FontFamily" Value="{StaticResource MdBodyFontFamily}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <!-- 次按钮（描边） -->
+    <Style x:Key="MdOutlineButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{ThemeResource MdLineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="14,8,14,8"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="FontFamily" Value="{StaticResource MdBodyFontFamily}"/>
+        <Setter Property="Foreground" Value="{ThemeResource MdInkBrush}"/>
+    </Style>
+
+</ResourceDictionary>

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="MeshDrop.Views.Dialogs.PairingDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    Title=""
+    Background="{ThemeResource MdCardBrush}"
+    Width="540">
+
+    <StackPanel Spacing="14" MinWidth="480">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+            <ctrl:AvatarControl Size="42" Initials="LL" ColorHex="#FFB4A1"/>
+            <StackPanel VerticalAlignment="Center" Spacing="-1">
+                <TextBlock Text="新设备请求配对"
+                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                           FontWeight="SemiBold"
+                           FontSize="18"/>
+                <TextBlock Text="李莉 · Lily's MacBook · macOS 15.3 · 192.168.1.31"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="10"
+                           Opacity="0.6"/>
+            </StackPanel>
+            <ctrl:ChipControl Text="8s ago" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <ctrl:AsciiDivider Label="── COMPARE FINGERPRINT · 对方屏幕显示同一串 ──"/>
+
+        <Border CornerRadius="10"
+                Background="{ThemeResource MdTerminalBrush}"
+                Padding="14,12,14,12">
+            <StackPanel Spacing="6">
+                <TextBlock Text="ZX8K · L72M · 9FQ3 · 7HD2"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="{ThemeResource MdLimeBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="M1P6 · QA8N · KZ9R · X3WF"
+                           FontFamily="{StaticResource MdMonoFontFamily}"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="{ThemeResource MdLimeBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Spacing="6">
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="1." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                <TextBlock Grid.Column="1" Text="对方设备会显示同样的 8 段指纹"
+                           FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
+            </Grid>
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="2." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                <TextBlock Grid.Column="1" Text="逐组核对（首 4 组 + 末 4 组）"
+                           FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
+            </Grid>
+            <Grid ColumnSpacing="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="28"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="3." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                <TextBlock Grid.Column="1" Text="一致 → 允许并记住；不一致 → 立即拒绝（可能是中间人）"
+                           FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
+            </Grid>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                <TextBlock Text="× 拒绝"/>
+            </Button>
+            <Button Style="{StaticResource MdOutlineButtonStyle}">
+                <TextBlock Text="允许一次"/>
+            </Button>
+            <Button Style="{StaticResource MdAccentButtonStyle}">
+                <TextBlock Text="✓ 允许并记住"/>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</ContentDialog>
