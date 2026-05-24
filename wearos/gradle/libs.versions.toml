@@ -7,6 +7,9 @@ activityCompose = "1.9.3"
 composeBom = "2024.12.01"
 wearComposeMaterial3 = "1.6.2"
 wearComposeFoundation = "1.6.2"
+playServicesWearable = "18.2.0"
+kotlinxCoroutinesPlayServices = "1.9.0"
+kotlinxSerializationJson = "1.7.3"
 
 [libraries]
 androidx-core-ktx                = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -20,8 +23,12 @@ compose-ui-tooling-preview       = { module = "androidx.compose.ui:ui-tooling-pr
 compose-foundation               = { module = "androidx.compose.foundation:foundation" }
 wear-compose-material3           = { module = "androidx.wear.compose:compose-material3", version.ref = "wearComposeMaterial3" }
 wear-compose-foundation          = { module = "androidx.wear.compose:compose-foundation", version.ref = "wearComposeFoundation" }
+play-services-wearable           = { module = "com.google.android.gms:play-services-wearable", version.ref = "playServicesWearable" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutinesPlayServices" }
+kotlinx-serialization-json       = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 
 [plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android      = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose      = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+android-application    = { id = "com.android.application", version.ref = "agp" }
+kotlin-android         = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose         = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization   = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

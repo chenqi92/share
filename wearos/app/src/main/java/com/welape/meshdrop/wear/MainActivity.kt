@@ -26,12 +26,12 @@ class MainActivity : ComponentActivity() {
             "receive" -> WearScreen.Receive
             else -> WearScreen.Nearby
         }
-        setContent { MeshDropWearApp(start) }
+        setContent { MeshDropWearRoot(start) }
     }
 }
 
 @Composable
-fun MeshDropWearApp(initial: WearScreen = WearScreen.Nearby) {
+fun MeshDropWearRoot(initial: WearScreen = WearScreen.Nearby) {
     var screen by remember { mutableStateOf(initial) }
 
     Box(
