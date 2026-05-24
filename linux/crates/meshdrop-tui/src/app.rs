@@ -471,6 +471,15 @@ fn apply(app: &mut App, action: Action) {
 
 // ─── 渲染 ────────────────────────────────────────────────────────
 
+/// 给 snapshot 模块用：在外部 terminal 上画一帧。
+pub fn render_once<B: ratatui::backend::Backend>(
+    terminal: &mut Terminal<B>,
+    app: &mut App,
+) -> Result<()> {
+    terminal.draw(|f| ui(f, app))?;
+    Ok(())
+}
+
 fn ui(f: &mut Frame, app: &mut App) {
     let area = f.area();
     let chunks = Layout::default()

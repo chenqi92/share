@@ -43,6 +43,8 @@ pub enum Cmd {
     SendFile(SendFileArgs),
     /// 后台接收守护进程 · receive daemon
     Daemon(DaemonArgs),
+    /// 把指定 scene 渲染成 SVG（截图用，不进 raw mode）
+    Snapshot(SnapshotArgs),
 }
 
 #[derive(Args, Debug)]
@@ -72,6 +74,28 @@ pub struct SendFileArgs {
 }
 
 #[derive(Args, Debug)]
+pub struct SnapshotArgs {
+    /// scene 名（同 --demo）
+    #[arg(long)]
+    pub scene: String,
+    /// 输出 SVG 路径
+    #[arg(long)]
+    pub out: std::path::PathBuf,
+    /// 列数
+    #[arg(long, default_value_t = 140)]
+    pub cols: u16,
+    /// 行数
+    #[arg(long, default_value_t = 42)]
+    pub rows: u16,
+    /// 强制色彩档：truecolor / 256 / ansi16（默认 truecolor）
+    #[arg(long, default_value = "truecolor")]
+    pub color: String,
+    /// 强制字符档：full / ascii（默认 full）
+    #[arg(long, default_value = "full")]
+    pub chars: String,
+}
+
+#[derive(Args, Debug)]
 pub struct DaemonArgs {
     /// 自动接受信任设备的文件 · auto-accept files from trusted devices
     #[arg(long)]
@@ -87,6 +111,9 @@ pub fn run(cmd: Cmd) -> Result<()> {
         Cmd::Send(a) => send_text(a),
         Cmd::SendFile(a) => send_file(a),
         Cmd::Daemon(a) => daemon(a),
+        Cmd::Snapshot(a) => {
+            crate::snapshot::render(&a.scene, &a.out, a.cols, a.rows, &a.color, &a.chars)
+        }
     }
 }
 

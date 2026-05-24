@@ -22,6 +22,7 @@ mod cli;
 mod input;
 mod mock;
 mod settings;
+mod snapshot;
 mod ui;
 
 #[tokio::main]
