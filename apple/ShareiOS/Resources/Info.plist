@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>至汝</string>
+	<string>MeshDrop</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,7 +27,9 @@
 		<string>_meshdrop._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>用于发现同一网络下的 MeshDrop 设备</string>
+	<string>用于发现同一局域网下的 MeshDrop 设备</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

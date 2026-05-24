@@ -1,6 +1,6 @@
 name: ShareiOS
 options:
-  bundleIdPrefix: drop.mesh
+  bundleIdPrefix: com.welape.meshdrop
   deploymentTarget:
     iOS: "17.0"
   developmentLanguage: zh-Hans
@@ -29,7 +29,7 @@ targets:
       path: Resources/Info.plist
       properties:
         CFBundleName: MeshDrop
-        CFBundleDisplayName: 至汝
+        CFBundleDisplayName: MeshDrop
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen:
@@ -43,9 +43,10 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSLocalNetworkUsageDescription: 用于发现同一网络下的 MeshDrop 设备
+        NSLocalNetworkUsageDescription: 用于发现同一局域网下的 MeshDrop 设备
         NSBonjourServices:
           - _meshdrop._tcp
+        NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:
