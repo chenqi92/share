@@ -67,7 +67,7 @@ struct SettingsPage: View {
 
     private func rowView(_ row: Row) -> some View {
         let focused = focusedRow == row.id
-        return Button { } label: {
+        return InvisibleFocusButton(isFocused: $focusedRow, value: row.id) { } content: {
             HStack(spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(row.label)
@@ -95,16 +95,16 @@ struct SettingsPage: View {
             .padding(.horizontal, 28).padding(.vertical, 22)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(MeshDropColor.dink2)
+                    .fill(focused ? MeshDropColor.dink3 : MeshDropColor.dink2)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(MeshDropColor.dpaper.opacity(focused ? 0.95 : 0.0), lineWidth: 6)
+                    .inset(by: 1)
+                    .strokeBorder(focused ? MeshDropColor.dpaper.opacity(0.9) : MeshDropColor.dline, lineWidth: focused ? 2 : 1)
             )
-            .scaleEffect(focused ? 1.03 : 1.0)
-            .animation(.spring(response: 0.30, dampingFraction: 0.78), value: focused)
+            .offset(x: focused ? 8 : 0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focused)
         }
-        .buttonStyle(.plain)
     }
 
     private var fingerprintBlock: some View {

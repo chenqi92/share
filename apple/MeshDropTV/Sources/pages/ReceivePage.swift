@@ -41,26 +41,26 @@ struct ReceivePage: View {
     }
 
     private var thumbnailStrip: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 18) {
             ForEach(MockData.incomingPhotos) { item in
-                Button {
+                InvisibleFocusButton(isFocused: $focusedThumb, value: item.id) {
                     selected = item.id - 1
-                } label: {
+                } content: {
                     PhotoPlaceholder(hue: item.hue, aspect: 1, corner: 12)
                         .frame(width: 124, height: 124)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(selected == item.id - 1 ? MeshDropColor.lime : Color.clear, lineWidth: 4)
+                                .inset(by: 1.5)
+                                .strokeBorder(selected == item.id - 1 ? MeshDropColor.lime : Color.clear, lineWidth: 3)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(MeshDropColor.dpaper.opacity(focusedThumb == item.id ? 0.95 : 0.0), lineWidth: 5)
+                                .inset(by: 2)
+                                .strokeBorder(MeshDropColor.dpaper.opacity(focusedThumb == item.id ? 0.95 : 0.0), lineWidth: 2.5)
                         )
-                        .scaleEffect(focusedThumb == item.id ? 1.08 : 1.0)
-                        .animation(.spring(response: 0.30, dampingFraction: 0.78), value: focusedThumb)
+                        .offset(y: focusedThumb == item.id ? -6 : 0)
+                        .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focusedThumb)
                 }
-                .buttonStyle(.plain)
-                .focused($focusedThumb, equals: item.id)
             }
             VStack(spacing: 4) {
                 Text("+10")

@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// 标准可聚焦卡：scale 1.05 + 6px ring，3 米外可辨。
+/// 标准可聚焦卡：focus 时 inset 内描边 + 小幅 lift（offset y）+ 极小 scale，不溢出。
 struct FocusCard<Content: View>: View {
     var corner: CGFloat = 22
     var padding: CGFloat = 0
     @ViewBuilder var content: () -> Content
 
-    @Environment(\.isFocused) private var isFocused
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -18,21 +17,23 @@ struct FocusCard<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .stroke(MeshDropColor.dline, lineWidth: 1)
+                    .inset(by: 1)
+                    .strokeBorder(MeshDropColor.dline, lineWidth: 1)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: corner, style: .continuous)
-                    .stroke(MeshDropColor.dpaper.opacity(focused ? 0.85 : 0.0), lineWidth: 6)
-                    .blur(radius: 0.5)
+                    .inset(by: 2)
+                    .strokeBorder(MeshDropColor.dpaper.opacity(focused ? 0.85 : 0.0), lineWidth: 2.5)
             )
-            .scaleEffect(focused ? 1.05 : 1.0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.78), value: focused)
+            .offset(y: focused ? -4 : 0)
+            .animation(.spring(response: 0.30, dampingFraction: 0.82), value: focused)
             .focusable(true)
             .focused($focused)
+            .focusEffectDisabled()
     }
 }
 
-/// CTA 大按钮：lime 底 + ink 字，focus 时 ring + scale。
+/// CTA 大按钮：lime 底 + ink 字；focus 时 inset ring + 小幅 lift。
 struct CTAButton: View {
     var title: String
     var subtitle: String? = nil
@@ -51,15 +52,15 @@ struct CTAButton: View {
                         .foregroundStyle(fg)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                            .tracking(1.4)
+                            .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                            .tracking(1.3)
                             .textCase(.uppercase)
-                            .foregroundStyle(fg.opacity(0.7))
+                            .foregroundStyle(fg.opacity(0.65))
                     }
                 }
                 if fillWidth { Spacer(minLength: 0) }
             }
-            .padding(.horizontal, 36)
+            .padding(.horizontal, 32)
             .padding(.vertical, 22)
             .frame(maxWidth: fillWidth ? .infinity : nil, alignment: .leading)
             .background(
@@ -68,31 +69,40 @@ struct CTAButton: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(MeshDropColor.dpaper.opacity(focused ? 0.95 : 0.0), lineWidth: 6)
+                    .inset(by: 2)
+                    .strokeBorder(ringColor.opacity(focused ? 0.95 : 0.0), lineWidth: 3)
             )
-            .scaleEffect(focused ? 1.06 : 1.0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.78), value: focused)
+            .offset(y: focused ? -4 : 0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focused)
         }
         .buttonStyle(.plain)
         .focused($focused)
+        .focusEffectDisabled()
     }
 
     private var bg: Color {
         switch tone {
         case .lime: return MeshDropColor.lime
-        case .ink:  return MeshDropColor.ink
+        case .ink:  return MeshDropColor.dink3
         case .flame: return MeshDropColor.flame
         case .sky: return MeshDropColor.sky
-        case .mute: return MeshDropColor.dink3
+        case .mute: return MeshDropColor.dink2
         case .outline: return Color.clear
         }
     }
     private var fg: Color {
         switch tone {
         case .lime, .sky: return MeshDropColor.ink
-        case .ink, .mute: return MeshDropColor.dpaper
+        case .ink: return MeshDropColor.dpaper
+        case .mute: return MeshDropColor.dpaperDim
         case .flame: return .white
         case .outline: return MeshDropColor.dpaper
+        }
+    }
+    private var ringColor: Color {
+        switch tone {
+        case .lime, .sky: return MeshDropColor.ink
+        default: return MeshDropColor.dpaper
         }
     }
 }

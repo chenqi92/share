@@ -15,7 +15,6 @@ struct GalleryPage: View {
             LazyVGrid(columns: columns, spacing: 28) {
                 ForEach(MockData.gallery) { item in
                     tile(item)
-                        .focused($focusedId, equals: item.id)
                 }
             }
             .padding(.top, 8)
@@ -65,7 +64,7 @@ struct GalleryPage: View {
     @ViewBuilder
     private func tile(_ item: MockData.GalleryItem) -> some View {
         let focused = focusedId == item.id
-        Button { } label: {
+        InvisibleFocusButton(isFocused: $focusedId, value: item.id) { } content: {
             VStack(alignment: .leading, spacing: 10) {
                 ZStack(alignment: .topTrailing) {
                     if item.kind == "image" {
@@ -102,11 +101,16 @@ struct GalleryPage: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(MeshDropColor.dpaper.opacity(focused ? 0.95 : 0.0), lineWidth: 6)
+                    .inset(by: 1)
+                    .strokeBorder(MeshDropColor.dline, lineWidth: 1)
             )
-            .scaleEffect(focused ? 1.08 : 1.0)
-            .animation(.spring(response: 0.30, dampingFraction: 0.78), value: focused)
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .inset(by: 2)
+                    .strokeBorder(MeshDropColor.dpaper.opacity(focused ? 0.95 : 0.0), lineWidth: 2.5)
+            )
+            .offset(y: focused ? -6 : 0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: focused)
         }
-        .buttonStyle(.plain)
     }
 }

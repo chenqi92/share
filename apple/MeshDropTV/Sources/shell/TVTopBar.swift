@@ -24,14 +24,14 @@ struct TVTopBar: View {
     @FocusState private var focusedTab: TVTab?
 
     var body: some View {
-        HStack(alignment: .center, spacing: 36) {
+        HStack(alignment: .center, spacing: 44) {
             MeshDropLockup(size: 38)
 
             Rectangle()
                 .fill(MeshDropColor.dline)
                 .frame(width: 1, height: 32)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 20) {
                 ForEach(TVTab.allCases) { tab in
                     tabPill(tab)
                 }
@@ -57,32 +57,48 @@ struct TVTopBar: View {
     private func tabPill(_ tab: TVTab) -> some View {
         let isActive = selection == tab
         let isFocused = focusedTab == tab
-        Button {
+
+        InvisibleFocusButton(isFocused: $focusedTab, value: tab) {
             selection = tab
-        } label: {
-            HStack(spacing: 12) {
+        } content: {
+            HStack(spacing: 10) {
                 Text(tab.rawValue).font(.system(size: 22, weight: .bold))
                 Text("· \(tab.english)")
-                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 15, weight: .semibold, design: .monospaced))
                     .tracking(1.4)
                     .textCase(.uppercase)
-                    .opacity(0.65)
+                    .opacity(0.55)
             }
-            .foregroundStyle(isActive ? MeshDropColor.ink : MeshDropColor.dpaper)
+            .foregroundStyle(textColor(isActive: isActive, isFocused: isFocused))
             .padding(.horizontal, 22)
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isActive ? MeshDropColor.lime : Color.clear)
+                    .fill(fillColor(isActive: isActive, isFocused: isFocused))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(MeshDropColor.dpaper.opacity(isFocused ? 0.9 : 0.0), lineWidth: 5)
+                    .inset(by: 1)
+                    .strokeBorder(strokeColor(isActive: isActive, isFocused: isFocused), lineWidth: 1.5)
             )
-            .scaleEffect(isFocused ? 1.06 : 1.0)
-            .animation(.spring(response: 0.30, dampingFraction: 0.78), value: isFocused)
+            .offset(y: isFocused ? -3 : 0)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isFocused)
         }
-        .buttonStyle(.plain)
-        .focused($focusedTab, equals: tab)
+    }
+
+    private func textColor(isActive: Bool, isFocused: Bool) -> Color {
+        if isActive { return MeshDropColor.ink }
+        return isFocused ? MeshDropColor.dpaper : MeshDropColor.dpaperDim
+    }
+
+    private func fillColor(isActive: Bool, isFocused: Bool) -> Color {
+        if isActive { return MeshDropColor.lime }
+        return isFocused ? MeshDropColor.dink3 : Color.clear
+    }
+
+    private func strokeColor(isActive: Bool, isFocused: Bool) -> Color {
+        if isActive && isFocused { return MeshDropColor.ink.opacity(0.45) }
+        if isFocused { return MeshDropColor.dpaper.opacity(0.55) }
+        return Color.clear
     }
 }
