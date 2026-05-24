@@ -13,7 +13,7 @@ namespace MeshDrop.Discovery;
 public sealed class MdnsDiscovery : IDisposable
 {
     private readonly Identity _identity;
-    private readonly string _displayName;
+    private string _displayName;
     private readonly string? _model;
 
     private ServiceDiscovery? _sd;
@@ -28,8 +28,10 @@ public sealed class MdnsDiscovery : IDisposable
         _model = model;
     }
 
-    public void Start(ushort port)
+    public void Start(ushort port, string? displayName = null)
     {
+        if (!string.IsNullOrEmpty(displayName)) _displayName = displayName;
+
         _sd = new ServiceDiscovery();
         _sd.ServiceInstanceDiscovered += OnInstanceDiscovered;
         _sd.ServiceInstanceShutdown += OnInstanceShutdown;

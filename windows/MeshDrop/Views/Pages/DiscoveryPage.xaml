@@ -77,14 +77,81 @@
                         <ctrl:ChipControl Text="E2E" Tone="Outline" Mono="True"/>
                         <ctrl:ChipControl Text="LAN ONLY" Tone="Outline" Mono="True"/>
                     </StackPanel>
-                    <Viewbox Grid.Row="1" Stretch="Uniform">
-                        <ctrl:Radar x:Name="RadarCtl"
-                                    Diameter="420"
-                                    Variant="sweep"
-                                    Devices="{x:Bind ViewModel.Devices, Mode=OneWay}"
-                                    SelectedId="{x:Bind ViewModel.SelectedId, Mode=OneWay}"/>
-                    </Viewbox>
-                    <ctrl:AsciiDivider Grid.Row="2" Label="── SWEEP 4.5s · PULSE 2.6s · 5 PEERS ──" Margin="0,10,0,0"/>
+
+                    <Grid Grid.Row="1">
+                        <Viewbox Stretch="Uniform">
+                            <ctrl:Radar x:Name="RadarCtl"
+                                        Diameter="420"
+                                        Variant="sweep"
+                                        Devices="{x:Bind ViewModel.Devices, Mode=OneWay}"
+                                        SelectedId="{x:Bind ViewModel.SelectedId, Mode=OneWay}"/>
+                        </Viewbox>
+
+                        <!-- 扫描中 banner -->
+                        <Border x:Name="ScanningBanner"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Top" HorizontalAlignment="Center"
+                                Background="{ThemeResource MdInk06Brush}"
+                                CornerRadius="999"
+                                Padding="14,4,14,4">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Ellipse Width="6" Height="6" Fill="{ThemeResource MdSkyBrush}"/>
+                                <TextBlock Text="扫描中 · scanning LAN…"
+                                           FontFamily="{StaticResource MdMonoFontFamily}"
+                                           FontSize="11"
+                                           Foreground="{ThemeResource MdSkyBrush}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 错误 banner -->
+                        <Border x:Name="ErrorBanner"
+                                Visibility="Collapsed"
+                                VerticalAlignment="Top" HorizontalAlignment="Center"
+                                Background="{ThemeResource MdInk06Brush}"
+                                BorderBrush="{ThemeResource MdFlameBrush}"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="14,6,14,6">
+                            <TextBlock x:Name="ErrorText"
+                                       Text="网络出错"
+                                       FontFamily="{StaticResource MdMonoFontFamily}"
+                                       FontSize="11"
+                                       Foreground="{ThemeResource MdFlameBrush}"/>
+                        </Border>
+
+                        <!-- 空态卡片 -->
+                        <Border x:Name="EmptyCard"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                CornerRadius="14"
+                                Background="{ThemeResource MdCardBrush}"
+                                BorderBrush="{ThemeResource MdLineBrush}"
+                                BorderThickness="1"
+                                Padding="22,18,22,18">
+                            <StackPanel Spacing="6" HorizontalAlignment="Center">
+                                <TextBlock Text="◌"
+                                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                                           FontSize="36"
+                                           HorizontalAlignment="Center"
+                                           Opacity="0.55"/>
+                                <TextBlock Text="附近没有 MeshDrop 设备"
+                                           FontFamily="{StaticResource MdDisplayFontFamily}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="让朋友也打开 MeshDrop · open it on a peer"
+                                           Style="{StaticResource MdMonoTagStyle}"
+                                           Opacity="0.7"
+                                           HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <ctrl:AsciiDivider Grid.Row="2"
+                                       x:Name="FooterDivider"
+                                       Label="── SWEEP 4.5s · PULSE 2.6s · 0 PEERS ──"
+                                       Margin="0,10,0,0"/>
                 </Grid>
             </Border>
 

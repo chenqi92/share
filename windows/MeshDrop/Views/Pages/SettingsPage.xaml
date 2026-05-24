@@ -172,6 +172,64 @@
                     </Border>
                 </Grid>
 
+                <!-- Web 访问 -->
+                <Grid ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Web 访问 · WEB ACCESS"
+                                   Style="{StaticResource MdMonoTagStyle}"
+                                   Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                        <TextBlock Text="浏览器走 LAN 网关访问"
+                                   FontFamily="{StaticResource MdBodyFontFamily}"
+                                   FontSize="12"
+                                   Opacity="0.6"
+                                   TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Border Grid.Column="1"
+                            CornerRadius="12"
+                            Background="{ThemeResource MdCardBrush}"
+                            BorderBrush="{ThemeResource MdLineBrush}"
+                            BorderThickness="1"
+                            Padding="16">
+                        <StackPanel Spacing="14">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.WebGatewayEnabled, Mode=TwoWay}"
+                                          Header="启用 Web Gateway"
+                                          OnContent="ON · LAN 浏览器可连"
+                                          OffContent="OFF"/>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="访问地址 · URL" FontWeight="SemiBold" FontSize="12"/>
+                                <Border CornerRadius="6" Padding="10,8,10,8"
+                                        Background="{ThemeResource MdTerminalBrush}">
+                                    <TextBlock Text="{x:Bind ViewModel.WebGatewayUrl, Mode=OneWay}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="12"
+                                               Foreground="{ThemeResource MdLimeBrush}"
+                                               IsTextSelectionEnabled="True"/>
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="配对码 · 24 小时有效" FontWeight="SemiBold" FontSize="12"/>
+                                <Border CornerRadius="6" Padding="10,8,10,8"
+                                        Background="{ThemeResource MdTerminalBrush}">
+                                    <TextBlock Text="{x:Bind ViewModel.WebGatewayPairingCode, Mode=OneWay}"
+                                               FontFamily="{StaticResource MdMonoFontFamily}"
+                                               FontSize="14"
+                                               Foreground="{ThemeResource MdLimeBrush}"
+                                               IsTextSelectionEnabled="True"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Text="首次访问会弹证书提示，请在浏览器接受 meshdrop.local 自签证书。"
+                                       FontFamily="{StaticResource MdMonoFontFamily}"
+                                       FontSize="10"
+                                       Opacity="0.55"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
                 <!-- About -->
                 <Grid ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
