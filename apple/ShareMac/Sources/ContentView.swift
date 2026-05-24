@@ -8,6 +8,10 @@ struct ContentView: View {
         Binding(get: { engine.pendingPairings.first }, set: { _ in })
     }
 
+    private var currentOffer: Binding<PendingFileOffer?> {
+        Binding(get: { engine.pendingFileOffers.first }, set: { _ in })
+    }
+
     var body: some View {
         ZStack {
             BackgroundGradient()
@@ -23,19 +27,22 @@ struct ContentView: View {
                     .padding(.bottom, 28)
                 }
 
-                if !engine.inbox.isEmpty {
-                    InboxView()
+                if !engine.history.isEmpty {
+                    HistoryView()
                 }
             }
         }
-        .frame(minWidth: 560, minHeight: 520)
+        .frame(minWidth: 620, minHeight: 560)
         .sheet(item: currentPairing) { req in
             PairingSheet(request: req).environmentObject(engine)
+        }
+        .sheet(item: currentOffer) { offer in
+            FileOfferSheet(offer: offer).environmentObject(engine)
         }
     }
 }
 
-/// 渐变背景。两端配色保持一致，营造统一品牌。
+/// 渐变背景。两端配色保持一致。
 struct BackgroundGradient: View {
     var body: some View {
         LinearGradient(

@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// iOS 26 / macOS Tahoe 引入了 Liquid Glass：`.glassEffect()` API。
+/// 跨 iOS / macOS / iPadOS 共用，根据可用性自动选择最佳呈现。
 ///
 /// 用法：
 /// ```
@@ -8,12 +9,13 @@ import SwiftUI
 ///     .liquidGlass(in: RoundedRectangle(cornerRadius: 24, style: .continuous))
 /// ```
 ///
-/// 在 iOS 26+ 自动使用 `.glassEffect(.regular, in: shape)`；旧版本回退到
-/// `.ultraThinMaterial`，保证 iOS 17 / 18 / 19 / 25 上仍有近似的玻璃质感。
+/// - iOS 26+ / macOS 26+ (Tahoe)：调用原生 `.glassEffect(.regular, in: shape)`，
+///   完整 Liquid Glass 折射 / 高光 / 边缘效果。
+/// - 旧版本：自动回退到 `.ultraThinMaterial`。
 ///
-/// 编译要求：用 Xcode 26+ (Swift 6.2+) 构建才会启用 Liquid Glass 分支；旧 SDK
-/// 编译会自动降级到 material（无运行期影响）。
-extension View {
+/// 编译要求：Xcode 26+ (Swift 6.2+) 才会启用 Liquid Glass 分支；旧 Xcode
+/// 自动跳过该分支。
+public extension View {
     @ViewBuilder
     func liquidGlass<S: Shape>(in shape: S) -> some View {
         #if compiler(>=6.2)
@@ -27,7 +29,7 @@ extension View {
         #endif
     }
 
-    /// 容器版本：让一组子视图作为 Liquid Glass 元素协同变形。iOS 26+ 用
+    /// 容器版本：让一组子视图作为 Liquid Glass 元素协同变形。iOS/macOS 26+ 用
     /// `GlassEffectContainer`，旧版退化为普通 ZStack。
     @ViewBuilder
     func liquidGlassContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {

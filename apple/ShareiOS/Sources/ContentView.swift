@@ -8,6 +8,9 @@ struct ContentView: View {
     private var currentPairing: Binding<PairingRequest?> {
         Binding(get: { engine.pendingPairings.first }, set: { _ in })
     }
+    private var currentOffer: Binding<PendingFileOffer?> {
+        Binding(get: { engine.pendingFileOffers.first }, set: { _ in })
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,14 +24,13 @@ struct ContentView: View {
                             .padding(.top, 12)
                         DeviceListView()
                     }
-                    // iPad 屏宽过大时把内容压在中间宽度上限内，避免一行铺满显得空
                     .frame(maxWidth: contentMaxWidth)
                     .frame(maxWidth: .infinity)
-                    .padding(.bottom, engine.inbox.isEmpty ? 24 : 280)
+                    .padding(.bottom, engine.history.isEmpty ? 24 : 320)
                 }
 
-                if !engine.inbox.isEmpty {
-                    VStack { Spacer(); InboxView() }
+                if !engine.history.isEmpty {
+                    VStack { Spacer(); HistoryView() }
                 }
             }
             .navigationTitle("MeshDrop")
@@ -36,6 +38,9 @@ struct ContentView: View {
         }
         .sheet(item: currentPairing) { req in
             PairingSheet(request: req).environmentObject(engine)
+        }
+        .sheet(item: currentOffer) { offer in
+            FileOfferSheet(offer: offer).environmentObject(engine)
         }
     }
 

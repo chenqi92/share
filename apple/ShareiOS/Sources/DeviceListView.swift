@@ -50,7 +50,7 @@ struct DeviceListView: View {
             }
         }
         .sheet(item: $sendingTo) { device in
-            SendTextSheet(device: device).environmentObject(engine)
+            SendSheet(device: device).environmentObject(engine)
         }
     }
 

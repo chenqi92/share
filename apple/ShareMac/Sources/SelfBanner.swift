@@ -1,13 +1,13 @@
 import SwiftUI
 import ShareKit
 
-/// 顶部本机信息卡。明显区别于设备列表，避免被误认为是"自己也在列表里"。
+/// 顶部本机信息卡。Liquid Glass 容器，区别于设备列表。
 struct SelfBanner: View {
     @EnvironmentObject var engine: ShareEngine
 
     var body: some View {
         HStack(spacing: 16) {
-            // 本机头像（渐变圆 + 天线 icon）
+            // 本机头像
             ZStack {
                 Circle()
                     .fill(LinearGradient(
@@ -18,22 +18,25 @@ struct SelfBanner: View {
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.white)
             }
-            .shadow(color: .blue.opacity(0.25), radius: 8, y: 4)
+            .shadow(color: .blue.opacity(0.3), radius: 10, y: 4)
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
                     Text(engine.displayName)
-                        .font(.title2.weight(.semibold))
-                    Text("（本机）")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.title3.weight(.semibold))
+                    Text("本机")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.blue.opacity(0.85)))
                 }
                 HStack(spacing: 6) {
                     Circle()
                         .fill(Color.green)
                         .frame(width: 7, height: 7)
                     Text("正在广播 · 指纹 \(engine.identity.fingerprint.prefix(8))")
-                        .font(.caption.weight(.regular))
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .monospaced()
                 }
@@ -42,20 +45,19 @@ struct SelfBanner: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(engine.devices.count)")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
                     .foregroundStyle(.tint)
                 Text("可见设备")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(20)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(22)
+        .liquidGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.4), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
+        .shadow(color: .black.opacity(0.10), radius: 18, y: 6)
     }
 }

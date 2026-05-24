@@ -7,10 +7,10 @@ struct DeviceArea: View {
     @State private var sendingTo: Device?
     @State private var hoveredID: String?
 
-    private let columns = [GridItem(.adaptive(minimum: 220, maximum: 280), spacing: 16)]
+    private let columns = [GridItem(.adaptive(minimum: 230, maximum: 280), spacing: 18)]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Text("附近设备")
                     .font(.title3.weight(.semibold))
@@ -25,11 +25,12 @@ struct DeviceArea: View {
                 }
                 Spacer()
             }
+            .padding(.leading, 4)
 
             if engine.devices.isEmpty {
                 emptyState
             } else {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: 18) {
                     ForEach(engine.devices) { device in
                         DeviceCard(device: device, isHovered: hoveredID == device.id)
                             .onHover { hoveredID = $0 ? device.id : nil }
@@ -39,14 +40,14 @@ struct DeviceArea: View {
             }
         }
         .sheet(item: $sendingTo) { device in
-            SendTextSheet(device: device).environmentObject(engine)
+            SendSheet(device: device).environmentObject(engine)
         }
     }
 
     private var emptyState: some View {
         VStack(spacing: 14) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 40, weight: .light))
+                .font(.system(size: 42, weight: .light))
                 .foregroundStyle(.secondary.opacity(0.6))
             Text("正在搜索附近设备…")
                 .font(.body.weight(.medium))
@@ -58,14 +59,12 @@ struct DeviceArea: View {
                 .padding(.horizontal, 24)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 56)
-        .background(.regularMaterial.opacity(0.6))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(.vertical, 60)
+        .liquidGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
-/// 单个设备卡片：渐变 OS 徽标 + 名称 + 副标题 + 发送提示。
-/// hover 时阴影加深、轻微缩放，给出可点击反馈。
+/// 单个设备卡片。Liquid Glass 容器 + 渐变 OS 徽标。
 struct DeviceCard: View {
     let device: Device
     let isHovered: Bool
@@ -73,21 +72,22 @@ struct DeviceCard: View {
     var body: some View {
         VStack(spacing: 14) {
             ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
                     .fill(LinearGradient(
                         colors: gradientColors,
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing))
-                    .frame(width: 64, height: 64)
+                    .frame(width: 68, height: 68)
                 Image(systemName: icon)
-                    .font(.system(size: 28, weight: .medium))
+                    .font(.system(size: 30, weight: .medium))
                     .foregroundStyle(.white)
             }
-            .shadow(color: gradientColors.first?.opacity(0.3) ?? .clear, radius: 8, y: 4)
+            .shadow(color: gradientColors.first?.opacity(0.35) ?? .clear,
+                    radius: 10, y: 5)
 
             VStack(spacing: 3) {
                 Text(device.name)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
                 Text(subtitle)
@@ -96,30 +96,34 @@ struct DeviceCard: View {
                     .lineLimit(1)
             }
 
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 Image(systemName: "paperplane.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 11))
                 Text("发送")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12, weight: .semibold))
             }
-            .foregroundStyle(.tint)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 6)
-            .background(Color.accentColor.opacity(0.12))
-            .clipShape(Capsule())
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 7)
+            .background(
+                Capsule().fill(LinearGradient(
+                    colors: gradientColors,
+                    startPoint: .leading,
+                    endPoint: .trailing))
+            )
+            .shadow(color: gradientColors.first?.opacity(0.3) ?? .clear, radius: 6, y: 3)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
+        .padding(.vertical, 22)
         .padding(.horizontal, 16)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .liquidGlass(in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(Color.white.opacity(isHovered ? 0.6 : 0.3), lineWidth: 1)
         )
-        .shadow(color: .black.opacity(isHovered ? 0.14 : 0.06),
-                radius: isHovered ? 16 : 10, y: isHovered ? 6 : 3)
-        .scaleEffect(isHovered ? 1.02 : 1.0)
+        .shadow(color: .black.opacity(isHovered ? 0.16 : 0.08),
+                radius: isHovered ? 18 : 12, y: isHovered ? 7 : 4)
+        .scaleEffect(isHovered ? 1.03 : 1.0)
         .animation(.spring(response: 0.32, dampingFraction: 0.8), value: isHovered)
         .contentShape(Rectangle())
     }
