@@ -161,7 +161,11 @@ public sealed record MockTrust(
     string LastSeen,
     bool RememberAllowed);
 
-/// <summary>COMMON §9 数据 C# 化，所有页面共用。</summary>
+/// <summary>
+/// COMMON §9 设计语言数据样本 —— 仅供 XAML designer preview 和单元测试用。
+/// runtime 一律走 ShareEngine + EngineProjection，不要在 release path 引用本类。
+/// </summary>
+#if DEBUG
 public static class MockData
 {
     public static readonly MockMe Me = new();
@@ -246,7 +250,7 @@ public static class MockData
     };
 }
 
-/// <summary>给 XAML ItemsControl 用的可观察集合工厂。</summary>
+/// <summary>给 XAML ItemsControl 用的可观察集合工厂（仅 designer preview 用）。</summary>
 public static class MockObs
 {
     public static ObservableCollection<MockDevice> Devices() => new(MockData.Devices);
@@ -256,3 +260,4 @@ public static class MockObs
     public static ObservableCollection<MockMessage> ChatWithLily() => new(MockData.ChatWithLily);
     public static ObservableCollection<MockTrust> Trusted() => new(MockData.Trusted);
 }
+#endif

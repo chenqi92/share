@@ -33,13 +33,16 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <Ellipse Width="6" Height="6" Fill="{ThemeResource MdLimeDeepBrush}"/>
-                    <TextBlock Text="5 ONLINE" Style="{StaticResource MdMonoTagStyle}"
+                    <TextBlock x:Name="OnlineCount" Text="0 ONLINE"
+                               Style="{StaticResource MdMonoTagStyle}"
                                Foreground="{ThemeResource MdLimeDeepBrush}"/>
                 </StackPanel>
             </Grid>
 
-            <!-- Live transfer mini bar -->
-            <Border CornerRadius="10"
+            <!-- Live transfer mini bar (隐藏除非有进行中传输，ShareEngine 暂未提供 inflight 状态) -->
+            <Border x:Name="LiveTransferBar"
+                    Visibility="Collapsed"
+                    CornerRadius="10"
                     Background="{ThemeResource MdPaper2Brush}"
                     Padding="12,10,12,10">
                 <StackPanel Spacing="6">
@@ -53,26 +56,22 @@
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    Foreground="{ThemeResource MdFlameBrush}"
                                    FontWeight="Bold"/>
-                        <TextBlock Grid.Column="1" Text="datasets-2026Q1.parquet"
+                        <TextBlock x:Name="LiveTransferName" Grid.Column="1" Text=""
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontWeight="SemiBold" FontSize="12"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Grid.Column="2" Text="73% · 46.8 MB/s"
+                        <TextBlock x:Name="LiveTransferStat" Grid.Column="2" Text=""
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    FontSize="10"
                                    Foreground="{ThemeResource MdFlameBrush}"/>
                     </Grid>
-                    <ProgressBar Value="73" Maximum="100" Height="4"
+                    <ProgressBar x:Name="LiveTransferBarValue" Value="0" Maximum="100" Height="4"
                                  Background="{ThemeResource MdInk12Brush}"
                                  Foreground="{ThemeResource MdFlameBrush}"/>
-                    <TextBlock Text="→ 孟茜 · ETA 00:02"
-                               FontFamily="{StaticResource MdMonoFontFamily}"
-                               FontSize="10"
-                               Opacity="0.6"/>
                 </StackPanel>
             </Border>
 
-            <ctrl:AsciiDivider Label="── NEARBY · 5 ──"/>
+            <ctrl:AsciiDivider x:Name="NearbyDivider" Label="── NEARBY ──"/>
 
             <ItemsControl ItemsSource="{x:Bind Devices}">
                 <ItemsControl.ItemsPanel>
@@ -99,7 +98,12 @@
                                     <Run Text="{x:Bind Os}"/><Run Text=" · "/><Run Text="{x:Bind Rtt}"/><Run Text=" ms"/>
                                 </TextBlock>
                             </StackPanel>
-                            <Button Grid.Column="2" Style="{StaticResource MdOutlineButtonStyle}" Padding="10,4,10,4">
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource MdOutlineButtonStyle}"
+                                    Padding="10,4,10,4"
+                                    Tag="{x:Bind Id}"
+                                    Click="SendClipboard_Click"
+                                    ToolTipService.ToolTip="把剪贴板里的文字 / URL 立即发给该设备">
                                 <TextBlock Text="发送" FontSize="11"/>
                             </Button>
                         </Grid>
