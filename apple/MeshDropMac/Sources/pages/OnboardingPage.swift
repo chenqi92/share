@@ -18,7 +18,7 @@ struct OnboardingPage: View {
             HStack(spacing: 32) {
                 // 左侧渲染图
                 VStack(alignment: .center, spacing: 14) {
-                    Radar(devices: Array(MockDevice.all.prefix(4)),
+                    Radar(devices: OnboardingPage.demoDevices,
                           variant: .sweep,
                           staticTime: 0.6)
                         .frame(width: 400, height: 400)
@@ -121,4 +121,14 @@ struct OnboardingPage: View {
             .fill(active ? MeshDropColor.ink : MeshDropColor.divider)
             .frame(width: active ? 22 : 6, height: 6)
     }
+}
+
+private extension OnboardingPage {
+    /// onboarding 雷达背景的演示设备（不连真实 engine，纯装饰）。
+    static let demoDevices: [MockDevice] = [
+        MockDevice(id: "demo-1", name: "Lily · MacBook",    who: "李莉", kind: .mac,     dist: 0.55, angle: 35,  color: Color(red: 1.00, green: 0.71, blue: 0.63), initials: "LL", os: "macOS",  rtt: 18, online: true),
+        MockDevice(id: "demo-2", name: "Kun · Pixel 8",     who: "坤",   kind: .android, dist: 0.78, angle: 110, color: Color(red: 0.72, green: 0.90, blue: 0.78), initials: "K",  os: "Pixel",  rtt: 32, online: true),
+        MockDevice(id: "demo-3", name: "Jiawei · iPad",     who: "嘉伟", kind: .ipad,    dist: 0.40, angle: 200, color: Color(red: 0.78, green: 0.72, blue: 1.00), initials: "JW", os: "iPadOS", rtt: 14, online: true),
+        MockDevice(id: "demo-4", name: "Meng Xi · iPhone",  who: "孟茜", kind: .ios,     dist: 0.62, angle: 265, color: Color(red: 1.00, green: 0.85, blue: 0.44), initials: "MX", os: "iOS",    rtt: 26, online: true),
+    ]
 }

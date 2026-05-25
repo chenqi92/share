@@ -2,6 +2,11 @@ import Foundation
 import SwiftUI
 
 // MARK: ─── 设备 ─────────────────────────────────────────
+//
+// 这里的 `Mock*` 类型 (`MockDevice`, `MockHistory`, etc.) 是 view DTO，runtime 由
+// `ShareEngine` 模型经 adapter 投影成这些 record，给 SwiftUI 复用。
+// `static let all` 等静态数据数组仅供 Xcode Preview / 离线截图用 —— 已用 `#if DEBUG`
+// 围起来，release build 不含；运行时的数据全部来自 engine。
 
 enum DeviceKind: String, CaseIterable {
     case mac, win, ios, android, ipad
@@ -20,6 +25,7 @@ struct MockDevice: Identifiable, Hashable {
     let rtt: Int              // ms
     let online: Bool
 
+#if DEBUG
     static let all: [MockDevice] = [
         .init(id: "lily",    name: "Lily's MacBook",   who: "李莉",   kind: .mac,     dist: 0.55, angle: 35,  color: Color(hex: 0xFFB4A1), initials: "LL", os: "macOS",  rtt: 18, online: true),
         .init(id: "kun",     name: "Kun · Pixel 8",    who: "坤",     kind: .android, dist: 0.78, angle: 110, color: Color(hex: 0xB7E5C8), initials: "K",  os: "Pixel",  rtt: 32, online: true),
@@ -27,6 +33,7 @@ struct MockDevice: Identifiable, Hashable {
         .init(id: "mengxi",  name: "Meng Xi · iPhone", who: "孟茜",   kind: .ios,     dist: 0.62, angle: 265, color: Color(hex: 0xFFD970), initials: "MX", os: "iOS",    rtt: 26, online: true),
         .init(id: "dev01",   name: "DEV-01 · Win 11",  who: "工位机", kind: .win,     dist: 0.88, angle: 320, color: Color(hex: 0x9AD0FF), initials: "D1", os: "Win 11", rtt: 41, online: true),
     ]
+#endif
 }
 
 // MARK: ─── 历史 ─────────────────────────────────────────
@@ -49,6 +56,7 @@ struct MockHistory: Identifiable {
     var progress: Int? = nil
     let status: HistoryStatus
 
+#if DEBUG
     static let all: [MockHistory] = [
         .init(id: "h6", dir: .incoming, peer: "孟茜", time: "14:18", kind: .image,                                                        count: 2,            status: .done),
         .init(id: "h5", dir: .outgoing, peer: "孟茜", time: "14:10", kind: .file,  name: "设计稿_v3_final.fig",     size: "14.2 MB", ext: "fig",                       status: .done),
@@ -57,6 +65,7 @@ struct MockHistory: Identifiable {
         .init(id: "h2", dir: .incoming, peer: "坤",   time: "13:58", kind: .file,  name: "IMG_4821~38.heic",       size: "128 MB",  ext: "heic", progress: 12,          status: .transferring),
         .init(id: "h1", dir: .outgoing, peer: "李莉", time: "13:42", kind: .file,  name: "demo-video.mp4",         size: "512 MB",  ext: "mp4",                         status: .queued),
     ]
+#endif
 }
 
 // MARK: ─── 待审 ─────────────────────────────────────────
@@ -109,6 +118,7 @@ struct MockClip: Identifiable {
     let lang: String?
     let ago: String
 
+#if DEBUG
     static let all: [MockClip] = [
         .init(id: "cb1", who: "嘉伟", kind: .link, body: "https://internal.acme.io/specs/auth-v3", lang: nil, ago: "8s"),
         .init(id: "cb2", who: "孟茜", kind: .text, body: "1. 新流程要支持端到端\n2. 雷达扫描频率调到 2s\n3. iPad 端做横屏适配", lang: nil, ago: "12m"),
@@ -116,6 +126,7 @@ struct MockClip: Identifiable {
         .init(id: "cb4", who: "坤",   kind: .text, body: "会议室 B 已订到 16:00–17:30", lang: nil, ago: "1h"),
         .init(id: "cb5", who: "我",   kind: .link, body: "figma://file/Q8xK2/MeshDrop?node-id=42:108", lang: nil, ago: "2h"),
     ]
+#endif
 }
 
 // MARK: ─── 传输 ─────────────────────────────────────────
@@ -134,6 +145,7 @@ struct MockTransfer: Identifiable {
     let speed: String?
     let eta: String?
 
+#if DEBUG
     static let all: [MockTransfer] = [
         .init(name: "设计稿_v3_final.fig",     size: "14.2 MB",          ext: "fig",  from: "我", to: "孟茜",  progress: 100, state: .done,      speed: nil,            eta: "00:08"),
         .init(name: "iOS-mocks-final.zip",     size: "48.6 MB",          ext: "zip",  from: "我", to: "孟茜",  progress: 67,  state: .sending,   speed: "8.4 MB/s",      eta: "00:02"),
@@ -142,6 +154,7 @@ struct MockTransfer: Identifiable {
         .init(name: "release-notes.md",        size: "4.8 KB",           ext: "md",   from: "我", to: "DEV-01", progress: 100, state: .done,     speed: nil,            eta: "00:01"),
         .init(name: "demo-video.mp4",          size: "512 MB",           ext: "mp4",  from: "我", to: "李莉",  progress: 0,   state: .queued,    speed: nil,            eta: nil),
     ]
+#endif
 }
 
 // MARK: ─── 速度 ─────────────────────────────────────────
@@ -176,6 +189,7 @@ struct MockTrustedDevice: Identifiable {
     let lastSeen: String
     let online: Bool
 
+#if DEBUG
     static let all: [MockTrustedDevice] = [
         .init(id: "t1", name: "Lily's MacBook",   who: "李莉", kind: .mac,     fingerprint: "ZX8K · L72M · 9FQ3 · 7HD2", pairedAt: "2026-04-12", lastSeen: "刚刚",       online: true),
         .init(id: "t2", name: "Meng Xi · iPhone", who: "孟茜", kind: .ios,     fingerprint: "P4R7 · KQ2X · L9MN · 7CA1", pairedAt: "2026-03-28", lastSeen: "刚刚",       online: true),
@@ -184,4 +198,5 @@ struct MockTrustedDevice: Identifiable {
         .init(id: "t5", name: "DEV-01 · Win 11",  who: "工位机", kind: .win,   fingerprint: "T2W8 · KR5N · MX9P · BLH6", pairedAt: "2026-01-09", lastSeen: "刚刚",       online: true),
         .init(id: "t6", name: "MBP-2019",         who: "我",   kind: .mac,     fingerprint: "QZ7X · 8RTM · K3PN · 9LWY", pairedAt: "2025-11-22", lastSeen: "5 天前",    online: false),
     ]
+#endif
 }

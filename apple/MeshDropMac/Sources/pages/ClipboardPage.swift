@@ -25,13 +25,20 @@ struct ClipboardPage: View {
                         .foregroundStyle(MeshDropColor.textMuted)
                 }
 
-                AsciiDivider(text: "INBOX · 收件箱 · 5")
+                AsciiDivider(text: "INBOX · 收件箱 · 0")
 
-                VStack(spacing: 10) {
-                    ForEach(MockClip.all) { c in
-                        clipRow(c)
-                    }
+                // 剪贴板同步尚未实装：ShareEngine 暂无 clipboard channel，
+                // 待协议加 clip 类型消息后再接，这里先显示空态而非旧 mock 数据。
+                VStack(spacing: 8) {
+                    Text("剪贴板同步尚未启用")
+                        .font(MeshDropFont.body(size: 13, weight: .medium))
+                        .foregroundStyle(MeshDropColor.textMuted)
+                    Text("收发文字 / 文件后会在这里出现历史记录")
+                        .font(MeshDropFont.mono(size: 10))
+                        .foregroundStyle(MeshDropColor.textMuted.opacity(0.7))
                 }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 22)

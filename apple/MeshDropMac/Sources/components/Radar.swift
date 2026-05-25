@@ -1,10 +1,11 @@
+import Darwin
 import SwiftUI
 
 enum RadarVariant { case sweep, pulse, grid, orbit }
 
 /// 核心组件。中心 60×60 实心黑圆 + 同心 3 环 + sweep / pulse 变体 + 设备点。
 struct Radar: View {
-    var devices: [MockDevice] = MockDevice.all
+    var devices: [MockDevice] = []
     var variant: RadarVariant = .sweep
     var selectedDeviceID: String? = nil
     /// 由 caller 注入 TimelineView date —— 这样静态 ImageRenderer 也能给出"特定时刻"快照。
@@ -81,7 +82,7 @@ struct Radar: View {
                         Text("YOU")
                             .font(MeshDropFont.mono(size: 10, weight: .bold))
                             .foregroundStyle(scheme == .dark ? MeshDropColor.ink : MeshDropColor.paper)
-                        Text(MockMe.ip)
+                        Text(Radar.localAddressOrPlaceholder())
                             .font(MeshDropFont.mono(size: 7))
                             .foregroundStyle(scheme == .dark ? MeshDropColor.ink60 : MeshDropColor.paper.opacity(0.7))
                     }
@@ -176,5 +177,33 @@ private struct DeviceDot: View {
                 .frame(width: 36, height: 36)
             Avatar(initials: device.initials, color: device.color, size: 30)
         }
+    }
+
+    /// 取本机第一块非 loopback IPv4 地址；拿不到时显示占位。
+    /// 仅用于雷达中心 "YOU" 标签的副文案，不参与协议。
+    static func localAddressOrPlaceholder() -> String {
+        var address: String?
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return "—" }
+        defer { freeifaddrs(ifaddr) }
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while let cur = ptr {
+            let flags = Int32(cur.pointee.ifa_flags)
+            let addr = cur.pointee.ifa_addr.pointee
+            if (flags & (IFF_UP | IFF_RUNNING)) == (IFF_UP | IFF_RUNNING),
+               (flags & IFF_LOOPBACK) == 0,
+               addr.sa_family == UInt8(AF_INET) {
+                var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                if getnameinfo(cur.pointee.ifa_addr,
+                               socklen_t(cur.pointee.ifa_addr.pointee.sa_len),
+                               &host, socklen_t(host.count),
+                               nil, 0, NI_NUMERICHOST) == 0 {
+                    address = String(cString: host)
+                    break
+                }
+            }
+            ptr = cur.pointee.ifa_next
+        }
+        return address ?? "—"
     }
 }
