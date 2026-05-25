@@ -3,11 +3,11 @@ import { Chip } from '../components/Chip'
 import { FileCard } from '../components/FileCard'
 import { StatusBar } from '../components/StatusBar'
 import {
-  MESHDROP_DEVICES,
   MESHDROP_HISTORY_BY_DAY,
   MESHDROP_ME,
   type HistoryEntry,
 } from '../lib/mockData'
+import { useEngine } from '../hooks/useEngine'
 
 function statusChip(item: HistoryEntry) {
   if (item.status === 'transferring') return <Chip tone="flame" mono>↑ {item.progress}% · 进行中</Chip>
@@ -152,7 +152,11 @@ function HistoryCell({ item }: { item: HistoryEntry }) {
 }
 
 export function HistoryPage() {
-  const peerCount = MESHDROP_DEVICES.filter((d) => d.online).length
+  const devices = useEngine((s) => s.devices)
+  const liveHistory = useEngine((s) => s.history)
+  const mode = useEngine((s) => s.mode)
+  const peerCount = devices.filter((d) => d.online).length
+  const history = mode === 'live' ? liveHistory : MESHDROP_HISTORY_BY_DAY
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -195,7 +199,15 @@ export function HistoryPage() {
           </div>
         </header>
 
-        {MESHDROP_HISTORY_BY_DAY.map((day) => (
+        {history.length === 0 && (
+          <div style={{
+            padding: '40px 20px', textAlign: 'center', color: 'var(--text-faint)',
+            fontFamily: '"Geist Mono", monospace', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase',
+          }}>
+            还没有任何收发 · NO HISTORY YET
+          </div>
+        )}
+        {history.map((day) => (
           <section key={day.label} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <AsciiDivider label={`—— ${day.label} ——`} />
             <div

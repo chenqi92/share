@@ -5,9 +5,10 @@ interface Props {
   connected?: boolean
   guestMode?: boolean
   hostIp?: string
+  modeLabel?: string
 }
 
-export function StatusBar({ peerCount, connected = true, guestMode = true, hostIp = '192.168.1.42' }: Props) {
+export function StatusBar({ peerCount, connected = true, guestMode = true, hostIp = '192.168.1.42', modeLabel }: Props) {
   return (
     <div
       style={{
@@ -45,6 +46,7 @@ export function StatusBar({ peerCount, connected = true, guestMode = true, hostI
       <span style={{ opacity: 0.4 }}>·</span>
       <span style={{ textTransform: 'none', letterSpacing: '0.02em' }}>{hostIp}</span>
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
+        {modeLabel && <Chip tone="outline" mono>{modeLabel}</Chip>}
         {guestMode && <Chip tone="outline" mono>访客身份 · GUEST</Chip>}
         <Chip tone="outline" mono>关页即销毁</Chip>
       </span>

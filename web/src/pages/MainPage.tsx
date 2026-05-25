@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { HeroBand } from '../components/HeroBand'
 import { DropZone } from '../components/DropZone'
 import { PeerRow } from '../components/PeerRow'
@@ -7,15 +7,24 @@ import { Chip } from '../components/Chip'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { FileCard } from '../components/FileCard'
 import { Modal } from '../components/Modal'
-import { useMockEngine } from '../hooks/useMockEngine'
+import { useEngine } from '../hooks/useEngine'
 import { MESHDROP_ME } from '../lib/mockData'
 
 export function MainPage() {
-  const { devices, selectedPeerId, selectPeer, transfers } = useMockEngine()
+  const devices = useEngine((s) => s.devices)
+  const selectedPeerId = useEngine((s) => s.selectedPeerId)
+  const selectPeer = useEngine((s) => s.selectPeer)
+  const transfers = useEngine((s) => s.transfers)
+  const sendText = useEngine((s) => s.sendText)
+  const sendFiles = useEngine((s) => s.sendFiles)
+  const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
+
   const [dragOverPeer, setDragOverPeer] = useState<string | undefined>()
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const [toast, setToast] = useState<string | undefined>()
+  const shareHandled = useRef(false)
 
   const selected = devices.find((d) => d.id === selectedPeerId)
   const peerCount = devices.filter((d) => d.online).length
@@ -24,6 +33,44 @@ export function MainPage() {
   const fireToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(undefined), 2400)
+  }
+
+  // Web Share Target 入口：URL 上带 ?share_title / ?share_text / ?share_url 时
+  // 自动填入粘贴对话框，等用户选 peer 后再发。
+  useEffect(() => {
+    if (shareHandled.current) return
+    const q = new URLSearchParams(window.location.search)
+    const t = [q.get('share_title'), q.get('share_text'), q.get('share_url')].filter(Boolean).join('\n')
+    if (t) {
+      shareHandled.current = true
+      setPasteText(t)
+      setPasteOpen(true)
+    }
+  }, [])
+
+  const handleDropFiles = async (peerId: string, files: File[]) => {
+    if (!files.length) return
+    try {
+      await sendFiles(peerId, files)
+      fireToast(`已发送 ${files.length} 个文件给 ${devices.find((d) => d.id === peerId)?.who ?? peerId}`)
+    } catch (e) {
+      fireToast(`发送失败：${(e as Error).message}`)
+    }
+  }
+
+  const handleSendText = async () => {
+    const text = pasteText.trim()
+    if (!text) { setPasteOpen(false); return }
+    const peerId = selectedPeerId ?? devices[0]?.id
+    if (!peerId) { fireToast('没有可发送的设备'); setPasteOpen(false); return }
+    setPasteOpen(false)
+    setPasteText('')
+    try {
+      await sendText(peerId, text)
+      fireToast(`已发送文字给 ${devices.find((d) => d.id === peerId)?.who ?? peerId}`)
+    } catch (e) {
+      fireToast(`发送失败：${(e as Error).message}`)
+    }
   }
 
   return (
@@ -88,9 +135,14 @@ export function MainPage() {
                   dragOver={dragOverPeer === d.id}
                   onSelect={() => selectPeer(d.id)}
                   onDragOver={(over) => setDragOverPeer(over ? d.id : undefined)}
-                  onDrop={() => {
+                  onDrop={(e) => {
                     setDragOverPeer(undefined)
-                    fireToast(`已发送给 ${d.who}（mock）`)
+                    const files = Array.from(e.dataTransfer?.files ?? [])
+                    if (files.length) {
+                      void handleDropFiles(d.id, files)
+                    } else {
+                      fireToast(`已选中 ${d.who}，拖文件或粘贴文字发送`)
+                    }
                   }}
                 />
               ))}
@@ -158,7 +210,11 @@ export function MainPage() {
           {/* Drop zone */}
           <DropZone
             selectedPeerName={selected?.who}
-            onFiles={() => fireToast('已添加文件（mock）')}
+            onFiles={(files) => {
+              const peerId = selectedPeerId ?? devices[0]?.id
+              if (!peerId) { fireToast('请先选择一台设备'); return }
+              void handleDropFiles(peerId, files)
+            }}
             onPasteText={() => setPasteOpen(true)}
             forceHighlight={!!dragOverPeer}
           />
@@ -222,7 +278,11 @@ export function MainPage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar
+        peerCount={peerCount}
+        hostIp={MESHDROP_ME.hostIp}
+        modeLabel={mode === 'live' ? `LIVE · ${conn.toUpperCase()}` : 'OFFLINE PREVIEW'}
+      />
 
       <Modal
         open={pasteOpen}
@@ -261,11 +321,7 @@ export function MainPage() {
             取消
           </button>
           <button
-            onClick={() => {
-              setPasteOpen(false)
-              setPasteText('')
-              fireToast(`已发送文字给 ${selected?.who ?? '所有人'}（mock）`)
-            }}
+            onClick={() => { void handleSendText() }}
             style={{
               padding: '8px 14px',
               borderRadius: 10,

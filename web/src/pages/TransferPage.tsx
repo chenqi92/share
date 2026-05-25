@@ -5,20 +5,24 @@ import { StatusBar } from '../components/StatusBar'
 import { TransferRow } from '../components/TransferRow'
 import { AsciiDivider } from '../components/AsciiDivider'
 import {
-  MESHDROP_DEVICES,
   MESHDROP_DOWNLOAD_BARS,
   MESHDROP_ME,
   MESHDROP_TRANSFERS,
   MESHDROP_UPLOAD_BARS,
 } from '../lib/mockData'
+import { useEngine } from '../hooks/useEngine'
 
 const FILTERS = ['全部 · ALL', '发送 · SEND', '接收 · RECV', '完成 · DONE', '失败 · FAIL'] as const
 
 export function TransferPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('全部 · ALL')
-  const peerCount = MESHDROP_DEVICES.filter((d) => d.online).length
+  const devices = useEngine((s) => s.devices)
+  const transfers = useEngine((s) => s.transfers)
+  const mode = useEngine((s) => s.mode)
+  const peerCount = devices.filter((d) => d.online).length
+  const source = mode === 'live' ? transfers : MESHDROP_TRANSFERS
 
-  const rows = MESHDROP_TRANSFERS.filter((t) => {
+  const rows = source.filter((t) => {
     if (filter === '发送 · SEND') return t.state === 'sending' || t.state === 'queued'
     if (filter === '接收 · RECV') return t.state === 'receiving'
     if (filter === '完成 · DONE') return t.state === 'done'

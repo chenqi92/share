@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEngineConnection } from './hooks/useEngine'
 import { BrowserChrome } from './components/BrowserChrome'
 import { MainPage } from './pages/MainPage'
 import { ReceivePage } from './pages/ReceivePage'
@@ -27,6 +28,7 @@ function initialPage(): PageId {
 }
 
 export function App() {
+  useEngineConnection()
   const { mode, setMode } = useTheme()
   const [page, setPage] = useState<PageId>(() => initialPage())
 
