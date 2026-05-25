@@ -71,6 +71,24 @@ targets:
       - ../MeshDropShareExtensionIOS/Sources
     info:
       path: ../MeshDropShareExtensionIOS/Info.plist
+      properties:
+        CFBundleDisplayName: MeshDrop
+        CFBundleName: MeshDropShareExtension
+        CFBundlePackageType: XPC!
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionMainStoryboard: ""
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 5
+              NSExtensionActivationSupportsImageWithMaxCount: 20
+              NSExtensionActivationSupportsMovieWithMaxCount: 10
+              NSExtensionActivationSupportsFileWithMaxCount: 20
+              NSExtensionActivationSupportsAttachmentsWithMaxCount: 20
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop.share
