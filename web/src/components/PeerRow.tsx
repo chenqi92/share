@@ -1,3 +1,4 @@
+import type { DragEvent } from 'react'
 import type { MeshDevice } from '../lib/mockData'
 import { Avatar } from './Avatar'
 import { KindGlyph } from './KindGlyph'
@@ -7,7 +8,7 @@ interface Props {
   selected?: boolean
   dragOver?: boolean
   onSelect?: () => void
-  onDrop?: () => void
+  onDrop?: (e: DragEvent<HTMLButtonElement>) => void
   onDragOver?: (over: boolean) => void
 }
 
@@ -28,7 +29,7 @@ export function PeerRow({ device, selected, dragOver, onSelect, onDrop, onDragOv
       onDrop={(e) => {
         e.preventDefault()
         onDragOver?.(false)
-        onDrop?.()
+        onDrop?.(e)
       }}
       style={{
         display: 'flex',

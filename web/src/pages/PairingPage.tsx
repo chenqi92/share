@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
-import { MESHDROP_DEVICES, MESHDROP_ME } from '../lib/mockData'
+import { MESHDROP_ME } from '../lib/mockData'
+import { useEngine } from '../hooks/useEngine'
 
 function FakeQr({ size = 220 }: { size?: number }) {
   // 21×21 deterministic-looking pattern with the three locator squares.
@@ -57,7 +59,32 @@ function FakeQr({ size = 220 }: { size?: number }) {
 }
 
 export function PairingPage() {
-  const peerCount = MESHDROP_DEVICES.filter((d) => d.online).length
+  const devices = useEngine((s) => s.devices)
+  const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
+  const pair = useEngine((s) => s.pair)
+  const forgetSession = useEngine((s) => s.forgetSession)
+  const pendingPairing = useEngine((s) => s.pendingPairing)
+  const acceptPairing = useEngine((s) => s.acceptPairing)
+  const rejectPairing = useEngine((s) => s.rejectPairing)
+  const peerCount = devices.filter((d) => d.online).length
+  const [code, setCode] = useState('')
+  const [pairing, setPairing] = useState(false)
+  const [pairErr, setPairErr] = useState<string | undefined>()
+
+  const submitCode = async () => {
+    setPairErr(undefined)
+    setPairing(true)
+    try {
+      const ok = await pair(code.trim())
+      if (!ok) setPairErr('代码无效或已过期')
+      else setCode('')
+    } catch (e) {
+      setPairErr((e as Error).message)
+    } finally {
+      setPairing(false)
+    }
+  }
   const steps: { idx: string; title: string; body: string }[] = [
     { idx: '1', title: '同一局域网', body: '确认两台设备连在同一 Wi-Fi 或交换机下，没有客户端隔离。' },
     { idx: '2', title: '扫一扫 / 输入代码', body: '原生 App 里点 "添加设备"，扫描右侧 QR 或手动输入下方 6 字符代码。' },
@@ -77,6 +104,109 @@ export function PairingPage() {
           gap: 22,
         }}
       >
+        {mode === 'live' && (
+          <section
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Chip tone={conn === 'open' ? 'lime' : 'outline'} mono>
+                  {conn === 'open' ? '● ONLINE · 已连接 gateway'
+                    : conn === 'unpaired' ? '○ 未配对 · UNPAIRED'
+                    : conn === 'connecting' ? '◌ 连接中 · CONNECTING'
+                    : `● ${conn.toUpperCase()}`}
+                </Chip>
+                <span style={{
+                  fontFamily: '"Geist Mono", monospace', fontSize: 10.5,
+                  color: 'var(--text-mute)', letterSpacing: '0.08em', textTransform: 'uppercase',
+                }}>WEB GATEWAY · /api/v1/control</span>
+              </div>
+              {conn === 'open' && (
+                <button
+                  onClick={() => forgetSession()}
+                  style={{
+                    padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)',
+                    background: 'transparent', color: 'var(--text-mute)', fontSize: 11,
+                    fontFamily: '"Geist Mono", monospace', letterSpacing: '0.08em', textTransform: 'uppercase',
+                  }}
+                >
+                  解配 · UNPAIR
+                </button>
+              )}
+            </div>
+            {(conn === 'unpaired' || conn === 'closed' || conn === 'idle') && (
+              <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9·-]/g, ''))}
+                  onKeyDown={(e) => { if (e.key === 'Enter') void submitCode() }}
+                  placeholder="LR · 4K7M"
+                  spellCheck={false}
+                  style={{
+                    flex: '1 1 220px', minWidth: 200,
+                    padding: '10px 14px', borderRadius: 10,
+                    background: 'var(--bg)', border: '1px solid var(--border)',
+                    color: 'var(--text)', fontFamily: '"Geist Mono", monospace',
+                    fontSize: 18, letterSpacing: '0.2em', textTransform: 'uppercase',
+                  }}
+                />
+                <button
+                  onClick={() => { void submitCode() }}
+                  disabled={pairing || !code.trim()}
+                  style={{
+                    padding: '10px 18px', borderRadius: 10,
+                    background: pairing || !code.trim() ? 'var(--border)' : 'var(--lime)',
+                    color: 'var(--ink)', fontWeight: 700, fontSize: 13.5,
+                    cursor: pairing || !code.trim() ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {pairing ? '配对中…' : '配对 →'}
+                </button>
+                <div style={{
+                  flex: '1 1 100%', color: pairErr ? 'var(--error)' : 'var(--text-faint)',
+                  fontFamily: '"Geist Mono", monospace', fontSize: 11, letterSpacing: '0.04em',
+                }}>
+                  {pairErr ?? '在 native app 顶部找到 6 字符代码，输入这里'}
+                </div>
+              </div>
+            )}
+            {pendingPairing && (
+              <div style={{
+                marginTop: 4, padding: 12, borderRadius: 10,
+                background: 'var(--flame-fill)', borderLeft: '3px solid var(--flame)',
+              }}>
+                <div style={{
+                  fontFamily: '"Geist Mono", monospace', fontSize: 10.5,
+                  color: 'var(--flame)', letterSpacing: '0.18em', textTransform: 'uppercase',
+                }}>
+                  待审配对 · {pendingPairing.peer}
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--text)', fontFamily: '"Geist Mono", monospace', lineHeight: 1.5 }}>
+                  {pendingPairing.fingerprint}
+                </div>
+                <div className="flex gap-2" style={{ marginTop: 10 }}>
+                  <button onClick={() => { void rejectPairing() }}
+                    style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 12 }}>
+                    拒绝
+                  </button>
+                  <button onClick={() => { void acceptPairing(true) }}
+                    style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--lime)', color: 'var(--ink)', fontSize: 12, fontWeight: 700 }}>
+                    信任并记住
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         <header>
           <div
             style={{

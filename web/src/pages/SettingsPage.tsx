@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
-import { MESHDROP_DEVICES, MESHDROP_ME } from '../lib/mockData'
+import { MESHDROP_ME } from '../lib/mockData'
+import { useEngine } from '../hooks/useEngine'
 
 interface ToggleRowProps {
   label: string
@@ -123,7 +124,8 @@ export function SettingsPage() {
   const [keepHistory, setKeepHistory] = useState(false)
   const [defaultPath, setDefaultPath] = useState('浏览器下载')
   const [scope, setScope] = useState('LAN 内全部')
-  const peerCount = MESHDROP_DEVICES.filter((d) => d.online).length
+  const devices = useEngine((s) => s.devices)
+  const peerCount = devices.filter((d) => d.online).length
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>

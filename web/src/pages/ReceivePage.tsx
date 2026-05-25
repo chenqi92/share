@@ -1,4 +1,5 @@
-import { MESHDROP_PENDING_OFFER, MESHDROP_DEVICES, MESHDROP_ME } from '../lib/mockData'
+import { useEngine } from '../hooks/useEngine'
+import { MESHDROP_ME, MESHDROP_PENDING_OFFER } from '../lib/mockData'
 import { Avatar } from '../components/Avatar'
 import { Chip } from '../components/Chip'
 import { FileCard } from '../components/FileCard'
@@ -7,9 +8,32 @@ import { StatusBar } from '../components/StatusBar'
 import { AsciiDivider } from '../components/AsciiDivider'
 
 export function ReceivePage() {
-  const offer = MESHDROP_PENDING_OFFER
-  const peer = MESHDROP_DEVICES.find((d) => d.who === offer.peer) ?? MESHDROP_DEVICES[2]
-  const peerCount = MESHDROP_DEVICES.filter((d) => d.online).length
+  const devices = useEngine((s) => s.devices)
+  const mode = useEngine((s) => s.mode)
+  const live = useEngine((s) => s.pendingOffer)
+  const acceptOffer = useEngine((s) => s.acceptOffer)
+  const rejectOffer = useEngine((s) => s.rejectOffer)
+  // live 模式没待审项时显示空态；preview 模式下用 mock 让 UI 不空
+  const offer = live ?? (mode === 'mock' ? MESHDROP_PENDING_OFFER : undefined)
+  const peer = offer
+    ? devices.find((d) => d.who === offer.peer) ?? devices[2] ?? { initials: '?', color: '#ccc', kind: 'mac' as const, os: '', rtt: 0 }
+    : undefined
+  const peerCount = devices.filter((d) => d.online).length
+
+  if (!offer || !peer) {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--text-faint)', fontFamily: '"Geist Mono", monospace',
+          fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase',
+        }}>
+          没有待审项 · NO PENDING OFFER
+        </div>
+        <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -179,6 +203,7 @@ export function ReceivePage() {
 
           <div className="flex gap-3" style={{ marginTop: 18 }}>
             <button
+              onClick={() => { void rejectOffer() }}
               style={{
                 flex: 1,
                 padding: '12px 18px',
@@ -193,6 +218,7 @@ export function ReceivePage() {
               ✕ 不接收
             </button>
             <button
+              onClick={() => { void acceptOffer() }}
               style={{
                 flex: 1.5,
                 padding: '12px 18px',
