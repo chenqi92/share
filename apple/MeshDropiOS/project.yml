@@ -25,6 +25,7 @@ targets:
       - path: Resources
         excludes:
           - Info.plist     # Info.plist 由 info.path 单独处理，避免重复加入
+          - MeshDropiOS.entitlements   # entitlements 单独引
     info:
       path: Resources/Info.plist
       properties:
@@ -55,6 +56,31 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: Resources/MeshDropiOS.entitlements
+    dependencies:
+      - package: MeshDropKit
+        product: MeshDropKit
+      - target: MeshDropShareExtension
+        embed: true
+        codeSign: true
+
+  MeshDropShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ../MeshDropShareExtensionIOS/Sources
+    info:
+      path: ../MeshDropShareExtensionIOS/Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop.share
+        PRODUCT_NAME: MeshDropShareExtension
+        PRODUCT_MODULE_NAME: MeshDropShareExtension
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: ../MeshDropShareExtensionIOS/MeshDropShareExtensionIOS.entitlements
+        # SLComposeServiceViewController 在 Social.framework，无需手动链接
     dependencies:
       - package: MeshDropKit
         product: MeshDropKit
