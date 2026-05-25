@@ -3,6 +3,10 @@
 *.swp
 *.bak
 *.log
+# conformance 证据目录里的 send.log / recv.log 必须入库（见 protocol/conformance-tests.md §一·证据采集）
+!**/screenshots/conformance/**/*.log
+# C4 等大文件用例的临时 4 GiB 测试文件不入库
+**/screenshots/conformance/**/bigfile.bin
 
 # 设计源稿（jsx 预览 / 截图）— 本地保留，不入库
 design/shar/
