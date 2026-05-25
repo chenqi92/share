@@ -28,7 +28,9 @@ struct PadRoot: View {
         .sheet(isPresented: $state.showOfferSheet) { FileOfferSheet() }
         .sheet(isPresented: $state.showPairingSheet) { PairingSheet() }
         .sheet(isPresented: $state.showOnboarding) { OnboardingSheet() }
+#if DEBUG
         .sheet(isPresented: $state.showShareExt) { NavigationStack { ShareExtensionMock() } }
+#endif
         .sheet(isPresented: $state.showLiveActivity) { NavigationStack { LiveActivityMock() } }
     }
 }

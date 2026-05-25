@@ -31,7 +31,9 @@ struct PhoneRoot: View {
         .sheet(isPresented: $state.showSettings) { NavigationStack { SettingsScreen() } }
         .sheet(isPresented: $state.showTrustManager) { NavigationStack { TrustManagerScreen() } }
         .sheet(isPresented: $state.showHistory) { NavigationStack { HistoryScreen() } }
+#if DEBUG
         .sheet(isPresented: $state.showShareExt) { NavigationStack { ShareExtensionMock() } }
+#endif
         .sheet(isPresented: $state.showLiveActivity) { NavigationStack { LiveActivityMock() } }
     }
 }

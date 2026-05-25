@@ -1,7 +1,8 @@
+#if DEBUG
 import SwiftUI
 
-/// Share Extension UI mock — 模拟系统 share sheet 拦截后的 MeshDrop 视图。
-/// 本轮 UI-FIRST：实际独立 target 留待下一轮接 backend 时实装。
+/// Share Extension UI mock — 仅 Xcode preview / DEBUG 构建用，演示老 share-sheet 视图。
+/// 真正的 Share Extension 已独立成 `MeshDropShareExtensionIOS` target；release path 不再引用本文件。
 struct ShareExtensionMock: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
@@ -179,3 +180,4 @@ struct ShareExtensionMock: View {
         .buttonStyle(.plain)
     }
 }
+#endif
