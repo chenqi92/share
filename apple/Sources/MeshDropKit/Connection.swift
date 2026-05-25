@@ -56,6 +56,7 @@ public actor Connection {
     public func send(type: UInt8, body: Data) async throws {
         if isClosed { throw ConnectionError.alreadyClosed }
         let frame = Frame.encode(type: type, body: body)
+        log.debug("frame tx type=0x\(String(format: "%02x", type)) len=\(frame.count)")
         try await sendRaw(frame)
     }
 
@@ -109,6 +110,7 @@ public actor Connection {
             }
             guard let f = decoded else { return }
             readBuffer.removeFirst(f.consumed)
+            log.debug("frame rx type=0x\(String(format: "%02x", f.type)) len=\(f.consumed)")
             await onMessage?(f.type, f.body)
         }
     }
