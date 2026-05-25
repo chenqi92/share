@@ -1,13 +1,16 @@
 package com.welape.meshdrop
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.IntentCompat
 import com.welape.meshdrop.ui.MeshDropApp
 import com.welape.meshdrop.ui.theme.MeshDropTheme
 
@@ -20,6 +23,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun appEngine() = (application as ShareApplication).engine
+    private fun app() = application as ShareApplication
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +33,35 @@ class MainActivity : ComponentActivity() {
             }
         }
         ensurePermissionThenStart()
+        handleShareIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleShareIntent(intent)
+    }
+
+    private fun handleShareIntent(intent: Intent?) {
+        intent ?: return
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                val type = intent.type ?: return
+                if (type.startsWith("text/")) {
+                    val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
+                    app().setPendingShare(PendingShare.Text(text))
+                } else {
+                    val uri = IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                        ?: return
+                    app().setPendingShare(PendingShare.Files(listOf(uri)))
+                }
+            }
+            Intent.ACTION_SEND_MULTIPLE -> {
+                val uris = IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
+                    ?: return
+                if (uris.isNotEmpty()) app().setPendingShare(PendingShare.Files(uris.toList()))
+            }
+        }
     }
 
     private fun ensurePermissionThenStart() {

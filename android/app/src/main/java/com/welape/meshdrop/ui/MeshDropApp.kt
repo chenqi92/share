@@ -31,4 +31,7 @@ fun MeshDropApp(
         }
     }
     if (isTablet) TabletRoot(state, engine) else PhoneRoot(state, engine)
+
+    // 外部应用 share 进来的内容，在主 UI 之上叠 overlay 让用户选目标 peer。
+    if (engine != null) PendingShareOverlay(engine)
 }
