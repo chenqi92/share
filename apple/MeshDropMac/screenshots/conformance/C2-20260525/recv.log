@@ -1,0 +1,2 @@
+# recv.log（mac 端视角）— 本次 mac 是发送方，没有 recv.log 内容可采。
+# 完整对端（android）的接收尝试 log 见 android/screenshots/conformance/C2-20260525/recv.log。
