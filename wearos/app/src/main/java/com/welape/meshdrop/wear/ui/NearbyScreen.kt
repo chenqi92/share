@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -55,6 +56,7 @@ fun NearbyScreen(
 
     val uiDevices = remember(devices) { devices.toUi() }
     var focusIndex by remember { mutableIntStateOf(0) }
+    var quickSendTarget by remember { mutableStateOf<DeviceUi?>(null) }
     LaunchedEffect(uiDevices.size) {
         if (focusIndex >= uiDevices.size) focusIndex = 0
     }
@@ -68,10 +70,21 @@ fun NearbyScreen(
             focusIndex = idx
             val target = uiDevices.getOrNull(idx) ?: return@NearbyContent
             onPick(target.id)
-            scope.launch { proxy.sendText(target.id, "👋 from Wear OS") }
+            quickSendTarget = target
         },
         onOpenReceive = onOpenReceive,
     )
+
+    quickSendTarget?.let { target ->
+        QuickSendSheet(
+            peerName = target.name,
+            onPick = { msg ->
+                quickSendTarget = null
+                scope.launch { proxy.sendText(target.id, msg) }
+            },
+            onDismiss = { quickSendTarget = null },
+        )
+    }
 }
 
 @Composable
