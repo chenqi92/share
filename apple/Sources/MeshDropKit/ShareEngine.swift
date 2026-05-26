@@ -37,8 +37,13 @@ public final class ShareEngine: ObservableObject {
 
     private var discovery: Discovery?
     private let trustStore = TrustStore()
+    private let resumeStore = ResumeStore()
     private var devicesTask: Task<Void, Never>?
     private var contexts: [UUID: ConnectionContext] = [:]
+
+    /// 接收 chunk 时每写满这么多字节就把进度刷一次 ResumeStore。
+    /// 4 MiB ≈ 16 个 256 KiB chunk —— 平衡崩溃时丢失上限和 I/O 频次。
+    private static let resumePersistInterval: UInt64 = 4 * 1024 * 1024
 
     private init() {
         self.identity = IdentityStore.loadOrCreate()
@@ -359,7 +364,7 @@ public final class ShareEngine: ObservableObject {
             await clientReceivedAck(body: body, contextID: contextID)
 
         case (.awaitingFileAccept, MessageType.fileAccept):
-            await clientStartSending(contextID: contextID)
+            await clientStartSending(contextID: contextID, acceptBody: body)
 
         case (.awaitingFileAccept, MessageType.fileReject):
             if let hid = ctx.historyID {
@@ -388,6 +393,17 @@ public final class ShareEngine: ObservableObject {
             break
 
         case (_, MessageType.fileCancel):
+            // 对端取消：接收态需删半成品 + 清 ResumeStore，避免之后被误判为可续传。
+            if case .receivingFile = ctx.state {
+                try? ctx.fileHandle?.close()
+                ctx.fileHandle = nil
+                if let saved = ctx.savedURL {
+                    try? FileManager.default.removeItem(at: saved)
+                }
+                if let peer = ctx.peer, let expected = ctx.expectedSHA256 {
+                    await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
+                }
+            }
             if let hid = ctx.historyID { updateHistoryStatus(hid, status: .canceled) }
             await closeContext(id: contextID, error: nil)
 
@@ -513,16 +529,28 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 文件发送：开始流式发 chunk
 
-    private func clientStartSending(contextID: UUID) async {
+    private func clientStartSending(contextID: UUID, acceptBody: Data) async {
         guard let ctx = contexts[contextID] else { return }
         guard case .client(_, .file(let sourceURL, let fileSize, _, _)) = ctx.role else { return }
 
+        // 解析 FILE_ACCEPT.resume_offset；接收端若有半成品文件会要求从该 offset 起发。
+        let resumeOffset: UInt64 = {
+            guard let accept = try? MessageCodec.decode(FileAcceptMessage.self, from: acceptBody) else { return 0 }
+            // 防御：对端不应给出 > fileSize 的 offset
+            return min(accept.resume_offset, fileSize)
+        }()
+
         do {
             let handle = try FileHandle(forReadingFrom: sourceURL)
+            if resumeOffset > 0 {
+                try handle.seek(toOffset: resumeOffset)
+                log.info("resume send from offset=\(resumeOffset)/\(fileSize)")
+            }
             ctx.fileHandle = handle
+            ctx.sentBytes = resumeOffset
             ctx.state = .sendingFile
             if let hid = ctx.historyID {
-                updateHistoryStatus(hid, status: .transferring(bytesDone: 0, bytesTotal: fileSize))
+                updateHistoryStatus(hid, status: .transferring(bytesDone: resumeOffset, bytesTotal: fileSize))
             }
             // 异步流式发送
             Task { await streamChunks(contextID: contextID) }
@@ -591,15 +619,103 @@ public final class ShareEngine: ObservableObject {
               let first = offer.files.first,
               let transferUUID = UUID(uuidString: offer.transfer_id) else { return }
 
-        let pending = PendingFileOffer(
-            id: transferUUID,
-            peer: peer,
-            fileName: first.name,
-            fileSize: first.size,
-            sha256: first.sha256
-        )
-        ctx.pendingOfferID = pending.id
-        pendingFileOffers.append(pending)
+        // 先查 ResumeStore 是否有匹配的中断进度。匹配键 = (peerFingerprint, sha256)。
+        // 命中且本地半成品文件仍在、大小一致、未完成 → 自动接受并发 resume_offset > 0；
+        // 不命中 → 走正常用户审批流程。
+        Task { @MainActor in
+            let resume = await self.resumeStore.find(
+                peerFingerprint: peer.fingerprint,
+                sha256: first.sha256
+            )
+            let canResume: Bool = {
+                guard let r = resume else { return false }
+                guard r.fileSize == first.size, r.bytesDone < first.size else { return false }
+                return FileManager.default.fileExists(atPath: r.savedPath)
+            }()
+
+            guard let ctx = self.contexts[contextID] else { return }
+            if canResume, let r = resume {
+                self.startAutoResumeReceive(
+                    contextID: contextID,
+                    ctx: ctx,
+                    peer: peer,
+                    transferID: transferUUID,
+                    fileMeta: first,
+                    record: r
+                )
+            } else {
+                let pending = PendingFileOffer(
+                    id: transferUUID,
+                    peer: peer,
+                    fileName: first.name,
+                    fileSize: first.size,
+                    sha256: first.sha256
+                )
+                ctx.pendingOfferID = pending.id
+                self.pendingFileOffers.append(pending)
+            }
+        }
+    }
+
+    /// 命中 ResumeStore：复用 savedURL，append-write 模式开 handle，发 FILE_ACCEPT 带 resume_offset。
+    /// 不弹用户审批 sheet — 用户在首次发起时已经同意过该 transfer。
+    private func startAutoResumeReceive(
+        contextID: UUID,
+        ctx: ConnectionContext,
+        peer: Device,
+        transferID: UUID,
+        fileMeta: FileMeta,
+        record: ResumeRecord
+    ) {
+        let savedURL = URL(fileURLWithPath: record.savedPath)
+        do {
+            let handle = try FileHandle(forWritingTo: savedURL)
+            try handle.seek(toOffset: record.bytesDone)
+            try handle.truncate(atOffset: record.bytesDone)
+            ctx.fileHandle = handle
+            ctx.savedURL = savedURL
+            ctx.fileSize = fileMeta.size
+            ctx.expectedSHA256 = fileMeta.sha256
+            ctx.transferID = transferID
+            ctx.pendingOfferID = nil
+            ctx.receivedBytes = record.bytesDone
+            ctx.lastPersistedBytes = record.bytesDone
+            ctx.state = .receivingFile
+
+            let item = HistoryItem(
+                peer: peer,
+                direction: .incoming,
+                kind: .file(name: fileMeta.name, size: fileMeta.size, url: savedURL),
+                status: .transferring(bytesDone: record.bytesDone, bytesTotal: fileMeta.size)
+            )
+            history.insert(item, at: 0)
+            ctx.historyID = item.id
+
+            Task {
+                let body = try? MessageCodec.encode(FileAcceptMessage(
+                    transfer_id: transferID.uuidString,
+                    index: 0,
+                    resume_offset: record.bytesDone
+                ))
+                if let body {
+                    try? await ctx.connection.send(type: MessageType.fileAccept, body: body)
+                }
+                log.info("auto-resume: \(record.fileName, privacy: .public) from \(record.bytesDone)/\(fileMeta.size)")
+            }
+        } catch {
+            log.error("auto-resume open failed: \(error.localizedDescription)")
+            // 回退：丢弃残留记录，走正常审批流程
+            Task { await self.resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: fileMeta.sha256) }
+            let pending = PendingFileOffer(
+                id: transferID,
+                peer: peer,
+                fileName: fileMeta.name,
+                fileSize: fileMeta.size,
+                sha256: fileMeta.sha256
+            )
+            ctx.pendingOfferID = pending.id
+            pendingFileOffers.append(pending)
+        }
     }
 
     private func handleReceivedChunk(body: Data, contextID: UUID) async {
@@ -619,6 +735,27 @@ public final class ShareEngine: ObservableObject {
             updateHistoryStatus(hid, status: .transferring(bytesDone: ctx.receivedBytes, bytesTotal: ctx.fileSize))
         }
 
+        // 增量持久化：每写满 resumePersistInterval 字节刷一次 ResumeStore。
+        if ctx.receivedBytes - ctx.lastPersistedBytes >= Self.resumePersistInterval,
+           ctx.receivedBytes < ctx.fileSize,
+           let saved = ctx.savedURL,
+           let expected = ctx.expectedSHA256,
+           let tid = ctx.transferID,
+           let peer = ctx.peer {
+            ctx.lastPersistedBytes = ctx.receivedBytes
+            let record = ResumeRecord(
+                peerFingerprint: peer.fingerprint,
+                transferID: tid,
+                fileName: saved.lastPathComponent,
+                fileSize: ctx.fileSize,
+                sha256: expected,
+                savedPath: saved.path,
+                bytesDone: ctx.receivedBytes,
+                updatedAt: Date()
+            )
+            Task { await self.resumeStore.upsert(record) }
+        }
+
         if ctx.receivedBytes >= ctx.fileSize {
             try? handle.close()
             ctx.fileHandle = nil
@@ -630,8 +767,15 @@ public final class ShareEngine: ObservableObject {
                         updateHistoryStatus(hid, status: .failed("校验失败"))
                     }
                     try? FileManager.default.removeItem(at: saved)
+                    if let peer = ctx.peer {
+                        await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
+                    }
                     await closeContext(id: contextID, error: nil)
                     return
+                }
+                // 完成 → 清掉 ResumeStore 中对应记录
+                if let peer = ctx.peer {
+                    await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
                 }
             }
             // 发 FILE_COMPLETE
@@ -656,6 +800,40 @@ public final class ShareEngine: ObservableObject {
         }
         if let pid = ctx.pendingOfferID {
             pendingFileOffers.removeAll { $0.id == pid }
+        }
+        // 接收态被异常关闭（fileHandle 仍持有 + 字节未收齐）→ 视为「连接中断」：
+        //   1) 刷一次最新 receivedBytes 到 ResumeStore（自上次定期持久化以来可能又写了几 chunks）
+        //   2) history 状态标「连接中断 · 等待续传」
+        // ResumeRecord 不在这里删 —— 等下次 FILE_OFFER 来时按 sha256 命中再用。
+        if case .receivingFile = ctx.state,
+           ctx.fileHandle != nil,
+           ctx.receivedBytes < ctx.fileSize {
+            if let saved = ctx.savedURL,
+               let expected = ctx.expectedSHA256,
+               let tid = ctx.transferID,
+               let peer = ctx.peer,
+               ctx.receivedBytes > 0,
+               ctx.receivedBytes > ctx.lastPersistedBytes {
+                let record = ResumeRecord(
+                    peerFingerprint: peer.fingerprint,
+                    transferID: tid,
+                    fileName: saved.lastPathComponent,
+                    fileSize: ctx.fileSize,
+                    sha256: expected,
+                    savedPath: saved.path,
+                    bytesDone: ctx.receivedBytes,
+                    updatedAt: Date()
+                )
+                await resumeStore.upsert(record)
+            }
+            if let hid = ctx.historyID {
+                updateHistoryStatus(hid, status: .failed("连接中断 · 等待续传"))
+            }
+        } else if case .sendingFile = ctx.state,
+                  ctx.sentBytes < ctx.fileSize,
+                  let hid = ctx.historyID {
+            // 发送态意外断开 — 让 UI 显示失败，用户可从历史重新发起。
+            updateHistoryStatus(hid, status: .failed("连接中断"))
         }
         // 释放 security scope
         if case .client(_, .file(let url, _, _, let needsAccess)) = ctx.role, needsAccess {
@@ -809,6 +987,8 @@ final class ConnectionContext {
     var receivedBytes: UInt64 = 0
     var savedURL: URL?
     var expectedSHA256: String?
+    /// 接收方：上次写入 ResumeStore 的 bytesDone，用来限制持久化频率。
+    var lastPersistedBytes: UInt64 = 0
 
     init(connection: Connection, role: Role, state: State) {
         self.connection = connection

@@ -52,6 +52,9 @@ import java.util.concurrent.ConcurrentHashMap
 private const val TAG = "ShareEngine"
 private const val CHUNK_SIZE = 256 * 1024
 
+/** 接收 chunk 时每写满这么多字节就把进度刷一次 ResumeStore。4 MiB ≈ 16 个 256 KiB chunk。 */
+private const val RESUME_PERSIST_INTERVAL: Long = 4L * 1024 * 1024
+
 /**
  * 顶层引擎：单例化通过 [com.welape.meshdrop.ShareApplication.engine] 暴露。
  *
@@ -66,6 +69,7 @@ class ShareEngine(private val context: Context) {
     private val model: String = "${Build.MANUFACTURER} ${Build.MODEL}"
 
     private val trustStore = TrustStore(context)
+    private val resumeStore = ResumeStore.forContext(context)
     private val discovery = MdnsDiscovery(context, identity, displayName, model)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -332,7 +336,7 @@ class ShareEngine(private val context: Context) {
                 clientReceivedAck(ctx, body)
 
             state is ConnectionContext.State.AwaitingFileAccept && type == MessageType.FILE_ACCEPT ->
-                clientStartSending(ctx)
+                clientStartSending(ctx, body)
 
             state is ConnectionContext.State.AwaitingFileAccept && type == MessageType.FILE_REJECT -> {
                 val reason = runCatching { MessageCodec.decode<FileRejectMessage>(body).reason }.getOrDefault("rejected")
@@ -353,6 +357,22 @@ class ShareEngine(private val context: Context) {
 
             state is ConnectionContext.State.ReceivingFile && type == MessageType.FILE_CHUNK ->
                 handleReceivedChunk(ctx, body)
+
+            type == MessageType.FILE_CANCEL -> {
+                // 对端取消：接收态需删半成品 + 清 ResumeStore，避免之后被误判为可续传。
+                if (ctx.state is ConnectionContext.State.ReceivingFile) {
+                    try { ctx.output?.close() } catch (_: Exception) {}
+                    ctx.output = null
+                    ctx.savedFile?.delete()
+                    val peer = ctx.peer
+                    val expected = ctx.expectedSha256
+                    if (peer != null && expected != null) {
+                        resumeStore.clear(peer.fingerprint, expected)
+                    }
+                }
+                ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Canceled) }
+                closeContext(ctxId, null)
+            }
 
             type == MessageType.PING ->
                 try { ctx.connection.send(MessageType.PONG, "{}".toByteArray(Charsets.UTF_8)) } catch (_: Exception) {}
@@ -472,16 +492,33 @@ class ShareEngine(private val context: Context) {
 
     // MARK: - 文件发送
 
-    private suspend fun clientStartSending(ctx: ConnectionContext) {
+    private suspend fun clientStartSending(ctx: ConnectionContext, acceptBody: ByteArray) {
         val role = ctx.role as? ConnectionContext.Role.Client ?: return
         val payload = role.payload as? ConnectionContext.Payload.File ?: return
+
+        // 解析 FILE_ACCEPT.resume_offset；接收端若有半成品文件会要求从该 offset 起发。
+        val resumeOffset: Long = runCatching {
+            MessageCodec.decode<FileAcceptMessage>(acceptBody).resume_offset
+        }.getOrDefault(0L).coerceIn(0L, payload.fileSize)
+
         try {
             val input = context.contentResolver.openInputStream(payload.sourceUri)
                 ?: throw java.io.IOException("cannot open input")
+            if (resumeOffset > 0) {
+                // InputStream.skip 不保证一次跳完，循环到位
+                var remaining = resumeOffset
+                while (remaining > 0) {
+                    val skipped = input.skip(remaining)
+                    if (skipped <= 0) throw java.io.IOException("skip to $resumeOffset failed")
+                    remaining -= skipped
+                }
+                Log.i(TAG, "resume send from offset=$resumeOffset/${payload.fileSize}")
+            }
             ctx.input = input
+            ctx.sentBytes = resumeOffset
             ctx.state = ConnectionContext.State.SendingFile
             ctx.historyId?.let {
-                updateHistoryStatus(it, TransferStatus.Transferring(0, payload.fileSize))
+                updateHistoryStatus(it, TransferStatus.Transferring(resumeOffset, payload.fileSize))
             }
             scope.launch { streamChunks(ctx) }
         } catch (e: Exception) {
@@ -495,7 +532,8 @@ class ShareEngine(private val context: Context) {
         val tid = ctx.transferId ?: return@withContext
         val fileSize = ctx.fileSize
         val buf = ByteArray(CHUNK_SIZE)
-        var offset = 0L
+        // 起点：续传时 ctx.sentBytes > 0；input 已 skip 到对应位置（见 clientStartSending）。
+        var offset = ctx.sentBytes
 
         while (offset < fileSize && !ctx.connection.isClosed) {
             val toRead = minOf(CHUNK_SIZE.toLong(), fileSize - offset).toInt()
@@ -536,11 +574,22 @@ class ShareEngine(private val context: Context) {
         )
     }
 
-    private fun handleReceivedFileOffer(ctx: ConnectionContext, body: ByteArray) {
+    private suspend fun handleReceivedFileOffer(ctx: ConnectionContext, body: ByteArray) {
         val peer = ctx.peer ?: return
         val offer = runCatching { MessageCodec.decode<FileOfferMessage>(body) }.getOrNull() ?: return
         val first = offer.files.firstOrNull() ?: return
         val tid = runCatching { UUID.fromString(offer.transfer_id) }.getOrNull() ?: return
+
+        // 命中 ResumeStore 且半成品仍在 → 自动接受，发 resume_offset > 0；否则走正常审批。
+        val resume = resumeStore.find(peer.fingerprint, first.sha256)
+        if (resume != null &&
+            resume.fileSize == first.size &&
+            resume.bytesDone < first.size &&
+            File(resume.savedPath).exists()) {
+            if (startAutoResumeReceive(ctx, peer, tid, first, resume)) return
+            // 自动续传打开失败 → 落到正常审批流程
+            resumeStore.clear(peer.fingerprint, first.sha256)
+        }
 
         val pending = PendingFileOffer(
             id = tid, peer = peer,
@@ -548,6 +597,58 @@ class ShareEngine(private val context: Context) {
         )
         ctx.pendingOfferId = pending.id
         _pendingFileOffers.value = _pendingFileOffers.value + pending
+    }
+
+    /** 命中 ResumeStore：复用 savedFile，append 模式开 output，发 FILE_ACCEPT 带 resume_offset。返回 true 表示已接管（成功进入续传态，或已 close 上下文）。 */
+    private suspend fun startAutoResumeReceive(
+        ctx: ConnectionContext,
+        peer: Device,
+        transferId: UUID,
+        meta: FileMeta,
+        record: ResumeRecord,
+    ): Boolean {
+        val saveFile = File(record.savedPath)
+
+        // Stage 1: 只做 IO 准备 — 失败时 ctx 未被任何修改，调用方可走正常审批流程。
+        val output: FileOutputStream = try {
+            java.io.RandomAccessFile(saveFile, "rw").use { it.setLength(record.bytesDone) }
+            FileOutputStream(saveFile, /*append=*/ true)
+        } catch (e: Exception) {
+            Log.e(TAG, "auto-resume prep failed", e)
+            return false
+        }
+
+        // Stage 2: 提交到 ctx + 发 FILE_ACCEPT。从这里开始 ctx 已进入 ReceivingFile，
+        // send 失败也必须关上下文（不能回到 Ready），否则后续 chunk 会写到错地方。
+        ctx.output = output
+        ctx.savedFile = saveFile
+        ctx.fileSize = meta.size
+        ctx.expectedSha256 = meta.sha256
+        ctx.transferId = transferId
+        ctx.pendingOfferId = null
+        ctx.receivedBytes = record.bytesDone
+        ctx.lastPersistedBytes = record.bytesDone
+        ctx.state = ConnectionContext.State.ReceivingFile
+
+        val item = HistoryItem(
+            peer = peer,
+            direction = TransferDirection.INCOMING,
+            kind = HistoryKind.File(meta.name, meta.size, Uri.fromFile(saveFile)),
+            status = TransferStatus.Transferring(record.bytesDone, meta.size),
+        )
+        insertHistory(item)
+        ctx.historyId = item.id
+
+        return try {
+            val acceptBody = MessageCodec.encode(FileAcceptMessage(transferId.toString(), 0, record.bytesDone))
+            ctx.connection.send(MessageType.FILE_ACCEPT, acceptBody)
+            Log.i(TAG, "auto-resume: ${record.fileName} from ${record.bytesDone}/${meta.size}")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "auto-resume send accept failed", e)
+            closeContext(ctx.id, e)
+            true
+        }
     }
 
     private suspend fun handleReceivedChunk(ctx: ConnectionContext, body: ByteArray) {
@@ -564,6 +665,30 @@ class ShareEngine(private val context: Context) {
             updateHistoryStatus(it, TransferStatus.Transferring(ctx.receivedBytes, ctx.fileSize))
         }
 
+        // 增量持久化：每写满 RESUME_PERSIST_INTERVAL 字节刷一次 ResumeStore。
+        if (ctx.receivedBytes - ctx.lastPersistedBytes >= RESUME_PERSIST_INTERVAL &&
+            ctx.receivedBytes < ctx.fileSize) {
+            val saved = ctx.savedFile
+            val expected = ctx.expectedSha256
+            val tid = ctx.transferId
+            val peer = ctx.peer
+            if (saved != null && expected != null && tid != null && peer != null) {
+                ctx.lastPersistedBytes = ctx.receivedBytes
+                resumeStore.upsert(
+                    ResumeRecord(
+                        peerFingerprint = peer.fingerprint,
+                        transferId = tid.toString(),
+                        fileName = saved.name,
+                        fileSize = ctx.fileSize,
+                        sha256 = expected,
+                        savedPath = saved.absolutePath,
+                        bytesDone = ctx.receivedBytes,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                )
+            }
+        }
+
         if (ctx.receivedBytes >= ctx.fileSize) {
             try { output.close() } catch (_: Exception) {}
             ctx.output = null
@@ -575,8 +700,11 @@ class ShareEngine(private val context: Context) {
                 if (actual != expected) {
                     ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("校验失败")) }
                     saved.delete()
+                    ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
                     closeContext(ctx.id, null); return
                 }
+                // 完成 → 清掉 ResumeStore 中对应记录
+                ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
             }
             try {
                 val tid = ctx.transferId
@@ -602,6 +730,40 @@ class ShareEngine(private val context: Context) {
         ctx.pendingOfferId?.let { pid ->
             _pendingFileOffers.value = _pendingFileOffers.value.filter { it.id != pid }
         }
+
+        // 接收态被异常关闭（output 仍持有 + 字节未收齐）→ 视为「连接中断」：
+        //   1) 最后再刷一次 receivedBytes 到 ResumeStore（增量持久化以来可能又写了几 chunks）
+        //   2) history 状态标「连接中断 · 等待续传」
+        // ResumeRecord 不在这里删 —— 等下次 FILE_OFFER 按 sha256 命中再用。
+        if (state is ConnectionContext.State.ReceivingFile &&
+            ctx.output != null &&
+            ctx.receivedBytes < ctx.fileSize) {
+            val saved = ctx.savedFile
+            val expected = ctx.expectedSha256
+            val tid = ctx.transferId
+            val peer = ctx.peer
+            if (saved != null && expected != null && tid != null && peer != null &&
+                ctx.receivedBytes > 0 && ctx.receivedBytes > ctx.lastPersistedBytes) {
+                resumeStore.upsert(
+                    ResumeRecord(
+                        peerFingerprint = peer.fingerprint,
+                        transferId = tid.toString(),
+                        fileName = saved.name,
+                        fileSize = ctx.fileSize,
+                        sha256 = expected,
+                        savedPath = saved.absolutePath,
+                        bytesDone = ctx.receivedBytes,
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                )
+            }
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("连接中断 · 等待续传")) }
+        } else if (state is ConnectionContext.State.SendingFile &&
+                   ctx.sentBytes < ctx.fileSize) {
+            // 发送态意外断开 — UI 标失败，用户可从历史重发。
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("连接中断")) }
+        }
+
         try { ctx.input?.close() } catch (_: Exception) {}
         try { ctx.output?.close() } catch (_: Exception) {}
         ctx.state = ConnectionContext.State.Closed
@@ -724,4 +886,6 @@ class ConnectionContext(
     @Volatile var receivedBytes: Long = 0
     @Volatile var savedFile: File? = null
     @Volatile var expectedSha256: String? = null
+    /** 接收方：上次写入 ResumeStore 的 bytesDone，用来限制持久化频率。 */
+    @Volatile var lastPersistedBytes: Long = 0
 }
