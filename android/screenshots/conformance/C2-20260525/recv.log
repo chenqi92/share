@@ -1,0 +1,26 @@
+# C2 recv.log — android 端构建尝试（未进入 ShareEngine 接收）
+
+# 用例：./gradlew :app:assembleDebug 因 wrapper jar 缺失直接失败，
+# APK 未产出；adb devices 列表为空（仅 ~/.android/avd/WearRound.avd，无 phone AVD）。
+# 没有 FrameType.fileOffer / fileChunk / fileComplete 行可摘录。
+
+$ cd android
+$ JAVA_HOME=/Users/chenqi/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home \
+  ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
+  ./gradlew :app:assembleDebug --no-daemon
+Error: Unable to access jarfile /Users/chenqi/Projects/workspace-freq/share/.claude/worktrees/vibrant-brown-54c307/android/gradle/wrapper/gradle-wrapper.jar
+
+$ ls android/gradle/wrapper/
+gradle-wrapper.properties
+
+# 即仓库内只 commit 了 gradle-wrapper.properties，没有 gradle-wrapper.jar。
+# 没有 wrapper jar，gradlew 脚本无法引导 gradle 8.11 distribution。
+
+$ adb devices
+List of devices attached
+
+$ ls ~/.android/avd/
+WearRound.avd
+WearRound.ini
+
+# 仅 WearRound（Wear OS 圆表面）—— 不能装 phone APK。

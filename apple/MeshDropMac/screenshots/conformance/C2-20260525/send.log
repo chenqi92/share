@@ -1,0 +1,18 @@
+# C2 send.log — mac 端构建尾段（仅 BUILD 阶段；未进入 ShareEngine 实际发送）
+
+# 用例：xcodebuild MeshDropMac → BUILD SUCCEEDED；进程未启动到 UI/DiscoverTab。
+# 没有 FrameType.fileOffer / fileChunk / fileComplete 行可摘录。
+
+ConstructStubExecutorLinkFileList ... MeshDrop-ExecutorLinkFileList-normal-arm64.txt (in target 'MeshDropMac' from project 'MeshDropMac')
+note: Using stub executor library with Swift entry point. (in target 'MeshDropMac' from project 'MeshDropMac')
+Ld /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app/Contents/MacOS/MeshDrop normal (in target 'MeshDropMac' from project 'MeshDropMac')
+CopySwiftLibs /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app (in target 'MeshDropMac' from project 'MeshDropMac')
+ExtractAppIntentsMetadata (in target 'MeshDropMac' from project 'MeshDropMac')
+2026-05-25 21:21:41.101 appintentsmetadataprocessor[11913:2612615] Starting appintentsmetadataprocessor export
+2026-05-25 21:21:41.102 appintentsmetadataprocessor[11913:2612615] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+RegisterExecutionPolicyException /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app (in target 'MeshDropMac' from project 'MeshDropMac')
+Validate /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app (in target 'MeshDropMac' from project 'MeshDropMac')
+Touch /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app (in target 'MeshDropMac' from project 'MeshDropMac')
+RegisterWithLaunchServices /tmp/meshdrop-mac-derived/Build/Products/Debug/MeshDrop.app (in target 'MeshDropMac' from project 'MeshDropMac')
+note: Disabling hardened runtime with ad-hoc codesigning. (in target 'MeshDropMac' from project 'MeshDropMac')
+** BUILD SUCCEEDED **

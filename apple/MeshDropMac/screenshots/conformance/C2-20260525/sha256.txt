@@ -1,0 +1,2 @@
+75aaafd522655671f57b442a8df1de35be9b5aae92d1c6fcc4faa8fe949ff5fe  测试报告 v2 · 含中文与 Emoji 🌧️.pdf
+N/A  (android 落盘文件 — 未生成，Android 端构建/运行环境不可用，见 RESULT.md)

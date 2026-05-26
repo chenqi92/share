@@ -1,0 +1,3 @@
+send.mp4 未采集。
+原因：android 端无运行环境（gradle wrapper jar 缺失 + 无 phone AVD/真机），
+两端连接无法建立，mac 端不进入实际发送流程。详见同目录 RESULT.md。
