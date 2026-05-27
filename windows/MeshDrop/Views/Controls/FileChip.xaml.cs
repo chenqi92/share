@@ -4,7 +4,8 @@ namespace MeshDrop.Views.Controls;
 
 public sealed partial class FileChip : Microsoft.UI.Xaml.Controls.UserControl
 {
-    public static readonly DependencyProperty NameProperty = DependencyProperty.Register(
+    // 显式 'new' 隐藏 FrameworkElement.NameProperty —— 这是我们 UserControl 自己的属性
+    public static new readonly DependencyProperty NameProperty = DependencyProperty.Register(
         nameof(Name), typeof(string), typeof(FileChip), new PropertyMetadata(""));
 
     public static readonly DependencyProperty SizeProperty = DependencyProperty.Register(

@@ -17,6 +17,14 @@
     <!-- 我们在 App.xaml.cs 自己写了 Program.Main 来设置 SynchronizationContext；
          禁用 XAML 编译器自动生成的 Program.Main 避免重复 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!--
+      抑制 MVVMTK0045：[ObservableProperty] 字段在未来 CsWinRT AOT 路径下应改成
+      partial property（C# 13 / .NET 9），但本项目还在 .NET 8。等升级到 .NET 9
+      时再整体切。
+      CS0067：RelayCommand.CanExecuteChanged 是 ICommand 接口要求的事件，
+      我们的简化实现没用到它，但接口契约必须声明。
+    -->
+    <NoWarn>$(NoWarn);MVVMTK0045;CS0067</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

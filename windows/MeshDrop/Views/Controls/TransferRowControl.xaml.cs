@@ -6,7 +6,8 @@ namespace MeshDrop.Views.Controls;
 
 public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.UserControl
 {
-    public static readonly DependencyProperty NameProperty = DependencyProperty.Register(
+    // 显式 'new' 隐藏 FrameworkElement.NameProperty
+    public static new readonly DependencyProperty NameProperty = DependencyProperty.Register(
         nameof(Name), typeof(string), typeof(TransferRowControl), new PropertyMetadata(""));
 
     public static readonly DependencyProperty SizeProperty = DependencyProperty.Register(
