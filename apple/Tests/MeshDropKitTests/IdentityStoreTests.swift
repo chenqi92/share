@@ -37,6 +37,16 @@ final class IdentityStoreTests: XCTestCase {
         XCTAssertNil(id.fingerprint.rangeOfCharacter(from: CharacterSet(charactersIn: "0123456789abcdef").inverted))
     }
 
+    @MainActor
+    func testShareEngineResetIdentityChangesFingerprint() {
+        let engine = ShareEngine.shared
+        let oldFP = engine.identity.fingerprint
+        let oldID = engine.identity.id
+        engine.resetIdentity()
+        XCTAssertNotEqual(engine.identity.fingerprint, oldFP, "fp should change after reset")
+        XCTAssertNotEqual(engine.identity.id, oldID, "device id should change after reset")
+    }
+
     func testMigratesLegacyUserDefaultsIntoKeychain() {
         // 模拟旧版本：UserDefaults 里有身份数据，Keychain 是空的
         let pk = Curve25519.Signing.PrivateKey()

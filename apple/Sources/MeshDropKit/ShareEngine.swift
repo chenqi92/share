@@ -112,6 +112,30 @@ public final class ShareEngine: ObservableObject {
         displayName = name
     }
 
+    /// 重置设备身份（security.md §设备身份）。
+    /// 用户在 Settings 里点"重置身份"时调用。
+    ///
+    /// 步骤：
+    /// 1. 停 discovery（避免广播旧 fp）
+    /// 2. 清 history（旧身份下的会话与新身份无关）
+    /// 3. IdentityStore.reset() 删 Keychain 条目 + UserDefaults
+    /// 4. 重新 load 生成新的 Ed25519 keypair + 新 device id + 新 fp
+    /// 5. 如果之前在跑，重启 discovery 以新身份广告
+    ///
+    /// 信任库（trustedDevices.json）**保留** —— 那是别人 → 我的信任关系，
+    /// 我换身份不该影响。但其它端会发现我是"新设备"，他们要重新审我。
+    public func resetIdentity() {
+        let wasRunning = (discovery != nil)
+        stop()
+        history.removeAll()
+        IdentityStore.reset()
+        identity = IdentityStore.loadOrCreate()
+        log.info("identity reset: new id=\(self.identity.id) fp=\(self.identity.fingerprint)")
+        if wasRunning {
+            start()
+        }
+    }
+
     // MARK: - 历史管理
 
     public func removeHistoryItem(_ id: UUID) {
