@@ -95,7 +95,7 @@ jobs:
         run: dotnet restore MeshDrop.sln
       - name: Build
         working-directory: windows
-        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64
+        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64 -v:normal
 
   protocol-vectors-consistency:
     name: Protocol · testdata frame_bytes_hex 一致性
