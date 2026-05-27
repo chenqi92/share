@@ -13,14 +13,16 @@ private let log = Logger(subsystem: "com.welape.meshdrop", category: "WebGateway
 /// - `POST /api/v1/pair`           → 用 6 字符配对码换 session token + Set-Cookie
 /// - `WS   /api/v1/control`        → 双向命令 / 事件（cookie 或 ?token=<sid>）
 /// - `POST /api/v1/upload`         → multipart 上传，返回 `{token:"<absPath>"}` 作为 send_file_ref.fileRef
-/// - `GET  /api/v1/download/<id>`  → 接受 offer 后下载（v0.1 未实装，返 501）
+/// - `GET  /api/v1/download/<id>`  → 流式下载已接收的文件
 ///
 /// 鉴权：6 字符配对码 `<两段-3字符大写字母+数字>`，配对成功后下发 24h session
 /// cookie（`meshdrop_session`）与同值的 token；后续请求带 cookie 或 query
 /// `?token=` / header `x-meshdrop-token` 任一即可。
 ///
-/// **TLS**：v0.1 走明文 HTTP（与 Windows / Linux 不同——它们用 TLS），便于本机调试；
-/// 自签证书 + CN=`meshdrop.local` 留待 v0.2，路由与会话逻辑无需改动。
+/// **TLS 1.3**：用 P-256 自签证书 (CN=meshdrop.local)，缓存在 Keychain。
+/// 浏览器首次访问需"信任并继续"（Safari "显示详细信息"→"访问此网站"；Chrome
+/// "高级"→"继续前往"），之后该 host 的 trust override 写入用户 keychain。
+/// 与 Windows / Linux gateway 行为一致。
 public final class WebGateway: @unchecked Sendable {
     public struct Config: Sendable {
         public var host: String
@@ -71,7 +73,21 @@ public final class WebGateway: @unchecked Sendable {
 
     public func start() throws {
         guard listener == nil else { return }
-        let params = NWParameters.tcp
+
+        // TLS 1.3 + 自签证书（meshdrop.local），与 Windows / Linux gateway 对齐
+        let identity = try GatewayCertStore.loadOrCreate()
+        let tlsOpts = NWProtocolTLS.Options()
+        let secOpts = tlsOpts.securityProtocolOptions
+        sec_protocol_options_set_min_tls_protocol_version(secOpts, .TLSv13)
+        if let secIdentity = sec_identity_create(identity) {
+            sec_protocol_options_set_local_identity(secOpts, secIdentity)
+        } else {
+            log.error("sec_identity_create failed for gateway SecIdentity")
+        }
+        // 告诉浏览器走 HTTP/1.1（我们手实装的 HTTP 不支持 h2）
+        sec_protocol_options_add_tls_application_protocol(secOpts, "http/1.1")
+
+        let params = NWParameters(tls: tlsOpts, tcp: .init())
         params.allowLocalEndpointReuse = true
         params.includePeerToPeer = false
 
@@ -740,7 +756,7 @@ public final class WebGateway: @unchecked Sendable {
               <button onclick="auth()">进入</button>
             </div>
             <div id="msg" style="margin-top:10px;"></div>
-            <footer>v0.1 走明文 HTTP；TLS 自签证书将在 v0.2 切换。</footer>
+            <footer>TLS 1.3 自签证书 · CN=meshdrop.local · 首次访问请在浏览器接受证书。</footer>
           </div>
         <script>
           async function auth() {

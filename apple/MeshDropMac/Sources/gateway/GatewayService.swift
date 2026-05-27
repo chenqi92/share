@@ -66,10 +66,10 @@ final class GatewayService: ObservableObject {
         WebGateway.display(code: pairingCode)
     }
 
-    /// `https://<local-ip>:<port>`（实际 v0.1 是 http）。给 Settings 复制。
+    /// `https://<local-ip>:<port>` —— 走 TLS 1.3 自签证书。给 Settings 复制。
     var displayURL: String {
         let ip = Self.firstIPv4() ?? "localhost"
-        return "http://\(ip):\(port)"
+        return "https://\(ip):\(port)"
     }
 
     private static func firstIPv4() -> String? {
