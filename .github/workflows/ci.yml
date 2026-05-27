@@ -85,24 +85,22 @@ jobs:
     name: Windows · MeshDrop build
     runs-on: windows-latest
     timeout-minutes: 25
-    # WindowsAppSDK 1.6 + windows-latest 上 XAML MarkupCompilePass2 静默 exit 1
-    # 的已知问题；本地 Win11 dev 正常 build。CI 暂保留 job 不阻塞 PR，留 TODO
-    # 追踪：是否切到 windows-2022 / windows-2025 / 升 WindowsAppSDK 1.7+ 能修
+    # XAML MarkupCompilePass2 在 dotnet CLI 下静默 exit 1（试 1.6/1.7 都一样）；
+    # 改用 microsoft/setup-msbuild + msbuild 走 VS Build Tools 完整工具链；
+    # 仍 continue-on-error 兜底，但目标是真过
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore workloads
-        working-directory: windows
-        run: dotnet workload restore MeshDrop.sln
+      - uses: microsoft/setup-msbuild@v2
       - name: Restore packages
         working-directory: windows
-        run: dotnet restore MeshDrop.sln
+        run: msbuild MeshDrop.sln -t:Restore -p:Configuration=Release -p:Platform=x64
       - name: Build
         working-directory: windows
-        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64 -v:normal /p:GenerateLibraryLayout=false
+        run: msbuild MeshDrop.sln -t:Build -p:Configuration=Release -p:Platform=x64 -v:minimal
 
   protocol-vectors-consistency:
     name: Protocol · testdata frame_bytes_hex 一致性
