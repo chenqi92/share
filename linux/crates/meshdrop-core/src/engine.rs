@@ -159,6 +159,12 @@ impl ShareEngine {
     pub fn clear_history(&self) {
         let _ = self.cmd_tx.send(UserCmd::ClearHistory);
     }
+
+    /// 主动取消进行中的传输（发送方 / 接收方都能调）。
+    /// 见 protocol/messages.md §0x25 FILE_CANCEL。
+    pub fn cancel_transfer(&self, history_id: Uuid) {
+        let _ = self.cmd_tx.send(UserCmd::CancelTransfer { history_id });
+    }
 }
 
 // ─── 命令枚举 ──────────────────────────────────────────────────────────
@@ -168,6 +174,8 @@ enum UserCmd {
     SendFile { peer: Device, path: PathBuf },
     RespondPairing { id: Uuid, decision: PairingDecision },
     RespondOffer { id: Uuid, accept: bool },
+    /// 主动取消传输 — 查 ctx by history_id，发 FILE_CANCEL 给对端，关 ctx
+    CancelTransfer { history_id: Uuid },
     RemoveHistory(Uuid),
     ClearHistory,
 }
@@ -279,6 +287,7 @@ async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
         UserCmd::SendFile { peer, path } => start_send_file(state, peer, path).await,
         UserCmd::RespondPairing { id, decision } => respond_pairing(state, id, decision).await,
         UserCmd::RespondOffer { id, accept } => respond_offer(state, id, accept).await,
+        UserCmd::CancelTransfer { history_id } => cancel_transfer(state, history_id).await,
         UserCmd::RemoveHistory(id) => {
             state.history.retain(|h| h.id != id);
             let _ = state.history_tx.send(state.history.clone());
@@ -288,6 +297,50 @@ async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
             let _ = state.history_tx.send(state.history.clone());
         }
     }
+}
+
+/// 主动取消传输：找 history_id 对应的 ctx，发 FILE_CANCEL 给对端，关 ctx。
+async fn cancel_transfer(state: &mut State, history_id: Uuid) {
+    // 查 ctx
+    let ctx_id = state.contexts.iter()
+        .find(|(_, c)| c.history_id == Some(history_id))
+        .map(|(id, _)| *id);
+    let Some(ctx_id) = ctx_id else {
+        // ctx 已结束（传输完毕 / 早关），只更新历史
+        update_status(state, history_id, TransferStatus::Canceled);
+        return;
+    };
+
+    // 接收态：关 file_output + 删半成品
+    let (transfer_id, save_path, is_receiving) = {
+        let ctx = state.contexts.get_mut(&ctx_id).unwrap();
+        let is_recv = matches!(ctx.state, ConnState::ReceivingFile);
+        if is_recv {
+            if let Some(mut out) = ctx.file_output.take() { let _ = out.flush().await; }
+        }
+        (ctx.transfer_id, ctx.save_path.clone(), is_recv)
+    };
+    if is_receiving {
+        if let Some(path) = &save_path {
+            let _ = tokio::fs::remove_file(path).await;
+        }
+    }
+
+    // 发 FILE_CANCEL（whole transfer, index=null）
+    if let Some(tid) = transfer_id {
+        let cancel = FileCancelMessage {
+            transfer_id: tid.to_string(),
+            index: None,
+            reason: "user_canceled".into(),
+        };
+        let body = serde_json::to_vec(&cancel).unwrap_or_default();
+        if let Some(ctx) = state.contexts.get(&ctx_id) {
+            let _ = ctx.connection.send(msg_type::FILE_CANCEL, body);
+        }
+    }
+
+    update_status(state, history_id, TransferStatus::Canceled);
+    close_ctx(state, ctx_id, None).await;
 }
 
 async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
