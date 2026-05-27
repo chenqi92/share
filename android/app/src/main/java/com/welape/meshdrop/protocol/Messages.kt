@@ -11,7 +11,7 @@ data class HelloMessage(
     val id: String,
     val name: String,
     val os: String,
-    val model: String?,
+    val model: String? = null,
     val fp: String,
     val protocol_versions: List<Int>,
 )
@@ -21,7 +21,7 @@ data class HelloAckMessage(
     val id: String,
     val name: String,
     val os: String,
-    val model: String?,
+    val model: String? = null,
     val fp: String,
     val protocol_versions: List<Int>,
     val selected_version: Int,
