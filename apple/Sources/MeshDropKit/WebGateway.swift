@@ -1,25 +1,26 @@
 import Foundation
 import Network
+import Combine
 import OSLog
 
 private let log = Logger(subsystem: "com.welape.meshdrop", category: "WebGateway")
 
 /// **Web Gateway**（companion-bridges.md §4.3）。
 ///
-/// 本机充当浏览器端的"局域网桥"，监听 `0.0.0.0:<port>`，提供：
-/// - `GET /` → 静态 fallback UI
-/// - `GET /api/v1/info` → JSON 元数据（gateway 版本 / 主机名 / 配对码状态）
-/// - `WS  /api/v1/control` → 控制通道（**v0.2 实装**）
-/// - `POST /api/v1/upload`  → multipart 文件上传前置（**v0.2**）
-/// - `GET  /api/v1/download/<offerId>` → 下载流（**v0.2**）
+/// 本机充当浏览器端的"局域网桥"，监听 `0.0.0.0:<port>`：
+/// - `GET /`                       → 静态 fallback UI
+/// - `GET /api/v1/info`            → JSON 元数据（gateway 版本 / 配对码状态）
+/// - `POST /api/v1/pair`           → 用 6 字符配对码换 session token + Set-Cookie
+/// - `WS   /api/v1/control`        → 双向命令 / 事件（cookie 或 ?token=<sid>）
+/// - `POST /api/v1/upload`         → multipart 上传，返回 `{token:"<absPath>"}` 作为 send_file_ref.fileRef
+/// - `GET  /api/v1/download/<id>`  → 接受 offer 后下载（v0.1 未实装，返 501）
 ///
-/// 鉴权：6 字符配对码 `<两段-3字符大写字母+数字>`，每 24h 重新生成。
-/// 浏览器首次访问时填入弹框，校验通过后下发 24h session cookie。
+/// 鉴权：6 字符配对码 `<两段-3字符大写字母+数字>`，配对成功后下发 24h session
+/// cookie（`meshdrop_session`）与同值的 token；后续请求带 cookie 或 query
+/// `?token=` / header `x-meshdrop-token` 任一即可。
 ///
-/// **TLS**：当前 v0.1 走明文 HTTP（便于本机 / LAN 调试与首版互通验证）；
-/// 自签证书 + CN=`meshdrop.local` 留待 v0.2 — 见 PR 说明的 PROTOCOL ISSUE。
-/// 自签实装时只需在 `bind()` 里把 `NWParameters.tcp` 改成带 `sec_protocol_options`
-/// 的 TLS 参数，路由与会话逻辑无需变。
+/// **TLS**：v0.1 走明文 HTTP（与 Windows / Linux 不同——它们用 TLS），便于本机调试；
+/// 自签证书 + CN=`meshdrop.local` 留待 v0.2，路由与会话逻辑无需改动。
 public final class WebGateway: @unchecked Sendable {
     public struct Config: Sendable {
         public var host: String
@@ -43,14 +44,25 @@ public final class WebGateway: @unchecked Sendable {
     public private(set) var pairingCode: String
     public private(set) var isRunning: Bool = false
 
+    private let engine: ShareEngine?
     private var listener: NWListener?
     private let queue = DispatchQueue(label: "com.welape.meshdrop.gateway", qos: .userInitiated)
-    private var sessions: Set<String> = []
+    /// session token → expiry。
+    private var sessions: [String: Date] = [:]
     private var pairingCodeIssuedAt: Date = .distantPast
     private let lock = NSLock()
+    /// 活跃 WS 连接：每个对应一对 (NWConnection, send 回调)。
+    private var wsClients: [UUID: WSClient] = [:]
 
-    public init(config: Config = .init()) {
+    private struct WSClient {
+        let conn: NWConnection
+        let send: (Data) -> Void
+        var cancellables: Set<AnyCancellable>
+    }
+
+    public init(config: Config = .init(), engine: ShareEngine? = nil) {
         self.config = config
+        self.engine = engine
         self.pairingCode = Self.generatePairingCode()
         self.pairingCodeIssuedAt = Date()
     }
@@ -90,6 +102,11 @@ public final class WebGateway: @unchecked Sendable {
         listener?.cancel()
         listener = nil
         isRunning = false
+        lock.lock()
+        let clients = wsClients
+        wsClients.removeAll()
+        lock.unlock()
+        for (_, c) in clients { c.conn.cancel() }
     }
 
     public func setPort(_ port: UInt16) {
@@ -104,7 +121,7 @@ public final class WebGateway: @unchecked Sendable {
         lock.unlock()
     }
 
-    // MARK: - 连接处理
+    // MARK: - 连接入口
 
     private func handle(_ conn: NWConnection) {
         conn.start(queue: queue)
@@ -112,25 +129,28 @@ public final class WebGateway: @unchecked Sendable {
     }
 
     private func readRequest(_ conn: NWConnection, buffer: Data) {
-        conn.receive(minimumIncompleteLength: 1, maximumLength: 16 * 1024) { [weak self] data, _, isComplete, error in
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
             guard let self else { conn.cancel(); return }
             var buf = buffer
             if let data { buf.append(data) }
 
-            // 简单 HTTP/1.1：检测 CRLFCRLF 即视为 header 完整
             if let headerEnd = buf.range(of: Data([0x0d, 0x0a, 0x0d, 0x0a])) {
                 let header = buf[..<headerEnd.lowerBound]
                 let bodyTail = buf[headerEnd.upperBound...]
-                var req = HTTPRequest.parse(header: Data(header))
-                req?.bodyTail = Data(bodyTail)
-                self.route(conn, request: req)
+                if var req = HTTPRequest.parse(header: Data(header)) {
+                    req.bodyTail = Data(bodyTail)
+                    self.route(conn, request: req)
+                } else {
+                    self.respond(conn, status: 400, body: Data("bad request".utf8), close: true)
+                }
                 return
             }
             if isComplete || error != nil {
                 conn.cancel()
                 return
             }
-            if buf.count > 64 * 1024 {
+            if buf.count > 1024 * 1024 {
+                // 1 MB header / 头部 sanity 上限
                 self.respond(conn, status: 413, body: Data("payload too large".utf8), close: true)
                 return
             }
@@ -138,72 +158,431 @@ public final class WebGateway: @unchecked Sendable {
         }
     }
 
-    private func route(_ conn: NWConnection, request: HTTPRequest?) {
-        guard let req = request else {
-            respond(conn, status: 400, body: Data("bad request".utf8), close: true)
-            return
-        }
+    private func route(_ conn: NWConnection, request: HTTPRequest) {
+        let req = request
+        let sessionToken = Self.extractToken(request: req)
+        let isAuth = sessionToken.flatMap { isSessionValid($0) ? $0 : nil } != nil
+
+        // 公开路由
         switch (req.method, req.path) {
         case ("GET", "/"):
             serveStaticIndex(conn)
-        case ("GET", "/api/v1/info"):
-            let body = """
-            { "v": 1, "service": "meshdrop-gateway", "code_required": true }
-            """.data(using: .utf8) ?? Data()
-            respond(conn, status: 200, body: body, contentType: "application/json", close: true)
-        case ("POST", "/api/v1/auth"):
-            // v0.2 实装真正的 cookie 颁发；当前先做 stub，仅在收到正确码时返回 200
-            handleAuth(conn, request: req)
-        case ("GET", "/api/v1/control"),
-             ("POST", "/api/v1/upload"):
-            // WS / upload — v0.2
-            respond(conn, status: 501, body: Data("not implemented in v0.1".utf8), close: true)
+            return
+        case ("GET", "/api/v1/info"), ("GET", "/api/v1/version"):
+            let body = #"{ "v": 1, "service": "meshdrop-gateway", "code_required": true }"#
+            respond(conn, status: 200, body: Data(body.utf8), contentType: "application/json", close: true)
+            return
+        case ("POST", "/api/v1/pair"), ("POST", "/api/v1/auth"):
+            handlePair(conn, request: req)
+            return
         default:
-            if req.method == "GET" && req.path.hasPrefix("/api/v1/download/") {
-                respond(conn, status: 501, body: Data("not implemented in v0.1".utf8), close: true)
+            break
+        }
+
+        // 鉴权门
+        guard isAuth else {
+            respond(conn, status: 401,
+                    body: Data(#"{"ok":false,"error":"unauthorized"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+
+        // 路径前缀路由（download）
+        if req.method == "GET" && req.path.hasPrefix("/api/v1/download/") {
+            handleDownload(conn, request: req)
+            return
+        }
+
+        // 鉴权后路由
+        switch (req.method, req.path.split(separator: "?").first.map(String.init) ?? req.path) {
+        case ("GET", "/api/v1/control"):
+            if Self.isWebSocketUpgrade(req) {
+                handleWebSocketUpgrade(conn, request: req)
             } else {
-                respond(conn, status: 404, body: Data("not found".utf8), close: true)
+                respond(conn, status: 426,
+                        body: Data(#"{"ok":false,"error":"expected_websocket_upgrade"}"#.utf8),
+                        contentType: "application/json", close: true)
             }
+        case ("POST", "/api/v1/upload"):
+            handleUpload(conn, request: req)
+        default:
+            respond(conn, status: 404,
+                    body: Data(#"{"ok":false,"error":"not_found"}"#.utf8),
+                    contentType: "application/json", close: true)
         }
     }
 
-    private func handleAuth(_ conn: NWConnection, request: HTTPRequest) {
-        // 读 body：Content-Length
+    // MARK: - /api/v1/pair
+
+    private func handlePair(_ conn: NWConnection, request: HTTPRequest) {
         let lenHeader = request.headers["content-length"] ?? "0"
         guard let len = Int(lenHeader), len > 0, len < 4096 else {
-            respond(conn, status: 400, body: Data("missing body".utf8), close: true)
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"missing_body"}"#.utf8),
+                    contentType: "application/json", close: true)
             return
         }
         readBody(conn, expected: len, accumulated: request.bodyTail) { [weak self] body in
             guard let self else { return }
-            let submitted = String(data: body, encoding: .utf8) ?? ""
-            let trimmed = submitted.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            let code = Self.extractPairCode(body: body)
             self.lock.lock()
-            let ok = trimmed == self.pairingCode
+            let ok = code.uppercased() == self.pairingCode
             self.lock.unlock()
             if ok {
-                self.respond(conn, status: 200, body: Data("{\"ok\":true}".utf8), contentType: "application/json", close: true)
+                let token = Self.newSessionToken()
+                self.lock.lock()
+                self.sessions[token] = Date(timeIntervalSinceNow: self.config.sessionTTL)
+                self.lock.unlock()
+                let body = #"{"ok":true,"token":"\#(token)"}"#
+                let cookie = "meshdrop_session=\(token); Path=/; HttpOnly; Max-Age=86400; SameSite=Strict"
+                self.respond(conn, status: 200,
+                             body: Data(body.utf8),
+                             contentType: "application/json",
+                             extraHeaders: ["Set-Cookie": cookie],
+                             close: true)
             } else {
-                self.respond(conn, status: 401, body: Data("{\"ok\":false,\"error\":\"invalid_code\"}".utf8), contentType: "application/json", close: true)
+                self.respond(conn, status: 401,
+                             body: Data(#"{"ok":false,"error":"invalid_code"}"#.utf8),
+                             contentType: "application/json",
+                             close: true)
             }
         }
     }
 
-    private func readBody(_ conn: NWConnection, expected: Int, accumulated: Data, complete: @escaping (Data) -> Void) {
+    /// 兼容 `application/json {code:"..."}` 与 `application/x-www-form-urlencoded code=...`
+    /// 与纯 plain text。
+    private static func extractPairCode(body: Data) -> String {
+        let raw = String(data: body, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if raw.hasPrefix("{"),
+           let obj = try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
+           let c = obj["code"] as? String {
+            return c.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if raw.contains("=") {
+            for kv in raw.split(separator: "&") {
+                let parts = kv.split(separator: "=", maxSplits: 1)
+                if parts.count == 2, parts[0] == "code" {
+                    return String(parts[1])
+                        .removingPercentEncoding?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? String(parts[1])
+                }
+            }
+        }
+        return raw
+    }
+
+    // MARK: - WebSocket /api/v1/control
+
+    private func handleWebSocketUpgrade(_ conn: NWConnection, request: HTTPRequest) {
+        guard let key = request.headers["sec-websocket-key"], !key.isEmpty else {
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"missing_ws_key"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        let accept = WebSocketFrame.computeAccept(key: key.trimmingCharacters(in: .whitespaces))
+        var head = "HTTP/1.1 101 Switching Protocols\r\n"
+        head += "Upgrade: websocket\r\n"
+        head += "Connection: Upgrade\r\n"
+        head += "Sec-WebSocket-Accept: \(accept)\r\n\r\n"
+
+        conn.send(content: Data(head.utf8), completion: .contentProcessed { [weak self] err in
+            if let err {
+                log.error("WS upgrade send failed: \(err.localizedDescription)")
+                conn.cancel()
+                return
+            }
+            self?.startWebSocketLoop(conn: conn, leftover: request.bodyTail)
+        })
+    }
+
+    private func startWebSocketLoop(conn: NWConnection, leftover: Data) {
+        let clientID = UUID()
+        let sendFrame: (Data) -> Void = { payload in
+            let frame = WebSocketFrame.text(payload)
+            conn.send(content: frame, completion: .contentProcessed { _ in })
+        }
+
+        // 先注册一个空 cancellables 的 client，避免与 read loop 竞争
+        lock.lock()
+        wsClients[clientID] = WSClient(conn: conn, send: sendFrame, cancellables: [])
+        lock.unlock()
+
+        // 异步在 main actor 上订阅 engine 事件（推 state_snapshot 首帧 + 后续变化）
+        if let engine {
+            DispatchQueue.main.async { [weak self] in
+                let commands = GatewayCommands(engine: engine)
+                let bag = commands.subscribe(send: sendFrame)
+                self?.lock.lock()
+                if var client = self?.wsClients[clientID] {
+                    client.cancellables = bag
+                    self?.wsClients[clientID] = client
+                }
+                self?.lock.unlock()
+            }
+        }
+
+        readWSFrame(conn: conn, clientID: clientID, buffer: leftover)
+    }
+
+    private func readWSFrame(conn: NWConnection, clientID: UUID, buffer: Data) {
+        // 先尝试用已有 buffer 解析
+        switch WebSocketFrame.decode(buffer: buffer) {
+        case .frame(let f, let consumed):
+            handleWSFrame(f, conn: conn, clientID: clientID)
+            let rest = buffer.dropFirst(consumed)
+            if !rest.isEmpty {
+                readWSFrame(conn: conn, clientID: clientID, buffer: Data(rest))
+            } else {
+                readMoreWS(conn: conn, clientID: clientID, buffer: Data())
+            }
+        case .needsMore:
+            readMoreWS(conn: conn, clientID: clientID, buffer: buffer)
+        case .error(let msg):
+            log.error("WS decode error: \(msg)")
+            closeWS(clientID: clientID)
+        }
+    }
+
+    private func readMoreWS(conn: NWConnection, clientID: UUID, buffer: Data) {
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { [weak self] data, _, isComplete, error in
+            guard let self else { return }
+            if let error {
+                log.info("WS recv error: \(error.localizedDescription)")
+                self.closeWS(clientID: clientID)
+                return
+            }
+            var buf = buffer
+            if let data { buf.append(data) }
+            if isComplete && buf.isEmpty {
+                self.closeWS(clientID: clientID)
+                return
+            }
+            self.readWSFrame(conn: conn, clientID: clientID, buffer: buf)
+        }
+    }
+
+    private func handleWSFrame(_ frame: WebSocketFrame.Decoded, conn: NWConnection, clientID: UUID) {
+        switch frame.opcode {
+        case .text:
+            guard let engine = self.engine else {
+                let reply = GatewayCommands.makeReply(id: "", ok: false, error: "no_engine")
+                conn.send(content: WebSocketFrame.text(reply), completion: .contentProcessed { _ in })
+                return
+            }
+            let request = frame.payload
+            // dispatch 必须在 MainActor
+            DispatchQueue.main.async {
+                let commands = GatewayCommands(engine: engine)
+                let reply = commands.dispatch(request)
+                conn.send(content: WebSocketFrame.text(reply), completion: .contentProcessed { _ in })
+            }
+        case .ping:
+            conn.send(content: WebSocketFrame.pong(payload: frame.payload),
+                      completion: .contentProcessed { _ in })
+        case .close:
+            conn.send(content: WebSocketFrame.close(), completion: .contentProcessed { _ in
+                conn.cancel()
+            })
+            closeWS(clientID: clientID, cancelConn: false)
+        case .pong, .binary, .continuation:
+            break
+        }
+    }
+
+    private func closeWS(clientID: UUID, cancelConn: Bool = true) {
+        lock.lock()
+        let client = wsClients.removeValue(forKey: clientID)
+        lock.unlock()
+        if cancelConn { client?.conn.cancel() }
+    }
+
+    // MARK: - /api/v1/upload
+
+    private func handleUpload(_ conn: NWConnection, request: HTTPRequest) {
+        let ctype = request.headers["content-type"] ?? ""
+        guard let boundary = MultipartParser.boundary(fromContentType: ctype) else {
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"missing_boundary"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        let lenHeader = request.headers["content-length"] ?? "0"
+        guard let len = Int(lenHeader), len > 0 else {
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"missing_content_length"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        // 4 GiB 上限（与 protocol/transport.md 单文件上限一致）
+        if len > 4 * 1024 * 1024 * 1024 {
+            respond(conn, status: 413,
+                    body: Data(#"{"ok":false,"error":"payload_too_large"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        readBody(conn, expected: len, accumulated: request.bodyTail) { [weak self] body in
+            guard let self else { return }
+            do {
+                let part = try MultipartParser.firstFilePart(body: body, boundary: boundary)
+                let savedPath = try self.saveUpload(part: part)
+                let resp = #"{"ok":true,"token":"\#(savedPath.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))"}"#
+                self.respond(conn, status: 200,
+                             body: Data(resp.utf8),
+                             contentType: "application/json", close: true)
+            } catch {
+                log.error("upload parse failed: \(error.localizedDescription)")
+                self.respond(conn, status: 400,
+                             body: Data(#"{"ok":false,"error":"multipart_malformed"}"#.utf8),
+                             contentType: "application/json", close: true)
+            }
+        }
+    }
+
+    // MARK: - /api/v1/download/<historyId>
+
+    /// 浏览器从 native 端下载已接收的文件流。
+    /// path: `/api/v1/download/<historyId>`（去 query 后的路径段）。
+    private func handleDownload(_ conn: NWConnection, request: HTTPRequest) {
+        // 抽 path 末段（去 query）
+        let path = request.path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? request.path
+        let prefix = "/api/v1/download/"
+        guard path.hasPrefix(prefix) else {
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"bad_path"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        let idStr = String(path.dropFirst(prefix.count))
+        guard let historyID = UUID(uuidString: idStr) else {
+            respond(conn, status: 400,
+                    body: Data(#"{"ok":false,"error":"bad_history_id"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        guard let engine = self.engine else {
+            respond(conn, status: 503,
+                    body: Data(#"{"ok":false,"error":"no_engine"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            let commands = GatewayCommands(engine: engine)
+            let lookup = commands.fileForHistory(id: historyID)
+            self?.queue.async {
+                guard let lookup else {
+                    self?.respond(conn, status: 404,
+                                  body: Data(#"{"ok":false,"error":"file_not_found"}"#.utf8),
+                                  contentType: "application/json", close: true)
+                    return
+                }
+                self?.streamFile(conn: conn, name: lookup.name, url: lookup.url)
+            }
+        }
+    }
+
+    /// 流式写文件：header + 分块 64 KiB read+send 直到 EOF。Range 头留 v0.2。
+    private func streamFile(conn: NWConnection, name: String, url: URL) {
+        let fm = FileManager.default
+        guard let attrs = try? fm.attributesOfItem(atPath: url.path),
+              let size = (attrs[.size] as? NSNumber)?.intValue,
+              let handle = try? FileHandle(forReadingFrom: url) else {
+            respond(conn, status: 410,
+                    body: Data(#"{"ok":false,"error":"file_gone"}"#.utf8),
+                    contentType: "application/json", close: true)
+            return
+        }
+        let safeName = Self.rfc5987Encode(name)
+        var head = "HTTP/1.1 200 OK\r\n"
+        head += "Content-Type: application/octet-stream\r\n"
+        head += "Content-Length: \(size)\r\n"
+        head += "Content-Disposition: attachment; filename*=UTF-8''\(safeName)\r\n"
+        head += "Server: MeshDrop-Gateway/0.1\r\n"
+        head += "Connection: close\r\n\r\n"
+        conn.send(content: Data(head.utf8), completion: .contentProcessed { [weak self] err in
+            guard err == nil else {
+                try? handle.close()
+                conn.cancel()
+                return
+            }
+            self?.streamChunk(conn: conn, handle: handle)
+        })
+    }
+
+    private func streamChunk(conn: NWConnection, handle: FileHandle) {
+        let chunk: Data
+        do {
+            chunk = try handle.read(upToCount: 64 * 1024) ?? Data()
+        } catch {
+            try? handle.close()
+            conn.cancel()
+            return
+        }
+        if chunk.isEmpty {
+            try? handle.close()
+            conn.send(content: nil, isComplete: true, completion: .contentProcessed { _ in
+                conn.cancel()
+            })
+            return
+        }
+        conn.send(content: chunk, completion: .contentProcessed { [weak self] err in
+            if err != nil {
+                try? handle.close()
+                conn.cancel()
+                return
+            }
+            self?.streamChunk(conn: conn, handle: handle)
+        })
+    }
+
+    /// RFC 5987：把任意 UTF-8 文件名编码进 `Content-Disposition: filename*=UTF-8''<encoded>`
+    /// 用百分号编码保护非 ASCII 与特殊字符。
+    private static func rfc5987Encode(_ s: String) -> String {
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
+        return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
+    }
+
+    private func saveUpload(part: MultipartParser.FilePart) throws -> String {
+        let fm = FileManager.default
+        let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                    appropriateFor: nil, create: true)
+        let dir = appSupport
+            .appendingPathComponent("MeshDrop", isDirectory: true)
+            .appendingPathComponent("uploads", isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        let safeName = part.filename.isEmpty ? "upload-\(UUID().uuidString)" : part.filename
+        let target = dir.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
+        try part.body.write(to: target)
+        return target.path
+    }
+
+    // MARK: - body 累积
+
+    private func readBody(
+        _ conn: NWConnection,
+        expected: Int,
+        accumulated: Data,
+        complete: @escaping (Data) -> Void
+    ) {
         if accumulated.count >= expected {
             complete(accumulated.prefix(expected))
             return
         }
-        conn.receive(minimumIncompleteLength: 1, maximumLength: expected - accumulated.count) { data, _, isComplete, _ in
+        let want = expected - accumulated.count
+        conn.receive(minimumIncompleteLength: 1, maximumLength: min(want, 256 * 1024)) { [weak self] data, _, isComplete, _ in
+            guard let self else { return }
             var buf = accumulated
             if let data { buf.append(data) }
             if buf.count >= expected || isComplete {
-                complete(buf)
+                complete(buf.prefix(expected))
             } else {
                 self.readBody(conn, expected: expected, accumulated: buf, complete: complete)
             }
         }
     }
+
+    // MARK: - 静态资源 / response
 
     private func serveStaticIndex(_ conn: NWConnection) {
         let html: Data
@@ -216,13 +595,21 @@ public final class WebGateway: @unchecked Sendable {
         respond(conn, status: 200, body: html, contentType: "text/html; charset=utf-8", close: true)
     }
 
-    private func respond(_ conn: NWConnection, status: Int, body: Data, contentType: String = "text/plain; charset=utf-8", close: Bool) {
+    private func respond(
+        _ conn: NWConnection,
+        status: Int,
+        body: Data,
+        contentType: String = "text/plain; charset=utf-8",
+        extraHeaders: [String: String] = [:],
+        close: Bool
+    ) {
         let reason = Self.reason(for: status)
         var head = "HTTP/1.1 \(status) \(reason)\r\n"
         head += "Content-Type: \(contentType)\r\n"
         head += "Content-Length: \(body.count)\r\n"
         head += "Server: MeshDrop-Gateway/0.1\r\n"
         head += "Connection: close\r\n"
+        for (k, v) in extraHeaders { head += "\(k): \(v)\r\n" }
         head += "\r\n"
         var out = Data(head.utf8)
         out.append(body)
@@ -231,26 +618,78 @@ public final class WebGateway: @unchecked Sendable {
         })
     }
 
-    // MARK: - 辅助
+    // MARK: - session / token
+
+    private func isSessionValid(_ token: String) -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard let exp = sessions[token] else { return false }
+        if exp <= Date() {
+            sessions.removeValue(forKey: token)
+            return false
+        }
+        return true
+    }
+
+    /// 从 request 抽 token（cookie / query / header）。
+    private static func extractToken(request: HTTPRequest) -> String? {
+        if let cookie = request.headers["cookie"] {
+            for part in cookie.split(separator: ";") {
+                let kv = part.trimmingCharacters(in: .whitespaces)
+                if kv.hasPrefix("meshdrop_session=") {
+                    return String(kv.dropFirst("meshdrop_session=".count))
+                }
+            }
+        }
+        if let xToken = request.headers["x-meshdrop-token"], !xToken.isEmpty {
+            return xToken
+        }
+        // ?token=<sid>
+        if let q = request.path.firstIndex(of: "?") {
+            let query = request.path[request.path.index(after: q)...]
+            for kv in query.split(separator: "&") {
+                let parts = kv.split(separator: "=", maxSplits: 1)
+                if parts.count == 2, parts[0] == "token" {
+                    return String(parts[1])
+                        .removingPercentEncoding ?? String(parts[1])
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func newSessionToken() -> String {
+        var bytes = [UInt8](repeating: 0, count: 18)
+        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        return Data(bytes).base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private static func isWebSocketUpgrade(_ req: HTTPRequest) -> Bool {
+        let upgrade = req.headers["upgrade"]?.lowercased() ?? ""
+        return upgrade.contains("websocket")
+    }
 
     private static func reason(for code: Int) -> String {
         switch code {
+        case 101: return "Switching Protocols"
         case 200: return "OK"
         case 400: return "Bad Request"
         case 401: return "Unauthorized"
         case 404: return "Not Found"
         case 413: return "Payload Too Large"
+        case 426: return "Upgrade Required"
         case 501: return "Not Implemented"
         default:  return "OK"
         }
     }
 
-    /// 6 字符配对码，格式 `LR4K7M`（2 段 3 字符，避免易混淆 0/O/1/I）。
+    /// 6 字符配对码，格式 `LR4K7M`（避免易混淆 0/O/1/I）。
     static func generatePairingCode() -> String {
         let alphabet = Array("ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
         var out = ""
-        for i in 0..<6 {
-            if i == 3 { out += "" }  // 显示时插 ·，存储仍是 6 字符
+        for _ in 0..<6 {
             out.append(alphabet.randomElement()!)
         }
         return out
@@ -301,15 +740,29 @@ public final class WebGateway: @unchecked Sendable {
               <button onclick="auth()">进入</button>
             </div>
             <div id="msg" style="margin-top:10px;"></div>
-            <footer>注：v0.1 仅校验配对码；WebSocket 控制通道（/api/v1/control）将在 v0.2 启用，届时启用 TLS 自签证书。</footer>
+            <footer>v0.1 走明文 HTTP；TLS 自签证书将在 v0.2 切换。</footer>
           </div>
         <script>
           async function auth() {
             const raw = document.getElementById('code').value.replace(/\\s|·/g, '').toUpperCase();
-            const r = await fetch('/api/v1/auth', { method:'POST', body: raw });
+            const r = await fetch('/api/v1/pair', {
+              method:'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: raw }),
+              credentials: 'include',
+            });
             const msg = document.getElementById('msg');
-            if (r.ok) { msg.textContent = '✓ 配对码正确（WS 通道 v0.2 启用）'; msg.className = 'ok'; }
-            else      { msg.textContent = '× 配对码不对'; msg.className = 'err'; }
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.ok) {
+              msg.textContent = '✓ 配对码正确，正在连接 WS…';
+              msg.className = 'ok';
+              const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+              const ws = new WebSocket(scheme + '://' + location.host + '/api/v1/control?token=' + encodeURIComponent(j.token || ''));
+              ws.onmessage = (e) => console.log('[meshdrop] evt', e.data);
+            } else {
+              msg.textContent = '× 配对码不对';
+              msg.className = 'err';
+            }
           }
         </script>
         </body></html>

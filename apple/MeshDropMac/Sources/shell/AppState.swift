@@ -35,9 +35,10 @@ final class AppState: ObservableObject {
     private let engine: ShareEngine
     private var cancellables = Set<AnyCancellable>()
 
-    init(engine: ShareEngine = .shared) {
-        self.engine = engine
-        self.displayName = engine.displayName
+    init(engine: ShareEngine? = nil) {
+        let actualEngine = engine ?? ShareEngine.shared
+        self.engine = actualEngine
+        self.displayName = actualEngine.displayName
         bind()
     }
 

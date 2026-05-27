@@ -1,4 +1,5 @@
 import SwiftUI
+import MeshDropKit
 
 struct SettingsPage: View {
     @EnvironmentObject var state: AppState
@@ -12,6 +13,7 @@ struct SettingsPage: View {
     @State private var showInMenuBar = true
     @State private var keepHistoryDays = 30
     @State private var displayNameEdit = ""
+    @State private var confirmingReset = false
 
     var body: some View {
         PageScroll {
@@ -76,6 +78,28 @@ struct SettingsPage: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(MeshDropColor.divider, lineWidth: 1)
                     )
+                    Button("重置身份…") {
+                        confirmingReset = true
+                    }
+                    .buttonStyle(.plain)
+                    .font(MeshDropFont.body(size: 12, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.flame)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(MeshDropColor.flame.opacity(0.4), lineWidth: 1)
+                    )
+                    .confirmationDialog(
+                        "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+                        isPresented: $confirmingReset,
+                        titleVisibility: .visible
+                    ) {
+                        Button("重置身份", role: .destructive) {
+                            ShareEngine.shared.resetIdentity()
+                        }
+                        Button("取消", role: .cancel) {}
+                    }
                 }
 
                 section("Web 访问 · Web Gateway") {

@@ -15,14 +15,18 @@ struct Radar: View {
 
     var body: some View {
         TimelineView(.animation) { ctx in
-            let t = staticTime ?? ctx.date.timeIntervalSinceReferenceDate
+            radarContent(time: staticTime ?? ctx.date.timeIntervalSinceReferenceDate)
+        }
+    }
 
-            GeometryReader { geo in
-                let side = min(geo.size.width, geo.size.height)
-                let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-                let maxR = side / 2 - 16
+    @ViewBuilder
+    private func radarContent(time t: Double) -> some View {
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let maxR = side / 2 - 16
 
-                ZStack {
+            ZStack {
                     // 背景圆
                     Circle()
                         .fill(MeshDropColor.cardBg2)
@@ -82,7 +86,7 @@ struct Radar: View {
                         Text("YOU")
                             .font(MeshDropFont.mono(size: 10, weight: .bold))
                             .foregroundStyle(scheme == .dark ? MeshDropColor.ink : MeshDropColor.paper)
-                        Text(Radar.localAddressOrPlaceholder())
+                        Text(DeviceDot.localAddressOrPlaceholder())
                             .font(MeshDropFont.mono(size: 7))
                             .foregroundStyle(scheme == .dark ? MeshDropColor.ink60 : MeshDropColor.paper.opacity(0.7))
                     }
@@ -127,7 +131,7 @@ struct Radar: View {
             }
         }
     }
-}
+
 
 private struct SweepArm: View {
     let time: Double
