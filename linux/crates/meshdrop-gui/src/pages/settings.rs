@@ -157,6 +157,57 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         .build();
     e3.add_suffix(&chip::chip("TOFU", chip::Tone::Outline, true));
     g2.add(&e3);
+
+    // 重置身份（security.md §设备身份）
+    let e4 = adw::ActionRow::builder()
+        .title("重置身份 · Reset identity")
+        .subtitle("删除当前 ID 与 Ed25519 密钥；对端会把本机视为新设备需重新配对")
+        .build();
+    let reset_btn = gtk::Button::with_label("重置…");
+    reset_btn.add_css_class("destructive-action");
+    reset_btn.set_valign(gtk::Align::Center);
+    let window = root.root().and_then(|r| r.downcast::<gtk::Window>().ok());
+    reset_btn.connect_clicked(move |_| {
+        let dialog = adw::MessageDialog::new(
+            window.as_ref(),
+            Some("重置身份"),
+            Some("将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后需要重启 app 让新身份生效。"),
+        );
+        dialog.add_response("cancel", "取消");
+        dialog.add_response("reset", "重置");
+        dialog.set_response_appearance("reset", adw::ResponseAppearance::Destructive);
+        dialog.set_default_response(Some("cancel"));
+        dialog.set_close_response("cancel");
+        dialog.connect_response(None, |dlg, resp| {
+            if resp == "reset" {
+                match meshdrop_core::Identity::reset_storage() {
+                    Ok(()) => {
+                        let done = adw::MessageDialog::new(
+                            None::<&gtk::Window>,
+                            Some("已重置"),
+                            Some("身份已删除，请重启 MeshDrop 让新身份生效。"),
+                        );
+                        done.add_response("ok", "好");
+                        done.set_default_response(Some("ok"));
+                        done.present();
+                    }
+                    Err(e) => {
+                        let err = adw::MessageDialog::new(
+                            None::<&gtk::Window>,
+                            Some("重置失败"),
+                            Some(&format!("{}", e)),
+                        );
+                        err.add_response("ok", "好");
+                        err.present();
+                    }
+                }
+            }
+            dlg.close();
+        });
+        dialog.present();
+    });
+    e4.add_suffix(&reset_btn);
+    g2.add(&e4);
     root.append(&g2);
 
     // ── 行为

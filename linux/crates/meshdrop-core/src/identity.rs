@@ -54,6 +54,18 @@ impl Identity {
     pub fn verifying_key(&self) -> VerifyingKey {
         self.signing_key.verifying_key()
     }
+
+    /// 删除磁盘上的身份文件，让下次 load_or_create 重新生成。
+    /// 用于 Settings 里的"重置身份"。
+    pub fn reset_storage() -> Result<()> {
+        let dir = storage_dir()?;
+        let id_path = dir.join("id");
+        let key_path = dir.join("ed25519.bin");
+        for p in [&id_path, &key_path] {
+            if p.exists() { fs::remove_file(p)?; }
+        }
+        Ok(())
+    }
 }
 
 pub fn compute_fingerprint(verifying_key: &VerifyingKey) -> String {

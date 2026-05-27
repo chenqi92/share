@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,10 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
+import com.welape.meshdrop.data.IdentityStore
 import com.welape.meshdrop.mock.MockMeData
 import com.welape.meshdrop.mock.MockTrustList
 import com.welape.meshdrop.mock.MockTrustRecord
@@ -58,6 +63,8 @@ fun MeScreen(
     onOpenOnboarding: () -> Unit = {},
 ) {
     val mesh = MeshTheme.colors
+    val context = LocalContext.current
+    var showResetDialog by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -117,6 +124,34 @@ fun MeScreen(
             ChevronRow(title = "我的指纹", subtitle = "ZX8K · L72M · 9FQ3 · 7HD2")
             DividerThin()
             ChevronRow(title = "扫码 / 6 字符配对", subtitle = "向新设备发起", onClick = onOpenPairing)
+            DividerThin()
+            ChevronRow(
+                title = "重置身份…",
+                subtitle = "删除当前 ID 与 Ed25519 密钥；对端需重新配对",
+                onClick = { showResetDialog = true },
+            )
+        }
+
+        if (showResetDialog) {
+            AlertDialog(
+                onDismissRequest = { showResetDialog = false },
+                title = { Text("重置身份") },
+                text = {
+                    Text(
+                        "将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后请重启 MeshDrop 让新身份生效。",
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        IdentityStore.reset(context)
+                        Toast.makeText(context, "已重置 · 请重启 MeshDrop", Toast.LENGTH_LONG).show()
+                        showResetDialog = false
+                    }) { Text("重置") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showResetDialog = false }) { Text("取消") }
+                },
+            )
         }
 
         AsciiDivider(label = "信任管理 · TRUST MANAGER")

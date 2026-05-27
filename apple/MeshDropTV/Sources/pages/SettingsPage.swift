@@ -11,7 +11,7 @@ struct SettingsPage: View {
         let value: String
         let kind: Kind
 
-        enum Kind { case display, network, savePath, behavior }
+        enum Kind { case display, network, savePath, behavior, resetIdentity }
     }
 
     private var rows: [Row] {
@@ -24,12 +24,15 @@ struct SettingsPage: View {
                   value: "Wi-Fi · LAN ONLY · _meshdrop._tcp", kind: .network),
             .init(label: "行为",     english: "BEHAVIOR",
                   value: "只接收 · 不发送（tvOS）", kind: .behavior),
+            .init(label: "重置身份", english: "RESET IDENTITY",
+                  value: "对端需重新配对", kind: .resetIdentity),
         ]
     }
 
     @FocusState private var focusedRow: UUID?
     @State private var editingName: Bool = false
     @State private var nameDraft: String = ""
+    @State private var confirmingReset: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -57,6 +60,14 @@ struct SettingsPage: View {
                     .init(glyph: "TV", label: "返回"),
                 ])
             }
+        }
+        .confirmationDialog(
+            "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+            isPresented: $confirmingReset,
+            titleVisibility: .visible
+        ) {
+            Button("重置身份", role: .destructive) { engine.resetIdentity() }
+            Button("取消", role: .cancel) {}
         }
     }
 
@@ -156,9 +167,14 @@ struct SettingsPage: View {
     }
 
     private func handleRowAction(_ row: Row) {
-        if row.kind == .display {
+        switch row.kind {
+        case .display:
             nameDraft = engine.displayName
             editingName = true
+        case .resetIdentity:
+            confirmingReset = true
+        case .network, .savePath, .behavior:
+            break
         }
     }
 

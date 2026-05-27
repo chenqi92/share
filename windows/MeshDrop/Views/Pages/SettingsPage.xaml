@@ -110,6 +110,13 @@
                                           Header="首次配对需双方确认指纹"
                                           OnContent="ON"
                                           OffContent="OFF"/>
+                            <Button x:Name="ResetIdentityButton"
+                                    Content="重置身份…"
+                                    Click="OnResetIdentityClick"
+                                    Style="{StaticResource AccentButtonStyle}"
+                                    Background="{ThemeResource MdFlameBrush}"
+                                    Foreground="{ThemeResource MdPaperBrush}"
+                                    HorizontalAlignment="Left"/>
                         </StackPanel>
                     </Border>
                 </Grid>

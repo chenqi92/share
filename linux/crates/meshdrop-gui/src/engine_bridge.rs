@@ -127,6 +127,13 @@ impl AppHandle {
     }
 
     pub fn clear_history(&self) { self.engine.clear_history(); }
+
+    /// 重置身份（security.md §设备身份）。
+    /// 删除磁盘上的 id / 私钥文件；当前 engine 仍持旧身份运行，需要 app 重启
+    /// 才能让新身份生效。UI 应在 Settings 里点完后提示用户重启。
+    pub fn reset_identity_storage() -> anyhow::Result<()> {
+        meshdrop_core::Identity::reset_storage()
+    }
     pub fn remove_history(&self, id: uuid::Uuid) { self.engine.remove_history(id); }
 
     pub fn fingerprint(&self) -> String {
