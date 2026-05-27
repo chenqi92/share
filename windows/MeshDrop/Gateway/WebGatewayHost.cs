@@ -21,8 +21,9 @@ namespace MeshDrop.Gateway;
 /// MeshDrop Web Gateway。监听 0.0.0.0:7384 (https + WebSocket)。
 /// 实装 protocol/companion-bridges.md §4.3：
 ///   - GET /                    → web-fallback/index.html (内嵌资源)
-///   - POST /api/v1/auth        → 验 pairing code，下发 session cookie
-///   - WS  /api/v1/control      → 双向命令 / 事件通道
+///   - POST /api/v1/pair        → 验 pairing code，下发 session cookie + token（companion-bridges §4.3）
+///                                 别名 /api/v1/auth 保留兼容旧客户端
+///   - WS  /api/v1/control      → 双向命令 / 事件通道（cookie / ?token= / x-meshdrop-token 任一鉴权）
 ///   - POST /api/v1/upload      → multipart 暂存文件，返 uploadToken
 ///   - GET  /api/v1/download/{} → 接受 offer 后下载流（v0.1：本地保存路径）
 ///
@@ -127,7 +128,7 @@ public sealed class WebGatewayHost
             var (method, path, headers, body) = await ReadRequestAsync(ssl, ct);
             if (method is null) return;
 
-            var sessionId = ReadSessionCookie(headers);
+            var sessionId = ExtractSessionToken(path, headers);
             var isAuth = !string.IsNullOrEmpty(sessionId) && IsSessionValid(sessionId);
 
             // 路由
@@ -136,20 +137,24 @@ public sealed class WebGatewayHost
                 await WriteHtmlAsync(ssl, FallbackHtml(), ct);
                 return;
             }
-            if (method == "POST" && path == "/api/v1/auth")
+            // 与 Linux / Apple gateway 对齐：/api/v1/pair 是规范名；/api/v1/auth 是旧别名
+            if (method == "POST" && (path == "/api/v1/pair" || path == "/api/v1/auth"))
             {
                 var code = ExtractAuthCode(body);
                 if (_pairingStore.Verify(code))
                 {
                     var sid = NewSessionId();
                     _sessions[sid] = DateTimeOffset.UtcNow.AddHours(24);
+                    // body 含 token：web 客户端把它存 localStorage 再以 ?token= / x-meshdrop-token 用；
+                    // 同时 Set-Cookie 让浏览器自动带（companion-bridges §4.3）
+                    var bodyJson = $"{{\"ok\":true,\"token\":\"{sid}\"}}";
                     await WriteResponseAsync(ssl, 200, "OK",
                         new Dictionary<string, string>
                         {
                             ["Content-Type"] = "application/json; charset=utf-8",
-                            ["Set-Cookie"] = $"meshdrop_sid={sid}; Path=/; HttpOnly; Secure; Max-Age=86400; SameSite=Strict",
+                            ["Set-Cookie"] = $"meshdrop_session={sid}; Path=/; HttpOnly; Secure; Max-Age=86400; SameSite=Strict",
                         },
-                        Encoding.UTF8.GetBytes("{\"ok\":true}"), ct);
+                        Encoding.UTF8.GetBytes(bodyJson), ct);
                 }
                 else
                 {
@@ -341,13 +346,35 @@ public sealed class WebGatewayHost
 
     // ─── session / pairing ────────────────────────────────────────────
 
-    private static string ReadSessionCookie(Dictionary<string, string> headers)
+    /// 鉴权 token 来源（按优先级）：
+    /// 1. URL query `?token=<sid>`（WS 连接 URL 用，cookie 在 wss upgrade 上不一定带）
+    /// 2. Header `x-meshdrop-token`（multipart upload 等 fetch 调用用）
+    /// 3. Cookie `meshdrop_session=<sid>`（与 Linux / Apple 对齐）
+    /// 4. Cookie `meshdrop_sid=<sid>`（旧名，向后兼容）
+    private static string ExtractSessionToken(string path, Dictionary<string, string> headers)
     {
-        if (!headers.TryGetValue("Cookie", out var c)) return "";
-        foreach (var part in c.Split(';'))
+        // query
+        var q = path.IndexOf('?');
+        if (q >= 0)
         {
-            var p = part.Trim();
-            if (p.StartsWith("meshdrop_sid=")) return p.Substring("meshdrop_sid=".Length);
+            foreach (var kv in path[(q + 1)..].Split('&'))
+            {
+                var eq = kv.IndexOf('=');
+                if (eq <= 0) continue;
+                if (kv[..eq] == "token") return Uri.UnescapeDataString(kv[(eq + 1)..]);
+            }
+        }
+        // header
+        if (headers.TryGetValue("x-meshdrop-token", out var h) && !string.IsNullOrEmpty(h)) return h;
+        // cookies
+        if (headers.TryGetValue("Cookie", out var c))
+        {
+            foreach (var part in c.Split(';'))
+            {
+                var p = part.Trim();
+                if (p.StartsWith("meshdrop_session=")) return p.Substring("meshdrop_session=".Length);
+                if (p.StartsWith("meshdrop_sid=")) return p.Substring("meshdrop_sid=".Length);
+            }
         }
         return "";
     }
@@ -458,7 +485,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   msg.textContent = '验证中…';
   msg.className = 'msg';
   try {
-    const r = await fetch('/api/v1/auth', {
+    const r = await fetch('/api/v1/pair', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     });

@@ -49,7 +49,7 @@ $('f').addEventListener('submit', async (e) => {
   const msg = $('msg');
   msg.textContent = '验证中…'; msg.className = 'msg';
   try {
-    const r = await fetch('/api/v1/auth', {
+    const r = await fetch('/api/v1/pair', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code }),
     });
