@@ -1,0 +1,14 @@
+{
+  "name": "file-chunk-min",
+  "type_hex": "0x30",
+  "type_name": "FILE_CHUNK",
+  "description": "FILE_CHUNK binary body：16-byte transfer_id + u32 BE index + u64 BE offset + 11 字节 ASCII data 'hello world'",
+  "binary_body": true,
+  "transfer_id": "550e8400-e29b-41d4-a716-446655440001",
+  "index": 0,
+  "offset": 0,
+  "data_ascii": "hello world",
+  "data_hex": "68656c6c6f20776f726c64",
+  "body_bytes_hex": "550e8400e29b41d4a71644665544000100000000000000000000000068656c6c6f20776f726c64",
+  "frame_bytes_hex": "0000002830550e8400e29b41d4a71644665544000100000000000000000000000068656c6c6f20776f726c64"
+}

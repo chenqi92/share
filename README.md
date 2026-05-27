@@ -6,14 +6,20 @@
 
 ## 平台覆盖
 
-| 平台      | 技术栈                                  | 状态     |
-| --------- | --------------------------------------- | -------- |
-| macOS     | SwiftUI + Network.framework             | 骨架     |
-| iOS 17+   | SwiftUI + Network.framework             | 骨架     |
-| iOS 26    | + Liquid Glass (`.glassEffect()`)       | 骨架     |
-| Android   | Jetpack Compose + `NsdManager`          | 骨架     |
-| Windows   | WinUI 3 (.NET 8) + `Makaretu.Dns`       | 骨架     |
-| Linux     | Rust + gtk4-rs + libadwaita + `mdns-sd` | 骨架     |
+| 平台              | 技术栈                                                | 状态      |
+| ----------------- | ----------------------------------------------------- | --------- |
+| macOS             | SwiftUI + Network.framework                           | v0.1 完成 |
+| iOS 17+ / iPadOS  | SwiftUI + Network.framework                           | v0.1 完成 |
+| iOS 26            | + Liquid Glass (`.glassEffect()`)                     | v0.1 完成 |
+| tvOS              | SwiftUI focus engine（只接收）                        | v0.1 完成 |
+| visionOS          | SwiftUI spatial + glass                               | v0.1 完成 |
+| watchOS           | SwiftUI + WatchConnectivity 桥到 iPhone               | v0.1 完成 |
+| Android           | Jetpack Compose + `NsdManager`                        | v0.1 完成 |
+| Wear OS           | Compose for Wear + WearableDataLayer 桥到 Android     | v0.1 完成 |
+| Windows           | WinUI 3 (.NET 8) + `Makaretu.Dns`                     | v0.1 完成 |
+| Linux GUI         | Rust + gtk4-rs + libadwaita + `mdns-sd`               | v0.1 完成 |
+| Linux TUI         | Rust + ratatui + `mdns-sd`                            | v0.1 完成 |
+| Web Browser       | React + Vite，通过 Gateway 桥接                       | v0.1 完成 |
 
 各端共用一份自研协议（见 [protocol/](protocol/README.md)），通过 mDNS / DNS-SD
 做服务发现，TCP + Noise 风格握手 + AES-256-GCM 做加密传输。
@@ -23,10 +29,12 @@
 ```
 share/
 ├── protocol/           # 协议规范（语言无关）— 所有端实现的真相
-├── apple/              # Swift Package ShareKit + macOS app + iOS app
+├── apple/              # Swift Package MeshDropKit + macOS / iOS / iPadOS / tvOS / visionOS / watchOS
 ├── android/            # Gradle 项目（Kotlin + Compose）
+├── wearos/             # Wear OS（Kotlin）
 ├── windows/            # .NET 8 + WinUI 3 解决方案
-└── linux/              # Cargo workspace (Rust + GTK4)
+├── linux/              # Cargo workspace（Rust + GTK4 + ratatui）
+└── web/                # React + Vite
 ```
 
 每个平台子目录有独立 README 说明如何构建与运行。
@@ -42,17 +50,32 @@ share/
 5. **不留遗憾**：iOS 26 Liquid Glass、macOS Tahoe 玻璃工具栏、Android 12+ 动态色、
    Windows 11 Mica、Linux libadwaita — 该用的现代效果都用。
 
-## 开发顺序
+## v0.1 完成度
 
-骨架阶段（当前）：
-- 协议规范 v0.1 全部完成
-- 5 端项目都能 build、跑起来、列出局域网内其他端
+协议层（所有端按 spec 实装）：
+- ✅ mDNS / DNS-SD 服务发现
+- ✅ TCP framing（HELLO / HELLO_ACK）
+- ✅ TEXT 消息互发
+- ✅ FILE_OFFER / ACCEPT / REJECT / CHUNK / COMPLETE / CANCEL 全流程
+- ✅ TOFU 配对（指纹首次确认 + 长期信任）
+- ✅ FILE_ACCEPT.resume_offset 断点续传（Apple / Android）
 
-下一阶段：
-- 文本传输（最简单的消息类型）
-- 文件传输（offer / accept / chunk / 断点续传）
-- 配对 UI（首次连接指纹确认）
+平台原生功能：
+- ✅ Apple 端身份私钥 → Keychain (`kSecAttrAccessibleAfterFirstUnlock`)
+- ✅ Windows 身份私钥 → DPAPI
+- ✅ Android Share Target / iOS Share Extension（App Group 队列）
+- ✅ Wear OS / Apple Watch companion bridge
+- ✅ Settings 重置身份功能
 
-更后：
-- 端到端加密真正实装（当前骨架先明文跑 LAN，加密层放在文档里规范）
-- 文件夹批量、剪贴板分享、推送通知唤醒接收端
+Web Gateway（companion-bridges.md §4.3）：
+- ✅ macOS / Windows / Linux GUI 都实装 TLS 1.3 自签证书 + WebSocket 控制通道
+  + multipart upload + 命令路由 + 事件订阅
+- ✅ macOS 端 GET /api/v1/download/<historyId> 流式下载
+
+## v0.2 计划
+
+- 端到端应用层加密（X25519 + ChaCha20-Poly1305，超出 TLS 之上的消息加密）
+- 文件夹批量传输（recursive offer）
+- 剪贴板分享协议 type
+- 推送通知唤醒接收端
+- Android / Linux 身份存储升级（EncryptedSharedPreferences / libsecret）

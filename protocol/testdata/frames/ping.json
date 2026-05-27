@@ -1,0 +1,9 @@
+{
+  "name": "ping",
+  "type_hex": "0xF0",
+  "type_name": "PING",
+  "description": "心跳。body 固定 '{}'。对应 PONG (0xF1) 的 frame_bytes_hex 仅 type 不同：00000003f17b7d",
+  "body_json": {},
+  "body_bytes_hex": "7b7d",
+  "frame_bytes_hex": "00000003f07b7d"
+}
