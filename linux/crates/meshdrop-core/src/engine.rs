@@ -175,6 +175,15 @@ enum UserCmd {
 enum InternalCmd {
     Incoming(tokio::net::TcpStream, std::net::SocketAddr),
     ConnEvent { ctx_id: Uuid, event: ConnEvent },
+    /// 后台 sha256 task 算完，主循环继续建连。
+    FileHashReady {
+        history_id: Uuid,
+        peer: Device,
+        path: PathBuf,
+        size: u64,
+        name: String,
+        sha256: Result<String, String>,
+    },
 }
 
 // ─── 主任务状态 ────────────────────────────────────────────────────────
@@ -286,6 +295,9 @@ async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
             ConnEvent::Frame { msg_type, body } => on_frame(state, ctx_id, msg_type, body).await,
             ConnEvent::Closed(reason) => close_ctx(state, ctx_id, reason).await,
         }
+        InternalCmd::FileHashReady { history_id, peer, path, size, name, sha256 } => {
+            on_file_hash_ready(state, history_id, peer, path, size, name, sha256).await
+        }
     }
 }
 
@@ -330,18 +342,46 @@ async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {
     state.history.insert(0, item.clone());
     let _ = state.history_tx.send(state.history.clone());
 
-    // 后台算 sha256，再发命令回主任务（通过 internal_tx 不行 — 没专门 cmd）。
-    // 简化：阻塞在主任务里算（小文件 OK；大文件略卡，留 TODO 拆出 task）
-    let sha = match compute_sha256_async(&path).await {
+    // 后台算 sha256，算完通过 InternalCmd::FileHashReady 回主循环建连。
+    // 这样大文件（几 GiB）哈希期间主循环仍能处理别的 UserCmd / InternalCmd。
+    let history_id = item.id;
+    let tx = state.internal_tx.clone();
+    let path_for_task = path.clone();
+    let peer_for_task = peer.clone();
+    let name_for_task = name.clone();
+    tokio::spawn(async move {
+        let sha = compute_sha256_async(&path_for_task).await
+            .map_err(|e| format!("hash: {}", e));
+        let _ = tx.send(InternalCmd::FileHashReady {
+            history_id,
+            peer: peer_for_task,
+            path: path_for_task,
+            size,
+            name: name_for_task,
+            sha256: sha,
+        });
+    });
+}
+
+/// 后台 sha256 task 完成后由主循环继续：建连接 + 进 AwaitingHelloAck。
+async fn on_file_hash_ready(
+    state: &mut State,
+    history_id: Uuid,
+    peer: Device,
+    path: PathBuf,
+    size: u64,
+    name: String,
+    sha256: Result<String, String>,
+) {
+    let sha = match sha256 {
         Ok(s) => s,
         Err(e) => {
-            update_status(state, item.id, TransferStatus::Failed(format!("hash: {}", e)));
+            update_status(state, history_id, TransferStatus::Failed(e));
             return;
         }
     };
-
     let Some(host) = peer.host.clone() else {
-        update_status(state, item.id, TransferStatus::Failed("无可用 IP".into()));
+        update_status(state, history_id, TransferStatus::Failed("无可用 IP".into()));
         return;
     };
     let conn = Connection::connect(host, peer.port);
@@ -353,12 +393,12 @@ async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {
             path: path.clone(), size, sha256: sha, name,
         }},
         ConnState::AwaitingHelloAck);
-    ctx.history_id = Some(item.id);
+    ctx.history_id = Some(history_id);
     ctx.transfer_id = Some(Uuid::new_v4());
     ctx.file_size = size;
     ctx.source_path = Some(path);
     state.contexts.insert(ctx_id, ctx);
-    update_status(state, item.id, TransferStatus::WaitingApproval);
+    update_status(state, history_id, TransferStatus::WaitingApproval);
 }
 
 // ─── 配对决定 / 文件 offer 决定 ───────────────────────────────────────
