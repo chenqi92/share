@@ -184,6 +184,11 @@ enum InternalCmd {
         name: String,
         sha256: Result<String, String>,
     },
+    /// 接收侧 finish 校验完成。`ok` 表示 sha256 与 expected 一致。
+    ReceiveHashVerified {
+        ctx_id: Uuid,
+        ok: bool,
+    },
 }
 
 // ─── 主任务状态 ────────────────────────────────────────────────────────
@@ -297,6 +302,9 @@ async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
         }
         InternalCmd::FileHashReady { history_id, peer, path, size, name, sha256 } => {
             on_file_hash_ready(state, history_id, peer, path, size, name, sha256).await
+        }
+        InternalCmd::ReceiveHashVerified { ctx_id, ok } => {
+            on_receive_hash_verified(state, ctx_id, ok).await
         }
     }
 }
@@ -779,21 +787,44 @@ async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
 }
 
 async fn finish_receive(state: &mut State, ctx_id: Uuid) {
-    let (save_path, expected, transfer_id, history_id) = {
+    let (save_path, expected) = {
         let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
         if let Some(mut out) = ctx.file_output.take() { let _ = out.flush().await; }
-        (ctx.save_path.clone(), ctx.expected_sha256.clone(), ctx.transfer_id, ctx.history_id)
+        (ctx.save_path.clone(), ctx.expected_sha256.clone())
     };
 
-    if let (Some(path), Some(expected)) = (save_path.as_ref(), expected.as_ref()) {
-        let actual = compute_sha256_async(path).await.unwrap_or_default();
-        if &actual != expected {
-            if let Some(h) = history_id { update_status(state, h, TransferStatus::Failed("校验失败".into())); }
-            let _ = tokio::fs::remove_file(path).await;
-            close_ctx(state, ctx_id, None).await;
-            return;
-        }
+    // 大文件 sha256 校验拆到后台 task，避免阻塞主循环（与发送侧 FileHashReady 同理）
+    if let (Some(path), Some(expected)) = (save_path, expected) {
+        let tx = state.internal_tx.clone();
+        tokio::spawn(async move {
+            let actual = compute_sha256_async(&path).await.unwrap_or_default();
+            let ok = actual == expected;
+            let _ = tx.send(InternalCmd::ReceiveHashVerified { ctx_id, ok });
+        });
+    } else {
+        // 无 expected hash（应该不会发生），直接当成功
+        let _ = state.internal_tx.send(InternalCmd::ReceiveHashVerified { ctx_id, ok: true });
     }
+}
+
+/// 收到 ReceiveHashVerified 后：发 FILE_COMPLETE / 标记历史 / 关 ctx。
+async fn on_receive_hash_verified(state: &mut State, ctx_id: Uuid, ok: bool) {
+    let (save_path, transfer_id, history_id) = {
+        let Some(ctx) = state.contexts.get(&ctx_id) else { return };
+        (ctx.save_path.clone(), ctx.transfer_id, ctx.history_id)
+    };
+
+    if !ok {
+        if let Some(h) = history_id {
+            update_status(state, h, TransferStatus::Failed("校验失败".into()));
+        }
+        if let Some(path) = save_path {
+            let _ = tokio::fs::remove_file(&path).await;
+        }
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
+
     if let Some(tid) = transfer_id {
         let complete = FileCompleteMessage { transfer_id: tid.to_string(), index: 0 };
         let body = serde_json::to_vec(&complete).unwrap_or_default();
