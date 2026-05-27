@@ -278,6 +278,50 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 文件 Offer 决定
 
+    /// 主动取消进行中的传输（发送端或接收端都能调）。
+    /// 找到 historyID 对应的 ConnectionContext，发 FILE_CANCEL 给对端，
+    /// 接收态下清半成品 + ResumeStore，最后关 ctx。
+    public func cancelTransfer(_ historyID: UUID) {
+        let entry = contexts.first { _, c in c.historyID == historyID }
+        guard let (ctxID, ctx) = entry else {
+            // ctx 已不在（可能传输已结束 / 早已关）；只更新历史
+            updateHistoryStatus(historyID, status: .canceled)
+            return
+        }
+        let transferID = ctx.transferID
+        let isReceiving: Bool = {
+            if case .receivingFile = ctx.state { return true } else { return false }
+        }()
+        let peer = ctx.peer
+        let expectedSHA = ctx.expectedSHA256
+
+        // 接收态：先关 handle + 删半成品 + 清 ResumeStore
+        if isReceiving {
+            try? ctx.fileHandle?.close()
+            ctx.fileHandle = nil
+            if let saved = ctx.savedURL {
+                try? FileManager.default.removeItem(at: saved)
+            }
+            if let p = peer, let sha = expectedSHA {
+                Task { await resumeStore.clear(peerFingerprint: p.fingerprint, sha256: sha) }
+            }
+        }
+
+        // 发 FILE_CANCEL 给对端（whole transfer，index=null）
+        Task {
+            if let tid = transferID {
+                let body = try? MessageCodec.encode(FileCancelMessage(
+                    transfer_id: tid.uuidString,
+                    index: nil,
+                    reason: "user_canceled"
+                ))
+                if let body { try? await ctx.connection.send(type: MessageType.fileCancel, body: body) }
+            }
+            await self.closeContext(id: ctxID, error: nil)
+        }
+        updateHistoryStatus(historyID, status: .canceled)
+    }
+
     public func respondToFileOffer(_ offerID: UUID, accept: Bool) {
         guard let offer = pendingFileOffers.first(where: { $0.id == offerID }) else { return }
         pendingFileOffers.removeAll { $0.id == offerID }
