@@ -146,6 +146,7 @@ data class MockTransfer(
     val state: TransferState,
     val speed: String? = null,
     val eta: String? = null,
+    val id: String = "",
 )
 
 val MockTransfers: List<MockTransfer> = listOf(

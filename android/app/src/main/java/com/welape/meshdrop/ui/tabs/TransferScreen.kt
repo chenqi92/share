@@ -20,6 +20,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,11 +29,19 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.data.HistoryItem
+import com.welape.meshdrop.data.HistoryKind
+import com.welape.meshdrop.data.TransferDirection
+import com.welape.meshdrop.data.TransferStatus
 import com.welape.meshdrop.mock.MockDownloadBars
 import com.welape.meshdrop.mock.MockSessionBars
+import com.welape.meshdrop.mock.MockTransfer
 import com.welape.meshdrop.mock.MockTransfers
 import com.welape.meshdrop.mock.MockUploadBars
 import com.welape.meshdrop.mock.TransferState
+import com.welape.meshdrop.transport.ShareEngine
+import java.util.Locale
+import java.util.UUID
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.ChipTone
 import com.welape.meshdrop.ui.components.MeshChip
@@ -49,11 +59,33 @@ import com.welape.meshdrop.ui.theme.Sky
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
 
 @Composable
-fun TransferScreen() {
+fun TransferScreen(engine: ShareEngine? = null) {
+    if (engine == null) {
+        TransferScreenContent(
+            transfers = MockTransfers,
+            onCancel = {},
+        )
+        return
+    }
+    val history by engine.history.collectAsState()
+    val transfers = history.mapNotNull { it.toDisplayTransfer() }
+    TransferScreenContent(
+        transfers = transfers,
+        onCancel = { t ->
+            runCatching { UUID.fromString(t.id) }.getOrNull()?.let { engine.cancelTransfer(it) }
+        },
+    )
+}
+
+@Composable
+private fun TransferScreenContent(
+    transfers: List<MockTransfer>,
+    onCancel: (MockTransfer) -> Unit,
+) {
     val mesh = MeshTheme.colors
-    val inProgress = MockTransfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
-    val completed = MockTransfers.filter { it.state == TransferState.DONE }
-    val queued = MockTransfers.filter { it.state == TransferState.QUEUED }
+    val inProgress = transfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
+    val completed = transfers.filter { it.state == TransferState.DONE }
+    val queued = transfers.filter { it.state == TransferState.QUEUED }
 
     Column(
         modifier = Modifier
@@ -138,7 +170,7 @@ fun TransferScreen() {
         AsciiDivider(label = "进行中 · IN PROGRESS · ${inProgress.size}")
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            inProgress.forEach { TransferRow(item = it) }
+            inProgress.forEach { TransferRow(item = it, onCancel = { onCancel(it) }) }
         }
 
         Spacer(Modifier.height(4.dp))
@@ -158,6 +190,45 @@ fun TransferScreen() {
 
         Spacer(Modifier.height(80.dp))
     }
+}
+
+/** HistoryItem → MockTransfer：仅文件项参与传输面板；text 历史返回 null。 */
+private fun HistoryItem.toDisplayTransfer(): MockTransfer? {
+    val file = kind as? HistoryKind.File ?: return null
+    val sizeLabel = humanSize(file.size)
+    val ext = file.name.substringAfterLast('.', "bin").lowercase()
+    val (progress, state) = when (val s = status) {
+        is TransferStatus.Transferring -> {
+            val pct = if (s.bytesTotal > 0) ((s.bytesDone * 100) / s.bytesTotal).toInt() else 0
+            pct to if (direction == TransferDirection.OUTGOING) TransferState.SENDING else TransferState.RECEIVING
+        }
+        TransferStatus.Completed -> 100 to TransferState.DONE
+        is TransferStatus.Pending, TransferStatus.WaitingApproval -> 0 to TransferState.QUEUED
+        is TransferStatus.Failed, TransferStatus.Canceled -> 0 to TransferState.FAILED
+    }
+    val peerLabel = peer.name.ifBlank { peer.model ?: peer.id.take(8) }
+    val from = if (direction == TransferDirection.OUTGOING) "我" else peerLabel
+    val to = if (direction == TransferDirection.OUTGOING) peerLabel else "我"
+    return MockTransfer(
+        id = id.toString(),
+        name = file.name,
+        size = sizeLabel,
+        ext = ext,
+        from = from,
+        to = to,
+        progress = progress,
+        state = state,
+    )
+}
+
+private fun humanSize(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val kb = bytes / 1024.0
+    if (kb < 1024) return String.format(Locale.US, "%.1f KB", kb)
+    val mb = kb / 1024.0
+    if (mb < 1024) return String.format(Locale.US, "%.1f MB", mb)
+    val gb = mb / 1024.0
+    return String.format(Locale.US, "%.1f GB", gb)
 }
 
 @Composable
