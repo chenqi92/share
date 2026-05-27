@@ -85,10 +85,10 @@ jobs:
     name: Windows · MeshDrop build
     runs-on: windows-latest
     timeout-minutes: 25
-    # XAML MarkupCompilePass2 在 dotnet CLI 下静默 exit 1（试 1.6/1.7 都一样）；
-    # 改用 microsoft/setup-msbuild + msbuild 走 VS Build Tools 完整工具链；
-    # 仍 continue-on-error 兜底，但目标是真过
-    continue-on-error: true
+    # dotnet CLI 在 windows-latest 上 XAML MarkupCompilePass2 静默 exit 1
+    # （PR #45 / #46 验过 WinAppSDK 1.6 / 1.7 都一样）；microsoft/setup-msbuild
+    # 走 VS Build Tools 完整工具链能让真实 XAML 错误显形，配合 record body
+    # 显式 set 与 IReadOnlyList<int> 修复后真过
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
