@@ -13,7 +13,7 @@ import java.io.File
 import java.util.UUID
 
 /**
- * 跑 protocol/testdata/frames/*.json 黄金向量 —— decoder 方向断言。
+ * 跑 `protocol/testdata/frames/` 下所有 .json 黄金向量 —— decoder 方向断言。
  * 保证 Android 端能正确解析其它端按 spec 编出来的字节。
  *
  * 与 Apple ProtocolTestVectorsTests / Linux protocol_test_vectors 同一份向量，
