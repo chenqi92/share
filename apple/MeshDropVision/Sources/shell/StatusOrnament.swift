@@ -4,6 +4,7 @@ import MeshDropKit
 /// 主窗口顶部 ornament：身份 + 网络 + 指纹缩写 + E2E 标识 + scanning pill。
 struct StatusOrnament: View {
     @EnvironmentObject private var engine: ShareEngine
+    @State private var confirmingReset: Bool = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -48,10 +49,25 @@ struct StatusOrnament: View {
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.78))
             }
+            .contextMenu {
+                Button(role: .destructive) {
+                    confirmingReset = true
+                } label: {
+                    Label("重置身份…", systemImage: "arrow.counterclockwise")
+                }
+            }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .glassBackgroundEffect(in: Capsule())
+        .confirmationDialog(
+            "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+            isPresented: $confirmingReset,
+            titleVisibility: .visible
+        ) {
+            Button("重置身份", role: .destructive) { engine.resetIdentity() }
+            Button("取消", role: .cancel) {}
+        }
     }
 
     /// 简单的本机主机名（不是 IP，因为 visionOS 上拿 IP 受限；显示主机名同样可识别）。

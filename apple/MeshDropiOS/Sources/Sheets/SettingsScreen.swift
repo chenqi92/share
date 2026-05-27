@@ -10,6 +10,7 @@ struct SettingsScreen: View {
     @State private var requireConfirm: Bool = true
     @State private var autoAcceptTrusted: Bool = true
     @State private var notifyOnArrival: Bool = true
+    @State private var confirmingReset: Bool = false
 
     private var me: MockMe { engine.displaySelf }
 
@@ -93,6 +94,27 @@ struct SettingsScreen: View {
                 Image(systemName: "chevron.right").opacity(0.4)
             }
             .padding(14)
+            divider
+            Button {
+                confirmingReset = true
+            } label: {
+                HStack {
+                    row(title: "重置身份…", detail: "对端会把本机视为新设备需重新配对")
+                    Spacer()
+                    Image(systemName: "arrow.counterclockwise")
+                        .foregroundStyle(MeshDropColor.flame)
+                }
+                .padding(14)
+            }
+            .buttonStyle(.plain)
+            .confirmationDialog(
+                "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+                isPresented: $confirmingReset,
+                titleVisibility: .visible
+            ) {
+                Button("重置身份", role: .destructive) { engine.resetIdentity() }
+                Button("取消", role: .cancel) {}
+            }
         }
         .background(sectionBg)
         .overlay(sectionBorder)
