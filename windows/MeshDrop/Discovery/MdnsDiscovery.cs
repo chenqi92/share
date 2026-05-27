@@ -3,8 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Makaretu.Dns;
 using MeshDrop.Models;
-// 项目内 TXTRecord 与 Makaretu.Dns.TXTRecord 同名歧义；显式别名指向我们自己的版本
+// 项目内 MeshDrop.Models.TXTRecord 是 codec 静态类；Makaretu.Dns.TXTRecord 是
+// DNS RR 实例类。两个同名 → 用两个别名消歧
 using TXTRecord = MeshDrop.Models.TXTRecord;
+using DnsTXT = Makaretu.Dns.TXTRecord;
 
 namespace MeshDrop.Discovery;
 
@@ -68,7 +70,7 @@ public sealed class MdnsDiscovery : IDisposable
         {
             switch (record)
             {
-                case TXTRecord txt when txt.Name.ToCanonical().Equals(e.ServiceInstanceName.ToCanonical()):
+                case DnsTXT txt when txt.Name.ToCanonical().Equals(e.ServiceInstanceName.ToCanonical()):
                     foreach (var s in txt.Strings)
                     {
                         var idx = s.IndexOf('=');
