@@ -75,6 +75,65 @@ final class ProtocolTestVectorsTests: XCTestCase {
         XCTAssertEqual(String(data: data, encoding: .utf8), "hello world")
     }
 
+    // MARK: - HELLO_ACK
+
+    func testDecodeHelloAckWithModelVector() throws {
+        let spec = try loadSpec("hello-ack-with-model.json")
+        let frameBytes = Data(hex: spec["frame_bytes_hex"] as! String)
+        let parsed = try XCTUnwrap(try Frame.decode(frameBytes))
+        XCTAssertEqual(parsed.type, 0x02)
+        let msg = try MessageCodec.decode(HelloAckMessage.self, from: parsed.body)
+        XCTAssertEqual(msg.id, "fedcba9876543210fedcba9876543210")
+        XCTAssertEqual(msg.name, "iPhone 测试机")
+        XCTAssertEqual(msg.os, .ios)
+        XCTAssertEqual(msg.model, "iPhone17,1")
+        XCTAssertEqual(msg.fp, "ffeeddccbbaa99887766554433221100")
+        XCTAssertEqual(msg.selected_version, 1)
+    }
+
+    // MARK: - FILE_ACCEPT / REJECT / COMPLETE / CANCEL
+
+    func testDecodeFileAcceptFreshVector() throws {
+        let spec = try loadSpec("file-accept-fresh.json")
+        let parsed = try XCTUnwrap(try Frame.decode(Data(hex: spec["frame_bytes_hex"] as! String)))
+        XCTAssertEqual(parsed.type, 0x21)
+        let msg = try MessageCodec.decode(FileAcceptMessage.self, from: parsed.body)
+        XCTAssertEqual(msg.resume_offset, 0)
+        XCTAssertEqual(msg.index, 0)
+    }
+
+    func testDecodeFileAcceptResumeVector() throws {
+        let spec = try loadSpec("file-accept-resume.json")
+        let parsed = try XCTUnwrap(try Frame.decode(Data(hex: spec["frame_bytes_hex"] as! String)))
+        let msg = try MessageCodec.decode(FileAcceptMessage.self, from: parsed.body)
+        XCTAssertEqual(msg.resume_offset, 524288)
+    }
+
+    func testDecodeFileRejectVector() throws {
+        let spec = try loadSpec("file-reject-user-declined.json")
+        let parsed = try XCTUnwrap(try Frame.decode(Data(hex: spec["frame_bytes_hex"] as! String)))
+        XCTAssertEqual(parsed.type, 0x22)
+        let msg = try MessageCodec.decode(FileRejectMessage.self, from: parsed.body)
+        XCTAssertEqual(msg.reason, "user_declined")
+    }
+
+    func testDecodeFileCompleteVector() throws {
+        let spec = try loadSpec("file-complete.json")
+        let parsed = try XCTUnwrap(try Frame.decode(Data(hex: spec["frame_bytes_hex"] as! String)))
+        XCTAssertEqual(parsed.type, 0x23)
+        let msg = try MessageCodec.decode(FileCompleteMessage.self, from: parsed.body)
+        XCTAssertEqual(msg.index, 0)
+    }
+
+    func testDecodeFileCancelWholeVector() throws {
+        let spec = try loadSpec("file-cancel-whole.json")
+        let parsed = try XCTUnwrap(try Frame.decode(Data(hex: spec["frame_bytes_hex"] as! String)))
+        XCTAssertEqual(parsed.type, 0x25)
+        let msg = try MessageCodec.decode(FileCancelMessage.self, from: parsed.body)
+        XCTAssertNil(msg.index)
+        XCTAssertEqual(msg.reason, "user_canceled")
+    }
+
     // MARK: - PING
 
     func testDecodePingVector() throws {

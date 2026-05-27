@@ -62,8 +62,14 @@ XCTAssertEqual(msg.ts, 1716537600)
 | 名称 | type | 用途 |
 | --- | --- | --- |
 | `hello-minimal.json` | 0x01 | HELLO，中文 name |
+| `hello-ack-with-model.json` | 0x02 | HELLO_ACK 含 optional model + selected_version |
 | `text-zh-emoji.json` | 0x10 | TEXT，中文 + Emoji + ASCII，验 UTF-8 安全 |
 | `file-offer-single.json` | 0x20 | 单文件 FILE_OFFER |
+| `file-accept-fresh.json` | 0x21 | FILE_ACCEPT 全新传输 (resume_offset=0) |
+| `file-accept-resume.json` | 0x21 | FILE_ACCEPT 断点续传 (resume_offset=512 KiB) |
+| `file-reject-user-declined.json` | 0x22 | FILE_REJECT user_declined |
+| `file-complete.json` | 0x23 | FILE_COMPLETE |
+| `file-cancel-whole.json` | 0x25 | FILE_CANCEL 整 transfer (index=null) |
 | `file-chunk-min.json` | 0x30 | FILE_CHUNK binary body（含 11 字节 data）|
 | `ping.json` | 0xF0 | 心跳 |
 

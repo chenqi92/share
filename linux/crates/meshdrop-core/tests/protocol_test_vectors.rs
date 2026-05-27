@@ -91,6 +91,72 @@ fn file_chunk_min_vector_decodes() {
 }
 
 #[test]
+fn hello_ack_with_model_vector_decodes() {
+    let spec = load_spec("hello-ack-with-model.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (ty, body) = decoded(&bytes);
+    assert_eq!(ty, msg_type::HELLO_ACK);
+    let msg: HelloAckMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.id, "fedcba9876543210fedcba9876543210");
+    assert_eq!(msg.name, "iPhone 测试机");
+    assert_eq!(msg.os, "ios");
+    assert_eq!(msg.model.as_deref(), Some("iPhone17,1"));
+    assert_eq!(msg.selected_version, 1);
+}
+
+#[test]
+fn file_accept_fresh_vector_decodes() {
+    let spec = load_spec("file-accept-fresh.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (ty, body) = decoded(&bytes);
+    assert_eq!(ty, msg_type::FILE_ACCEPT);
+    let msg: FileAcceptMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.resume_offset, 0);
+    assert_eq!(msg.index, 0);
+}
+
+#[test]
+fn file_accept_resume_vector_decodes() {
+    let spec = load_spec("file-accept-resume.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (_, body) = decoded(&bytes);
+    let msg: FileAcceptMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.resume_offset, 524288);
+}
+
+#[test]
+fn file_reject_vector_decodes() {
+    let spec = load_spec("file-reject-user-declined.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (ty, body) = decoded(&bytes);
+    assert_eq!(ty, msg_type::FILE_REJECT);
+    let msg: FileRejectMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.reason, "user_declined");
+}
+
+#[test]
+fn file_complete_vector_decodes() {
+    let spec = load_spec("file-complete.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (ty, body) = decoded(&bytes);
+    assert_eq!(ty, msg_type::FILE_COMPLETE);
+    let msg: FileCompleteMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.index, 0);
+}
+
+#[test]
+fn file_cancel_whole_vector_decodes() {
+    let spec = load_spec("file-cancel-whole.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (ty, body) = decoded(&bytes);
+    assert_eq!(ty, msg_type::FILE_CANCEL);
+    // Linux 端 FileCancelMessage 没有定义；用 Value 解析校验字段
+    let v: serde_json::Value = serde_json::from_slice(body).unwrap();
+    assert!(v["index"].is_null());
+    assert_eq!(v["reason"], "user_canceled");
+}
+
+#[test]
 fn ping_vector_decodes() {
     let spec = load_spec("ping.json");
     let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
