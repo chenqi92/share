@@ -164,19 +164,21 @@ public final class ShareEngine: ObservableObject {
             let historyID = historyItem.id
 
             // 后台算 sha256（大文件流式），算完后启动连接
-            Task.detached(priority: .userInitiated) { [weak self] in
+            let engineRef = self
+            Task.detached(priority: .userInitiated) {
                 let hash: String
                 do {
                     hash = try Self.sha256OfFile(at: sourceURL)
                 } catch {
                     if needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
-                    await MainActor.run {
-                        self?.updateHistoryStatus(historyID, status: .failed("无法读取文件: \(error.localizedDescription)"))
+                    let msg = error.localizedDescription
+                    await MainActor.run { [weak engineRef] in
+                        engineRef?.updateHistoryStatus(historyID, status: .failed("无法读取文件: \(msg)"))
                     }
                     return
                 }
-                await MainActor.run {
-                    self?.startFileSend(
+                await MainActor.run { [weak engineRef] in
+                    engineRef?.startFileSend(
                         to: device,
                         historyID: historyID,
                         sourceURL: sourceURL,

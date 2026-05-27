@@ -1,5 +1,4 @@
 import Foundation
-import MeshDropKit
 import OSLog
 
 /// Share Extension 与主 app 之间的"待发送"持久化队列。
