@@ -1,8 +1,11 @@
 import SwiftUI
 
 /// 文件 icon (38×46) + name + size + 状态行 + （进行中时）进度条 + speed + ETA。
+/// `onCancel` 闭包传入时，且 state 是 sending / receiving，状态 chip 右侧渲染
+/// 取消按钮；调用方负责发 FILE_CANCEL（见 AppState.cancelTransfer）。
 struct TransferRow: View {
     let item: MockTransfer
+    var onCancel: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -21,6 +24,15 @@ struct TransferRow: View {
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer(minLength: 0)
                     Chip(text: stateText, tone: stateTone, mono: true)
+                    if let onCancel, item.state == .sending || item.state == .receiving {
+                        Button(action: onCancel) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(MeshDropColor.flame)
+                        }
+                        .buttonStyle(.plain)
+                        .help("取消传输 · Cancel")
+                    }
                 }
 
                 HStack(spacing: 8) {

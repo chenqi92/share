@@ -33,7 +33,9 @@ struct TransfersPage: View {
                 } else {
                     VStack(spacing: 10) {
                         ForEach(transfers) { item in
-                            TransferRow(item: item)
+                            TransferRow(item: item, onCancel: {
+                                state.cancelTransfer(item.id)
+                            })
                         }
                     }
                 }
@@ -46,6 +48,7 @@ struct TransfersPage: View {
     }
 
     /// 把 engineHistory 中的文件项投影成 MockTransfer，供 TransferRow 复用。
+    /// `id` 字段携带真实 history.id，让 TransferRow 的取消按钮能精确定位 ctx。
     private var engineTransfers: [MockTransfer] {
         state.engineHistory.compactMap { h in
             guard h.kind == .file, let name = h.name, let size = h.size else { return nil }
@@ -61,6 +64,7 @@ struct TransfersPage: View {
             case .failed: st = .failed
             }
             return MockTransfer(
+                id: UUID(uuidString: h.id) ?? UUID(),
                 name: name,
                 size: size,
                 ext: h.ext ?? "bin",

@@ -162,6 +162,11 @@ final class AppState: ObservableObject {
         engine.removeHistoryItem(uuid)
     }
 
+    /// 取消进行中的传输（发送方 / 接收方都能调）。
+    func cancelTransfer(_ historyID: UUID) {
+        engine.cancelTransfer(historyID)
+    }
+
     func revokeTrust(fingerprint: String) {
         engine.revokeTrust(fingerprint: fingerprint)
     }
