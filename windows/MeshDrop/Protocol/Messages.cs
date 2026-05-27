@@ -11,18 +11,20 @@ public sealed record HelloMessage(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("os")] string Os,
-    [property: JsonPropertyName("model")] string? Model,
     [property: JsonPropertyName("fp")] string Fp,
-    [property: JsonPropertyName("protocol_versions")] List<byte> ProtocolVersions);
+    [property: JsonPropertyName("protocol_versions")] List<byte> ProtocolVersions,
+    // model 在 messages.md §0x01 中是 optional；放最后并给默认，避免对端发不带
+    // model 的 HELLO 时 System.Text.Json 把缺字段当 required 抛错
+    [property: JsonPropertyName("model")] string? Model = null);
 
 public sealed record HelloAckMessage(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("os")] string Os,
-    [property: JsonPropertyName("model")] string? Model,
     [property: JsonPropertyName("fp")] string Fp,
     [property: JsonPropertyName("protocol_versions")] List<byte> ProtocolVersions,
-    [property: JsonPropertyName("selected_version")] byte SelectedVersion);
+    [property: JsonPropertyName("selected_version")] byte SelectedVersion,
+    [property: JsonPropertyName("model")] string? Model = null);
 
 public sealed record TextMessage(
     [property: JsonPropertyName("id")] string Id,

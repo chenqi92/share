@@ -456,7 +456,7 @@ public sealed partial class ShareEngine : ObservableObject
     private async Task SendInitialHelloAsync(Guid ctxId)
     {
         if (!_contexts.TryGetValue(ctxId, out var ctx)) return;
-        var hello = new HelloMessage(Identity.Id, DisplayName, "windows", Model, Identity.Fingerprint, new() { 1 });
+        var hello = new HelloMessage(Identity.Id, DisplayName, "windows", Identity.Fingerprint, new() { 1 }, Model);
         try { await ctx.Connection.SendAsync(MessageType.HELLO, MessageCodec.Encode(hello)); }
         catch (Exception ex) { await CloseContextAsync(ctxId, ex); }
     }
@@ -493,8 +493,8 @@ public sealed partial class ShareEngine : ObservableObject
 
     private async Task SendAckAndReadyAsync(ConnectionContext ctx, Device peer)
     {
-        var ack = new HelloAckMessage(Identity.Id, DisplayName, "windows", Model,
-            Identity.Fingerprint, new() { 1 }, 1);
+        var ack = new HelloAckMessage(Identity.Id, DisplayName, "windows",
+            Identity.Fingerprint, new() { 1 }, 1, Model);
         try
         {
             await ctx.Connection.SendAsync(MessageType.HELLO_ACK, MessageCodec.Encode(ack));
