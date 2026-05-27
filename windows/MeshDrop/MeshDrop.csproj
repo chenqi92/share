@@ -14,6 +14,9 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- 我们在 App.xaml.cs 自己写了 Program.Main 来设置 SynchronizationContext；
+         禁用 XAML 编译器自动生成的 Program.Main 避免重复 -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

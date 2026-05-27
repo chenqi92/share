@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Windowing;
 using MeshDrop.TrayIcon;
+using MeshDrop.ViewModels;
 using MeshDrop.Views.Shell;
 using WinRT.Interop;
 
