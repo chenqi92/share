@@ -56,12 +56,12 @@ public static class Program
     [System.STAThread]
     public static void Main(string[] args)
     {
-        Microsoft.UI.Xaml.Application.Start(_ =>
+        Microsoft.UI.Xaml.Application.Start(param =>
         {
             var ctx = new Microsoft.UI.Dispatching.DispatcherQueueSynchronizationContext(
                 Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread());
             System.Threading.SynchronizationContext.SetSynchronizationContext(ctx);
-            _ = new App();
+            new App();
         });
     }
 }

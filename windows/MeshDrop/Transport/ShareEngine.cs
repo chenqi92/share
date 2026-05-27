@@ -818,7 +818,7 @@ internal sealed class ConnectionContext
 
     public Guid Id { get; } = Guid.NewGuid();
     public Connection Connection { get; }
-    public Role Role { get; }
+    public RoleBase Role { get; }
     public int State { get; set; }
 
     public Device? Peer { get; set; }
@@ -835,15 +835,16 @@ internal sealed class ConnectionContext
     public string? SavedPath { get; set; }
     public string? ExpectedSha256 { get; set; }
 
-    public ConnectionContext(Connection conn, Role role, int state)
+    public ConnectionContext(Connection conn, RoleBase role, int state)
     {
         Connection = conn; Role = role; State = state;
     }
 
-    public abstract record Role;
-    public sealed record RoleServer : Role;
+    // 嵌套类型 Role 与同名属性会触发 CS0102；改名 RoleBase 让二者共存。
+    public abstract record RoleBase;
+    public sealed record RoleServer : RoleBase;
     public static readonly RoleServer RoleServerSingleton = new();
-    public sealed record RoleClient(Device Target, Payload Payload) : Role;
+    public sealed record RoleClient(Device Target, Payload Payload) : RoleBase;
 
     public abstract record Payload;
     public sealed record PayloadText(string Content) : Payload;
