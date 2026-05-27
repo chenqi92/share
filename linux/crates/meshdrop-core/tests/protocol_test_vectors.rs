@@ -150,10 +150,10 @@ fn file_cancel_whole_vector_decodes() {
     let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
     let (ty, body) = decoded(&bytes);
     assert_eq!(ty, msg_type::FILE_CANCEL);
-    // Linux 端 FileCancelMessage 没有定义；用 Value 解析校验字段
-    let v: serde_json::Value = serde_json::from_slice(body).unwrap();
-    assert!(v["index"].is_null());
-    assert_eq!(v["reason"], "user_canceled");
+    let msg: FileCancelMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.transfer_id, "550e8400-e29b-41d4-a716-446655440001");
+    assert!(msg.index.is_none());
+    assert_eq!(msg.reason, "user_canceled");
 }
 
 #[test]

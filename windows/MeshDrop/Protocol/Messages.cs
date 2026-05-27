@@ -53,6 +53,15 @@ public sealed record FileCompleteMessage(
     [property: JsonPropertyName("transfer_id")] string TransferId,
     [property: JsonPropertyName("index")] int Index);
 
+/// <summary>
+/// FILE_CANCEL 消息体。
+/// <c>Index = null</c> 表示取消整个 transfer；具体 index 仅取消该文件。
+/// </summary>
+public sealed record FileCancelMessage(
+    [property: JsonPropertyName("transfer_id")] string TransferId,
+    [property: JsonPropertyName("index")] int? Index,
+    [property: JsonPropertyName("reason")] string Reason);
+
 public static class MessageCodec
 {
     private static readonly JsonSerializerOptions s_options = new()

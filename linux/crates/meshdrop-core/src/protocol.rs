@@ -127,6 +127,14 @@ pub struct FileCompleteMessage {
     pub index: i32,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FileCancelMessage {
+    pub transfer_id: String,
+    /// None 表示整个 transfer 取消；Some(i) 表示仅取消该 file index。
+    pub index: Option<i32>,
+    pub reason: String,
+}
+
 // ─── FILE_CHUNK 二进制头部 ────────────────────────────────────────────
 
 pub struct FileChunkHeader {

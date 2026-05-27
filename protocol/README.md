@@ -74,5 +74,10 @@ mDNS 已经提供了发现机制）。
 
 ## 测试向量
 
-各端实现可参考 `protocol/testdata/`（待补）中的字节序列做单元测试，确保
-framing、JSON 转义、UUID 编码在跨实现间一致。
+各端实现应跑 [protocol/testdata/](testdata/) 下的字节序列做单元测试，
+确保 framing、JSON 转义、UUID 编码、UTF-8 字段在跨实现间一致。
+
+当前 11 个黄金向量覆盖 v0.1 所有消息类型（HELLO / HELLO_ACK / TEXT /
+FILE_OFFER / FILE_ACCEPT × 2 / FILE_REJECT / FILE_COMPLETE / FILE_CANCEL /
+FILE_CHUNK / PING）。Apple 与 Linux 端已在 CI 上跑同一份向量做 decoder
+方向断言；其它端跟着加自己语言的等价测试。
