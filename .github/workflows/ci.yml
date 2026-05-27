@@ -81,6 +81,22 @@ jobs:
         working-directory: web
         run: npm run build
 
+  windows-build:
+    name: Windows · MeshDrop build
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        working-directory: windows
+        run: dotnet restore MeshDrop.sln
+      - name: Build
+        working-directory: windows
+        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64
+
   protocol-vectors-consistency:
     name: Protocol · testdata frame_bytes_hex 一致性
     runs-on: ubuntu-latest
