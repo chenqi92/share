@@ -90,12 +90,15 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-      - name: Restore
+      - name: Restore workloads
+        working-directory: windows
+        run: dotnet workload restore MeshDrop.sln
+      - name: Restore packages
         working-directory: windows
         run: dotnet restore MeshDrop.sln
       - name: Build
         working-directory: windows
-        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64 -v:normal
+        run: dotnet build MeshDrop.sln --configuration Release --no-restore /p:Platform=x64 -v:normal /p:GenerateLibraryLayout=false
 
   protocol-vectors-consistency:
     name: Protocol · testdata frame_bytes_hex 一致性
