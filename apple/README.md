@@ -1,31 +1,27 @@
-# Apple (macOS + iOS)
+# Apple (macOS / iOS / iPadOS / tvOS / visionOS / watchOS)
 
 `MeshDropKit` 是一个 Swift Package，实现协议规范定义的设备身份、mDNS 发现、帧
-编解码、控制消息。macOS 与 iOS app 都以它为唯一依赖。
+编解码、传输引擎、信任库、Web Gateway。所有 Apple 端 app 都以它为唯一依赖。
 
 ```
 apple/
-├── Package.swift             # MeshDropKit SPM
-├── Sources/MeshDropKit/      # 协议核心（macOS 14+ / iOS 17+）
-├── Tests/MeshDropKitTests/
-├── MeshDropMac/              # SwiftUI macOS app
-│   ├── project.yml           # XcodeGen 规格
-│   ├── Sources/
-│   ├── Resources/Info.plist
-│   └── MeshDrop.entitlements
-└── ShareiOS/                 # SwiftUI iOS 17+ app（下一轮重做品牌）
-    ├── project.yml
-    ├── Sources/
-    └── Resources/Info.plist
+├── Package.swift                  # MeshDropKit SPM（依赖 apple/swift-certificates）
+├── Sources/MeshDropKit/           # 协议核心 + 引擎
+├── Tests/MeshDropKitTests/        # XCTest 单元测试（34 个）
+├── MeshDropMac/                   # SwiftUI macOS app
+├── MeshDropiOS/                   # SwiftUI iOS + iPadOS Universal app
+├── MeshDropTV/                    # SwiftUI tvOS app（只接收）
+├── MeshDropVision/                # SwiftUI visionOS app（spatial）
+└── MeshDropWatch/                 # SwiftUI watchOS app（通过 WatchConnectivity 桥到 iPhone）
 ```
 
 ## 构建
 
-### 单测 MeshDropKit
+### MeshDropKit 单元测试
 
 ```bash
 cd apple
-swift test
+swift test                         # 34 测试，覆盖 Frame / WebSocketFrame / Multipart / GatewayCommands / IdentityStore / ResumeStore
 ```
 
 ### 生成 Xcode 工程
@@ -34,32 +30,41 @@ swift test
 
 ```bash
 cd apple/MeshDropMac && xcodegen generate && open MeshDropMac.xcodeproj
-cd apple/ShareiOS && xcodegen generate && open ShareiOS.xcodeproj
+cd apple/MeshDropiOS && xcodegen generate && open MeshDropiOS.xcodeproj
+cd apple/MeshDropTV && xcodegen generate && open MeshDropTV.xcodeproj
+cd apple/MeshDropVision && xcodegen generate && open MeshDropVision.xcodeproj
+cd apple/MeshDropWatch && xcodegen generate && open MeshDropWatch.xcodeproj
 ```
 
-### 运行 macOS app
+首次运行系统会弹"MeshDrop 想要在本地网络上查找并连接到设备"，允许。
 
-在 Xcode 选 `MeshDropMac` scheme → ⌘R。首次运行系统会弹"MeshDrop 想要在本地
-网络上查找并连接到设备"，允许。
+## 当前覆盖（v0.1）
 
-### 运行 iOS app
-
-iOS 17+ 真机或模拟器都可以；同一 Wi-Fi 下与 Mac、其他 iOS 设备互看。
-
-## 当前覆盖
-
-- ✅ Identity（Ed25519 密钥 + 指纹；UserDefaults 存储，TODO Keychain）
-- ✅ mDNS 发现（NWBrowser + NWListener.Service，含 TXT 字段全部）
+协议层：
+- ✅ Identity（Ed25519 + 指纹；Keychain `kSecAttrAccessibleAfterFirstUnlock`）
+- ✅ mDNS 发现（NWBrowser + NWListener.Service，TXT 全字段）
 - ✅ Frame / Message 编解码 + 单测
-- ⚠️ Transport：listener 收到连接后直接 close（骨架），下一步实装 HELLO 握手
-- ⚠️ Pairing：未实现
-- ⚠️ Text / File 传输：未实现
+- ✅ Connection 状态机（HELLO/HELLO_ACK/TEXT/FILE_OFFER/ACCEPT/REJECT/CHUNK/COMPLETE/CANCEL）
+- ✅ TOFU 配对（指纹首次确认 + 长期信任）
+- ✅ FILE_ACCEPT.resume_offset 断点续传（ResumeStore）
+- ✅ 重置身份（ShareEngine.resetIdentity，Settings UI 入口在 macOS/iOS/tvOS/visionOS 都有）
 
-## TODO
+Web Gateway（仅 macOS 启用，companion-bridges.md §4.3）：
+- ✅ TLS 1.3 + 自签 P-256 证书 (CN=meshdrop.local)，缓存 Keychain
+- ✅ `POST /api/v1/pair` 配对码 → session token
+- ✅ `WS /api/v1/control` 双向命令 + 事件订阅（手写 RFC6455 framing）
+- ✅ `POST /api/v1/upload` multipart 暂存
+- ✅ `GET /api/v1/download/<historyId>` 流式下载已接收文件
 
-- [ ] Keychain 替换 UserDefaults 存私钥
-- [ ] NWConnection 接入 Frame 读写循环
-- [ ] HELLO 握手 + 配对 UI
-- [ ] TEXT 发送
-- [ ] FILE_OFFER / CHUNK / COMPLETE
-- [ ] TLS 1.3 双向证书校验
+Apple 端独有：
+- ✅ Share Extension（iOS / iPadOS）— App Group 队列持久化
+- ✅ Web Gateway（macOS）
+- ✅ Watch Companion Bridge (`WatchConnectivity`)
+- ✅ Apple Silicon / Liquid Glass / Tahoe 玻璃工具栏视觉
+
+## v0.2 计划
+
+- 应用层 E2E 加密（X25519 + ChaCha20-Poly1305）
+- 文件夹批量传输
+- 推送通知唤醒
+- Web Gateway 给 iOS / iPadOS 端也提供（companion-bridges §4.3 规定只 macOS / Win / Linux GUI；可考虑放宽）
