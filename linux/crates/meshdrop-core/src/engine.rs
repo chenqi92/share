@@ -175,6 +175,20 @@ enum UserCmd {
 enum InternalCmd {
     Incoming(tokio::net::TcpStream, std::net::SocketAddr),
     ConnEvent { ctx_id: Uuid, event: ConnEvent },
+    /// 后台 sha256 task 算完，主循环继续建连。
+    FileHashReady {
+        history_id: Uuid,
+        peer: Device,
+        path: PathBuf,
+        size: u64,
+        name: String,
+        sha256: Result<String, String>,
+    },
+    /// 接收侧 finish 校验完成。`ok` 表示 sha256 与 expected 一致。
+    ReceiveHashVerified {
+        ctx_id: Uuid,
+        ok: bool,
+    },
 }
 
 // ─── 主任务状态 ────────────────────────────────────────────────────────
@@ -286,6 +300,12 @@ async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
             ConnEvent::Frame { msg_type, body } => on_frame(state, ctx_id, msg_type, body).await,
             ConnEvent::Closed(reason) => close_ctx(state, ctx_id, reason).await,
         }
+        InternalCmd::FileHashReady { history_id, peer, path, size, name, sha256 } => {
+            on_file_hash_ready(state, history_id, peer, path, size, name, sha256).await
+        }
+        InternalCmd::ReceiveHashVerified { ctx_id, ok } => {
+            on_receive_hash_verified(state, ctx_id, ok).await
+        }
     }
 }
 
@@ -330,18 +350,46 @@ async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {
     state.history.insert(0, item.clone());
     let _ = state.history_tx.send(state.history.clone());
 
-    // 后台算 sha256，再发命令回主任务（通过 internal_tx 不行 — 没专门 cmd）。
-    // 简化：阻塞在主任务里算（小文件 OK；大文件略卡，留 TODO 拆出 task）
-    let sha = match compute_sha256_async(&path).await {
+    // 后台算 sha256，算完通过 InternalCmd::FileHashReady 回主循环建连。
+    // 这样大文件（几 GiB）哈希期间主循环仍能处理别的 UserCmd / InternalCmd。
+    let history_id = item.id;
+    let tx = state.internal_tx.clone();
+    let path_for_task = path.clone();
+    let peer_for_task = peer.clone();
+    let name_for_task = name.clone();
+    tokio::spawn(async move {
+        let sha = compute_sha256_async(&path_for_task).await
+            .map_err(|e| format!("hash: {}", e));
+        let _ = tx.send(InternalCmd::FileHashReady {
+            history_id,
+            peer: peer_for_task,
+            path: path_for_task,
+            size,
+            name: name_for_task,
+            sha256: sha,
+        });
+    });
+}
+
+/// 后台 sha256 task 完成后由主循环继续：建连接 + 进 AwaitingHelloAck。
+async fn on_file_hash_ready(
+    state: &mut State,
+    history_id: Uuid,
+    peer: Device,
+    path: PathBuf,
+    size: u64,
+    name: String,
+    sha256: Result<String, String>,
+) {
+    let sha = match sha256 {
         Ok(s) => s,
         Err(e) => {
-            update_status(state, item.id, TransferStatus::Failed(format!("hash: {}", e)));
+            update_status(state, history_id, TransferStatus::Failed(e));
             return;
         }
     };
-
     let Some(host) = peer.host.clone() else {
-        update_status(state, item.id, TransferStatus::Failed("无可用 IP".into()));
+        update_status(state, history_id, TransferStatus::Failed("无可用 IP".into()));
         return;
     };
     let conn = Connection::connect(host, peer.port);
@@ -353,12 +401,12 @@ async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {
             path: path.clone(), size, sha256: sha, name,
         }},
         ConnState::AwaitingHelloAck);
-    ctx.history_id = Some(item.id);
+    ctx.history_id = Some(history_id);
     ctx.transfer_id = Some(Uuid::new_v4());
     ctx.file_size = size;
     ctx.source_path = Some(path);
     state.contexts.insert(ctx_id, ctx);
-    update_status(state, item.id, TransferStatus::WaitingApproval);
+    update_status(state, history_id, TransferStatus::WaitingApproval);
 }
 
 // ─── 配对决定 / 文件 offer 决定 ───────────────────────────────────────
@@ -739,21 +787,44 @@ async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
 }
 
 async fn finish_receive(state: &mut State, ctx_id: Uuid) {
-    let (save_path, expected, transfer_id, history_id) = {
+    let (save_path, expected) = {
         let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
         if let Some(mut out) = ctx.file_output.take() { let _ = out.flush().await; }
-        (ctx.save_path.clone(), ctx.expected_sha256.clone(), ctx.transfer_id, ctx.history_id)
+        (ctx.save_path.clone(), ctx.expected_sha256.clone())
     };
 
-    if let (Some(path), Some(expected)) = (save_path.as_ref(), expected.as_ref()) {
-        let actual = compute_sha256_async(path).await.unwrap_or_default();
-        if &actual != expected {
-            if let Some(h) = history_id { update_status(state, h, TransferStatus::Failed("校验失败".into())); }
-            let _ = tokio::fs::remove_file(path).await;
-            close_ctx(state, ctx_id, None).await;
-            return;
-        }
+    // 大文件 sha256 校验拆到后台 task，避免阻塞主循环（与发送侧 FileHashReady 同理）
+    if let (Some(path), Some(expected)) = (save_path, expected) {
+        let tx = state.internal_tx.clone();
+        tokio::spawn(async move {
+            let actual = compute_sha256_async(&path).await.unwrap_or_default();
+            let ok = actual == expected;
+            let _ = tx.send(InternalCmd::ReceiveHashVerified { ctx_id, ok });
+        });
+    } else {
+        // 无 expected hash（应该不会发生），直接当成功
+        let _ = state.internal_tx.send(InternalCmd::ReceiveHashVerified { ctx_id, ok: true });
     }
+}
+
+/// 收到 ReceiveHashVerified 后：发 FILE_COMPLETE / 标记历史 / 关 ctx。
+async fn on_receive_hash_verified(state: &mut State, ctx_id: Uuid, ok: bool) {
+    let (save_path, transfer_id, history_id) = {
+        let Some(ctx) = state.contexts.get(&ctx_id) else { return };
+        (ctx.save_path.clone(), ctx.transfer_id, ctx.history_id)
+    };
+
+    if !ok {
+        if let Some(h) = history_id {
+            update_status(state, h, TransferStatus::Failed("校验失败".into()));
+        }
+        if let Some(path) = save_path {
+            let _ = tokio::fs::remove_file(&path).await;
+        }
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
+
     if let Some(tid) = transfer_id {
         let complete = FileCompleteMessage { transfer_id: tid.to_string(), index: 0 };
         let body = serde_json::to_vec(&complete).unwrap_or_default();
