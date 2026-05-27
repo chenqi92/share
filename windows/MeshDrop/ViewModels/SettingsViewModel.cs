@@ -1,8 +1,13 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MeshDrop.Gateway;
+using MeshDrop.Models;
 using MeshDrop.Transport;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace MeshDrop.ViewModels;
 
@@ -68,6 +73,38 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     partial void OnDisplayNameChanged(string value) => _engine.SetDisplayName(value);
+
+    /// <summary>
+    /// 重置身份（security.md §设备身份）。删除 LocalAppData/MeshDrop 下的 ID + 密钥；
+    /// 当前 ShareEngine 仍持旧身份运行，需 app 重启才能生效。
+    /// </summary>
+    [RelayCommand]
+    private async Task ResetIdentityAsync(XamlRoot? xamlRoot)
+    {
+        if (xamlRoot is null) return;
+        var confirm = new ContentDialog
+        {
+            Title = "重置身份",
+            Content = "将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后需重启 MeshDrop 让新身份生效。",
+            PrimaryButtonText = "重置",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = xamlRoot,
+        };
+        var res = await confirm.ShowAsync();
+        if (res != ContentDialogResult.Primary) return;
+
+        Identity.Reset();
+
+        var done = new ContentDialog
+        {
+            Title = "已重置",
+            Content = "身份已删除。请退出并重启 MeshDrop 让新身份生效。",
+            CloseButtonText = "好",
+            XamlRoot = xamlRoot,
+        };
+        await done.ShowAsync();
+    }
 
     private static string HumanFp(string fp)
     {
