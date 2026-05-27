@@ -29,6 +29,9 @@ android/app/build/
 android/local.properties
 android/captures/
 android/.idea/
+# gradle-wrapper.jar 在 global ~/.gitignore_global 的 *.jar 通配中会被忽略；
+# 这是 gradlew 启动必须的二进制（gradle wrapper 标准结构），显式 unignore
+!android/gradle/wrapper/gradle-wrapper.jar
 
 # Wear OS
 wearos/.gradle/
