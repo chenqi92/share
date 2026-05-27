@@ -3,6 +3,8 @@ using H.NotifyIcon;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Foundation;
 
 namespace MeshDrop.TrayIcon;
 
@@ -36,11 +38,9 @@ public sealed class TrayIconHost : IDisposable
         {
             ToolTipText = "meshdrop · 附近 5 台",
             ContextFlyout = _flyout,
-            IconSource = new BitmapIconSource
-            {
-                UriSource = new Uri("ms-appx:///Assets/AppIcon.png"),
-                ShowAsMonochrome = false,
-            },
+            // H.NotifyIcon 2.x: IconSource 类型从 IconSource 改为 ImageSource，
+            // 用 BitmapImage 直接喂 PNG URI
+            IconSource = new BitmapImage(new Uri("ms-appx:///Assets/AppIcon.png")),
             NoLeftClickDelay = true,
             LeftClickCommand = new RelayCommand(_ => OpenMainRequested?.Invoke(this, EventArgs.Empty)),
         };
@@ -50,7 +50,8 @@ public sealed class TrayIconHost : IDisposable
     /// <summary>对外暴露：从全局热键 WIN+S 触发展开。</summary>
     public void ShowFlyout()
     {
-        _icon?.ShowContextMenu();
+        // H.NotifyIcon 2.x: ShowContextMenu 必须给鼠标位置；用 default 让库自己取当前
+        _icon?.ShowContextMenu(default(Point));
     }
 
     public void Dispose()

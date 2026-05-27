@@ -3,6 +3,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Makaretu.Dns;
 using MeshDrop.Models;
+// 项目内 TXTRecord 与 Makaretu.Dns.TXTRecord 同名歧义；显式别名指向我们自己的版本
+using TXTRecord = MeshDrop.Models.TXTRecord;
 
 namespace MeshDrop.Discovery;
 

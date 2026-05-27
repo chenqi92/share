@@ -195,7 +195,7 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
                     FontFamily = (FontFamily)Application.Current.Resources["MdDisplayFontFamily"],
-                    FontWeight = Windows.UI.Text.FontWeights.SemiBold,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                     FontSize = 11,
                     Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x0A, 0x0A, 0x0A)),
                 },
@@ -214,7 +214,7 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
             {
                 Text = dev.Name,
                 FontFamily = (FontFamily)Application.Current.Resources["MdBodyFontFamily"],
-                FontWeight = Windows.UI.Text.FontWeights.SemiBold,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
                 FontSize = 11,
                 Foreground = (Brush)Application.Current.Resources["MdInkBrush"],
             });
