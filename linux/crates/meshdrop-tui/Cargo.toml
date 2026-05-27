@@ -12,7 +12,7 @@ ratatui = "0.29"
 crossterm = "0.28"
 
 clap = { version = "4", features = ["derive"] }
-dialoguer = "0.11"
+dialoguer = "0.12"
 
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "io-util", "sync", "fs", "time", "macros", "signal"] }
 async-channel = { workspace = true }
