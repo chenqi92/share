@@ -16,7 +16,7 @@ license = "MIT"
 mdns-sd = "0.18"
 ed25519-dalek = { version = "2", features = ["rand_core"] }
 rand = "0.8"
-sha2 = "0.10"
+sha2 = "0.11"
 base64 = "0.22"
 hex = "0.4"
 uuid = { version = "1", features = ["v4", "serde"] }
