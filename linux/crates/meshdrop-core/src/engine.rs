@@ -212,6 +212,7 @@ struct State {
 }
 
 struct ConnCtx {
+    #[allow(dead_code)] // 保留备日志 / debug；构造时存但当前无读取者
     id: Uuid,
     connection: Connection,
     role: Role,
@@ -239,10 +240,12 @@ enum Role {
 
 enum ClientPayload {
     Text(String),
-    File { path: PathBuf, size: u64, sha256: String, name: String },
+    // path 当前由 ConnCtx.source_path 持有；这里冗余但保留写法清晰
+    File { #[allow(dead_code)] path: PathBuf, size: u64, sha256: String, name: String },
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]  // Closed 变体保留作未来终止态使用；当前 close_ctx 路径不显式赋
 enum ConnState {
     AwaitingHello,
     AwaitingPairApproval(Uuid),  // pairing id
@@ -764,7 +767,7 @@ async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         if let Some(out) = ctx.file_output.as_mut() {
             if let Err(e) = out.write_all(data).await {
                 let hid = ctx.history_id;
-                drop(ctx);
+                // NLL 自然在 hid 取值后结束 ctx 借用；无需显式 drop
                 if let Some(h) = hid { update_status(state, h, TransferStatus::Failed(e.to_string())); }
                 close_ctx(state, ctx_id, None).await;
                 return;
