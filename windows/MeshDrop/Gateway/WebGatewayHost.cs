@@ -184,7 +184,7 @@ public sealed class WebGatewayHost
             }
             if (method == "GET" && path.StartsWith("/api/v1/download/"))
             {
-                await WriteJsonAsync(ssl, 501, "{\"ok\":false,\"error\":\"download_not_implemented\"}", ct);
+                await HandleDownloadAsync(ssl, path, ct);
                 return;
             }
 
@@ -198,6 +198,81 @@ public sealed class WebGatewayHost
         {
             try { ssl?.Dispose(); } catch { }
         }
+    }
+
+    // ─── /api/v1/download/<historyId> ──────────────────────────────────
+
+    /// <summary>
+    /// 流式下载已接收文件（companion-bridges.md §4.3）。
+    /// path: /api/v1/download/<uuid>
+    /// </summary>
+    private async Task HandleDownloadAsync(SslStream ssl, string path, CancellationToken ct)
+    {
+        var idStr = path.Substring("/api/v1/download/".Length).Split('?')[0];
+        if (!Guid.TryParse(idStr, out var historyId))
+        {
+            await WriteJsonAsync(ssl, 400, "{\"ok\":false,\"error\":\"bad_history_id\"}", ct);
+            return;
+        }
+
+        // 扫 ObservableCollection 找 incoming file（只读，访问主线程更安全；engine.History
+        // 是 ObservableCollection 直接 LINQ 在当前线程读够用，跨端约定主线程改写、子线程读）
+        var item = _engine.History.FirstOrDefault(h =>
+            h.Id == historyId &&
+            h.Direction == Models.TransferDirection.Incoming);
+        if (item is null || item.Kind is not Models.HistoryKind.File file ||
+            string.IsNullOrEmpty(file.LocalPath) || !System.IO.File.Exists(file.LocalPath))
+        {
+            await WriteJsonAsync(ssl, 404, "{\"ok\":false,\"error\":\"file_not_found\"}", ct);
+            return;
+        }
+
+        var info = new FileInfo(file.LocalPath);
+        var safeName = Rfc5987Encode(file.Name);
+        var head = "HTTP/1.1 200 OK\r\n"
+                 + "Content-Type: application/octet-stream\r\n"
+                 + $"Content-Length: {info.Length}\r\n"
+                 + $"Content-Disposition: attachment; filename*=UTF-8''{safeName}\r\n"
+                 + "Server: MeshDrop-Gateway-Win/0.1\r\n"
+                 + "Connection: close\r\n\r\n";
+        var headBytes = Encoding.ASCII.GetBytes(head);
+        await ssl.WriteAsync(headBytes, 0, headBytes.Length, ct);
+
+        // 64 KiB 分块
+        await using var fs = new FileStream(file.LocalPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var buf = new byte[64 * 1024];
+        while (true)
+        {
+            var n = await fs.ReadAsync(buf, 0, buf.Length, ct);
+            if (n == 0) break;
+            await ssl.WriteAsync(buf, 0, n, ct);
+        }
+        await ssl.FlushAsync(ct);
+    }
+
+    /// <summary>
+    /// RFC 5987 编码：用于 Content-Disposition: filename*=UTF-8''<encoded>
+    /// 保护中文 / 特殊字符文件名。
+    /// </summary>
+    private static string Rfc5987Encode(string s)
+    {
+        var sb = new StringBuilder(s.Length * 3);
+        foreach (var b in Encoding.UTF8.GetBytes(s))
+        {
+            if ((b >= 0x30 && b <= 0x39) ||      // 0-9
+                (b >= 0x41 && b <= 0x5A) ||      // A-Z
+                (b >= 0x61 && b <= 0x7A) ||      // a-z
+                b == 0x2D || b == 0x2E ||        // -.
+                b == 0x5F || b == 0x7E)          // _~
+            {
+                sb.Append((char)b);
+            }
+            else
+            {
+                sb.Append('%').Append(b.ToString("X2"));
+            }
+        }
+        return sb.ToString();
     }
 
     // ─── WebSocket ─────────────────────────────────────────────────────
