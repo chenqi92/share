@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一 PR 多次 push 时取消旧 run
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apple-spm:
+    name: Apple · SPM build + test
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer || true
+      - name: Show Swift version
+        run: swift --version
+      - name: Build MeshDropKit
+        working-directory: apple
+        run: swift build
+      - name: Run MeshDropKit tests
+        working-directory: apple
+        run: swift test
+
+  linux-core:
+    name: Linux · meshdrop-core test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: linux
+      - name: Build meshdrop-core
+        working-directory: linux
+        run: cargo build -p meshdrop-core
+      - name: Run meshdrop-core unit + integration tests
+        working-directory: linux
+        run: cargo test -p meshdrop-core
+
+  web-build:
+    name: Web · npm build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Install
+        working-directory: web
+        run: npm ci
+      - name: Build
+        working-directory: web
+        run: npm run build
+
+  protocol-vectors-consistency:
+    name: Protocol · testdata frame_bytes_hex 一致性
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify frame_bytes_hex = u32(BE length) + type + body_bytes_hex
+        run: |
+          python3 - <<'EOF'
+          import json, glob, struct, sys
+
+          fail = False
+          for path in sorted(glob.glob('protocol/testdata/frames/*.json')):
+              with open(path) as f:
+                  spec = json.load(f)
+              body_hex = spec['body_bytes_hex']
+              frame_hex = spec['frame_bytes_hex']
+              body_bytes = bytes.fromhex(body_hex)
+              type_byte = int(spec['type_hex'], 16)
+              expected = struct.pack('>I', 1 + len(body_bytes)) + bytes([type_byte]) + body_bytes
+              if expected.hex() != frame_hex:
+                  print(f'FAIL {path}')
+                  print(f'  expected: {expected.hex()}')
+                  print(f'  spec    : {frame_hex}')
+                  fail = True
+              else:
+                  print(f'OK   {path}')
+          sys.exit(1 if fail else 0)
+          EOF
