@@ -1,3 +1,4 @@
+using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using MeshDrop.Mock;
@@ -6,6 +7,9 @@ namespace MeshDrop.Views.Controls;
 
 public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.UserControl
 {
+    /// <summary>调用方订阅以拿到取消请求；TransfersView 把这个 hook 到 ViewModel.CancelCommand。</summary>
+    public event EventHandler? CancelRequested;
+
     // 显式 'new' 隐藏 FrameworkElement.NameProperty
     public static new readonly DependencyProperty NameProperty = DependencyProperty.Register(
         nameof(Name), typeof(string), typeof(TransferRowControl), new PropertyMetadata(""));
@@ -49,6 +53,10 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
         nameof(ProgressVisibility), typeof(Visibility), typeof(TransferRowControl),
         new PropertyMetadata(Visibility.Collapsed));
 
+    public static readonly DependencyProperty CancelVisibilityProperty = DependencyProperty.Register(
+        nameof(CancelVisibility), typeof(Visibility), typeof(TransferRowControl),
+        new PropertyMetadata(Visibility.Collapsed));
+
     public new string Name { get => (string)GetValue(NameProperty); set => SetValue(NameProperty, value); }
     public string Size { get => (string)GetValue(SizeProperty); set => SetValue(SizeProperty, value); }
     public string Ext { get => (string)GetValue(ExtProperty); set => SetValue(ExtProperty, value); }
@@ -65,6 +73,13 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
         get => (Visibility)GetValue(ProgressVisibilityProperty);
         set => SetValue(ProgressVisibilityProperty, value);
     }
+    public Visibility CancelVisibility
+    {
+        get => (Visibility)GetValue(CancelVisibilityProperty);
+        set => SetValue(CancelVisibilityProperty, value);
+    }
+
+    private void OnCancelClick(object sender, RoutedEventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
 
     public TransferRowControl()
     {
@@ -81,27 +96,32 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
                 StateBrush = (Brush)res["MdFlameBrush"];
                 StateText = string.IsNullOrEmpty(Speed) ? "↑ 发送中" : $"↑ {Speed}";
                 ProgressVisibility = Visibility.Visible;
+                CancelVisibility = Visibility.Visible;
                 break;
             case MockTransferState.Receiving:
                 StateBrush = (Brush)res["MdSkyBrush"];
                 StateText = string.IsNullOrEmpty(Speed) ? "↓ 接收中" : $"↓ {Speed}";
                 ProgressVisibility = Visibility.Visible;
+                CancelVisibility = Visibility.Visible;
                 break;
             case MockTransferState.Done:
                 StateBrush = (Brush)res["MdLimeDeepBrush"];
                 StateText = "✓ 已完成";
                 ProgressVisibility = Visibility.Collapsed;
+                CancelVisibility = Visibility.Collapsed;
                 break;
             case MockTransferState.Failed:
                 StateBrush = (Brush)res["MdErrorBrush"];
                 StateText = "× 失败";
                 ProgressVisibility = Visibility.Collapsed;
+                CancelVisibility = Visibility.Collapsed;
                 break;
             case MockTransferState.Queued:
             default:
                 StateBrush = (Brush)res["MdInk45Brush"];
                 StateText = "· 排队";
                 ProgressVisibility = Visibility.Collapsed;
+                CancelVisibility = Visibility.Collapsed;
                 break;
         }
 

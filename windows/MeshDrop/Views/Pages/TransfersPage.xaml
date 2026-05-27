@@ -82,7 +82,9 @@
                                                      State="{x:Bind State}"
                                                      Progress="{x:Bind Progress}"
                                                      Speed="{x:Bind Speed}"
-                                                     Eta="{x:Bind Eta}"/>
+                                                     Eta="{x:Bind Eta}"
+                                                     Tag="{x:Bind}"
+                                                     CancelRequested="OnRowCancelRequested"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
