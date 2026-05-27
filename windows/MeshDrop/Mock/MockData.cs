@@ -17,6 +17,12 @@ public enum MockTransferState
 public enum MockHistoryKind { Text, File, Image }
 public enum MockClipboardKind { Text, Link, Code }
 
+// 下面所有 mock 数据类型都用 positional record 写起来更紧凑，但 WinUI 3 的
+// XamlTypeInfo 自动生成代码会试图 set 各属性（CS8852），所以 positional 自动
+// 生成的 init-only 不能用。每个 record 在 body 里显式重写为 `{ get; set; }`。
+//
+// 这样保留 record 的相等语义 + positional 构造的紧凑调用，且 XAML 绑定可用。
+
 public sealed record MockDevice(
     string Id,
     string Name,
@@ -31,7 +37,23 @@ public sealed record MockDevice(
     string Fingerprint = "ZX8K · L72M · 9FQ3 · 7HD2 · M1P6 · QA8N · KZ9R · X3WF",
     string Ip = "192.168.1.31",
     string Bw = "940 Mbps",
-    bool E2EVerified = true);
+    bool E2EVerified = true)
+{
+    public string Id { get; set; } = Id;
+    public string Name { get; set; } = Name;
+    public string Who { get; set; } = Who;
+    public MockKind Kind { get; set; } = Kind;
+    public double Dist { get; set; } = Dist;
+    public int Angle { get; set; } = Angle;
+    public string ColorHex { get; set; } = ColorHex;
+    public string Initials { get; set; } = Initials;
+    public string Os { get; set; } = Os;
+    public int Rtt { get; set; } = Rtt;
+    public string Fingerprint { get; set; } = Fingerprint;
+    public string Ip { get; set; } = Ip;
+    public string Bw { get; set; } = Bw;
+    public bool E2EVerified { get; set; } = E2EVerified;
+}
 
 public sealed record MockHistory(
     string Id,
@@ -47,6 +69,19 @@ public sealed record MockHistory(
     int? Progress = null,
     string Status = "done")
 {
+    public string Id { get; set; } = Id;
+    public string Dir { get; set; } = Dir;
+    public string Peer { get; set; } = Peer;
+    public string Time { get; set; } = Time;
+    public MockHistoryKind Kind { get; set; } = Kind;
+    public string? Name { get; set; } = Name;
+    public string? Size { get; set; } = Size;
+    public string? Ext { get; set; } = Ext;
+    public string? Content { get; set; } = Content;
+    public int? Count { get; set; } = Count;
+    public int? Progress { get; set; } = Progress;
+    public string Status { get; set; } = Status;
+
     public string DirArrow => Dir == "outgoing" ? "↑" : "↓";
 
     public string KindLabel => Kind switch
@@ -91,7 +126,14 @@ public sealed record MockPendingPairing(
     string Peer,
     string DeviceName,
     string Fingerprint,
-    string ReceivedAt);
+    string ReceivedAt)
+{
+    public string Id { get; set; } = Id;
+    public string Peer { get; set; } = Peer;
+    public string DeviceName { get; set; } = DeviceName;
+    public string Fingerprint { get; set; } = Fingerprint;
+    public string ReceivedAt { get; set; } = ReceivedAt;
+}
 
 public sealed record MockPendingOffer(
     string Id,
@@ -100,7 +142,16 @@ public sealed record MockPendingOffer(
     string FileName,
     string FileSize,
     string Note,
-    string ReceivedAt);
+    string ReceivedAt)
+{
+    public string Id { get; set; } = Id;
+    public string Peer { get; set; } = Peer;
+    public string DeviceName { get; set; } = DeviceName;
+    public string FileName { get; set; } = FileName;
+    public string FileSize { get; set; } = FileSize;
+    public string Note { get; set; } = Note;
+    public string ReceivedAt { get; set; } = ReceivedAt;
+}
 
 public sealed record MockClipboard(
     string Id,
@@ -110,6 +161,13 @@ public sealed record MockClipboard(
     string Ago,
     string? Lang = null)
 {
+    public string Id { get; set; } = Id;
+    public string Who { get; set; } = Who;
+    public MockClipboardKind Kind { get; set; } = Kind;
+    public string Body { get; set; } = Body;
+    public string Ago { get; set; } = Ago;
+    public string? Lang { get; set; } = Lang;
+
     public string KindLabel => Kind switch
     {
         MockClipboardKind.Text => "TEXT",
@@ -130,6 +188,16 @@ public sealed record MockTransfer(
     string? Speed = null,
     string Eta = "")
 {
+    public string Name { get; set; } = Name;
+    public string Size { get; set; } = Size;
+    public string Ext { get; set; } = Ext;
+    public string From { get; set; } = From;
+    public string To { get; set; } = To;
+    public int Progress { get; set; } = Progress;
+    public MockTransferState State { get; set; } = State;
+    public string? Speed { get; set; } = Speed;
+    public string Eta { get; set; } = Eta;
+
     public string FromToText => $"{From} → {To}";
 }
 
@@ -142,7 +210,18 @@ public sealed record MockMessage(
     bool Delivered = true,
     string? FileName = null,
     string? FileSize = null,
-    string? FileExt = null);
+    string? FileExt = null)
+{
+    public string Id { get; set; } = Id;
+    public string Side { get; set; } = Side;
+    public string Kind { get; set; } = Kind;
+    public string? Text { get; set; } = Text;
+    public string? Time { get; set; } = Time;
+    public bool Delivered { get; set; } = Delivered;
+    public string? FileName { get; set; } = FileName;
+    public string? FileSize { get; set; } = FileSize;
+    public string? FileExt { get; set; } = FileExt;
+}
 
 public sealed record MockMe(
     string Name = "DEV-01 · Win 11",
@@ -150,7 +229,15 @@ public sealed record MockMe(
     string Ip = "192.168.1.42",
     string Os = "Win 11",
     string Visibility = "可见",
-    string Lan = "ACME-LAN");
+    string Lan = "ACME-LAN")
+{
+    public string Name { get; set; } = Name;
+    public string Fingerprint { get; set; } = Fingerprint;
+    public string Ip { get; set; } = Ip;
+    public string Os { get; set; } = Os;
+    public string Visibility { get; set; } = Visibility;
+    public string Lan { get; set; } = Lan;
+}
 
 public sealed record MockTrust(
     string Who,
@@ -159,7 +246,16 @@ public sealed record MockTrust(
     string Fingerprint,
     string PairedOn,
     string LastSeen,
-    bool RememberAllowed);
+    bool RememberAllowed)
+{
+    public string Who { get; set; } = Who;
+    public string DeviceName { get; set; } = DeviceName;
+    public string Os { get; set; } = Os;
+    public string Fingerprint { get; set; } = Fingerprint;
+    public string PairedOn { get; set; } = PairedOn;
+    public string LastSeen { get; set; } = LastSeen;
+    public bool RememberAllowed { get; set; } = RememberAllowed;
+}
 
 /// <summary>
 /// COMMON §9 设计语言数据样本 —— 仅供 XAML designer preview 和单元测试用。
