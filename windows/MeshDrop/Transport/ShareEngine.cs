@@ -431,6 +431,23 @@ public sealed partial class ShareEngine : ObservableObject
 
         if (type == MessageType.PONG) return;
 
+        if (type == MessageType.FILE_CANCEL)
+        {
+            // 对端取消传输：接收侧关 stream + 删半成品文件，避免落盘出现 0 字节 / 半截文件
+            if (state == ConnectionContext.StateReceivingFile)
+            {
+                try { ctx.OutputStream?.Dispose(); } catch { }
+                ctx.OutputStream = null;
+                if (ctx.SavedPath is { } path)
+                {
+                    try { if (File.Exists(path)) File.Delete(path); } catch { }
+                }
+            }
+            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Canceled()); });
+            await CloseContextAsync(ctxId, null);
+            return;
+        }
+
         await CloseContextAsync(ctxId, null);
     }
 
