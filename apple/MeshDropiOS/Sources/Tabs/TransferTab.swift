@@ -28,7 +28,9 @@ struct TransferTab: View {
                     } else {
                         if !active.isEmpty {
                             AsciiDivider("ACTIVE · 进行中 · \(active.count)")
-                            ForEach(active) { TransferRow($0) }
+                            ForEach(active) { item in
+                                TransferRow(item, onCancel: { cancel(item) })
+                            }
                         }
                         if !queued.isEmpty {
                             AsciiDivider("QUEUED · 等待 · \(queued.count)")
@@ -66,6 +68,11 @@ struct TransferTab: View {
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
+    }
+
+    private func cancel(_ item: MockTransfer) {
+        guard let id = UUID(uuidString: item.id) else { return }
+        engine.cancelTransfer(id)
     }
 
     private var emptyCard: some View {
