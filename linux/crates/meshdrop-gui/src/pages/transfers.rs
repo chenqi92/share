@@ -30,21 +30,24 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let chart_card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     chart_card.add_css_class("meshdrop-card");
     let head_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    let head = gtk::Label::new(Some("当前会话速度"));
+    let head = gtk::Label::new(Some("当前会话 · SESSION"));
     head.add_css_class("meshdrop-card-title");
     head.set_halign(gtk::Align::Start);
     head_row.append(&head);
     let sp = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     sp.set_hexpand(true);
     head_row.append(&sp);
-    let legend_up = gtk::Label::new(Some("↑ 上行"));
+    let legend_up = gtk::Label::new(Some("↑ —"));
     legend_up.add_css_class("meshdrop-meta");
     legend_up.add_css_class("meshdrop-legend-up");
-    let legend_down = gtk::Label::new(Some("↓ 下行"));
+    let legend_down = gtk::Label::new(Some("↓ —"));
     legend_down.add_css_class("meshdrop-meta");
     legend_down.add_css_class("meshdrop-legend-down");
+    let legend_total = gtk::Label::new(Some("· 0 B 已传输"));
+    legend_total.add_css_class("meshdrop-meta");
     head_row.append(&legend_up);
     head_row.append(&legend_down);
+    head_row.append(&legend_total);
     chart_card.append(&head_row);
 
     let chart = speed_chart::chart(mock::UPLOAD_BARS, mock::DOWNLOAD_BARS, 600, 130);
@@ -135,9 +138,59 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
                 fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
             });
         }
+        // session legend：history + metrics 任一变都重新汇总
+        {
+            let legend_up = legend_up.clone();
+            let legend_down = legend_down.clone();
+            let legend_total = legend_total.clone();
+            let handle_c = h.clone();
+            let refresh = move || refresh_session_legend(&handle_c, &legend_up, &legend_down, &legend_total);
+            refresh();
+            let refresh_clone = refresh.clone();
+            h.observe(h.engine.history_rx(), move |_| refresh_clone());
+            h.observe(h.engine.transfer_metrics_rx(), move |_| refresh());
+        }
     }
 
     root.upcast()
+}
+
+fn refresh_session_legend(
+    handle: &Rc<AppHandle>,
+    legend_up: &gtk::Label,
+    legend_down: &gtk::Label,
+    legend_total: &gtk::Label,
+) {
+    use meshdrop_core::history::{HistoryKind, TransferDirection, TransferStatus};
+    let history = handle.history();
+    let metrics = handle.engine.transfer_metrics_rx().borrow().clone();
+
+    let mut total: u64 = 0;
+    let mut up_bps: f64 = 0.0;
+    let mut down_bps: f64 = 0.0;
+    for h in &history {
+        if let HistoryKind::File { size, .. } = &h.kind {
+            total += *size;
+        }
+        if matches!(h.status, TransferStatus::Transferring { .. }) {
+            if let Some(m) = metrics.get(&h.id) {
+                match h.direction {
+                    TransferDirection::Outgoing => up_bps += m.bytes_per_sec,
+                    TransferDirection::Incoming => down_bps += m.bytes_per_sec,
+                }
+            }
+        }
+    }
+    legend_up.set_text(&format!("↑ {}", format_bps(up_bps)));
+    legend_down.set_text(&format!("↓ {}", format_bps(down_bps)));
+    legend_total.set_text(&format!("· {} 已传输", meshdrop_core::history::format_bytes(total)));
+}
+
+fn format_bps(bps: f64) -> String {
+    if bps <= 1.0 { return "—".into(); }
+    if bps < 1024.0 { return format!("{:.0} B/s", bps); }
+    if bps < 1024.0 * 1024.0 { return format!("{:.1} KB/s", bps / 1024.0); }
+    format!("{:.1} MB/s", bps / 1024.0 / 1024.0)
 }
 
 fn fill_transfers(list: &gtk::Box, empty: &gtk::Box, rows: &[ViewTransferRow], handle: Option<Rc<AppHandle>>) {
