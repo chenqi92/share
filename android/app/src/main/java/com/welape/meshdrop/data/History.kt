@@ -27,3 +27,11 @@ data class HistoryItem(
     val status: TransferStatus,
     val createdAt: Long = System.currentTimeMillis(),
 )
+
+/** 进行中传输的实时指标。仅在 Transferring 阶段有意义，进入 terminal 时清掉。 */
+data class TransferMetrics(
+    /** 平滑后的字节 / 秒。0 表示未收到足够样本。 */
+    val bytesPerSec: Double,
+    /** 剩余时间（秒）；速率为 0 或 total<=done 时为 null。 */
+    val etaSeconds: Double?,
+)

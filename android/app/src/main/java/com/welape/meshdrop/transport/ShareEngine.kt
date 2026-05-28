@@ -8,6 +8,7 @@ import com.welape.meshdrop.data.Device
 import com.welape.meshdrop.data.DeviceOS
 import com.welape.meshdrop.data.HistoryItem
 import com.welape.meshdrop.data.HistoryKind
+import com.welape.meshdrop.data.TransferMetrics
 import com.welape.meshdrop.data.Identity
 import com.welape.meshdrop.data.IdentityStore
 import com.welape.meshdrop.data.PairingDecision
@@ -93,6 +94,10 @@ class ShareEngine(private val context: Context) {
 
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
+
+    /** 进行中传输的实时速率 + ETA。key = history.id。terminal 时被 updateHistoryStatus 移除。 */
+    private val _transferMetrics = MutableStateFlow<Map<UUID, TransferMetrics>>(emptyMap())
+    val transferMetrics: StateFlow<Map<UUID, TransferMetrics>> = _transferMetrics.asStateFlow()
 
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
@@ -552,6 +557,7 @@ class ShareEngine(private val context: Context) {
             }
             offset += n
             ctx.sentBytes = offset
+            recordProgress(ctx, offset, fileSize)
             ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Transferring(offset, fileSize)) }
         }
         try { input.close() } catch (_: Exception) {}
@@ -661,6 +667,7 @@ class ShareEngine(private val context: Context) {
             closeContext(ctx.id, e); return
         }
         ctx.receivedBytes += data.size
+        recordProgress(ctx, ctx.receivedBytes, ctx.fileSize)
         ctx.historyId?.let {
             updateHistoryStatus(it, TransferStatus.Transferring(ctx.receivedBytes, ctx.fileSize))
         }
@@ -779,6 +786,41 @@ class ShareEngine(private val context: Context) {
         _history.value = _history.value.map {
             if (it.id == id) it.copy(status = status) else it
         }
+        // 终态：清掉速率指标，UI 上 speed/ETA 立即消失。
+        val terminal = status is TransferStatus.Completed
+            || status is TransferStatus.Failed
+            || status is TransferStatus.Canceled
+        if (terminal && _transferMetrics.value.containsKey(id)) {
+            _transferMetrics.value = _transferMetrics.value - id
+        }
+    }
+
+    /**
+     * ctx 累计字节变化时调一下，刷新 EMA 字节/秒 + ETA 到 `_transferMetrics[historyId]`。
+     * 节流：相邻样本至少 100ms（chunk 触发频率太快会抖到无意义）；α=0.3 指数平滑。
+     */
+    private fun recordProgress(ctx: ConnectionContext, currentBytes: Long, totalBytes: Long) {
+        val hid = ctx.historyId ?: return
+        val nowNs = System.nanoTime()
+        val prevNs = ctx.lastSampleNanos
+        val prevBytes = ctx.lastSampleBytes
+        if (prevNs != 0L) {
+            val dtNs = nowNs - prevNs
+            if (dtNs < 100_000_000L) return // 100ms 节流
+            if (currentBytes >= prevBytes) {
+                val inst = (currentBytes - prevBytes).toDouble() / (dtNs.toDouble() / 1_000_000_000.0)
+                ctx.emaBytesPerSec = if (ctx.emaBytesPerSec == 0.0) inst
+                                    else 0.3 * inst + 0.7 * ctx.emaBytesPerSec
+            }
+        }
+        ctx.lastSampleNanos = nowNs
+        ctx.lastSampleBytes = currentBytes
+
+        val bps = ctx.emaBytesPerSec
+        val eta = if (bps > 1.0 && totalBytes > currentBytes) {
+            (totalBytes - currentBytes).toDouble() / bps
+        } else null
+        _transferMetrics.value = _transferMetrics.value + (hid to TransferMetrics(bps, eta))
     }
 
     private fun failHistory(id: UUID, reason: String) {
@@ -888,4 +930,10 @@ class ConnectionContext(
     @Volatile var expectedSha256: String? = null
     /** 接收方：上次写入 ResumeStore 的 bytesDone，用来限制持久化频率。 */
     @Volatile var lastPersistedBytes: Long = 0
+
+    // 速率窗口：上次采样时刻 + 当时累计字节，用来算 Δbytes / Δtime。
+    @Volatile var lastSampleNanos: Long = 0
+    @Volatile var lastSampleBytes: Long = 0
+    /** 指数移动平均字节/秒（α=0.3，足够平滑但不会僵硬滞后）。 */
+    @Volatile var emaBytesPerSec: Double = 0.0
 }
