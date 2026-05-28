@@ -7,7 +7,12 @@ use crate::view::ViewTransferRow;
 use adw::prelude::*;
 
 /// 渲染一行；`on_cancel` 非空且状态是 Sending / Receiving 时，状态 chip 右侧加取消按钮。
-pub fn row(item: &ViewTransferRow, on_cancel: Option<Box<dyn Fn(uuid::Uuid) + 'static>>) -> gtk::Box {
+/// `on_retry` 非空且状态是 Failed 时，状态 chip 右侧加重试按钮。
+pub fn row(
+    item: &ViewTransferRow,
+    on_cancel: Option<Box<dyn Fn(uuid::Uuid) + 'static>>,
+    on_retry: Option<Box<dyn Fn(uuid::Uuid) + 'static>>,
+) -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     card.add_css_class("meshdrop-card");
 
@@ -37,6 +42,17 @@ pub fn row(item: &ViewTransferRow, on_cancel: Option<Box<dyn Fn(uuid::Uuid) + 's
             btn.set_tooltip_text(Some("取消传输 · Cancel"));
             btn.add_css_class("flat");
             btn.add_css_class("circular");
+            let hid = item.id;
+            btn.connect_clicked(move |_| cb(hid));
+            state_top.append(&btn);
+        }
+    }
+    if matches!(item.state, TransferState::Failed) {
+        if let Some(cb) = on_retry {
+            let btn = gtk::Button::from_icon_name("view-refresh-symbolic");
+            btn.set_label("RETRY");
+            btn.set_tooltip_text(Some("重试发送 · Retry"));
+            btn.add_css_class("flat");
             let hid = item.id;
             btn.connect_clicked(move |_| cb(hid));
             state_top.append(&btn);
