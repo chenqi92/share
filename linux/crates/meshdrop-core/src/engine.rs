@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
@@ -61,6 +61,16 @@ pub struct ShareEngine {
     history_rx: watch::Receiver<Vec<HistoryItem>>,
     pending_pairings_rx: watch::Receiver<Vec<PendingPairing>>,
     pending_offers_rx: watch::Receiver<Vec<PendingFileOffer>>,
+    transfer_metrics_rx: watch::Receiver<HashMap<Uuid, TransferMetrics>>,
+}
+
+/// 进行中传输的实时指标。Key 为 history.id；进入 terminal 状态时被移除。
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TransferMetrics {
+    /// 平滑后的字节 / 秒。0 表示未收到足够样本。
+    pub bytes_per_sec: f64,
+    /// 剩余时间（秒）；速率为 0 或 total<=done 时为 None。
+    pub eta_seconds: Option<f64>,
 }
 
 impl ShareEngine {
@@ -82,6 +92,7 @@ impl ShareEngine {
         let (history_tx, history_rx) = watch::channel(Vec::new());
         let (pp_tx, pp_rx) = watch::channel(Vec::new());
         let (po_tx, po_rx) = watch::channel(Vec::new());
+        let (tm_tx, tm_rx) = watch::channel(HashMap::<Uuid, TransferMetrics>::new());
 
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
@@ -112,6 +123,8 @@ impl ShareEngine {
             history_tx,
             pp_tx,
             po_tx,
+            tm_tx,
+            transfer_metrics: HashMap::new(),
             internal_tx,
             _discovery: discovery,
         };
@@ -128,6 +141,7 @@ impl ShareEngine {
             history_rx,
             pending_pairings_rx: pp_rx,
             pending_offers_rx: po_rx,
+            transfer_metrics_rx: tm_rx,
         })
     }
 
@@ -135,6 +149,7 @@ impl ShareEngine {
     pub fn history_rx(&self) -> watch::Receiver<Vec<HistoryItem>> { self.history_rx.clone() }
     pub fn pending_pairings_rx(&self) -> watch::Receiver<Vec<PendingPairing>> { self.pending_pairings_rx.clone() }
     pub fn pending_offers_rx(&self) -> watch::Receiver<Vec<PendingFileOffer>> { self.pending_offers_rx.clone() }
+    pub fn transfer_metrics_rx(&self) -> watch::Receiver<HashMap<Uuid, TransferMetrics>> { self.transfer_metrics_rx.clone() }
 
     pub fn send_text(&self, peer: Device, content: String) {
         let _ = self.cmd_tx.send(UserCmd::SendText { peer, content });
@@ -215,6 +230,8 @@ struct State {
     history_tx: watch::Sender<Vec<HistoryItem>>,
     pp_tx: watch::Sender<Vec<PendingPairing>>,
     po_tx: watch::Sender<Vec<PendingFileOffer>>,
+    tm_tx: watch::Sender<HashMap<Uuid, TransferMetrics>>,
+    transfer_metrics: HashMap<Uuid, TransferMetrics>,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     _discovery: DiscoveryHandle,
 }
@@ -239,6 +256,11 @@ struct ConnCtx {
     received_bytes: u64,
     file_input: Option<File>,
     file_output: Option<File>,
+
+    // 速率窗口（chunk 触发；100ms 节流 + α=0.3 EMA）
+    last_sample: Option<Instant>,
+    last_sample_bytes: u64,
+    ema_bytes_per_sec: f64,
 }
 
 enum Role {
@@ -771,9 +793,10 @@ async fn stream_chunks(state: &mut State, ctx_id: Uuid) {
         offset += n as u64;
         if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
             ctx.sent_bytes = offset;
-            if let Some(h) = ctx.history_id {
-                update_status(state, h, TransferStatus::Transferring { done: offset, total: file_size });
-            }
+        }
+        record_progress(state, ctx_id, offset, file_size);
+        if let Some(h) = state.contexts.get(&ctx_id).and_then(|c| c.history_id) {
+            update_status(state, h, TransferStatus::Transferring { done: offset, total: file_size });
         }
     }
 }
@@ -833,6 +856,7 @@ async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         if ctx.received_bytes >= ctx.file_size { completed = true; }
     }
     if let Some(h) = h_for_update {
+        record_progress(state, ctx_id, received, total);
         update_status(state, h, TransferStatus::Transferring { done: received, total });
     }
 
@@ -908,10 +932,49 @@ async fn close_ctx(state: &mut State, ctx_id: Uuid, reason: Option<String>) {
 }
 
 fn update_status(state: &mut State, history_id: Uuid, status: TransferStatus) {
+    let terminal = matches!(
+        status,
+        TransferStatus::Completed | TransferStatus::Failed(_) | TransferStatus::Canceled
+    );
     for it in state.history.iter_mut() {
         if it.id == history_id { it.status = status; break; }
     }
     let _ = state.history_tx.send(state.history.clone());
+    // 终态：清掉对应速率条目，UI 上 speed/ETA 立即消失。
+    if terminal && state.transfer_metrics.remove(&history_id).is_some() {
+        let _ = state.tm_tx.send(state.transfer_metrics.clone());
+    }
+}
+
+/// ctx 累计字节变化时调一下，刷新 EMA bytes/sec + ETA 写入 state.transfer_metrics。
+/// 节流：相邻样本至少 100ms；α=0.3 指数平滑。
+fn record_progress(state: &mut State, ctx_id: Uuid, current_bytes: u64, total_bytes: u64) {
+    let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
+    let Some(hid) = ctx.history_id else { return };
+    let now = Instant::now();
+    if let Some(prev) = ctx.last_sample {
+        let dt = now.duration_since(prev).as_secs_f64();
+        if dt < 0.1 { return; } // 100ms 节流
+        if current_bytes >= ctx.last_sample_bytes && dt > 0.0 {
+            let inst = (current_bytes - ctx.last_sample_bytes) as f64 / dt;
+            ctx.ema_bytes_per_sec = if ctx.ema_bytes_per_sec == 0.0 {
+                inst
+            } else {
+                0.3 * inst + 0.7 * ctx.ema_bytes_per_sec
+            };
+        }
+    }
+    ctx.last_sample = Some(now);
+    ctx.last_sample_bytes = current_bytes;
+
+    let bps = ctx.ema_bytes_per_sec;
+    let eta = if bps > 1.0 && total_bytes > current_bytes {
+        Some((total_bytes - current_bytes) as f64 / bps)
+    } else {
+        None
+    };
+    state.transfer_metrics.insert(hid, TransferMetrics { bytes_per_sec: bps, eta_seconds: eta });
+    let _ = state.tm_tx.send(state.transfer_metrics.clone());
 }
 
 // ─── 辅助：事件转发 / sha256 / 路径 ───────────────────────────────────
@@ -986,6 +1049,7 @@ impl ConnCtx {
             source_path: None, save_path: None, expected_sha256: None,
             file_size: 0, sent_bytes: 0, received_bytes: 0,
             file_input: None, file_output: None,
+            last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
         }
     }
     fn new_client(id: Uuid, connection: Connection, role: Role, state: ConnState) -> Self {
@@ -995,6 +1059,7 @@ impl ConnCtx {
             source_path: None, save_path: None, expected_sha256: None,
             file_size: 0, sent_bytes: 0, received_bytes: 0,
             file_input: None, file_output: None,
+            last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
         }
     }
 }
