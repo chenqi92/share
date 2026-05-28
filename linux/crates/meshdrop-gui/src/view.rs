@@ -8,6 +8,7 @@ use meshdrop_core::history::{format_bytes, HistoryItem, HistoryKind, TransferDir
 use meshdrop_core::trust::TrustRecord;
 use meshdrop_core::Device;
 use meshdrop_core::DeviceOS;
+use meshdrop_core::TransferMetrics;
 
 /// Radar / 列表行需要的全部展示字段（String 版）。
 #[allow(dead_code)]
@@ -171,7 +172,11 @@ pub struct ViewTransferRow {
 }
 
 impl ViewTransferRow {
-    pub fn from_history(h: &HistoryItem, self_name: &str) -> Option<Self> {
+    pub fn from_history_with_metrics(
+        h: &HistoryItem,
+        self_name: &str,
+        metrics: Option<&TransferMetrics>,
+    ) -> Option<Self> {
         let (name, size_str, ext) = match &h.kind {
             HistoryKind::File { name, size, .. } => {
                 let ext = name.rsplit_once('.').map(|(_, e)| e).unwrap_or("file").to_string();
@@ -197,11 +202,36 @@ impl ViewTransferRow {
                 TransferDirection::Incoming => mock::TransferState::Receiving,
             },
         };
+        let active = matches!(state, mock::TransferState::Sending | mock::TransferState::Receiving);
+        let speed = if active {
+            metrics.and_then(|m| if m.bytes_per_sec > 1.0 { Some(format_speed(m.bytes_per_sec)) } else { None })
+        } else {
+            None
+        };
+        let eta = if active {
+            metrics.and_then(|m| m.eta_seconds).map(format_eta)
+        } else {
+            None
+        };
         Some(Self {
             id: h.id, name, size: size_str, ext, from, to, progress, state,
-            speed: None, eta: None,
+            speed, eta,
         })
     }
+}
+
+fn format_speed(bps: f64) -> String {
+    if bps < 1024.0 { format!("{:.0} B/s", bps) }
+    else if bps < 1024.0 * 1024.0 { format!("{:.1} KB/s", bps / 1024.0) }
+    else { format!("{:.1} MB/s", bps / 1024.0 / 1024.0) }
+}
+
+fn format_eta(secs: f64) -> String {
+    if !secs.is_finite() || secs < 0.0 { return "—".into() }
+    if secs < 1.0 { return "<1s".into() }
+    if secs >= 3600.0 { return ">1h".into() }
+    let s = secs as u32;
+    format!("{:02}:{:02}", s / 60, s % 60)
 }
 
 // ─── 工具 ──────────────────────────────────────────────────────────

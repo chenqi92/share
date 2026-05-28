@@ -12,8 +12,10 @@ use anyhow::{Context, Result};
 use meshdrop_core::{
     Device as CoreDevice, DeviceOS, HistoryItem as CoreHistoryItem, HistoryKind,
     Identity, PendingFileOffer as CorePendingOffer, PendingPairing as CorePendingPairing,
-    ShareEngine, TransferDirection, TransferStatus,
+    ShareEngine, TransferDirection, TransferMetrics, TransferStatus,
 };
+use std::collections::HashMap;
+use uuid::Uuid;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
@@ -62,6 +64,7 @@ pub enum EngineUpdate {
     History { core: Vec<CoreHistoryItem>, display: Vec<mock::HistoryItem> },
     Pairings { core: Vec<CorePendingPairing>, display: Vec<mock::PendingPairing> },
     Offers { core: Vec<CorePendingOffer>, display: Vec<mock::PendingOffer> },
+    TransferMetricsChanged(HashMap<Uuid, TransferMetrics>),
 }
 
 pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpdate> {
@@ -120,6 +123,18 @@ pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpd
                 let snap = rcv.borrow().clone();
                 let display = adapt_offers(&snap);
                 if tx.send(EngineUpdate::Offers { core: snap, display }).is_err() { break; }
+            }
+        });
+    }
+    {
+        let mut rcv = engine.transfer_metrics_rx();
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let snap = rcv.borrow().clone();
+            if tx.send(EngineUpdate::TransferMetricsChanged(snap)).is_err() { return; }
+            while rcv.changed().await.is_ok() {
+                let snap = rcv.borrow().clone();
+                if tx.send(EngineUpdate::TransferMetricsChanged(snap)).is_err() { break; }
             }
         });
     }

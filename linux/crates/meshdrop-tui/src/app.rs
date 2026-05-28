@@ -74,6 +74,7 @@ pub struct App {
     pub core_history: Vec<meshdrop_core::history::HistoryItem>,
     pub core_pairings: Vec<CorePendingPairing>,
     pub core_offers: Vec<CorePendingOffer>,
+    pub transfer_metrics: std::collections::HashMap<uuid::Uuid, meshdrop_core::TransferMetrics>,
 
     pub page: Page,
     pub focus: Focus,
@@ -123,6 +124,7 @@ impl App {
             core_history: Vec::new(),
             core_pairings: Vec::new(),
             core_offers: Vec::new(),
+            transfer_metrics: std::collections::HashMap::new(),
             page: Page::Discovery,
             focus: Focus::Devices,
             mode: Mode::Normal,
@@ -162,6 +164,7 @@ impl App {
             core_history: Vec::new(),
             core_pairings: Vec::new(),
             core_offers: Vec::new(),
+            transfer_metrics: std::collections::HashMap::new(),
             page: Page::Discovery,
             focus: Focus::Devices,
             mode: Mode::Normal,
@@ -368,12 +371,14 @@ impl App {
     }
 
     fn refresh_transfers(&mut self) {
-        // transfers 由进行中 / 最近 history 派生
+        // transfers 由进行中 / 最近 history 派生。speed / eta 来自 transfer_metrics，
+        // 按 core_history (同长度同顺序) 取对应 UUID 查表。
         let me_label = self.me.name.clone();
         self.transfers = self
             .history
             .iter()
-            .filter_map(|h| {
+            .enumerate()
+            .filter_map(|(i, h)| {
                 let (name, size, ext, progress) = match &h.body {
                     mock::HistoryBody::File { name, size, ext, progress } => {
                         (name.clone(), size.clone(), ext.clone(), progress.unwrap_or(0))
@@ -385,6 +390,14 @@ impl App {
                     mock::Direction::Outgoing => (me_label.clone(), h.peer.clone()),
                     mock::Direction::Incoming => (h.peer.clone(), me_label.clone()),
                 };
+                let active = matches!(h.state, mock::HistoryState::Sending | mock::HistoryState::Receiving);
+                let metrics = self.core_history.get(i).and_then(|c| self.transfer_metrics.get(&c.id));
+                let speed = if active {
+                    metrics.and_then(|m| if m.bytes_per_sec > 1.0 { Some(fmt_speed(m.bytes_per_sec)) } else { None })
+                } else { None };
+                let eta = if active {
+                    metrics.and_then(|m| m.eta_seconds).map(fmt_eta)
+                } else { None };
                 Some(mock::Transfer {
                     name,
                     size,
@@ -393,12 +406,26 @@ impl App {
                     to,
                     progress,
                     state: h.state,
-                    speed: None,
-                    eta: None,
+                    speed,
+                    eta,
                 })
             })
             .collect();
     }
+}
+
+fn fmt_speed(bps: f64) -> String {
+    if bps < 1024.0 { format!("{:.0} B/s", bps) }
+    else if bps < 1024.0 * 1024.0 { format!("{:.1} KB/s", bps / 1024.0) }
+    else { format!("{:.1} MB/s", bps / 1024.0 / 1024.0) }
+}
+
+fn fmt_eta(secs: f64) -> String {
+    if !secs.is_finite() || secs < 0.0 { return "—".into() }
+    if secs < 1.0 { return "<1s".into() }
+    if secs >= 3600.0 { return ">1h".into() }
+    let s = secs as u32;
+    format!("{:02}:{:02}", s / 60, s % 60)
 }
 
 fn preview(s: &str, max: usize) -> String {
@@ -528,6 +555,10 @@ fn apply_engine_update(app: &mut App, update: EngineUpdate) {
             if app.pending_offer.is_some() && app.mode == Mode::Normal {
                 app.mode = Mode::FileOffer;
             }
+        }
+        EngineUpdate::TransferMetricsChanged(metrics) => {
+            app.transfer_metrics = metrics;
+            app.refresh_transfers();
         }
     }
 }
