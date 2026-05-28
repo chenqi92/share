@@ -327,6 +327,23 @@ public final class ShareEngine: ObservableObject {
         updateHistoryStatus(historyID, status: .canceled)
     }
 
+    /// 失败 / 取消的发送项重试。
+    /// 找 historyID 对应的 outgoing 历史项；若 kind 是 file 且 url 仍可读，
+    /// 调用 sendFile 走完整流程（新建一个独立的 history 条目，旧的失败条目不动）。
+    /// 返回 true 表示触发了重发；false 表示找不到 / 不是文件 / 源文件已失效。
+    @discardableResult
+    public func retryTransfer(_ historyID: UUID) -> Bool {
+        guard let item = history.first(where: { $0.id == historyID }),
+              item.direction == .outgoing,
+              case .file(_, _, let url) = item.kind,
+              let sourceURL = url,
+              FileManager.default.fileExists(atPath: sourceURL.path) else {
+            return false
+        }
+        sendFile(to: item.peer, sourceURL: sourceURL)
+        return true
+    }
+
     public func respondToFileOffer(_ offerID: UUID, accept: Bool) {
         guard let offer = pendingFileOffers.first(where: { $0.id == offerID }) else { return }
         pendingFileOffers.removeAll { $0.id == offerID }

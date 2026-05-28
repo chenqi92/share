@@ -173,6 +173,12 @@ final class AppState: ObservableObject {
         engine.cancelTransfer(historyID)
     }
 
+    /// 重发失败 / 取消的发送项。源文件路径还在且可读时返回 true。
+    @discardableResult
+    func retryTransfer(_ historyID: UUID) -> Bool {
+        engine.retryTransfer(historyID)
+    }
+
     func revokeTrust(fingerprint: String) {
         engine.revokeTrust(fingerprint: fingerprint)
     }
