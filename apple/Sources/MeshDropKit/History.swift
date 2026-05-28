@@ -37,6 +37,19 @@ public enum HistoryKind: Sendable, Equatable {
     case file(name: String, size: UInt64, url: URL?)
 }
 
+/// 进行中传输的实时指标。仅在 .transferring 阶段有意义，进入 terminal 时清除。
+public struct TransferMetrics: Sendable, Equatable {
+    /// 平滑后的字节/秒。0 表示未收到足够样本。
+    public let bytesPerSec: Double
+    /// 剩余时间（秒）；速率为 0 或 total<=done 时为 nil。
+    public let etaSeconds: Double?
+
+    public init(bytesPerSec: Double, etaSeconds: Double?) {
+        self.bytesPerSec = bytesPerSec
+        self.etaSeconds = etaSeconds
+    }
+}
+
 public enum TransferStatus: Sendable, Equatable {
     case pending                       // 创建但还没开始传
     case waitingApproval               // 等对方接受（出方）或等本地决定（入方）

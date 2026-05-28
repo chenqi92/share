@@ -27,6 +27,8 @@ final class AppState: ObservableObject {
     @Published private(set) var enginePairing: MockPendingPairing? = nil
     @Published private(set) var engineOffer: MockPendingOffer? = nil
     @Published private(set) var engineTrusted: [MockTrustedDevice] = []
+    /// 进行中传输的实时 speed / ETA，TransfersPage 投影时按 history.id 取。
+    @Published private(set) var transferMetrics: [UUID: TransferMetrics] = [:]
 
     // 网络层状态（顶部 banner 用）
     @Published private(set) var isScanning: Bool = false
@@ -73,6 +75,10 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .map { recs in recs.map { MockTrustedDevice.from($0) } }
             .assign(to: &$engineTrusted)
+
+        engine.$transferMetrics
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$transferMetrics)
 
         engine.$isStarting
             .receive(on: DispatchQueue.main)

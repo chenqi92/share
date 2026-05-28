@@ -28,6 +28,11 @@ public final class ShareEngine: ObservableObject {
     @Published public private(set) var identity: Identity
     @Published public var displayName: String
 
+    /// 进行中传输的实时速率 / 剩余时间。Key 为 history.id。
+    /// 进入 .completed / .failed / .canceled 时由 closeContext / updateHistoryStatus
+    /// 移除条目，UI 上速率显示会跟着消失。
+    @Published public private(set) var transferMetrics: [UUID: TransferMetrics] = [:]
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -658,6 +663,7 @@ public final class ShareEngine: ObservableObject {
                 return
             }
             ctx.sentBytes += UInt64(data.count)
+            recordProgress(ctx: ctx, currentBytes: ctx.sentBytes, totalBytes: fileSize)
             if let hid = ctx.historyID {
                 updateHistoryStatus(hid, status: .transferring(bytesDone: ctx.sentBytes, bytesTotal: fileSize))
             }
@@ -801,6 +807,7 @@ public final class ShareEngine: ObservableObject {
             return
         }
         ctx.receivedBytes += UInt64(payload.count)
+        recordProgress(ctx: ctx, currentBytes: ctx.receivedBytes, totalBytes: ctx.fileSize)
         if let hid = ctx.historyID {
             updateHistoryStatus(hid, status: .transferring(bytesDone: ctx.receivedBytes, bytesTotal: ctx.fileSize))
         }
@@ -922,6 +929,38 @@ public final class ShareEngine: ObservableObject {
         if let idx = history.firstIndex(where: { $0.id == id }) {
             history[idx].status = status
         }
+        if status.isTerminal {
+            transferMetrics.removeValue(forKey: id)
+        }
+    }
+
+    /// 在 ctx 累计字节变化时调一下，刷新 EMA 字节/秒 + ETA 到 `transferMetrics[historyID]`。
+    /// `currentBytes` 是当前累计字节，`totalBytes` 用于算 ETA；同一帧再次进入会被 0.1s 节流。
+    private func recordProgress(ctx: ConnectionContext, currentBytes: UInt64, totalBytes: UInt64) {
+        guard let hid = ctx.historyID else { return }
+        let now = Date()
+        let prev = ctx.lastSampleTime
+        let prevBytes = ctx.lastSampleBytes
+        let dt = prev.map { now.timeIntervalSince($0) } ?? 0
+        // 节流：相邻样本至少 100ms，否则会被网络层 chunk 触发频率抖到无意义
+        if let _ = prev, dt < 0.1 { return }
+
+        if let _ = prev, dt > 0, currentBytes >= prevBytes {
+            let inst = Double(currentBytes - prevBytes) / dt
+            // EMA(α=0.3)；首次直接取瞬时值避免起步阶段慢回升
+            ctx.emaBytesPerSec = ctx.emaBytesPerSec == 0
+                ? inst
+                : 0.3 * inst + 0.7 * ctx.emaBytesPerSec
+        }
+        ctx.lastSampleTime = now
+        ctx.lastSampleBytes = currentBytes
+
+        let bps = ctx.emaBytesPerSec
+        let eta: Double? = {
+            guard bps > 1, totalBytes > currentBytes else { return nil }
+            return Double(totalBytes - currentBytes) / bps
+        }()
+        transferMetrics[hid] = TransferMetrics(bytesPerSec: bps, etaSeconds: eta)
     }
 
     private func refreshTrusted() async {
@@ -1059,6 +1098,12 @@ final class ConnectionContext {
     var expectedSHA256: String?
     /// 接收方：上次写入 ResumeStore 的 bytesDone，用来限制持久化频率。
     var lastPersistedBytes: UInt64 = 0
+
+    // 速率窗口：上次采样时刻 + 当时的累计字节，用来算 Δbytes / Δtime。
+    var lastSampleTime: Date?
+    var lastSampleBytes: UInt64 = 0
+    /// 指数移动平均字节/秒（α=0.3，足够平滑但不会僵硬滞后）。
+    var emaBytesPerSec: Double = 0
 
     init(connection: Connection, role: Role, state: State) {
         self.connection = connection
