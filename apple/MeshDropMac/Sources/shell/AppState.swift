@@ -139,6 +139,13 @@ final class AppState: ObservableObject {
         engine.sendFile(to: dev, sourceURL: fileURL)
     }
 
+    /// 批量发送（NSOpenPanel multi-select / 多文件 drag-drop 走这条）。
+    func sendFiles(toDeviceID deviceID: String, fileURLs: [URL]) {
+        guard !fileURLs.isEmpty,
+              let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+        engine.sendFiles(to: dev, sourceURLs: fileURLs)
+    }
+
     func acceptCurrentPairing(trust: Bool) {
         guard let id = enginePairing.flatMap({ UUID(uuidString: $0.id) }) else { return }
         engine.respondToPairing(id, decision: trust ? .trust : .allowOnce)
