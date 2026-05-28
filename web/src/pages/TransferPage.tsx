@@ -19,6 +19,7 @@ export function TransferPage() {
   const devices = useEngine((s) => s.devices)
   const transfers = useEngine((s) => s.transfers)
   const mode = useEngine((s) => s.mode)
+  const cancelTransfer = useEngine((s) => s.cancelTransfer)
   const peerCount = devices.filter((d) => d.online).length
   const source = mode === 'live' ? transfers : MESHDROP_TRANSFERS
 
@@ -107,7 +108,11 @@ export function TransferPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rows.map((r) => (
-            <TransferRow key={r.id} row={r} />
+            <TransferRow
+              key={r.id}
+              row={r}
+              onCancel={() => { void cancelTransfer(r.id) }}
+            />
           ))}
         </div>
       </div>
