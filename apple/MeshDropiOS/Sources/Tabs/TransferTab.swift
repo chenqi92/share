@@ -7,7 +7,9 @@ struct TransferTab: View {
     @Environment(\.colorScheme) private var scheme
 
     private var transfers: [MockTransfer] {
-        engine.history.compactMap { $0.displayTransfer }
+        engine.history.compactMap { h in
+            h.displayTransfer(metrics: engine.transferMetrics[h.id])
+        }
     }
 
     private var active: [MockTransfer]   { transfers.filter { $0.state == .transferring } }

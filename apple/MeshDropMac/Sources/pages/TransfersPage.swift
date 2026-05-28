@@ -1,4 +1,5 @@
 import SwiftUI
+import MeshDropKit
 
 struct TransfersPage: View {
     @EnvironmentObject var state: AppState
@@ -63,6 +64,15 @@ struct TransfersPage: View {
             case .queued: st = .queued
             case .failed: st = .failed
             }
+            let metrics = UUID(uuidString: h.id).flatMap { state.transferMetrics[$0] }
+            let speed: String? = {
+                guard st == .sending || st == .receiving, let m = metrics, m.bytesPerSec > 1 else { return nil }
+                return "\(Self.byteFormatter.string(fromByteCount: Int64(m.bytesPerSec)))/s"
+            }()
+            let eta: String? = {
+                guard st == .sending || st == .receiving, let secs = metrics?.etaSeconds else { return nil }
+                return Self.formatEta(secs)
+            }()
             return MockTransfer(
                 id: UUID(uuidString: h.id) ?? UUID(),
                 name: name,
@@ -72,10 +82,25 @@ struct TransfersPage: View {
                 to: fromTo.to,
                 progress: prog,
                 state: st,
-                speed: nil,
-                eta: nil
+                speed: speed,
+                eta: eta
             )
         }
+    }
+
+    private static let byteFormatter: ByteCountFormatter = {
+        let f = ByteCountFormatter()
+        f.allowedUnits = [.useKB, .useMB, .useGB]
+        f.countStyle = .file
+        return f
+    }()
+
+    private static func formatEta(_ secs: Double) -> String {
+        if !secs.isFinite || secs < 0 { return "—" }
+        if secs < 1 { return "<1s" }
+        if secs >= 3600 { return ">1h" }
+        let s = Int(secs.rounded())
+        return String(format: "%02d:%02d", s / 60, s % 60)
     }
 
     private var emptyView: some View {

@@ -124,7 +124,7 @@ extension HistoryItem {
         }
     }
 
-    public var displayTransfer: MockTransfer? {
+    public func displayTransfer(metrics: TransferMetrics? = nil) -> MockTransfer? {
         guard case .file(let name, let size, _) = kind else { return nil }
         let dir: MockDir = (direction == .outgoing) ? .outgoing : .incoming
         let state: MockStatus
@@ -139,9 +139,12 @@ extension HistoryItem {
         case .transferring(let done, let total):
             state = .transferring
             progress = total > 0 ? Int(Double(done) / Double(total) * 100) : 0
-            // 速度 / ETA 暂不计算 — 留给后续 Live Activity controller 补
-            speed = nil
-            eta = nil
+            if let m = metrics, m.bytesPerSec > 1 {
+                speed = "\(Self.byteFormatter.string(fromByteCount: Int64(m.bytesPerSec)))/s"
+            }
+            if let secs = metrics?.etaSeconds {
+                eta = Self.formatEta(secs)
+            }
         case .failed:
             state = .failed
         case .canceled:
@@ -162,6 +165,9 @@ extension HistoryItem {
             eta: eta
         )
     }
+
+    /// 兼容老调用点 (`.displayTransfer` 属性访问)，等于 displayTransfer(metrics: nil)。
+    public var displayTransfer: MockTransfer? { displayTransfer(metrics: nil) }
 
     public var displayMessage: MockMessage {
         let dir: MockDir = (direction == .outgoing) ? .outgoing : .incoming
@@ -200,6 +206,15 @@ extension HistoryItem {
         f.countStyle = .file
         return f
     }()
+
+    /// 把剩余秒数格式化成 "mm:ss" 或 ">1h" / "<1s"。
+    static func formatEta(_ secs: Double) -> String {
+        if !secs.isFinite || secs < 0 { return "—" }
+        if secs < 1 { return "<1s" }
+        if secs >= 3600 { return ">1h" }
+        let s = Int(secs.rounded())
+        return String(format: "%02d:%02d", s / 60, s % 60)
+    }
 }
 
 // MARK: - Pairing / Offer / Trust 适配
