@@ -69,8 +69,9 @@ pub struct App {
     pub pending_pairing: Option<mock::PendingPairing>,
     pub pending_offer: Option<mock::PendingOffer>,
 
-    // Engine 原始列表：执行命令时拿对应 CoreDevice / Pending*
+    // Engine 原始列表：执行命令时拿对应 CoreDevice / Pending* / history UUID
     pub core_devices: Vec<CoreDevice>,
+    pub core_history: Vec<meshdrop_core::history::HistoryItem>,
     pub core_pairings: Vec<CorePendingPairing>,
     pub core_offers: Vec<CorePendingOffer>,
 
@@ -119,6 +120,7 @@ impl App {
             pending_pairing: None,
             pending_offer: None,
             core_devices: Vec::new(),
+            core_history: Vec::new(),
             core_pairings: Vec::new(),
             core_offers: Vec::new(),
             page: Page::Discovery,
@@ -157,6 +159,7 @@ impl App {
             pending_pairing: None,
             pending_offer: None,
             core_devices: Vec::new(),
+            core_history: Vec::new(),
             core_pairings: Vec::new(),
             core_offers: Vec::new(),
             page: Page::Discovery,
@@ -507,7 +510,8 @@ fn apply_engine_update(app: &mut App, update: EngineUpdate) {
                 app.device_state.select(Some(0));
             }
         }
-        EngineUpdate::History { display } => {
+        EngineUpdate::History { core, display } => {
+            app.core_history = core;
             app.history = display;
             app.refresh_transfers();
         }
@@ -723,6 +727,31 @@ fn apply(app: &mut App, action: Action) {
             } else {
                 app.history.clear();
                 app.status = "已清空历史".into();
+            }
+        }
+        Action::CancelTransfer => {
+            if app.focus == Focus::Transfers {
+                if let Some(i) = app.history_state.selected() {
+                    if i < app.core_history.len() {
+                        let core = &app.core_history[i];
+                        let in_progress = matches!(
+                            core.status,
+                            meshdrop_core::history::TransferStatus::Transferring { .. }
+                        );
+                        if in_progress {
+                            if let Some(engine) = &app.engine {
+                                engine.cancel_transfer(core.id);
+                                app.status = "已发起取消".into();
+                            } else {
+                                app.status = "engine 未连接，无法取消".into();
+                            }
+                        } else {
+                            app.status = "只能取消进行中的传输".into();
+                        }
+                    }
+                }
+            } else {
+                app.status = "切到 Transfers (F2) 后按 x 取消".into();
             }
         }
     }
