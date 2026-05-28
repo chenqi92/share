@@ -180,6 +180,12 @@ impl ShareEngine {
     pub fn cancel_transfer(&self, history_id: Uuid) {
         let _ = self.cmd_tx.send(UserCmd::CancelTransfer { history_id });
     }
+
+    /// 重发失败 / 取消的发送项。查 outgoing 失败项，源文件存在且可读时
+    /// 调 send_file 走完整流程（新建独立 history 条目）。源失效时静默不动。
+    pub fn retry_transfer(&self, history_id: Uuid) {
+        let _ = self.cmd_tx.send(UserCmd::RetryTransfer { history_id });
+    }
 }
 
 // ─── 命令枚举 ──────────────────────────────────────────────────────────
@@ -191,6 +197,8 @@ enum UserCmd {
     RespondOffer { id: Uuid, accept: bool },
     /// 主动取消传输 — 查 ctx by history_id，发 FILE_CANCEL 给对端，关 ctx
     CancelTransfer { history_id: Uuid },
+    /// 重发已失败 / 取消的发送项
+    RetryTransfer { history_id: Uuid },
     RemoveHistory(Uuid),
     ClearHistory,
 }
@@ -310,6 +318,7 @@ async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
         UserCmd::RespondPairing { id, decision } => respond_pairing(state, id, decision).await,
         UserCmd::RespondOffer { id, accept } => respond_offer(state, id, accept).await,
         UserCmd::CancelTransfer { history_id } => cancel_transfer(state, history_id).await,
+        UserCmd::RetryTransfer { history_id } => retry_transfer(state, history_id).await,
         UserCmd::RemoveHistory(id) => {
             state.history.retain(|h| h.id != id);
             let _ = state.history_tx.send(state.history.clone());
@@ -408,6 +417,20 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
         ConnState::AwaitingHelloAck);
     ctx.history_id = Some(item.id);
     state.contexts.insert(ctx_id, ctx);
+}
+
+/// 重发已失败 / 取消的发送项。查 outgoing 失败项，源文件路径仍可读时
+/// 调 start_send_file 走完整流程（新建独立 history 条目）；源失效时静默不动。
+async fn retry_transfer(state: &mut State, history_id: Uuid) {
+    let Some(item) = state.history.iter().find(|h| h.id == history_id).cloned() else { return };
+    if item.direction != TransferDirection::Outgoing { return; }
+    let (peer, path) = match &item.kind {
+        HistoryKind::File { name: _, size: _, path: Some(p) } => (item.peer.clone(), p.clone()),
+        _ => return,
+    };
+    // 路径仍可读？
+    if tokio::fs::metadata(&path).await.is_err() { return; }
+    start_send_file(state, peer, path).await;
 }
 
 async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {

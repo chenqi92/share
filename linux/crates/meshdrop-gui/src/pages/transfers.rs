@@ -125,7 +125,11 @@ fn fill_transfers(list: &gtk::Box, empty: &gtk::Box, rows: &[ViewTransferRow], h
             let h = h.clone();
             Box::new(move |hid: uuid::Uuid| h.engine.cancel_transfer(hid)) as Box<dyn Fn(uuid::Uuid) + 'static>
         });
-        list.append(&transfer_row::row(r, cancel_cb));
+        let retry_cb: Option<Box<dyn Fn(uuid::Uuid) + 'static>> = handle.as_ref().map(|h| {
+            let h = h.clone();
+            Box::new(move |hid: uuid::Uuid| h.engine.retry_transfer(hid)) as Box<dyn Fn(uuid::Uuid) + 'static>
+        });
+        list.append(&transfer_row::row(r, cancel_cb, retry_cb));
     }
 }
 

@@ -69,6 +69,7 @@ pub enum Action {
     DeleteSelected,
     ClearHistory,
     CancelTransfer,
+    RetryTransfer,
 }
 
 pub fn translate(mode: Mode, key: KeyEvent) -> Action {
@@ -120,6 +121,7 @@ fn translate_normal(key: KeyEvent) -> Action {
         KeyCode::Char('d') => Action::DeleteSelected,
         KeyCode::Char('c') => Action::ClearHistory,
         KeyCode::Char('x') => Action::CancelTransfer,
+        KeyCode::Char('R') => Action::RetryTransfer,
         _ => Action::None,
     }
 }

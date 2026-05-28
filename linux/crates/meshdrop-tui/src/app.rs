@@ -754,6 +754,35 @@ fn apply(app: &mut App, action: Action) {
                 app.status = "切到 Transfers (F2) 后按 x 取消".into();
             }
         }
+        Action::RetryTransfer => {
+            if app.focus == Focus::Transfers {
+                if let Some(i) = app.history_state.selected() {
+                    if i < app.core_history.len() {
+                        let core = &app.core_history[i];
+                        let failed_outgoing = matches!(
+                            core.status,
+                            meshdrop_core::history::TransferStatus::Failed(_)
+                            | meshdrop_core::history::TransferStatus::Canceled
+                        ) && matches!(
+                            core.direction,
+                            meshdrop_core::history::TransferDirection::Outgoing
+                        );
+                        if failed_outgoing {
+                            if let Some(engine) = &app.engine {
+                                engine.retry_transfer(core.id);
+                                app.status = "已重新发起".into();
+                            } else {
+                                app.status = "engine 未连接，无法重发".into();
+                            }
+                        } else {
+                            app.status = "只能重发失败的发送项".into();
+                        }
+                    }
+                }
+            } else {
+                app.status = "切到 Transfers (F2) 后按 R 重发".into();
+            }
+        }
     }
 }
 
