@@ -79,34 +79,62 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
 
     let me_name = handle.map(|h| h.engine.display_name.clone())
         .unwrap_or_else(|| mock::me().name.to_string());
-    let initial: Vec<ViewTransferRow> = match handle {
-        Some(h) => h.history().iter()
-            .filter_map(|h| ViewTransferRow::from_history(h, &me_name)).collect(),
-        None => mock::transfers().iter().map(|t| ViewTransferRow {
-            id: uuid::Uuid::nil(),
-            name: t.name.to_string(), size: t.size.to_string(), ext: t.ext.to_string(),
-            from: t.from.to_string(), to: t.to.to_string(),
-            progress: t.progress, state: t.state,
-            speed: t.speed.map(str::to_string), eta: t.eta.map(str::to_string),
-        }).collect(),
+
+    // history 与 metrics 都用来构 ViewTransferRow；任一变化都重建 list 行。
+    let build = {
+        let me_name = me_name.clone();
+        move |handle: Option<&Rc<AppHandle>>| -> Vec<ViewTransferRow> {
+            match handle {
+                Some(h) => {
+                    let history = h.history();
+                    let metrics = h.engine.transfer_metrics_rx().borrow().clone();
+                    history.iter()
+                        .filter_map(|item| ViewTransferRow::from_history_with_metrics(
+                            item, &me_name, metrics.get(&item.id)))
+                        .collect()
+                }
+                None => mock::transfers().iter().map(|t| ViewTransferRow {
+                    id: uuid::Uuid::nil(),
+                    name: t.name.to_string(), size: t.size.to_string(), ext: t.ext.to_string(),
+                    from: t.from.to_string(), to: t.to.to_string(),
+                    progress: t.progress, state: t.state,
+                    speed: t.speed.map(str::to_string), eta: t.eta.map(str::to_string),
+                }).collect(),
+            }
+        }
     };
+
+    let initial = build(handle);
     fill_transfers(&list, &empty_card, &initial, handle.cloned());
     active_div.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──",
         initial.iter().filter(|t| !is_terminal(t)).count()));
 
     if let Some(h) = handle {
-        let list_c = list.clone();
-        let empty_c = empty_card.clone();
-        let div_lbl = active_div.label.clone();
-        let me_name_c = me_name.clone();
-        let handle_c = h.clone();
-        h.observe(h.engine.history_rx(), move |items| {
-            let views: Vec<ViewTransferRow> = items.iter()
-                .filter_map(|h| ViewTransferRow::from_history(h, &me_name_c)).collect();
-            let active = views.iter().filter(|t| !is_terminal(t)).count();
-            div_lbl.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──", active));
-            fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
-        });
+        // history → 重建
+        {
+            let list_c = list.clone();
+            let empty_c = empty_card.clone();
+            let div_lbl = active_div.label.clone();
+            let build_c = build.clone();
+            let handle_c = h.clone();
+            h.observe(h.engine.history_rx(), move |_items| {
+                let views = build_c(Some(&handle_c));
+                let active = views.iter().filter(|t| !is_terminal(t)).count();
+                div_lbl.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──", active));
+                fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
+            });
+        }
+        // metrics → 重建（速率 / ETA 刷新）
+        {
+            let list_c = list.clone();
+            let empty_c = empty_card.clone();
+            let build_c = build.clone();
+            let handle_c = h.clone();
+            h.observe(h.engine.transfer_metrics_rx(), move |_m| {
+                let views = build_c(Some(&handle_c));
+                fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
+            });
+        }
     }
 
     root.upcast()
