@@ -192,6 +192,14 @@ class ShareEngine(private val context: Context) {
 
     // MARK: - 出方：文件
 
+    /** 批量发送：每个 file spec 独立 offer + 独立 history 条目，按顺序触发 sendFile。
+     *  当前每文件新建一条连接；后续可改协议层批量。 */
+    data class FileSpec(val sourceUri: Uri, val fileName: String, val fileSize: Long)
+
+    fun sendFiles(device: Device, files: List<FileSpec>) {
+        for (f in files) sendFile(device, f.sourceUri, f.fileName, f.fileSize)
+    }
+
     fun sendFile(device: Device, sourceUri: Uri, fileName: String, fileSize: Long) {
         val item = HistoryItem(
             peer = device,

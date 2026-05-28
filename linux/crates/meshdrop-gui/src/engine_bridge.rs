@@ -121,6 +121,10 @@ impl AppHandle {
         self.engine.send_file(peer, path);
     }
 
+    pub fn send_files(&self, peer: Device, paths: Vec<PathBuf>) {
+        self.engine.send_files(peer, paths);
+    }
+
     pub fn respond_pairing(&self, id: uuid::Uuid, decision: meshdrop_core::PairingDecision) {
         self.engine.respond_pairing(id, decision);
     }

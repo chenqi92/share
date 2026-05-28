@@ -159,6 +159,14 @@ impl ShareEngine {
         let _ = self.cmd_tx.send(UserCmd::SendFile { peer, path });
     }
 
+    /// 批量发送：每个路径独立 offer + 独立 history 条目，按顺序入队 SendFile。
+    /// 当前每文件新建一条连接；后续可改协议层批量。
+    pub fn send_files(&self, peer: Device, paths: Vec<PathBuf>) {
+        for path in paths {
+            let _ = self.cmd_tx.send(UserCmd::SendFile { peer: peer.clone(), path });
+        }
+    }
+
     pub fn respond_pairing(&self, id: Uuid, decision: PairingDecision) {
         let _ = self.cmd_tx.send(UserCmd::RespondPairing { id, decision });
     }
