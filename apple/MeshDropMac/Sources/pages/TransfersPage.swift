@@ -34,9 +34,11 @@ struct TransfersPage: View {
                 } else {
                     VStack(spacing: 10) {
                         ForEach(transfers) { item in
-                            TransferRow(item: item, onCancel: {
-                                state.cancelTransfer(item.id)
-                            })
+                            TransferRow(
+                                item: item,
+                                onCancel: { state.cancelTransfer(item.id) },
+                                onRetry: item.from == "我" ? { state.retryTransfer(item.id) } : nil,
+                            )
                         }
                     }
                 }

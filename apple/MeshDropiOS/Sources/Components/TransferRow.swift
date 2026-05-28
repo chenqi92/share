@@ -3,14 +3,18 @@ import SwiftUI
 /// 下载管理器行：文件 icon + name + size + 状态行 + 进度条 + speed + ETA。
 /// 传入 `onCancel` 且 state 为 transferring 时，状态行右侧渲染取消图标，
 /// 调用方负责发 FILE_CANCEL（见 ShareEngine.cancelTransfer）。
+/// 传入 `onRetry` 且 state 为 failed 时，状态行右侧渲染重试按钮，
+/// 调用方负责调用 ShareEngine.retryTransfer。
 public struct TransferRow: View {
     let item: MockTransfer
     var onCancel: (() -> Void)? = nil
+    var onRetry: (() -> Void)? = nil
     @Environment(\.colorScheme) private var scheme
 
-    public init(_ item: MockTransfer, onCancel: (() -> Void)? = nil) {
+    public init(_ item: MockTransfer, onCancel: (() -> Void)? = nil, onRetry: (() -> Void)? = nil) {
         self.item = item
         self.onCancel = onCancel
+        self.onRetry = onRetry
     }
 
     public var body: some View {
@@ -60,6 +64,25 @@ public struct TransferRow: View {
                             .buttonStyle(.plain)
                             .accessibilityLabel("取消传输")
                         }
+                    }
+                    if item.state == .failed, let onRetry {
+                        Button(action: onRetry) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("RETRY")
+                                    .font(MeshDropFont.mono(10, weight: .bold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .foregroundStyle(MeshDropColor.flame)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(MeshDropColor.flame.opacity(0.4), lineWidth: 0.8)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("重试发送")
                     }
                 }
 

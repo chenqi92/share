@@ -44,7 +44,9 @@ struct TransferTab: View {
                         }
                         if !failed.isEmpty {
                             AsciiDivider("FAILED · 失败 · \(failed.count)")
-                            ForEach(failed) { TransferRow($0) }
+                            ForEach(failed) { item in
+                                TransferRow(item, onRetry: retryClosure(for: item))
+                            }
                         }
                     }
                     Spacer(minLength: 60)
@@ -75,6 +77,13 @@ struct TransferTab: View {
     private func cancel(_ item: MockTransfer) {
         guard let id = UUID(uuidString: item.id) else { return }
         engine.cancelTransfer(id)
+    }
+
+    /// 仅对 outgoing 的失败项给重试闭包；URL 失效（外置盘断开等）时 retryTransfer 返回 false。
+    private func retryClosure(for item: MockTransfer) -> (() -> Void)? {
+        guard item.direction == .outgoing,
+              let id = UUID(uuidString: item.id) else { return nil }
+        return { [engine] in engine.retryTransfer(id) }
     }
 
     private var emptyCard: some View {

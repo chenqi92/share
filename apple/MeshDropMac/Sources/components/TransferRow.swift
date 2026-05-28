@@ -3,9 +3,12 @@ import SwiftUI
 /// 文件 icon (38×46) + name + size + 状态行 + （进行中时）进度条 + speed + ETA。
 /// `onCancel` 闭包传入时，且 state 是 sending / receiving，状态 chip 右侧渲染
 /// 取消按钮；调用方负责发 FILE_CANCEL（见 AppState.cancelTransfer）。
+/// `onRetry` 闭包传入时，且 state 是 failed，状态 chip 右侧渲染重试按钮，
+/// 调用方负责调用 AppState.retryTransfer。
 struct TransferRow: View {
     let item: MockTransfer
     var onCancel: (() -> Void)? = nil
+    var onRetry: (() -> Void)? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -32,6 +35,25 @@ struct TransferRow: View {
                         }
                         .buttonStyle(.plain)
                         .help("取消传输 · Cancel")
+                    }
+                    if let onRetry, item.state == .failed {
+                        Button(action: onRetry) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("RETRY")
+                                    .font(MeshDropFont.mono(size: 10, weight: .bold))
+                            }
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .foregroundStyle(MeshDropColor.flame)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 5)
+                                    .strokeBorder(MeshDropColor.flame.opacity(0.4), lineWidth: 0.8)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .help("重试发送 · Retry")
                     }
                 }
 
