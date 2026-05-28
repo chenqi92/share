@@ -23,6 +23,11 @@ public abstract record TransferStatus
     public sealed record Canceled : TransferStatus;
 }
 
+/// <summary>
+/// 进行中传输的实时指标。仅在 Transferring 阶段有意义，进入 terminal 时被清。
+/// </summary>
+public sealed record TransferMetrics(double BytesPerSec, double? EtaSeconds);
+
 public sealed record HistoryItem(
     Guid Id,
     Device Peer,

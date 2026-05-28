@@ -62,6 +62,13 @@ public sealed partial class ShareEngine : ObservableObject
     public ObservableCollection<PendingFileOffer> PendingFileOffers { get; } = new();
     public ObservableCollection<TrustRecord> Trusted { get; } = new();
 
+    /// <summary>
+    /// 进行中传输的实时速率 + ETA。Key 为 history.id；进入 terminal 状态时被
+    /// UpdateHistory 移除。WinUI 列表行用 TransferMetricsChanged 事件刷新。
+    /// </summary>
+    public Dictionary<Guid, TransferMetrics> TransferMetrics { get; } = new();
+    public event Action<Guid, TransferMetrics?>? TransferMetricsChanged;
+
     /// <summary>跨端通用事件：设备加入 / 离开 / 待审 / 进度 / 传输完成。Gateway 订阅。</summary>
     public event Action<EngineEvent>? Event;
 
@@ -636,7 +643,11 @@ public sealed partial class ShareEngine : ObservableObject
             offset += n;
             ctx.SentBytes = offset;
             var snap = offset;
-            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(snap, fileSize)); });
+            _ui.TryEnqueue(() =>
+            {
+                RecordProgress(ctx, snap, fileSize);
+                if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(snap, fileSize));
+            });
         }
         try { input.Dispose(); } catch { }
         ctx.InputStream = null;
@@ -694,7 +705,11 @@ public sealed partial class ShareEngine : ObservableObject
         ctx.ReceivedBytes += data.Length;
         var recv = ctx.ReceivedBytes;
         var size = ctx.FileSize;
-        _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(recv, size)); });
+        _ui.TryEnqueue(() =>
+        {
+            RecordProgress(ctx, recv, size);
+            if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(recv, size));
+        });
 
         if (ctx.ReceivedBytes >= ctx.FileSize)
         {
@@ -747,7 +762,50 @@ public sealed partial class ShareEngine : ObservableObject
     private void UpdateHistory(Guid id, TransferStatus status)
     {
         for (var i = 0; i < History.Count; i++)
-            if (History[i].Id == id) { History[i] = History[i].WithStatus(status); return; }
+            if (History[i].Id == id) { History[i] = History[i].WithStatus(status); break; }
+
+        var terminal = status is TransferStatus.Completed
+            or TransferStatus.Failed
+            or TransferStatus.Canceled;
+        if (terminal && TransferMetrics.Remove(id))
+        {
+            TransferMetricsChanged?.Invoke(id, null);
+        }
+    }
+
+    /// <summary>
+    /// ctx 累计字节变化时调一下，刷新 EMA bytes/sec + ETA 到 TransferMetrics[historyId]。
+    /// 节流：相邻样本至少 100ms；α=0.3 指数平滑。
+    /// </summary>
+    private void RecordProgress(ConnectionContext ctx, long currentBytes, long totalBytes)
+    {
+        if (ctx.HistoryId is not { } hid) return;
+        var nowTicks = DateTime.UtcNow.Ticks;
+        var prevTicks = ctx.LastSampleTicks;
+        if (prevTicks != 0)
+        {
+            // TimeSpan.TicksPerMillisecond = 10000；100ms 节流。
+            var dtTicks = nowTicks - prevTicks;
+            if (dtTicks < 1_000_000) return;
+            if (currentBytes >= ctx.LastSampleBytes)
+            {
+                var dtSec = dtTicks / (double)TimeSpan.TicksPerSecond;
+                var inst = (currentBytes - ctx.LastSampleBytes) / dtSec;
+                ctx.EmaBytesPerSec = ctx.EmaBytesPerSec == 0
+                    ? inst
+                    : 0.3 * inst + 0.7 * ctx.EmaBytesPerSec;
+            }
+        }
+        ctx.LastSampleTicks = nowTicks;
+        ctx.LastSampleBytes = currentBytes;
+
+        var bps = ctx.EmaBytesPerSec;
+        double? eta = bps > 1.0 && totalBytes > currentBytes
+            ? (totalBytes - currentBytes) / bps
+            : null;
+        var m = new TransferMetrics(bps, eta);
+        TransferMetrics[hid] = m;
+        TransferMetricsChanged?.Invoke(hid, m);
     }
 
     private void RefreshTrusted()
@@ -866,6 +924,11 @@ internal sealed class ConnectionContext
     public long ReceivedBytes { get; set; }
     public string? SavedPath { get; set; }
     public string? ExpectedSha256 { get; set; }
+
+    // 速率窗口：上次采样时刻 + 累计字节，用来算 Δbytes / Δtime；α=0.3 EMA。
+    public long LastSampleTicks { get; set; }
+    public long LastSampleBytes { get; set; }
+    public double EmaBytesPerSec { get; set; }
 
     public ConnectionContext(Connection conn, RoleBase role, int state)
     {
