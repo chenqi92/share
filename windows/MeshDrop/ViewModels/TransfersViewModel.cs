@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using MeshDrop.Mock;
 using MeshDrop.Models;
 using MeshDrop.Transport;
@@ -13,6 +15,18 @@ public sealed partial class TransfersViewModel : ObservableObject
     private readonly ShareEngine _engine = ShareEngine.Shared;
 
     public ObservableCollection<MockTransfer> All { get; }
+
+    /// <summary>
+    /// 用户点 Cancel：MockTransfer.Id 是 history Guid 字符串，解出后转给 ShareEngine.CancelTransfer。
+    /// </summary>
+    [RelayCommand]
+    private void Cancel(MockTransfer item)
+    {
+        if (Guid.TryParse(item.Id, out var hid))
+        {
+            _engine.CancelTransfer(hid);
+        }
+    }
 
     [ObservableProperty]
     private string _filter = "all";  // all | active | done

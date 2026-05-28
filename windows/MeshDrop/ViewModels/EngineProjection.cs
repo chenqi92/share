@@ -150,7 +150,7 @@ internal static class EngineProjection
             TransferStatus.Canceled => (MockTransferState.Failed, 0, (string?)null),
             _ => (MockTransferState.Queued, 0, (string?)null),
         };
-        return new MockTransfer(name, size, ext, from, to, progress, state, speed);
+        return new MockTransfer(name, size, ext, from, to, progress, state, speed, Id: h.Id.ToString());
     }
 
     public static MockMessage ToMessage(this HistoryItem h)

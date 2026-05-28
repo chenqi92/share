@@ -346,6 +346,38 @@ public sealed partial class ShareEngine : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 主动取消进行中的传输（发送/接收都能调）。查到对应 ctx 后：接收态先关
+    /// stream 删半成品；双向发 FILE_CANCEL（whole transfer, index=null, reason=user_canceled）；
+    /// 关 ctx，标 history Canceled。
+    /// </summary>
+    public void CancelTransfer(Guid historyId)
+    {
+        var ctx = _contexts.Values.FirstOrDefault(c => c.HistoryId == historyId);
+        if (ctx is null) return;
+        var transferId = ctx.TransferId ?? historyId;
+        _ = Task.Run(async () =>
+        {
+            if (ctx.State == ConnectionContext.StateReceivingFile)
+            {
+                try { ctx.OutputStream?.Dispose(); } catch { }
+                ctx.OutputStream = null;
+                if (ctx.SavedPath is { } path)
+                {
+                    try { if (File.Exists(path)) File.Delete(path); } catch { }
+                }
+            }
+            try
+            {
+                var body = MessageCodec.Encode(new FileCancelMessage(transferId.ToString(), null, "user_canceled"));
+                await ctx.Connection.SendAsync(MessageType.FILE_CANCEL, body);
+            }
+            catch { }
+            _ui.TryEnqueue(() => UpdateHistory(historyId, new TransferStatus.Canceled()));
+            await CloseContextAsync(ctx.Id, null);
+        });
+    }
+
     // ─── 入站连接 + 启动 ────────────────────────────────────────────────
 
     private async Task AcceptLoopAsync(CancellationToken ct)

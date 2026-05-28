@@ -186,7 +186,8 @@ public sealed record MockTransfer(
     int Progress,
     MockTransferState State,
     string? Speed = null,
-    string Eta = "")
+    string Eta = "",
+    string Id = "")
 {
     public string Name { get; set; } = Name;
     public string Size { get; set; } = Size;
@@ -197,6 +198,7 @@ public sealed record MockTransfer(
     public MockTransferState State { get; set; } = State;
     public string? Speed { get; set; } = Speed;
     public string Eta { get; set; } = Eta;
+    public string Id { get; set; } = Id;
 
     public string FromToText => $"{From} → {To}";
 }
