@@ -6,6 +6,8 @@ interface Props {
   row: Row
   /** 传入后且 state 是 sending / receiving 时，渲染取消按钮。 */
   onCancel?: () => void
+  /** 传入后且 state 是 failed 时，渲染重试按钮。调用方需自行限制只给 outgoing 项传入。 */
+  onRetry?: () => void
 }
 
 function stateLabel(state: Row['state']): { label: string; symbol: string; color: string } {
@@ -24,9 +26,10 @@ function stateLabel(state: Row['state']): { label: string; symbol: string; color
   }
 }
 
-export function TransferRow({ row, onCancel }: Props) {
+export function TransferRow({ row, onCancel, onRetry }: Props) {
   const s = stateLabel(row.state)
   const isActive = row.state === 'sending' || row.state === 'receiving'
+  const isFailed = row.state === 'failed'
   return (
     <div
       style={{
@@ -78,6 +81,29 @@ export function TransferRow({ row, onCancel }: Props) {
             }}
           >
             × CANCEL
+          </button>
+        )}
+        {isFailed && onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            title="重试发送 · Retry"
+            aria-label="重试发送"
+            style={{
+              marginLeft: 'auto',
+              background: 'transparent',
+              border: '1px solid var(--flame)',
+              borderRadius: 8,
+              padding: '4px 8px',
+              color: 'var(--flame)',
+              fontFamily: '"Geist Mono", monospace',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+            }}
+          >
+            ↻ RETRY
           </button>
         )}
       </div>

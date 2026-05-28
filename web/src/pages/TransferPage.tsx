@@ -20,6 +20,7 @@ export function TransferPage() {
   const transfers = useEngine((s) => s.transfers)
   const mode = useEngine((s) => s.mode)
   const cancelTransfer = useEngine((s) => s.cancelTransfer)
+  const retryTransfer = useEngine((s) => s.retryTransfer)
   const peerCount = devices.filter((d) => d.online).length
   const source = mode === 'live' ? transfers : MESHDROP_TRANSFERS
 
@@ -112,6 +113,7 @@ export function TransferPage() {
               key={r.id}
               row={r}
               onCancel={() => { void cancelTransfer(r.id) }}
+              onRetry={r.from === '我' ? () => { void retryTransfer(r.id) } : undefined}
             />
           ))}
         </div>
