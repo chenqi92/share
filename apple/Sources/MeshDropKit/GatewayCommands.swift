@@ -200,6 +200,34 @@ public final class GatewayCommands {
             }
             .store(in: &bag)
 
+        // 进行中传输的速率推送：每个 metrics 字典变化，挑出当前 transferring 的
+        // history 条目，包成 WireTransferProgress 推给 web。
+        engine.$transferMetrics
+            .dropFirst()
+            .removeDuplicates()
+            .sink { [weak self] metrics in
+                guard let self else { return }
+                for (hid, m) in metrics {
+                    guard let item = self.engine.history.first(where: { $0.id == hid }),
+                          case let .transferring(done, total) = item.status,
+                          case let .file(name, _, _) = item.kind
+                    else { continue }
+                    var payload: [String: Any] = [
+                        "id": hid.uuidString,
+                        "peerName": item.peer.name,
+                        "fileName": name,
+                        "bytesSent": Int(done),
+                        "totalBytes": Int(total),
+                        "speedBps": Int(m.bytesPerSec.rounded()),
+                    ]
+                    if let etaSec = m.etaSeconds {
+                        payload["etaSeconds"] = etaSec
+                    }
+                    send(Self.encodeEvent(type: "transfer_progress", payload: payload))
+                }
+            }
+            .store(in: &bag)
+
         return bag
     }
 

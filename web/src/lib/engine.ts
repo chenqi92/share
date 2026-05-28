@@ -62,6 +62,8 @@ export interface WireTransferProgress {
   bytesSent: number
   totalBytes: number
   speedBps: number
+  /** 剩余时间秒数；host 端无法估算时不发。 */
+  etaSeconds?: number
 }
 
 export interface StateSnapshot {
@@ -204,9 +206,22 @@ export function adaptPairing(p: WirePairing): PendingPairing {
   }
 }
 
+function formatSpeed(bps: number): string {
+  if (bps < 1024) return `${Math.round(bps)} B/s`
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`
+  return `${(bps / 1024 / 1024).toFixed(1)} MB/s`
+}
+
+function formatEta(secs?: number): string | undefined {
+  if (secs == null || !isFinite(secs) || secs < 0) return undefined
+  if (secs < 1) return '<1s'
+  if (secs >= 3600) return '>1h'
+  const s = Math.round(secs)
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+}
+
 export function adaptTransfer(t: WireTransferProgress, state: TransferState = 'sending'): TransferRow {
   const pct = t.totalBytes > 0 ? Math.round((t.bytesSent / t.totalBytes) * 100) : 0
-  const speedMB = (t.speedBps / 1024 / 1024).toFixed(1)
   return {
     id: t.id,
     name: t.fileName ?? t.id,
@@ -216,7 +231,8 @@ export function adaptTransfer(t: WireTransferProgress, state: TransferState = 's
     to: state === 'receiving' ? '我' : (t.peerName ?? ''),
     progress: pct,
     state,
-    speed: `${speedMB} MB/s`,
+    speed: t.speedBps > 0 ? formatSpeed(t.speedBps) : undefined,
+    eta: formatEta(t.etaSeconds),
   }
 }
 
