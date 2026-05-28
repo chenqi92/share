@@ -158,6 +158,7 @@ impl ViewTrustEntry {
 
 #[derive(Clone, Debug)]
 pub struct ViewTransferRow {
+    pub id: uuid::Uuid,
     pub name: String,
     pub size: String,
     pub ext: String,
@@ -197,7 +198,7 @@ impl ViewTransferRow {
             },
         };
         Some(Self {
-            name, size: size_str, ext, from, to, progress, state,
+            id: h.id, name, size: size_str, ext, from, to, progress, state,
             speed: None, eta: None,
         })
     }

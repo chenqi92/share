@@ -59,7 +59,7 @@ fn detect_model() -> Option<String> {
 #[derive(Debug)]
 pub enum EngineUpdate {
     Devices { core: Vec<CoreDevice>, display: Vec<mock::Device> },
-    History { display: Vec<mock::HistoryItem> },
+    History { core: Vec<CoreHistoryItem>, display: Vec<mock::HistoryItem> },
     Pairings { core: Vec<CorePendingPairing>, display: Vec<mock::PendingPairing> },
     Offers { core: Vec<CorePendingOffer>, display: Vec<mock::PendingOffer> },
 }
@@ -85,11 +85,13 @@ pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpd
         let mut rcv = engine.history_rx();
         let tx = tx.clone();
         tokio::spawn(async move {
-            let display = adapt_history(&rcv.borrow());
-            if tx.send(EngineUpdate::History { display }).is_err() { return; }
+            let snap = rcv.borrow().clone();
+            let display = adapt_history(&snap);
+            if tx.send(EngineUpdate::History { core: snap, display }).is_err() { return; }
             while rcv.changed().await.is_ok() {
-                let display = adapt_history(&rcv.borrow());
-                if tx.send(EngineUpdate::History { display }).is_err() { break; }
+                let snap = rcv.borrow().clone();
+                let display = adapt_history(&snap);
+                if tx.send(EngineUpdate::History { core: snap, display }).is_err() { break; }
             }
         });
     }

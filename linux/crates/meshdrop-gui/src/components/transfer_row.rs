@@ -6,7 +6,8 @@ use crate::mock::TransferState;
 use crate::view::ViewTransferRow;
 use adw::prelude::*;
 
-pub fn row(item: &ViewTransferRow) -> gtk::Box {
+/// 渲染一行；`on_cancel` 非空且状态是 Sending / Receiving 时，状态 chip 右侧加取消按钮。
+pub fn row(item: &ViewTransferRow, on_cancel: Option<Box<dyn Fn(uuid::Uuid) + 'static>>) -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     card.add_css_class("meshdrop-card");
 
@@ -25,7 +26,23 @@ pub fn row(item: &ViewTransferRow) -> gtk::Box {
         TransferState::Failed    => chip::Tone::Error,
     };
     let glyph_label = format!("{} {}", item.state.glyph(), item.state.label_en());
-    state_box.append(&chip::chip(&glyph_label, state_tone, true));
+    let state_top = gtk::Box::new(gtk::Orientation::Horizontal, 6);
+    state_top.set_halign(gtk::Align::End);
+    state_top.append(&chip::chip(&glyph_label, state_tone, true));
+
+    let is_active = matches!(item.state, TransferState::Sending | TransferState::Receiving);
+    if is_active {
+        if let Some(cb) = on_cancel {
+            let btn = gtk::Button::from_icon_name("window-close-symbolic");
+            btn.set_tooltip_text(Some("取消传输 · Cancel"));
+            btn.add_css_class("flat");
+            btn.add_css_class("circular");
+            let hid = item.id;
+            btn.connect_clicked(move |_| cb(hid));
+            state_top.append(&btn);
+        }
+    }
+    state_box.append(&state_top);
 
     let arrow = gtk::Label::new(Some(&format!("{}  →  {}", item.from, item.to)));
     arrow.add_css_class("meshdrop-meta");

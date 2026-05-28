@@ -83,13 +83,14 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         Some(h) => h.history().iter()
             .filter_map(|h| ViewTransferRow::from_history(h, &me_name)).collect(),
         None => mock::transfers().iter().map(|t| ViewTransferRow {
+            id: uuid::Uuid::nil(),
             name: t.name.to_string(), size: t.size.to_string(), ext: t.ext.to_string(),
             from: t.from.to_string(), to: t.to.to_string(),
             progress: t.progress, state: t.state,
             speed: t.speed.map(str::to_string), eta: t.eta.map(str::to_string),
         }).collect(),
     };
-    fill_transfers(&list, &empty_card, &initial);
+    fill_transfers(&list, &empty_card, &initial, handle.cloned());
     active_div.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──",
         initial.iter().filter(|t| !is_terminal(t)).count()));
 
@@ -98,19 +99,20 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         let empty_c = empty_card.clone();
         let div_lbl = active_div.label.clone();
         let me_name_c = me_name.clone();
+        let handle_c = h.clone();
         h.observe(h.engine.history_rx(), move |items| {
             let views: Vec<ViewTransferRow> = items.iter()
                 .filter_map(|h| ViewTransferRow::from_history(h, &me_name_c)).collect();
             let active = views.iter().filter(|t| !is_terminal(t)).count();
             div_lbl.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──", active));
-            fill_transfers(&list_c, &empty_c, &views);
+            fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
         });
     }
 
     root.upcast()
 }
 
-fn fill_transfers(list: &gtk::Box, empty: &gtk::Box, rows: &[ViewTransferRow]) {
+fn fill_transfers(list: &gtk::Box, empty: &gtk::Box, rows: &[ViewTransferRow], handle: Option<Rc<AppHandle>>) {
     while let Some(child) = list.first_child() {
         list.remove(&child);
     }
@@ -119,7 +121,11 @@ fn fill_transfers(list: &gtk::Box, empty: &gtk::Box, rows: &[ViewTransferRow]) {
         return;
     }
     for r in rows {
-        list.append(&transfer_row::row(r));
+        let cancel_cb: Option<Box<dyn Fn(uuid::Uuid) + 'static>> = handle.as_ref().map(|h| {
+            let h = h.clone();
+            Box::new(move |hid: uuid::Uuid| h.engine.cancel_transfer(hid)) as Box<dyn Fn(uuid::Uuid) + 'static>
+        });
+        list.append(&transfer_row::row(r, cancel_cb));
     }
 }
 

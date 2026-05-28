@@ -64,6 +64,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
         keyrow(theme, "/",            "设备过滤"),
         keyrow(theme, "a  /  r  /  t","接受 / 拒绝 / 接受并信任 待审请求"),
         keyrow(theme, "d  c",         "删除选中历史 / 清空历史"),
+        keyrow(theme, "x",            "取消选中进行中传输（仅 Transfers 焦点）"),
         keyrow(theme, "F1  F2  F3",   "切换页：发现 · 传输 · 历史"),
         keyrow(theme, "p",            "弹配对 demo 模态"),
         keyrow(theme, "o",            "弹文件 offer demo 模态"),
