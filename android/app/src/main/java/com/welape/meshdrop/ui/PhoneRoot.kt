@@ -117,7 +117,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             devices = devicesUi,
                         )
                     }
-                    MeshTab.TRANSFER -> TransferScreen()
+                    MeshTab.TRANSFER -> TransferScreen(engine = engine)
                     MeshTab.ME -> MeScreen(
                         onOpenPairing = { state.sheet = MeshSheet.PAIRING },
                         onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },

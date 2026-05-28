@@ -134,7 +134,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                 MeshTab.CHAT -> state.openChatDeviceId?.let { id ->
                     ChatDetailScreen(deviceId = id, onBack = null, showDropOverlay = state.showDropOverlay)
                 }
-                MeshTab.TRANSFER -> TransferScreen()
+                MeshTab.TRANSFER -> TransferScreen(engine = engine)
                 MeshTab.ME -> MeScreen(
                     onOpenPairing = { state.sheet = MeshSheet.PAIRING },
                     onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },

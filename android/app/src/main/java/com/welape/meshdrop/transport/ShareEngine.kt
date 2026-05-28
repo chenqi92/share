@@ -19,6 +19,7 @@ import com.welape.meshdrop.data.TrustRecord
 import com.welape.meshdrop.data.TrustStore
 import com.welape.meshdrop.discovery.MdnsDiscovery
 import com.welape.meshdrop.protocol.FileAcceptMessage
+import com.welape.meshdrop.protocol.FileCancelMessage
 import com.welape.meshdrop.protocol.FileChunkHeader
 import com.welape.meshdrop.protocol.FileCompleteMessage
 import com.welape.meshdrop.protocol.FileMeta
@@ -295,6 +296,41 @@ class ShareEngine(private val context: Context) {
     fun revokeTrust(fingerprint: String) {
         trustStore.revoke(fingerprint)
         _trusted.value = trustStore.snapshot()
+    }
+
+    /**
+     * 主动取消进行中的传输（发送方 / 接收方均可）。
+     * 查到对应 ctx 后：接收态先关 fileHandle 删半成品 + 清 ResumeStore；
+     * 发送/接收都发 FILE_CANCEL（whole transfer, index=null, reason=user_canceled）；
+     * 关 ctx 并标 history Canceled。
+     */
+    fun cancelTransfer(historyId: UUID) {
+        val ctx = contexts.values.firstOrNull { it.historyId == historyId } ?: return
+        val transferId = ctx.transferId ?: historyId
+        scope.launch {
+            if (ctx.state is ConnectionContext.State.ReceivingFile) {
+                try { ctx.output?.close() } catch (_: Exception) {}
+                ctx.output = null
+                ctx.savedFile?.delete()
+                val peer = ctx.peer
+                val expected = ctx.expectedSha256
+                if (peer != null && expected != null) {
+                    resumeStore.clear(peer.fingerprint, expected)
+                }
+            }
+            try {
+                val body = MessageCodec.encode(
+                    FileCancelMessage(
+                        transfer_id = transferId.toString(),
+                        index = null,
+                        reason = "user_canceled",
+                    )
+                )
+                ctx.connection.send(MessageType.FILE_CANCEL, body)
+            } catch (_: Exception) {}
+            updateHistoryStatus(historyId, TransferStatus.Canceled)
+            closeContext(ctx.id, null)
+        }
     }
 
     // MARK: - 入站 + 连接启动

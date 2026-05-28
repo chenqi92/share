@@ -2,6 +2,7 @@ package com.welape.meshdrop.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,11 +36,13 @@ import com.welape.meshdrop.ui.theme.GeistMono
 import com.welape.meshdrop.ui.theme.LimeDeep
 import com.welape.meshdrop.ui.theme.MeshTheme
 
-/** 下载管理器单行：文件 icon + name + size + 状态行（+ 进行中时进度条 + speed + ETA）。 */
+/** 下载管理器单行：文件 icon + name + size + 状态行（+ 进行中时进度条 + speed + ETA）。
+ *  传入 [onCancel] 且 state 是 SENDING / RECEIVING 时，状态行右侧渲染取消图标。 */
 @Composable
 fun TransferRow(
     item: MockTransfer,
     modifier: Modifier = Modifier,
+    onCancel: (() -> Unit)? = null,
 ) {
     val mesh = MeshTheme.colors
     val (stateLabel, stateColor, stateGlyph) = when (item.state) {
@@ -124,6 +130,19 @@ fun TransferRow(
                         )
                     }
                 }
+            } else {
+                Box(Modifier.weight(1f))
+            }
+            if (onCancel != null && (item.state == TransferState.SENDING || item.state == TransferState.RECEIVING)) {
+                Box(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Filled.Cancel,
+                    contentDescription = "取消传输",
+                    tint = mesh.flame,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .clickable { onCancel() },
+                )
             }
         }
         if (item.state == TransferState.SENDING || item.state == TransferState.RECEIVING || item.state == TransferState.DONE) {
