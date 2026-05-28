@@ -309,6 +309,25 @@ class ShareEngine(private val context: Context) {
      * 发送/接收都发 FILE_CANCEL（whole transfer, index=null, reason=user_canceled）；
      * 关 ctx 并标 history Canceled。
      */
+    /**
+     * 重发失败 / 取消的发送项。查 outgoing 失败项，sourceUri 仍可读时调
+     * sendFile 走完整流程（新建独立 history 条目，旧失败条目不动）。
+     * 返回 true 表示触发了重发；false 表示找不到 / 不是文件 / 源失效。
+     */
+    fun retryTransfer(historyId: UUID): Boolean {
+        val item = _history.value.firstOrNull { it.id == historyId } ?: return false
+        if (item.direction != TransferDirection.OUTGOING) return false
+        val file = item.kind as? HistoryKind.File ?: return false
+        val uri = file.uri ?: return false
+        // 尝试打开 input stream 验证可读
+        val canOpen = try {
+            context.contentResolver.openInputStream(uri)?.use { true } ?: false
+        } catch (_: Exception) { false }
+        if (!canOpen) return false
+        sendFile(item.peer, uri, file.name, file.size)
+        return true
+    }
+
     fun cancelTransfer(historyId: UUID) {
         val ctx = contexts.values.firstOrNull { it.historyId == historyId } ?: return
         val transferId = ctx.transferId ?: historyId

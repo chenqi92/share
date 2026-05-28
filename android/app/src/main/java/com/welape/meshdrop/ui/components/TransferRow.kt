@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,12 +38,14 @@ import com.welape.meshdrop.ui.theme.LimeDeep
 import com.welape.meshdrop.ui.theme.MeshTheme
 
 /** 下载管理器单行：文件 icon + name + size + 状态行（+ 进行中时进度条 + speed + ETA）。
- *  传入 [onCancel] 且 state 是 SENDING / RECEIVING 时，状态行右侧渲染取消图标。 */
+ *  传入 [onCancel] 且 state 是 SENDING / RECEIVING 时，状态行右侧渲染取消图标。
+ *  传入 [onRetry] 且 state 是 FAILED 时，状态行右侧渲染重试按钮。 */
 @Composable
 fun TransferRow(
     item: MockTransfer,
     modifier: Modifier = Modifier,
     onCancel: (() -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
 ) {
     val mesh = MeshTheme.colors
     val (stateLabel, stateColor, stateGlyph) = when (item.state) {
@@ -143,6 +146,32 @@ fun TransferRow(
                         .size(20.dp)
                         .clickable { onCancel() },
                 )
+            }
+            if (onRetry != null && item.state == TransferState.FAILED) {
+                Box(Modifier.width(8.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .border(0.8.dp, mesh.flame.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                        .clickable { onRetry() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Refresh,
+                        contentDescription = null,
+                        tint = mesh.flame,
+                        modifier = Modifier.size(11.dp),
+                    )
+                    Text(
+                        text = "RETRY",
+                        style = TextStyle(
+                            fontFamily = GeistMono, fontWeight = FontWeight.W700,
+                            fontSize = 10.sp, letterSpacing = 1.0.sp, color = mesh.flame,
+                        ),
+                    )
+                }
             }
         }
         if (item.state == TransferState.SENDING || item.state == TransferState.RECEIVING || item.state == TransferState.DONE) {
