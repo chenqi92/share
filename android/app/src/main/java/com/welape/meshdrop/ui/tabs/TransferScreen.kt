@@ -65,6 +65,7 @@ fun TransferScreen(engine: ShareEngine? = null) {
         TransferScreenContent(
             transfers = MockTransfers,
             onCancel = {},
+            onRetry = {},
         )
         return
     }
@@ -76,6 +77,9 @@ fun TransferScreen(engine: ShareEngine? = null) {
         onCancel = { t ->
             runCatching { UUID.fromString(t.id) }.getOrNull()?.let { engine.cancelTransfer(it) }
         },
+        onRetry = { t ->
+            runCatching { UUID.fromString(t.id) }.getOrNull()?.let { engine.retryTransfer(it) }
+        },
     )
 }
 
@@ -83,11 +87,13 @@ fun TransferScreen(engine: ShareEngine? = null) {
 private fun TransferScreenContent(
     transfers: List<MockTransfer>,
     onCancel: (MockTransfer) -> Unit,
+    onRetry: (MockTransfer) -> Unit,
 ) {
     val mesh = MeshTheme.colors
     val inProgress = transfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
     val completed = transfers.filter { it.state == TransferState.DONE }
     val queued = transfers.filter { it.state == TransferState.QUEUED }
+    val failed = transfers.filter { it.state == TransferState.FAILED && it.from == "我" }
 
     Column(
         modifier = Modifier
@@ -187,6 +193,14 @@ private fun TransferScreenContent(
             AsciiDivider(label = "排队中 · QUEUED · ${queued.size}")
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 queued.forEach { TransferRow(item = it) }
+            }
+        }
+
+        if (failed.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            AsciiDivider(label = "失败 · FAILED · ${failed.size}")
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                failed.forEach { TransferRow(item = it, onRetry = { onRetry(it) }) }
             }
         }
 
