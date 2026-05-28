@@ -350,6 +350,8 @@ export class GatewayClient {
   deleteHistoryItem(itemId: string): Promise<CmdAck> { return this.cmd('delete_history_item', { itemId }) }
   /** 取消进行中的传输（发送 / 接收均可）；server 端解析 itemId 后调 engine.cancelTransfer。 */
   cancelTransfer(itemId: string): Promise<CmdAck> { return this.cmd('cancel_transfer', { itemId }) }
+  /** 重发失败 / 取消的发送项；server 端解析 itemId 后调 engine.retryTransfer（源文件不可用时返回 ok:false）。 */
+  retryTransfer(itemId: string): Promise<CmdAck> { return this.cmd('retry_transfer', { itemId }) }
   getState(): Promise<CmdAck> { return this.cmd('get_state', {}) }
 
   // -------- internals --------

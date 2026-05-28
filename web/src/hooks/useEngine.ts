@@ -60,6 +60,7 @@ export interface EngineState {
   pair: (code: string) => Promise<boolean>
   forgetSession: () => void
   cancelTransfer: (transferId: string) => Promise<void>
+  retryTransfer: (transferId: string) => Promise<void>
 }
 
 function isMock(): boolean {
@@ -178,6 +179,19 @@ export const useEngine = create<EngineState>((set, get) => ({
     set({
       transfers: get().transfers.map((t) =>
         t.id === transferId ? { ...t, state: 'failed' } : t,
+      ),
+    })
+  },
+
+  retryTransfer: async (transferId) => {
+    if (get().mode === 'live') {
+      await getClient().retryTransfer(transferId)
+      return
+    }
+    // mock：把对应行从 failed 重置回 sending 0%（视觉模拟重发）
+    set({
+      transfers: get().transfers.map((t) =>
+        t.id === transferId ? { ...t, state: 'sending', progress: 0 } : t,
       ),
     })
   },
