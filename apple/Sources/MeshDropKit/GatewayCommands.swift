@@ -107,6 +107,15 @@ public final class GatewayCommands {
             engine.cancelTransfer(uuid)
             return Self.makeReply(id: cmdID, ok: true)
 
+        case "retry_transfer":
+            let itemId = (payload["itemId"] as? String) ?? ""
+            guard let uuid = UUID(uuidString: itemId) else {
+                return Self.makeReply(id: cmdID, ok: false, error: "bad_item_id")
+            }
+            let ok = engine.retryTransfer(uuid)
+            // 源文件失效时 retryTransfer 返回 false；客户端可据此提示用户重选文件
+            return Self.makeReply(id: cmdID, ok: ok, error: ok ? nil : "source_unavailable")
+
         case "delete_history_item":
             let itemId = (payload["itemId"] as? String) ?? ""
             guard let uuid = UUID(uuidString: itemId) else {
