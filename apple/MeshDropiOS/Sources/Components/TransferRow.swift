@@ -1,11 +1,17 @@
 import SwiftUI
 
 /// 下载管理器行：文件 icon + name + size + 状态行 + 进度条 + speed + ETA。
+/// 传入 `onCancel` 且 state 为 transferring 时，状态行右侧渲染取消图标，
+/// 调用方负责发 FILE_CANCEL（见 ShareEngine.cancelTransfer）。
 public struct TransferRow: View {
     let item: MockTransfer
+    var onCancel: (() -> Void)? = nil
     @Environment(\.colorScheme) private var scheme
 
-    public init(_ item: MockTransfer) { self.item = item }
+    public init(_ item: MockTransfer, onCancel: (() -> Void)? = nil) {
+        self.item = item
+        self.onCancel = onCancel
+    }
 
     public var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -45,6 +51,15 @@ public struct TransferRow: View {
                             .font(MeshDropFont.mono(11, weight: .semibold))
                             .foregroundStyle(stateColor)
                             .monospacedDigit()
+                        if let onCancel {
+                            Button(action: onCancel) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(MeshDropColor.flame)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("取消传输")
+                        }
                     }
                 }
 
