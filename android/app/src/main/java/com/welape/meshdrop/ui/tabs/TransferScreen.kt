@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.welape.meshdrop.data.HistoryItem
 import com.welape.meshdrop.data.HistoryKind
 import com.welape.meshdrop.data.TransferDirection
+import com.welape.meshdrop.data.TransferMetrics
 import com.welape.meshdrop.data.TransferStatus
 import com.welape.meshdrop.mock.MockDownloadBars
 import com.welape.meshdrop.mock.MockSessionBars
@@ -68,7 +69,8 @@ fun TransferScreen(engine: ShareEngine? = null) {
         return
     }
     val history by engine.history.collectAsState()
-    val transfers = history.mapNotNull { it.toDisplayTransfer() }
+    val metrics by engine.transferMetrics.collectAsState()
+    val transfers = history.mapNotNull { it.toDisplayTransfer(metrics[it.id]) }
     TransferScreenContent(
         transfers = transfers,
         onCancel = { t ->
@@ -193,7 +195,7 @@ private fun TransferScreenContent(
 }
 
 /** HistoryItem → MockTransfer：仅文件项参与传输面板；text 历史返回 null。 */
-private fun HistoryItem.toDisplayTransfer(): MockTransfer? {
+private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): MockTransfer? {
     val file = kind as? HistoryKind.File ?: return null
     val sizeLabel = humanSize(file.size)
     val ext = file.name.substringAfterLast('.', "bin").lowercase()
@@ -209,6 +211,9 @@ private fun HistoryItem.toDisplayTransfer(): MockTransfer? {
     val peerLabel = peer.name.ifBlank { peer.model ?: peer.id.take(8) }
     val from = if (direction == TransferDirection.OUTGOING) "我" else peerLabel
     val to = if (direction == TransferDirection.OUTGOING) peerLabel else "我"
+    val active = state == TransferState.SENDING || state == TransferState.RECEIVING
+    val speed = if (active && metrics != null && metrics.bytesPerSec > 1.0) formatSpeed(metrics.bytesPerSec) else null
+    val eta = if (active) metrics?.etaSeconds?.let(::formatEta) else null
     return MockTransfer(
         id = id.toString(),
         name = file.name,
@@ -218,7 +223,23 @@ private fun HistoryItem.toDisplayTransfer(): MockTransfer? {
         to = to,
         progress = progress,
         state = state,
+        speed = speed,
+        eta = eta,
     )
+}
+
+private fun formatSpeed(bps: Double): String {
+    if (bps < 1024) return String.format(Locale.US, "%.0f B/s", bps)
+    if (bps < 1024 * 1024) return String.format(Locale.US, "%.1f KB/s", bps / 1024.0)
+    return String.format(Locale.US, "%.1f MB/s", bps / 1024.0 / 1024.0)
+}
+
+private fun formatEta(secs: Double): String {
+    if (!secs.isFinite() || secs < 0) return "—"
+    if (secs < 1) return "<1s"
+    if (secs >= 3600) return ">1h"
+    val s = secs.toInt()
+    return String.format(Locale.US, "%02d:%02d", s / 60, s % 60)
 }
 
 private fun humanSize(bytes: Long): String {
