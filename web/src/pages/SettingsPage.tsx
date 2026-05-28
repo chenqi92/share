@@ -124,8 +124,30 @@ export function SettingsPage() {
   const [keepHistory, setKeepHistory] = useState(false)
   const [defaultPath, setDefaultPath] = useState('浏览器下载')
   const [scope, setScope] = useState('LAN 内全部')
+  const [confirmingForget, setConfirmingForget] = useState(false)
   const devices = useEngine((s) => s.devices)
+  const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
+  const forgetSession = useEngine((s) => s.forgetSession)
   const peerCount = devices.filter((d) => d.online).length
+
+  const handleForget = () => {
+    forgetSession()
+    setConfirmingForget(false)
+    // 跳到配对页 + 刷新让 hook 重新走 isMock 判定
+    window.location.href = '?page=pairing'
+  }
+
+  const connLabel = (() => {
+    switch (conn) {
+      case 'open': return '已连接'
+      case 'connecting': return '连接中…'
+      case 'closed': return '已断开'
+      case 'unpaired': return '未配对'
+      case 'idle': return '空闲'
+    }
+  })()
+  const connTone: 'lime' | 'flame' | 'outline' = conn === 'open' ? 'lime' : conn === 'connecting' ? 'outline' : 'flame'
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -223,6 +245,102 @@ export function SettingsPage() {
             onChange={setAutoAccept}
           />
         </section>
+
+        {mode === 'live' && (
+          <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <AsciiDivider label="—— 会话 · SESSION ——" />
+            <div
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                flexWrap: 'wrap',
+              }}
+            >
+              <Chip tone={connTone} mono>● {connLabel}</Chip>
+              <span
+                style={{
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 11,
+                  color: 'var(--text-faint)',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                gateway · {window.location.host}
+              </span>
+              <button
+                onClick={() => setConfirmingForget(true)}
+                style={{
+                  marginLeft: 'auto',
+                  padding: '6px 14px',
+                  background: 'transparent',
+                  border: '1px solid var(--flame, #FF5A2C)',
+                  borderRadius: 8,
+                  color: 'var(--flame, #FF5A2C)',
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.02em',
+                  cursor: 'pointer',
+                }}
+              >
+                断开 / 重新配对
+              </button>
+            </div>
+            {confirmingForget && (
+              <div
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--flame, #FF5A2C)',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ fontSize: 12.5, color: 'var(--text-mute)', flex: 1, minWidth: 240 }}>
+                  断开会清掉本地 session token；下次访问需要重新输入 6 字符配对码。继续？
+                </span>
+                <button
+                  onClick={() => setConfirmingForget(false)}
+                  style={{
+                    padding: '6px 14px',
+                    background: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontFamily: '"Geist Mono", monospace',
+                    fontSize: 11.5,
+                    cursor: 'pointer',
+                  }}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleForget}
+                  style={{
+                    padding: '6px 14px',
+                    background: 'var(--flame, #FF5A2C)',
+                    border: '1px solid var(--flame, #FF5A2C)',
+                    borderRadius: 8,
+                    color: '#fff',
+                    fontFamily: '"Geist Mono", monospace',
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  确认断开
+                </button>
+              </div>
+            )}
+          </section>
+        )}
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <AsciiDivider label="—— 接收行为 · RECEIVE BEHAVIOR ——" />
