@@ -59,6 +59,7 @@ export interface EngineState {
   rejectPairing: () => Promise<void>
   pair: (code: string) => Promise<boolean>
   forgetSession: () => void
+  cancelTransfer: (transferId: string) => Promise<void>
 }
 
 function isMock(): boolean {
@@ -166,6 +167,19 @@ export const useEngine = create<EngineState>((set, get) => ({
   forgetSession: () => {
     getClient().forgetSession()
     set({ conn: 'unpaired' })
+  },
+
+  cancelTransfer: async (transferId) => {
+    if (get().mode === 'live') {
+      await getClient().cancelTransfer(transferId)
+      return
+    }
+    // mock：把对应 transfer state 标 failed（视觉提示已取消）
+    set({
+      transfers: get().transfers.map((t) =>
+        t.id === transferId ? { ...t, state: 'failed' } : t,
+      ),
+    })
   },
 }))
 

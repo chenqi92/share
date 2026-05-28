@@ -4,6 +4,8 @@ import { ProgressBar } from './ProgressBar'
 
 interface Props {
   row: Row
+  /** 传入后且 state 是 sending / receiving 时，渲染取消按钮。 */
+  onCancel?: () => void
 }
 
 function stateLabel(state: Row['state']): { label: string; symbol: string; color: string } {
@@ -22,8 +24,9 @@ function stateLabel(state: Row['state']): { label: string; symbol: string; color
   }
 }
 
-export function TransferRow({ row }: Props) {
+export function TransferRow({ row, onCancel }: Props) {
   const s = stateLabel(row.state)
+  const isActive = row.state === 'sending' || row.state === 'receiving'
   return (
     <div
       style={{
@@ -54,6 +57,29 @@ export function TransferRow({ row }: Props) {
         >
           <span style={{ fontSize: 14 }}>{s.symbol}</span> {s.label}
         </div>
+        {isActive && onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            title="取消传输 · Cancel"
+            aria-label="取消传输"
+            style={{
+              marginLeft: 'auto',
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              padding: '4px 8px',
+              color: 'var(--flame)',
+              fontFamily: '"Geist Mono", monospace',
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+            }}
+          >
+            × CANCEL
+          </button>
+        )}
       </div>
 
       <ProgressBar value={row.progress} state={row.state} />

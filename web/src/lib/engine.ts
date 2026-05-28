@@ -348,6 +348,8 @@ export class GatewayClient {
   rejectPairing(pairingId: string): Promise<CmdAck> { return this.cmd('reject_pairing', { pairingId }) }
   clearHistory(scope: 'all' | 'sent' | 'received' = 'all'): Promise<CmdAck> { return this.cmd('clear_history', { scope }) }
   deleteHistoryItem(itemId: string): Promise<CmdAck> { return this.cmd('delete_history_item', { itemId }) }
+  /** 取消进行中的传输（发送 / 接收均可）；server 端解析 itemId 后调 engine.cancelTransfer。 */
+  cancelTransfer(itemId: string): Promise<CmdAck> { return this.cmd('cancel_transfer', { itemId }) }
   getState(): Promise<CmdAck> { return this.cmd('get_state', {}) }
 
   // -------- internals --------
