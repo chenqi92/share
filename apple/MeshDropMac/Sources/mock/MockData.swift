@@ -134,7 +134,8 @@ struct MockClip: Identifiable {
 enum TransferState: String { case sending, receiving, done, queued, failed }
 
 struct MockTransfer: Identifiable {
-    let id = UUID()
+    // 真实数据投影时传入 history.id；MockData preview 自动给新 UUID
+    var id: UUID = UUID()
     let name: String
     let size: String
     let ext: String
