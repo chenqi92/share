@@ -3,6 +3,7 @@
 pub mod discovery;
 pub mod chat;
 pub mod transfers;
+pub mod clipboard;
 pub mod history;
 pub mod trust;
 pub mod settings;
