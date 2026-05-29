@@ -5,6 +5,7 @@
 use crate::gateway::http::Request;
 use crate::gateway::pairing::PairingGate;
 use crate::history::{HistoryItem, HistoryKind, TransferDirection, TransferStatus};
+use crate::ClipboardEntry;
 use crate::Device;
 use crate::ShareEngine;
 use anyhow::{Context, Result};
@@ -128,6 +129,31 @@ pub async fn accept(
             }
         }
     });
+    // 剪贴板入站：watch 通道存的是整个 inbox（newest-first）。connect 时把 last_seen
+    // 设成当前 head，避免重连重放旧条目；之后每次变更发出比 last_seen 新的条目。
+    let out_tx_c = out_tx.clone();
+    let mut clipboard_rx = engine.clipboard_rx();
+    tokio::spawn(async move {
+        let mut last_seen: Option<Uuid> = clipboard_rx.borrow().first().map(|e| e.id);
+        while clipboard_rx.changed().await.is_ok() {
+            let entries = clipboard_rx.borrow().clone();
+            let mut fresh = Vec::new();
+            for e in &entries {
+                if Some(e.id) == last_seen { break; }
+                fresh.push(e.clone());
+            }
+            if let Some(head) = entries.first() { last_seen = Some(head.id); }
+            // fresh 为 newest-first，倒序发让客户端 inbox 顺序正确（旧→新）
+            for e in fresh.iter().rev() {
+                let payload = json!({
+                    "v": 1, "type": "clipboard_received",
+                    "id": format!("evt-{}", Uuid::new_v4()),
+                    "payload": clipboard_json(e),
+                });
+                if out_tx_c.send(Message::Text(payload.to_string())).is_err() { return; }
+            }
+        }
+    });
 
     loop {
         tokio::select! {
@@ -200,6 +226,22 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
             let text = payload.get("text").and_then(|p| p.as_str()).unwrap_or("").to_string();
             if let Some(peer) = find_peer(engine, peer_id) {
                 engine.send_text(peer, text);
+                (true, None, None)
+            } else {
+                (false, Some("peer_not_found".into()), None)
+            }
+        }
+        "send_clipboard" => {
+            let peer_id = payload.get("peerId").and_then(|p| p.as_str()).unwrap_or("");
+            let content = payload.get("content").and_then(|p| p.as_str()).unwrap_or("").to_string();
+            if content.is_empty() {
+                (false, Some("empty_content".into()), None)
+            } else if let Some(peer) = find_peer(engine, peer_id) {
+                let kind = payload.get("kind").and_then(|p| p.as_str())
+                    .filter(|s| !s.is_empty())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| clip_kind(&content));
+                engine.push_clipboard(peer, content, kind);
                 (true, None, None)
             } else {
                 (false, Some("peer_not_found".into()), None)
@@ -293,6 +335,28 @@ fn device_json(d: &Device) -> Value {
         "fingerprint": d.fingerprint,
         "online": true,
     })
+}
+
+fn clipboard_json(e: &ClipboardEntry) -> Value {
+    json!({
+        "id": e.id.to_string(),
+        "peerName": e.peer_name,
+        "kind": e.kind,
+        "content": e.content,
+        "ts": (e.received_at_ms / 1000) as i64,
+    })
+}
+
+/// 按内容粗判剪贴板 kind（与 Apple / Android / Web / Windows 端同口径）。
+fn clip_kind(content: &str) -> String {
+    let t = content.trim();
+    if (t.starts_with("http://") || t.starts_with("https://")) && !t.chars().any(|c| c.is_whitespace()) {
+        return "link".to_string();
+    }
+    if t.contains('\n') && t.chars().any(|c| "{};=<>/".contains(c)) {
+        return "code".to_string();
+    }
+    "text".to_string()
 }
 
 fn history_json(h: &HistoryItem) -> Value {
