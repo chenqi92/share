@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
+import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Radar
@@ -50,6 +51,7 @@ import com.welape.meshdrop.ui.sheets.PairingSheet
 import com.welape.meshdrop.ui.sheets.SendBottomSheet
 import com.welape.meshdrop.ui.tabs.ChatDetailScreen
 import com.welape.meshdrop.ui.tabs.ChatListScreen
+import com.welape.meshdrop.ui.tabs.ClipboardScreen
 import com.welape.meshdrop.ui.tabs.DiscoverScreen
 import com.welape.meshdrop.ui.tabs.HistoryScreen
 import com.welape.meshdrop.ui.tabs.MeScreen
@@ -118,6 +120,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                         )
                     }
                     MeshTab.TRANSFER -> TransferScreen(engine = engine)
+                    MeshTab.CLIPBOARD -> ClipboardScreen(engine = engine)
                     MeshTab.ME -> MeScreen(
                         onOpenPairing = { state.sheet = MeshSheet.PAIRING },
                         onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
@@ -200,6 +203,7 @@ fun BottomNavBar(state: MeshAppState, onPickTab: (MeshTab) -> Unit) {
             Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
             Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "聊天"),
             Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
+            Triple(MeshTab.CLIPBOARD, Icons.Outlined.ContentPaste, "剪贴板"),
             Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
         )
         tabs.forEach { (tab, icon, label) ->

@@ -36,7 +36,7 @@ class MeshAppState {
 }
 
 enum class MeshTab(val label: String) {
-    DISCOVER("附近"), CHAT("聊天"), TRANSFER("传输"), ME("我"),
+    DISCOVER("附近"), CHAT("聊天"), TRANSFER("传输"), CLIPBOARD("剪贴板"), ME("我"),
 }
 
 enum class MeshSheet { NONE, SEND, PICKER, PAIRING, FILE_OFFER, ONBOARDING }
