@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Chip } from '../components/Chip'
 import { SpeedChart } from '../components/SpeedChart'
 import { StatusBar } from '../components/StatusBar'
@@ -32,6 +32,25 @@ export function TransferPage() {
     return true
   })
 
+  // 顶部 chip 实数据：source 是当前 mode 下的全集，分别汇总。
+  const inProgressCount = source.filter((t) => t.state === 'sending' || t.state === 'receiving').length
+  const doneCount = source.filter((t) => t.state === 'done').length
+  const queuedCount = source.filter((t) => t.state === 'queued').length
+  const totalCount = source.length
+  const uploadBps = source.reduce((s, t) => (t.state === 'sending' && t.from === '我') ? s + (t.speedBps ?? 0) : s, 0)
+  const downloadBps = source.reduce((s, t) => (t.state === 'receiving' && t.to === '我') ? s + (t.speedBps ?? 0) : s, 0)
+  const sessionTotalBytes = source.reduce((s, t) => s + (t.totalBytes ?? 0), 0)
+
+  // SESSION 时长：组件挂载到现在；mode 切换不重置。
+  const sessionStart = useRef(Date.now())
+  const [sessionDuration, setSessionDuration] = useState('0s')
+  useEffect(() => {
+    const tick = () => setSessionDuration(formatDuration(Date.now() - sessionStart.current))
+    tick()
+    const id = window.setInterval(tick, 1000)
+    return () => window.clearInterval(id)
+  }, [])
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
       <div
@@ -63,14 +82,15 @@ export function TransferPage() {
               className="font-display"
               style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}
             >
-              5 个任务在路上 · <span style={{ color: 'var(--lime-deep)' }}>2 已完成</span>
+              {totalCount} 个任务{inProgressCount > 0 && '在路上'} · <span style={{ color: 'var(--lime-deep)' }}>{doneCount} 已完成</span>
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Chip tone="lime" mono>↑ 8.4 MB/s</Chip>
-            <Chip tone="sky" mono>↓ 11.7 MB/s</Chip>
-            <Chip tone="outline" mono>队列 · 1 件</Chip>
-            <Chip tone="outline" mono>SESSION 6m 12s</Chip>
+            <Chip tone="lime" mono>↑ {formatBps(uploadBps)}</Chip>
+            <Chip tone="sky" mono>↓ {formatBps(downloadBps)}</Chip>
+            <Chip tone="outline" mono>队列 · {queuedCount} 件</Chip>
+            <Chip tone="outline" mono>SESSION {sessionDuration}</Chip>
+            <Chip tone="outline" mono>{formatTotal(sessionTotalBytes)}</Chip>
           </div>
         </header>
 
@@ -122,4 +142,30 @@ export function TransferPage() {
       <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
     </div>
   )
+}
+
+function formatBps(bps: number): string {
+  if (!bps || bps <= 1) return '—'
+  if (bps < 1024) return `${Math.round(bps)} B/s`
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`
+  return `${(bps / 1024 / 1024).toFixed(1)} MB/s`
+}
+
+function formatTotal(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`
+}
+
+function formatDuration(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const ss = s % 60
+  if (m < 60) return `${m}m ${ss.toString().padStart(2, '0')}s`
+  const h = Math.floor(m / 60)
+  const mm = m % 60
+  return `${h}h ${mm.toString().padStart(2, '0')}m`
 }
