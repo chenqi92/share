@@ -1,10 +1,13 @@
 import SwiftUI
 import MeshDropKit
+import QuickLook
 
 struct TransferTab: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+    /// QuickLook 预览的本地文件；非空时弹出系统预览。
+    @State private var previewURL: URL?
 
     private var transfers: [MockTransfer] {
         engine.history.compactMap { h in
@@ -40,7 +43,9 @@ struct TransferTab: View {
                         }
                         if !done.isEmpty {
                             AsciiDivider("COMPLETED · 完成 · \(done.count)")
-                            ForEach(done) { TransferRow($0) }
+                            ForEach(done) { item in
+                                TransferRow(item, onOpen: openClosure(for: item))
+                            }
                         }
                         if !failed.isEmpty {
                             AsciiDivider("FAILED · 失败 · \(failed.count)")
@@ -62,6 +67,7 @@ struct TransferTab: View {
                 IconBtn("arrow.up.arrow.down", size: 30, variant: .ghost)
             }
         }
+        .quickLookPreview($previewURL)
     }
 
     private var header: some View {
@@ -84,6 +90,17 @@ struct TransferTab: View {
         guard item.direction == .outgoing,
               let id = UUID(uuidString: item.id) else { return nil }
         return { [engine] in engine.retryTransfer(id) }
+    }
+
+    /// 仅对已接收完成的文件给打开闭包：按 history.id 查回落盘 URL，点了用 QuickLook 预览。
+    private func openClosure(for item: MockTransfer) -> (() -> Void)? {
+        guard item.direction == .incoming,
+              let id = UUID(uuidString: item.id),
+              let entry = engine.history.first(where: { $0.id == id }),
+              case .file(_, _, let url) = entry.kind,
+              let fileURL = url,
+              FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+        return { previewURL = fileURL }
     }
 
     private var emptyCard: some View {
