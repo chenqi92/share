@@ -59,6 +59,7 @@ public enum MessageType {
     public static let hello: UInt8        = 0x01
     public static let helloAck: UInt8     = 0x02
     public static let text: UInt8         = 0x10
+    public static let clipboard: UInt8    = 0x11
     public static let fileOffer: UInt8    = 0x20
     public static let fileAccept: UInt8   = 0x21
     public static let fileReject: UInt8   = 0x22

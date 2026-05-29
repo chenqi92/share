@@ -33,6 +33,9 @@ public final class ShareEngine: ObservableObject {
     /// 移除条目，UI 上速率显示会跟着消失。
     @Published public private(set) var transferMetrics: [UUID: TransferMetrics] = [:]
 
+    /// 剪贴板收件箱：对端显式推来的剪贴板条目（最新在前），不进聊天历史。
+    @Published public private(set) var clipboardInbox: [ClipboardEntry] = []
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -169,6 +172,22 @@ public final class ShareEngine: ObservableObject {
             state: .awaitingHelloAck
         )
         ctx.historyID = historyItem.id
+        contexts[ctx.id] = ctx
+        startConnection(ctx)
+    }
+
+    // MARK: - 剪贴板推送
+
+    /// 显式把一段剪贴板内容推给对端（隐私上仅在用户点按时调用，不后台同步）。
+    /// 复用 TEXT 的连接生命周期；本端不留收件箱记录（只有接收方进 inbox）。
+    public func pushClipboard(to device: Device, content: String, kind: String = "text") {
+        guard !content.isEmpty else { return }
+        let conn = Connection(connectingTo: device)
+        let ctx = ConnectionContext(
+            connection: conn,
+            role: .client(target: device, payload: .clipboard(content: content, kind: kind)),
+            state: .awaitingHelloAck
+        )
         contexts[ctx.id] = ctx
         startConnection(ctx)
     }
@@ -481,6 +500,9 @@ public final class ShareEngine: ObservableObject {
         case (.ready, MessageType.text):
             handleReceivedText(body: body, contextID: contextID)
 
+        case (.ready, MessageType.clipboard):
+            handleReceivedClipboard(body: body, contextID: contextID)
+
         case (.ready, MessageType.fileOffer):
             handleReceivedFileOffer(body: body, contextID: contextID)
 
@@ -608,6 +630,23 @@ public final class ShareEngine: ObservableObject {
                 await closeContext(id: contextID, error: error)
             }
 
+        case .clipboard(let content, let kind):
+            // 发 CLIPBOARD → 等 200ms 让对方读完缓冲 → 关。无 history 记录。
+            let msg = ClipboardMessage(
+                id: UUID().uuidString.lowercased(),
+                content: content,
+                kind: kind,
+                ts: Int64(Date().timeIntervalSince1970)
+            )
+            do {
+                let clipBody = try MessageCodec.encode(msg)
+                try await ctx.connection.send(type: MessageType.clipboard, body: clipBody)
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                await ctx.connection.close()
+            } catch {
+                await closeContext(id: contextID, error: error)
+            }
+
         case .file(let sourceURL, let fileSize, let sha256, _):
             // 发 FILE_OFFER → 等 FILE_ACCEPT
             let fileName = sourceURL.lastPathComponent
@@ -712,6 +751,22 @@ public final class ShareEngine: ObservableObject {
             status: .completed
         )
         history.insert(item, at: 0)
+    }
+
+    private func handleReceivedClipboard(body: Data, contextID: UUID) {
+        guard let ctx = contexts[contextID],
+              let peer = ctx.peer,
+              let msg = try? MessageCodec.decode(ClipboardMessage.self, from: body),
+              !msg.content.isEmpty else { return }
+        let entry = ClipboardEntry(
+            peerName: peer.name,
+            content: msg.content,
+            kind: msg.kind,
+            receivedAt: Date()
+        )
+        clipboardInbox.insert(entry, at: 0)
+        // 上限 50 条，超出丢最旧。
+        if clipboardInbox.count > 50 { clipboardInbox.removeLast(clipboardInbox.count - 50) }
     }
 
     private func handleReceivedFileOffer(body: Data, contextID: UUID) {
@@ -1086,6 +1141,7 @@ final class ConnectionContext {
 
     enum ClientPayload {
         case text(String)
+        case clipboard(content: String, kind: String)
         case file(sourceURL: URL, fileSize: UInt64, sha256: String, needsSecurityScope: Bool)
     }
 

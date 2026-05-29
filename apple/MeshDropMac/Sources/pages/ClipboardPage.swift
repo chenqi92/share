@@ -1,6 +1,12 @@
+import AppKit
 import SwiftUI
+import MeshDropKit
 
 struct ClipboardPage: View {
+    @EnvironmentObject var state: AppState
+
+    private var inbox: [ClipboardEntry] { state.clipboardInbox }
+
     var body: some View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
@@ -14,31 +20,25 @@ struct ClipboardPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
-                    Chip(text: "SYNCED", tone: .lime, mono: true)
-                    Chip(text: "⌘V 取最近", tone: .outline, mono: false)
+                    pushButton
                 }
 
                 HStack(spacing: 6) {
                     Circle().fill(MeshDropColor.limeDeep).frame(width: 6, height: 6)
-                    Text("5 条同步条目 · 来自局域网 4 台设备 · 仅本人可见 · 不上云")
+                    Text("\(inbox.count) 条收件 · 显式推送 · 仅本人可见 · 不上云")
                         .font(MeshDropFont.mono(size: 11))
                         .foregroundStyle(MeshDropColor.textMuted)
                 }
 
-                AsciiDivider(text: "INBOX · 收件箱 · 0")
+                AsciiDivider(text: "INBOX · 收件箱 · \(inbox.count)")
 
-                // 剪贴板同步尚未实装：ShareEngine 暂无 clipboard channel，
-                // 待协议加 clip 类型消息后再接，这里先显示空态而非旧 mock 数据。
-                VStack(spacing: 8) {
-                    Text("剪贴板同步尚未启用")
-                        .font(MeshDropFont.body(size: 13, weight: .medium))
-                        .foregroundStyle(MeshDropColor.textMuted)
-                    Text("收发文字 / 文件后会在这里出现历史记录")
-                        .font(MeshDropFont.mono(size: 10))
-                        .foregroundStyle(MeshDropColor.textMuted.opacity(0.7))
+                if inbox.isEmpty {
+                    emptyView
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(inbox) { clipRow($0) }
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 32)
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 22)
@@ -47,47 +47,88 @@ struct ClipboardPage: View {
         .background(MeshDropColor.background)
     }
 
+    /// 把本机剪贴板内容推给当前选中设备。空剪贴板 / 无选中设备时禁用。
+    private var pushButton: some View {
+        Button(action: pushCurrentClipboard) {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.up.doc.on.clipboard")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("推送剪贴板 → \(state.selectedDevice.who)")
+                    .font(MeshDropFont.body(size: 12, weight: .semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(RoundedRectangle(cornerRadius: 8).fill(MeshDropColor.lime))
+            .foregroundStyle(MeshDropColor.ink)
+        }
+        .buttonStyle(.plain)
+        .disabled(state.selectedDeviceID.isEmpty)
+        .opacity(state.selectedDeviceID.isEmpty ? 0.5 : 1)
+        .help("读取本机剪贴板并推送给选中设备")
+    }
+
+    private func pushCurrentClipboard() {
+        guard !state.selectedDeviceID.isEmpty,
+              let content = NSPasteboard.general.string(forType: .string),
+              !content.isEmpty else { return }
+        state.pushClipboard(toDeviceID: state.selectedDeviceID, content: content)
+    }
+
+    private var emptyView: some View {
+        VStack(spacing: 8) {
+            Text("剪贴板收件箱为空")
+                .font(MeshDropFont.body(size: 13, weight: .medium))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Text("对方点「推送剪贴板」后会在这里出现，点 ⌘C 图标复制到本机")
+                .font(MeshDropFont.mono(size: 10))
+                .foregroundStyle(MeshDropColor.textMuted.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+    }
+
     @ViewBuilder
-    private func clipRow(_ c: MockClip) -> some View {
+    private func clipRow(_ c: ClipboardEntry) -> some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 5) {
-                Avatar(initials: String(c.who.prefix(2)),
-                       color: avatarColor(for: c.who),
+                Avatar(initials: String(c.peerName.prefix(2)),
+                       color: avatarColor(for: c.peerName),
                        size: 32)
-                Text(c.ago)
+                Text(Self.ago(c.receivedAt))
                     .font(MeshDropFont.mono(size: 9))
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Text(c.who)
+                    Text(c.peerName)
                         .font(MeshDropFont.body(size: 12, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textPrimary)
                     Chip(text: kindText(c.kind), tone: kindTone(c.kind), mono: true)
-                    if let lang = c.lang {
-                        Chip(text: lang.uppercased(), tone: .outline, mono: true)
-                    }
                     Spacer()
-                    Text("⌘C")
-                        .font(MeshDropFont.mono(size: 10))
-                        .foregroundStyle(MeshDropColor.textMuted)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(MeshDropColor.divider, lineWidth: 0.5)
-                        )
+                    Button(action: { copyToPasteboard(c.content) }) {
+                        Text("⌘C")
+                            .font(MeshDropFont.mono(size: 10))
+                            .foregroundStyle(MeshDropColor.textMuted)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(MeshDropColor.divider, lineWidth: 0.5)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .help("复制到本机剪贴板")
                 }
-                Text(c.body)
-                    .font(c.kind == .code ? MeshDropFont.mono(size: 12) : MeshDropFont.body(size: 13))
-                    .foregroundStyle(c.kind == .link ? MeshDropColor.sky : MeshDropColor.textPrimary)
-                    .lineLimit(4)
+                Text(c.content)
+                    .font(c.kind == "code" ? MeshDropFont.mono(size: 12) : MeshDropFont.body(size: 13))
+                    .foregroundStyle(c.kind == "link" ? MeshDropColor.sky : MeshDropColor.textPrimary)
+                    .lineLimit(6)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(c.kind == .code ? MeshDropColor.dink.opacity(0.06) : MeshDropColor.cardBg2)
+                            .fill(c.kind == "code" ? MeshDropColor.dink.opacity(0.06) : MeshDropColor.cardBg2)
                     )
             }
         }
@@ -99,27 +140,35 @@ struct ClipboardPage: View {
         )
     }
 
-    private func kindText(_ k: ClipKind) -> String {
+    private func copyToPasteboard(_ content: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(content, forType: .string)
+    }
+
+    private func kindText(_ k: String) -> String {
         switch k {
-        case .link: return "LINK"
-        case .text: return "TEXT"
-        case .code: return "CODE"
+        case "link": return "LINK"
+        case "code": return "CODE"
+        default:     return "TEXT"
         }
     }
-    private func kindTone(_ k: ClipKind) -> ChipTone {
+    private func kindTone(_ k: String) -> ChipTone {
         switch k {
-        case .link: return .lime
-        case .text: return .outline
-        case .code: return .ink
+        case "link": return .lime
+        case "code": return .ink
+        default:     return .outline
         }
     }
     private func avatarColor(for who: String) -> Color {
-        switch who {
-        case "嘉伟": return Color(hex: 0xC7B8FF)
-        case "孟茜": return Color(hex: 0xFFD970)
-        case "李莉": return Color(hex: 0xFFB4A1)
-        case "坤":   return Color(hex: 0xB7E5C8)
-        default:     return Color(hex: 0xE2DCCD)
-        }
+        let palette: [UInt32] = [0xC7B8FF, 0xFFD970, 0xFFB4A1, 0xB7E5C8, 0x9AD0FF]
+        let i = abs(who.hashValue) % palette.count
+        return Color(hex: palette[i])
+    }
+
+    private static func ago(_ date: Date) -> String {
+        let s = max(0, Int(Date().timeIntervalSince(date)))
+        if s < 60 { return "\(s)s" }
+        if s < 3600 { return "\(s / 60)m" }
+        return "\(s / 3600)h"
     }
 }

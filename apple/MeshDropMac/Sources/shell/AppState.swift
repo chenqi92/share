@@ -32,6 +32,8 @@ final class AppState: ObservableObject {
     @Published private(set) var engineTrusted: [MockTrustedDevice] = []
     /// 进行中传输的实时 speed / ETA，TransfersPage 投影时按 history.id 取。
     @Published private(set) var transferMetrics: [UUID: TransferMetrics] = [:]
+    /// 剪贴板收件箱（对端推来的），ClipboardPage 用。
+    @Published private(set) var clipboardInbox: [ClipboardEntry] = []
 
     // 网络层状态（顶部 banner 用）
     @Published private(set) var isScanning: Bool = false
@@ -86,6 +88,10 @@ final class AppState: ObservableObject {
         engine.$transferMetrics
             .receive(on: DispatchQueue.main)
             .assign(to: &$transferMetrics)
+
+        engine.$clipboardInbox
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$clipboardInbox)
 
         engine.$isStarting
             .receive(on: DispatchQueue.main)
@@ -144,6 +150,22 @@ final class AppState: ObservableObject {
     func sendFile(toDeviceID deviceID: String, fileURL: URL) {
         guard let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
         engine.sendFile(to: dev, sourceURL: fileURL)
+    }
+
+    /// 把一段剪贴板内容推给指定设备（显式动作）。kind 自动按内容推断。
+    func pushClipboard(toDeviceID deviceID: String, content: String) {
+        guard let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+        engine.pushClipboard(to: dev, content: content, kind: Self.clipKind(for: content))
+    }
+
+    /// 简单内容嗅探：以 http(s):// 开头 → link；含换行且像代码 → code；否则 text。
+    static func clipKind(for content: String) -> String {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") { return "link" }
+        if trimmed.contains("\n") && trimmed.rangeOfCharacter(from: CharacterSet(charactersIn: "{}();=")) != nil {
+            return "code"
+        }
+        return "text"
     }
 
     /// 批量发送（NSOpenPanel multi-select / 多文件 drag-drop 走这条）。

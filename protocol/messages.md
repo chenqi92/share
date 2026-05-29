@@ -8,6 +8,7 @@
 | `0x01` | HELLO          | JSON      | 双方     |
 | `0x02` | HELLO_ACK      | JSON      | 双方     |
 | `0x10` | TEXT           | JSON      | 任意     |
+| `0x11` | CLIPBOARD      | JSON      | 任意     |
 | `0x20` | FILE_OFFER     | JSON      | 发送方→接收方 |
 | `0x21` | FILE_ACCEPT    | JSON      | 接收方→发送方 |
 | `0x22` | FILE_REJECT    | JSON      | 接收方→发送方 |
@@ -55,6 +56,22 @@
 ```
 
 接收方应在 UI 弹一条通知 + 写入"接收记录"。无需 ACK。
+
+## 0x11 CLIPBOARD
+
+显式剪贴板推送 —— 发送方**主动**把当前剪贴板内容推给对端（不是后台静默同步，
+出于隐私只在用户点按"推送剪贴板"时发）。接收方写入"剪贴板收件箱"列表，不进聊天历史。
+
+```json
+{
+  "id": "uuid v4 字符串",       // 去重用
+  "content": "剪贴板文本",      // UTF-8
+  "kind": "text",               // text | link | code（接收方据此渲染，未知值按 text）
+  "ts": 1716537600              // 发送方 Unix 时间戳（秒）
+}
+```
+
+无需 ACK。复用与 TEXT 相同的连接生命周期（HELLO/ACK → CLIPBOARD → 关）。
 
 ## 0x20 FILE_OFFER
 

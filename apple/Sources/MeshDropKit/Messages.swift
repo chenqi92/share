@@ -36,6 +36,13 @@ public struct TextMessage: Codable, Sendable {
     public var ts: Int64           // Unix 秒
 }
 
+public struct ClipboardMessage: Codable, Sendable {
+    public var id: String          // UUID v4
+    public var content: String
+    public var kind: String        // text | link | code
+    public var ts: Int64           // Unix 秒
+}
+
 public struct FileMeta: Codable, Sendable {
     public var index: Int
     public var name: String

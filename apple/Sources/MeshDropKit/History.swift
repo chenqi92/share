@@ -37,6 +37,23 @@ public enum HistoryKind: Sendable, Equatable {
     case file(name: String, size: UInt64, url: URL?)
 }
 
+/// 剪贴板收件箱条目 —— 对端显式推来的剪贴板内容。
+public struct ClipboardEntry: Identifiable, Sendable, Equatable {
+    public let id: UUID
+    public let peerName: String
+    public let content: String
+    public let kind: String        // text | link | code
+    public let receivedAt: Date
+
+    public init(id: UUID = UUID(), peerName: String, content: String, kind: String, receivedAt: Date = Date()) {
+        self.id = id
+        self.peerName = peerName
+        self.content = content
+        self.kind = kind
+        self.receivedAt = receivedAt
+    }
+}
+
 /// 进行中传输的实时指标。仅在 .transferring 阶段有意义，进入 terminal 时清除。
 public struct TransferMetrics: Sendable, Equatable {
     /// 平滑后的字节/秒。0 表示未收到足够样本。
