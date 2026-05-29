@@ -75,7 +75,7 @@ final class AppState: ObservableObject {
 }
 
 enum PhoneTab: Hashable {
-    case discover, chats, transfers, me
+    case discover, chats, transfers, clipboard, me
 }
 
 extension MockDevice {

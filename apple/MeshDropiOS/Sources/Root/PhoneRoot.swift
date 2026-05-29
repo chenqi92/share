@@ -19,6 +19,10 @@ struct PhoneRoot: View {
                 .tabItem { Label("传输", systemImage: "arrow.up.arrow.down") }
                 .tag(PhoneTab.transfers)
 
+            NavigationStack { ClipboardTab() }
+                .tabItem { Label("剪贴板", systemImage: "doc.on.clipboard") }
+                .tag(PhoneTab.clipboard)
+
             NavigationStack { MeTab() }
                 .tabItem { Label("我", systemImage: "person.circle") }
                 .tag(PhoneTab.me)
