@@ -52,6 +52,7 @@ public static class MessageType
     public const byte HELLO         = 0x01;
     public const byte HELLO_ACK     = 0x02;
     public const byte TEXT          = 0x10;
+    public const byte CLIPBOARD     = 0x11;
     public const byte FILE_OFFER    = 0x20;
     public const byte FILE_ACCEPT   = 0x21;
     public const byte FILE_REJECT   = 0x22;

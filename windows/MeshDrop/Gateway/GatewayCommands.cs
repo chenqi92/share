@@ -48,6 +48,17 @@ internal sealed class GatewayCommands
                         _engine.SendText(dev, p.Text ?? "");
                         return Reply(cmd.Id, true);
                     }
+                case "send_clipboard":
+                    {
+                        var p = cmd.Payload.Deserialize<SendClipboardPayload>() ?? new SendClipboardPayload();
+                        var dev = _engine.Devices.FirstOrDefault(d => d.Id == p.PeerId);
+                        if (dev is null) return Reply(cmd.Id, false, "peer_not_found");
+                        var content = p.Content ?? "";
+                        if (string.IsNullOrEmpty(content)) return Reply(cmd.Id, false, "empty_content");
+                        var kind = string.IsNullOrEmpty(p.Kind) ? ShareEngine.ClipKind(content) : p.Kind;
+                        _engine.PushClipboard(dev, content, kind);
+                        return Reply(cmd.Id, true);
+                    }
                 case "send_file_ref":
                     {
                         var p = cmd.Payload.Deserialize<SendFileRefPayload>() ?? new SendFileRefPayload();
@@ -121,6 +132,7 @@ internal sealed class GatewayCommands
             EngineEvent.TransferProgress t => new { id = t.Id.ToString(), bytesSent = t.BytesSent, totalBytes = t.TotalBytes, speedBps = t.SpeedBps },
             EngineEvent.TransferDone t => new { id = t.Id.ToString(), ok = t.Ok, error = t.Error },
             EngineEvent.HistoryAdded h => BridgeHistory.From(h.Item),
+            EngineEvent.ClipboardReceived c => BridgeClipboard.From(c.Entry),
             _ => null,
         };
         var type = ev switch
@@ -133,6 +145,7 @@ internal sealed class GatewayCommands
             EngineEvent.TransferProgress => "transfer_progress",
             EngineEvent.TransferDone => "transfer_done",
             EngineEvent.HistoryAdded => "history_added",
+            EngineEvent.ClipboardReceived => "clipboard_received",
             _ => "unknown",
         };
         return JsonSerializer.Serialize(new
@@ -170,6 +183,13 @@ internal sealed class GatewayCommands
     {
         [JsonPropertyName("peerId")] public string PeerId { get; set; } = "";
         [JsonPropertyName("text")] public string Text { get; set; } = "";
+    }
+
+    private sealed class SendClipboardPayload
+    {
+        [JsonPropertyName("peerId")] public string PeerId { get; set; } = "";
+        [JsonPropertyName("content")] public string Content { get; set; } = "";
+        [JsonPropertyName("kind")] public string Kind { get; set; } = "";
     }
 
     private sealed class SendFileRefPayload
@@ -251,4 +271,11 @@ internal sealed record BridgeHistory(string Id, string Direction, string PeerNam
             _ => new(h.Id.ToString(), dir, h.Peer.Name, "text", null, null, null, ok, completed),
         };
     }
+}
+
+internal sealed record BridgeClipboard(string Id, string PeerName, string Kind, string Content, long Ts)
+{
+    public static BridgeClipboard From(ClipboardEntry e) => new(
+        e.Id.ToString(), e.PeerName, e.Kind, e.Content,
+        new DateTimeOffset(e.ReceivedAt).ToUnixTimeSeconds());
 }

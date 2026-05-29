@@ -28,6 +28,16 @@ public abstract record TransferStatus
 /// </summary>
 public sealed record TransferMetrics(double BytesPerSec, double? EtaSeconds);
 
+/// <summary>
+/// 收到的剪贴板推送条目（显式推送，非后台同步）。见 protocol/messages.md §0x11。
+/// Kind ∈ {text|link|code}，用于 UI 区分渲染。
+/// </summary>
+public sealed record ClipboardEntry(Guid Id, string PeerName, string Content, string Kind, DateTime ReceivedAt)
+{
+    public static ClipboardEntry Create(string peerName, string content, string kind) =>
+        new(Guid.NewGuid(), peerName, content, kind, DateTime.Now);
+}
+
 public sealed record HistoryItem(
     Guid Id,
     Device Peer,
