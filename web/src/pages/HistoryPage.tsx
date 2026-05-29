@@ -16,7 +16,7 @@ function statusChip(item: HistoryEntry) {
   return <Chip tone="lime" mono>✓ 已完成</Chip>
 }
 
-function HistoryCell({ item }: { item: HistoryEntry }) {
+function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?: string }) {
   const isImage = item.kind === 'image'
   const isText = item.kind === 'text'
 
@@ -135,17 +135,39 @@ function HistoryCell({ item }: { item: HistoryEntry }) {
 
       <div className="flex items-center justify-between" style={{ marginTop: 'auto' }}>
         {statusChip(item)}
-        <span
-          style={{
-            fontFamily: '"Geist Mono", monospace',
-            fontSize: 10,
-            color: 'var(--text-faint)',
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}
-        >
-          {item.dir === 'incoming' ? 'INCOMING · 收到' : 'OUTGOING · 发出'}
-        </span>
+        <div className="flex items-center gap-2">
+          {downloadHref && (
+            <a
+              href={downloadHref}
+              download={item.name}
+              title="下载 · Download"
+              style={{
+                textDecoration: 'none',
+                border: '1px solid var(--sky)',
+                borderRadius: 8,
+                padding: '3px 8px',
+                color: 'var(--sky)',
+                fontFamily: '"Geist Mono", monospace',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+              }}
+            >
+              ↓ DOWNLOAD
+            </a>
+          )}
+          <span
+            style={{
+              fontFamily: '"Geist Mono", monospace',
+              fontSize: 10,
+              color: 'var(--text-faint)',
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {item.dir === 'incoming' ? 'INCOMING · 收到' : 'OUTGOING · 发出'}
+          </span>
+        </div>
       </div>
     </div>
   )
@@ -155,8 +177,15 @@ export function HistoryPage() {
   const devices = useEngine((s) => s.devices)
   const liveHistory = useEngine((s) => s.history)
   const mode = useEngine((s) => s.mode)
+  const downloadURL = useEngine((s) => s.downloadURL)
   const peerCount = devices.filter((d) => d.online).length
   const history = mode === 'live' ? liveHistory : MESHDROP_HISTORY_BY_DAY
+
+  // 仅对已接收完成的文件项给下载链接（mock 模式 downloadURL 返回 undefined）。
+  const hrefFor = (item: HistoryEntry): string | undefined => {
+    if (item.dir !== 'incoming' || item.status !== 'done' || item.kind !== 'file') return undefined
+    return downloadURL(item.id)
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -218,7 +247,7 @@ export function HistoryPage() {
               }}
             >
               {day.items.map((item) => (
-                <HistoryCell key={item.id} item={item} />
+                <HistoryCell key={item.id} item={item} downloadHref={hrefFor(item)} />
               ))}
             </div>
           </section>

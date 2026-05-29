@@ -61,6 +61,8 @@ export interface EngineState {
   forgetSession: () => void
   cancelTransfer: (transferId: string) => Promise<void>
   retryTransfer: (transferId: string) => Promise<void>
+  /** 已接收文件的下载 URL；mock 模式返回 undefined（无真实文件）。 */
+  downloadURL: (historyId: string) => string | undefined
 }
 
 function isMock(): boolean {
@@ -194,6 +196,11 @@ export const useEngine = create<EngineState>((set, get) => ({
         t.id === transferId ? { ...t, state: 'sending', progress: 0 } : t,
       ),
     })
+  },
+
+  downloadURL: (historyId) => {
+    if (get().mode !== 'live') return undefined
+    return getClient().downloadURL(historyId)
   },
 }))
 
