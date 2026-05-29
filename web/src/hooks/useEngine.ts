@@ -14,8 +14,10 @@ import {
   MESHDROP_DEVICES,
   MESHDROP_HISTORY_BY_DAY,
   MESHDROP_TRANSFERS,
+  MESHDROP_CLIPBOARD,
   MESHDROP_PENDING_OFFER,
   MESHDROP_PENDING_PAIRING,
+  type ClipboardItem,
   type HistoryDay,
   type HistoryEntry,
   type MeshDevice,
@@ -25,6 +27,7 @@ import {
 } from '../lib/mockData'
 import {
   GatewayClient,
+  adaptClipboard,
   adaptDevice,
   adaptHistory,
   adaptOffer,
@@ -42,6 +45,7 @@ export interface EngineState {
   devices: MeshDevice[]
   transfers: TransferRow[]
   history: HistoryDay[]
+  clipboardInbox: ClipboardItem[]
   pendingOffer?: PendingOffer
   pendingPairing?: PendingPairing
   selectedPeerId?: string
@@ -52,6 +56,8 @@ export interface EngineState {
 
   // actions —— mock 模式下只改本地 state，live 模式下走 gateway
   sendText: (peerId: string, text: string) => Promise<void>
+  /** 显式推送剪贴板内容到对端。kind 省略时按内容自动判定 link/code/text。 */
+  pushClipboard: (peerId: string, content: string, kind?: ClipboardItem['kind']) => Promise<void>
   sendFiles: (peerId: string, files: File[], opts?: { noteText?: string }) => Promise<void>
   acceptOffer: () => Promise<void>
   rejectOffer: () => Promise<void>
@@ -77,6 +83,14 @@ function buildHistoryDays(items: HistoryEntry[]): HistoryDay[] {
   return [{ label: `TODAY · 今天 · ${items.length} 件`, items }]
 }
 
+/** 按内容粗判剪贴板 kind（与 Apple / Android 端同口径）。 */
+export function clipKind(content: string): ClipboardItem['kind'] {
+  const t = content.trim()
+  if ((t.startsWith('http://') || t.startsWith('https://')) && !/\s/.test(t)) return 'link'
+  if (t.includes('\n') && /[{};=<>/]/.test(t)) return 'code'
+  return 'text'
+}
+
 export const useEngine = create<EngineState>((set, get) => ({
   mode: isMock() ? 'mock' : 'live',
   conn: 'idle',
@@ -84,6 +98,7 @@ export const useEngine = create<EngineState>((set, get) => ({
   devices: isMock() ? MESHDROP_DEVICES : [],
   transfers: isMock() ? MESHDROP_TRANSFERS : [],
   history: isMock() ? MESHDROP_HISTORY_BY_DAY : [],
+  clipboardInbox: isMock() ? MESHDROP_CLIPBOARD : [],
   pendingOffer: undefined,
   pendingPairing: undefined,
   selectedPeerId: isMock() ? 'jiawei' : undefined,
@@ -106,6 +121,23 @@ export const useEngine = create<EngineState>((set, get) => ({
       progress: 100, state: 'done',
     }
     set({ transfers: [t, ...get().transfers] })
+  },
+
+  pushClipboard: async (peerId, content, kind) => {
+    const k = kind ?? clipKind(content)
+    if (get().mode === 'live') {
+      await getClient().sendClipboard(peerId, content, k)
+      return
+    }
+    // mock：在本地 clipboardInbox 顶部加一条（以"我"署名）
+    const item: ClipboardItem = {
+      id: `cb-${Date.now()}`,
+      who: '我',
+      kind: k,
+      body: content,
+      ago: 'just now',
+    }
+    set({ clipboardInbox: [item, ...get().clipboardInbox].slice(0, 50) })
   },
 
   sendFiles: async (peerId, files, opts) => {
@@ -260,6 +292,10 @@ export function useEngineConnection() {
         const day = useEngine.getState().history[0]
         const items = day ? [item, ...day.items] : [item]
         useEngine.setState({ history: buildHistoryDays(items) })
+      },
+      onClipboardReceived: (c) => {
+        const inbox = useEngine.getState().clipboardInbox
+        useEngine.setState({ clipboardInbox: [adaptClipboard(c), ...inbox].slice(0, 50) })
       },
     })
     c.connect()

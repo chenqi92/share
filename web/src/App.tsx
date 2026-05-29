@@ -4,6 +4,7 @@ import { BrowserChrome } from './components/BrowserChrome'
 import { MainPage } from './pages/MainPage'
 import { ReceivePage } from './pages/ReceivePage'
 import { TransferPage } from './pages/TransferPage'
+import { ClipboardPage } from './pages/ClipboardPage'
 import { HistoryPage } from './pages/HistoryPage'
 import { PairingPage } from './pages/PairingPage'
 import { SettingsPage } from './pages/SettingsPage'
@@ -14,6 +15,7 @@ const PAGES = [
   { id: 'main', label: '主页 · MAIN' },
   { id: 'receive', label: '接收 · RECEIVE' },
   { id: 'transfer', label: '传输 · TRANSFER' },
+  { id: 'clipboard', label: '剪贴板 · CLIPBOARD' },
   { id: 'history', label: '历史 · HISTORY' },
   { id: 'pairing', label: '配对 · PAIRING' },
   { id: 'settings', label: '设置 · SETTINGS' },
@@ -36,6 +38,7 @@ export function App() {
     page === 'main' ? 'http://192.168.1.42/room/客厅' :
     page === 'receive' ? 'http://192.168.1.42/incoming/嘉伟' :
     page === 'transfer' ? 'http://192.168.1.42/transfers' :
+    page === 'clipboard' ? 'http://192.168.1.42/clipboard' :
     page === 'history' ? 'http://192.168.1.42/history' :
     page === 'pairing' ? 'http://192.168.1.42/pair' :
     'http://192.168.1.42/settings'
@@ -44,6 +47,7 @@ export function App() {
     page === 'main' ? <MainPage /> :
     page === 'receive' ? <ReceivePage /> :
     page === 'transfer' ? <TransferPage /> :
+    page === 'clipboard' ? <ClipboardPage /> :
     page === 'history' ? <HistoryPage /> :
     page === 'pairing' ? <PairingPage /> :
     <SettingsPage />

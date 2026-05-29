@@ -9,7 +9,7 @@
  *   - GET  /api/v1/download/<offerId> 接受 offer 后下载文件
  */
 
-import type { DeviceKind, HistoryEntry, MeshDevice, PendingOffer, PendingPairing, TransferRow, TransferState } from './mockData'
+import type { ClipboardItem, DeviceKind, HistoryEntry, MeshDevice, PendingOffer, PendingPairing, TransferRow, TransferState } from './mockData'
 
 // ---------- wire types (protocol/companion-bridges.md §3) ----------
 
@@ -55,6 +55,15 @@ export interface WireHistoryItem {
   completedAt: number
 }
 
+export interface WireClipboardItem {
+  id: string
+  peerName: string
+  kind: 'text' | 'link' | 'code'
+  content: string
+  /** 发送方 Unix 秒时间戳 */
+  ts: number
+}
+
 export interface WireTransferProgress {
   id: string
   peerName?: string
@@ -96,6 +105,7 @@ type WsEvent =
   | { v: 1; type: 'transfer_progress'; payload: WireTransferProgress }
   | { v: 1; type: 'transfer_done'; payload: { id: string; ok: boolean; error?: string } }
   | { v: 1; type: 'history_added'; payload: WireHistoryItem }
+  | { v: 1; type: 'clipboard_received'; payload: WireClipboardItem }
 
 type CmdAck = {
   v: 1
@@ -238,6 +248,24 @@ export function adaptTransfer(t: WireTransferProgress, state: TransferState = 's
   }
 }
 
+function formatAgo(tsSeconds: number): string {
+  const sec = Math.max(0, Math.floor(Date.now() / 1000) - tsSeconds)
+  if (sec < 60) return `${sec}s`
+  if (sec < 3600) return `${Math.floor(sec / 60)}m`
+  if (sec < 86400) return `${Math.floor(sec / 3600)}h`
+  return `${Math.floor(sec / 86400)}d`
+}
+
+export function adaptClipboard(c: WireClipboardItem): ClipboardItem {
+  return {
+    id: c.id,
+    who: c.peerName,
+    kind: c.kind,
+    body: c.content,
+    ago: formatAgo(c.ts),
+  }
+}
+
 // ---------- client ----------
 
 export type EngineConnState = 'idle' | 'connecting' | 'open' | 'closed' | 'unpaired'
@@ -255,6 +283,7 @@ export interface EngineListener {
   onTransferProgress?(t: WireTransferProgress): void
   onTransferDone?(id: string, ok: boolean, error?: string): void
   onHistoryAdded?(h: WireHistoryItem): void
+  onClipboardReceived?(c: WireClipboardItem): void
   onConn?(s: EngineConnState): void
 }
 
@@ -352,6 +381,11 @@ export class GatewayClient {
     return this.cmd('send_text', { peerId, text })
   }
 
+  /** 显式剪贴板推送（非后台同步）。kind ∈ text|link|code。见 protocol/messages.md §0x11。 */
+  sendClipboard(peerId: string, content: string, kind: string): Promise<CmdAck> {
+    return this.cmd('send_clipboard', { peerId, content, kind })
+  }
+
   async sendFile(peerId: string, file: File, opts?: { noteText?: string }): Promise<CmdAck> {
     const fd = new FormData()
     fd.append('file', file, file.name)
@@ -442,6 +476,7 @@ export class GatewayClient {
         case 'transfer_progress': l.onTransferProgress?.(ev.payload); break
         case 'transfer_done': l.onTransferDone?.(ev.payload.id, ev.payload.ok, ev.payload.error); break
         case 'history_added': l.onHistoryAdded?.(ev.payload); break
+        case 'clipboard_received': l.onClipboardReceived?.(ev.payload); break
       }
     }
   }
