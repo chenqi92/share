@@ -62,6 +62,9 @@ public sealed partial class ShareEngine : ObservableObject
     public ObservableCollection<PendingFileOffer> PendingFileOffers { get; } = new();
     public ObservableCollection<TrustRecord> Trusted { get; } = new();
 
+    /// <summary>收到的剪贴板推送（最新在前，上限 50）。见 protocol/messages.md §0x11。</summary>
+    public ObservableCollection<ClipboardEntry> ClipboardInbox { get; } = new();
+
     /// <summary>
     /// 进行中传输的实时速率 + ETA。Key 为 history.id；进入 terminal 状态时被
     /// UpdateHistory 移除。WinUI 列表行用 TransferMetricsChanged 事件刷新。
@@ -215,6 +218,39 @@ public sealed partial class ShareEngine : ObservableObject
         { HistoryId = item.Id };
         _contexts[ctx.Id] = ctx;
         StartConnection(ctx);
+    }
+
+    // ─── 出方：剪贴板 ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 显式剪贴板推送（用户主动触发，非后台静默同步）。复用与 TEXT 相同的连接
+    /// 生命周期：建出方连接 → HELLO/ACK → CLIPBOARD → 关。不写入文件历史。
+    /// Kind ∈ {text|link|code}，由调用方按内容判定（见 <see cref="ClipKind"/>）。
+    /// </summary>
+    public void PushClipboard(Device device, string content, string kind)
+    {
+        if (string.IsNullOrEmpty(content) || string.IsNullOrEmpty(device.Host)) return;
+        var conn = Connection.ForOutgoing(device.Host, device.Port);
+        var ctx = new ConnectionContext(conn,
+            new ConnectionContext.RoleClient(device, new ConnectionContext.PayloadClipboard(content, kind)),
+            ConnectionContext.StateAwaitingHelloAck);
+        _contexts[ctx.Id] = ctx;
+        StartConnection(ctx);
+    }
+
+    /// <summary>
+    /// 按内容粗判剪贴板 kind（与 Apple / Android / Web 端同口径）：
+    /// http(s):// 开头且无空白 → link；含换行且出现代码特征字符 → code；否则 text。
+    /// </summary>
+    public static string ClipKind(string content)
+    {
+        var t = (content ?? string.Empty).Trim();
+        if ((t.StartsWith("http://", StringComparison.Ordinal) || t.StartsWith("https://", StringComparison.Ordinal))
+            && !t.Any(char.IsWhiteSpace))
+            return "link";
+        if (t.Contains('\n') && t.Any(c => "{};=<>/".Contains(c)))
+            return "code";
+        return "text";
     }
 
     // ─── 出方：文件 ──────────────────────────────────────────────────────
@@ -459,6 +495,9 @@ public sealed partial class ShareEngine : ObservableObject
         if (state == ConnectionContext.StateReady && type == MessageType.TEXT)
         { HandleReceivedText(ctx, body); return; }
 
+        if (state == ConnectionContext.StateReady && type == MessageType.CLIPBOARD)
+        { HandleReceivedClipboard(ctx, body); return; }
+
         if (state == ConnectionContext.StateReady && type == MessageType.FILE_OFFER)
         { HandleReceivedFileOffer(ctx, body); return; }
 
@@ -572,6 +611,22 @@ public sealed partial class ShareEngine : ObservableObject
                     }
                     break;
                 }
+            case ConnectionContext.PayloadClipboard c:
+                {
+                    var msg = new ClipboardMessage(Guid.NewGuid().ToString(), c.Content, c.Kind,
+                        DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+                    try
+                    {
+                        await ctx.Connection.SendAsync(MessageType.CLIPBOARD, MessageCodec.Encode(msg));
+                        await Task.Delay(200);
+                        await CloseContextAsync(ctx.Id, null);
+                    }
+                    catch (Exception ex)
+                    {
+                        await CloseContextAsync(ctx.Id, ex);
+                    }
+                    break;
+                }
             case ConnectionContext.PayloadFile f:
                 {
                     var tid = ctx.TransferId ?? Guid.NewGuid();
@@ -669,6 +724,24 @@ public sealed partial class ShareEngine : ObservableObject
                 new HistoryKind.Text(content), new TransferStatus.Completed());
             History.Insert(0, item);
             RaiseEvent(new EngineEvent.HistoryAdded(item));
+        });
+    }
+
+    private void HandleReceivedClipboard(ConnectionContext ctx, byte[] body)
+    {
+        if (ctx.Peer is null) return;
+        ClipboardMessage? msg = null;
+        try { msg = MessageCodec.Decode<ClipboardMessage>(body); } catch { }
+        if (msg is null) return;
+        var peerName = ctx.Peer.Name;
+        var content = msg.Content;
+        var kind = msg.Kind;
+        _ui.TryEnqueue(() =>
+        {
+            var entry = ClipboardEntry.Create(peerName, content, kind);
+            ClipboardInbox.Insert(0, entry);
+            while (ClipboardInbox.Count > 50) ClipboardInbox.RemoveAt(ClipboardInbox.Count - 1);
+            RaiseEvent(new EngineEvent.ClipboardReceived(entry));
         });
     }
 
@@ -943,5 +1016,6 @@ internal sealed class ConnectionContext
 
     public abstract record Payload;
     public sealed record PayloadText(string Content) : Payload;
+    public sealed record PayloadClipboard(string Content, string Kind) : Payload;
     public sealed record PayloadFile(string SourcePath, long FileSize, string Sha256, string FileName) : Payload;
 }

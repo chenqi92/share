@@ -31,6 +31,12 @@ public sealed record TextMessage(
     [property: JsonPropertyName("content")] string Content,
     [property: JsonPropertyName("ts")] long Ts);
 
+public sealed record ClipboardMessage(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("content")] string Content,
+    [property: JsonPropertyName("kind")] string Kind,
+    [property: JsonPropertyName("ts")] long Ts);
+
 public sealed record FileMeta(
     [property: JsonPropertyName("index")] int Index,
     [property: JsonPropertyName("name")] string Name,

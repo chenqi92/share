@@ -16,4 +16,5 @@ public abstract record EngineEvent
     public sealed record TransferProgress(System.Guid Id, long BytesSent, long TotalBytes, long SpeedBps) : EngineEvent;
     public sealed record TransferDone(System.Guid Id, bool Ok, string? Error) : EngineEvent;
     public sealed record HistoryAdded(HistoryItem Item) : EngineEvent;
+    public sealed record ClipboardReceived(ClipboardEntry Entry) : EngineEvent;
 }
