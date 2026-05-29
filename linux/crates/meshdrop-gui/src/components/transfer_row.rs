@@ -102,14 +102,21 @@ pub fn row(
     bar.set_valign(gtk::Align::Center);
     bottom.append(&bar);
 
-    let meta_str = match (item.speed.as_deref(), item.eta.as_deref(), item.progress) {
-        (Some(sp), Some(eta), _) => format!("{}  ·  ETA {}  ·  {}%", sp, eta, item.progress),
-        (None,     Some(eta), 100) => format!("✓ {}  ·  {}", item.state.label_cn(), eta),
-        (None,     None,      0)   => "排队中…".to_string(),
-        _ => format!("{}%", item.progress),
+    let is_failed = matches!(item.state, TransferState::Failed);
+    let meta_str = if is_failed {
+        // 失败：优先显示具体原因（校验失败 / 连接中断 / 拒收 …）
+        format!("× {}", item.fail_reason.as_deref().unwrap_or("失败"))
+    } else {
+        match (item.speed.as_deref(), item.eta.as_deref(), item.progress) {
+            (Some(sp), Some(eta), _) => format!("{}  ·  ETA {}  ·  {}%", sp, eta, item.progress),
+            (None,     Some(eta), 100) => format!("✓ {}  ·  {}", item.state.label_cn(), eta),
+            (None,     None,      0)   => "排队中…".to_string(),
+            _ => format!("{}%", item.progress),
+        }
     };
     let meta = gtk::Label::new(Some(&meta_str));
     meta.add_css_class("meshdrop-meta");
+    if is_failed { meta.add_css_class("meshdrop-error"); }
     meta.set_width_chars(28);
     meta.set_xalign(1.0);
     bottom.append(&meta);

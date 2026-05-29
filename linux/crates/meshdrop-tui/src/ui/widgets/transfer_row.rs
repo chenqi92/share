@@ -84,7 +84,10 @@ fn bottom_line<'a>(theme: &Theme, t: &Transfer) -> Line<'a> {
         HistoryState::Sending => format!("{} 发送", theme.arrow_up()),
         HistoryState::Receiving => format!("{} 接收", theme.arrow_down()),
         HistoryState::Done => format!("{} 完成", theme.check()),
-        HistoryState::Failed => format!("{} 失败", theme.cross()),
+        HistoryState::Failed => match t.fail_reason.as_deref() {
+            Some(reason) => format!("{} {}", theme.cross(), reason),
+            None => format!("{} 失败", theme.cross()),
+        },
         HistoryState::Queued => "· 队列".to_string(),
     };
     let mut spans = vec![

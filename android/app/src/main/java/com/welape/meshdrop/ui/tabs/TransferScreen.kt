@@ -266,6 +266,11 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
     val savedUri = if (state == TransferState.DONE && direction == TransferDirection.INCOMING) {
         file.uri?.toString()
     } else null
+    val failReason = when (val s = status) {
+        is TransferStatus.Failed -> s.reason
+        TransferStatus.Canceled -> "已取消"
+        else -> null
+    }
     return MockTransfer(
         id = id.toString(),
         name = file.name,
@@ -278,6 +283,7 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
         speed = speed,
         eta = eta,
         savedFileUri = savedUri,
+        failReason = failReason,
     )
 }
 
