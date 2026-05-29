@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import com.welape.meshdrop.data.ClipboardEntry
 import com.welape.meshdrop.data.Device
 import com.welape.meshdrop.data.DeviceOS
 import com.welape.meshdrop.data.HistoryItem
@@ -26,6 +27,7 @@ import com.welape.meshdrop.protocol.FileCompleteMessage
 import com.welape.meshdrop.protocol.FileMeta
 import com.welape.meshdrop.protocol.FileOfferMessage
 import com.welape.meshdrop.protocol.FileRejectMessage
+import com.welape.meshdrop.protocol.ClipboardMessage
 import com.welape.meshdrop.protocol.HelloAckMessage
 import com.welape.meshdrop.protocol.HelloMessage
 import com.welape.meshdrop.protocol.MessageCodec
@@ -99,6 +101,10 @@ class ShareEngine(private val context: Context) {
     /** 进行中传输的实时速率 + ETA。key = history.id。terminal 时被 updateHistoryStatus 移除。 */
     private val _transferMetrics = MutableStateFlow<Map<UUID, TransferMetrics>>(emptyMap())
     val transferMetrics: StateFlow<Map<UUID, TransferMetrics>> = _transferMetrics.asStateFlow()
+
+    /** 收到的剪贴板推送（最新在前，上限 50）。见 protocol/messages.md §0x11。 */
+    private val _clipboardInbox = MutableStateFlow<List<ClipboardEntry>>(emptyList())
+    val clipboardInbox: StateFlow<List<ClipboardEntry>> = _clipboardInbox.asStateFlow()
 
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
@@ -186,6 +192,24 @@ class ShareEngine(private val context: Context) {
             role = ConnectionContext.Role.Client(device, ConnectionContext.Payload.Text(content)),
             state = ConnectionContext.State.AwaitingHelloAck,
         ).apply { historyId = item.id }
+        contexts[ctx.id] = ctx
+        startConnection(ctx)
+    }
+
+    // MARK: - 出方：剪贴板
+
+    /**
+     * 显式剪贴板推送（用户主动触发，非后台静默同步）。复用与 TEXT 相同的连接
+     * 生命周期：建出方连接 → HELLO/ACK → CLIPBOARD → 关。不写入文件历史。
+     * kind ∈ {text|link|code}，由调用方按内容判定。
+     */
+    fun pushClipboard(device: Device, content: String, kind: String) {
+        if (content.isEmpty()) return
+        val ctx = ConnectionContext(
+            connection = newOutgoingConnection(device) ?: return,
+            role = ConnectionContext.Role.Client(device, ConnectionContext.Payload.Clipboard(content, kind)),
+            state = ConnectionContext.State.AwaitingHelloAck,
+        )
         contexts[ctx.id] = ctx
         startConnection(ctx)
     }
@@ -420,6 +444,9 @@ class ShareEngine(private val context: Context) {
             state is ConnectionContext.State.Ready && type == MessageType.TEXT ->
                 handleReceivedText(ctx, body)
 
+            state is ConnectionContext.State.Ready && type == MessageType.CLIPBOARD ->
+                handleReceivedClipboard(ctx, body)
+
             state is ConnectionContext.State.Ready && type == MessageType.FILE_OFFER ->
                 handleReceivedFileOffer(ctx, body)
 
@@ -541,6 +568,21 @@ class ShareEngine(private val context: Context) {
                     closeContext(ctx.id, e)
                 }
             }
+            is ConnectionContext.Payload.Clipboard -> {
+                val msg = ClipboardMessage(
+                    id = UUID.randomUUID().toString(),
+                    content = payload.content,
+                    kind = payload.kind,
+                    ts = System.currentTimeMillis() / 1000,
+                )
+                try {
+                    ctx.connection.send(MessageType.CLIPBOARD, MessageCodec.encode(msg))
+                    delay(200)
+                    closeContext(ctx.id, null)
+                } catch (e: Exception) {
+                    closeContext(ctx.id, e)
+                }
+            }
             is ConnectionContext.Payload.File -> {
                 val tid = ctx.transferId ?: UUID.randomUUID().also { ctx.transferId = it }
                 val offer = FileOfferMessage(
@@ -641,6 +683,17 @@ class ShareEngine(private val context: Context) {
                 status = TransferStatus.Completed,
             )
         )
+    }
+
+    private fun handleReceivedClipboard(ctx: ConnectionContext, body: ByteArray) {
+        val peer = ctx.peer ?: return
+        val msg = runCatching { MessageCodec.decode<ClipboardMessage>(body) }.getOrNull() ?: return
+        val entry = ClipboardEntry(
+            peerName = peer.name,
+            content = msg.content,
+            kind = msg.kind,
+        )
+        _clipboardInbox.value = (listOf(entry) + _clipboardInbox.value).take(50)
     }
 
     private suspend fun handleReceivedFileOffer(ctx: ConnectionContext, body: ByteArray) {
@@ -943,6 +996,24 @@ class ShareEngine(private val context: Context) {
             n++
         }
     }
+
+    companion object {
+        /**
+         * 按内容粗判剪贴板 kind（与 Apple 端 clipKind 同口径）：
+         * 以 http(s):// 开头且无空白 → link；含换行且出现代码特征字符 → code；否则 text。
+         */
+        fun clipKind(content: String): String {
+            val trimmed = content.trim()
+            if ((trimmed.startsWith("http://") || trimmed.startsWith("https://")) &&
+                !trimmed.any { it.isWhitespace() }) {
+                return "link"
+            }
+            if (trimmed.contains('\n') && trimmed.any { it in "{};=<>/" }) {
+                return "code"
+            }
+            return "text"
+        }
+    }
 }
 
 // MARK: - ConnectionContext
@@ -960,6 +1031,7 @@ class ConnectionContext(
 
     sealed interface Payload {
         data class Text(val content: String) : Payload
+        data class Clipboard(val content: String, val kind: String) : Payload
         data class File(
             val sourceUri: Uri,
             val fileSize: Long,
