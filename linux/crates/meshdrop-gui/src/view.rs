@@ -169,6 +169,8 @@ pub struct ViewTransferRow {
     pub state: mock::TransferState,
     pub speed: Option<String>,
     pub eta: Option<String>,
+    /// 已完成接收项的本地落盘路径 —— TransferRow 据此渲染 Open / Reveal 按钮。
+    pub saved_path: Option<std::path::PathBuf>,
 }
 
 impl ViewTransferRow {
@@ -177,15 +179,20 @@ impl ViewTransferRow {
         self_name: &str,
         metrics: Option<&TransferMetrics>,
     ) -> Option<Self> {
-        let (name, size_str, ext) = match &h.kind {
-            HistoryKind::File { name, size, .. } => {
+        let (name, size_str, ext, saved_path) = match &h.kind {
+            HistoryKind::File { name, size, path } => {
                 let ext = name.rsplit_once('.').map(|(_, e)| e).unwrap_or("file").to_string();
-                (name.clone(), format_bytes(*size), ext)
+                let saved = match h.direction {
+                    TransferDirection::Incoming => path.clone(),
+                    TransferDirection::Outgoing => None,
+                };
+                (name.clone(), format_bytes(*size), ext, saved)
             }
             HistoryKind::Text(t) => (
                 format!("文字便签 · {}", truncate(t, 24)),
                 format!("{} B", t.len()),
                 "txt".to_string(),
+                None,
             ),
         };
         let (from, to) = match h.direction {
@@ -216,6 +223,7 @@ impl ViewTransferRow {
         Some(Self {
             id: h.id, name, size: size_str, ext, from, to, progress, state,
             speed, eta,
+            saved_path: if matches!(state, mock::TransferState::Done) { saved_path } else { None },
         })
     }
 }
