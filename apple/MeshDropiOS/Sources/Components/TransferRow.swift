@@ -5,16 +5,20 @@ import SwiftUI
 /// 调用方负责发 FILE_CANCEL（见 ShareEngine.cancelTransfer）。
 /// 传入 `onRetry` 且 state 为 failed 时，状态行右侧渲染重试按钮，
 /// 调用方负责调用 ShareEngine.retryTransfer。
+/// 传入 `onOpen` 且 state 为 done 时，状态行右侧渲染打开按钮，
+/// 调用方负责用 QuickLook 预览已接收文件。
 public struct TransferRow: View {
     let item: MockTransfer
     var onCancel: (() -> Void)? = nil
     var onRetry: (() -> Void)? = nil
+    var onOpen: (() -> Void)? = nil
     @Environment(\.colorScheme) private var scheme
 
-    public init(_ item: MockTransfer, onCancel: (() -> Void)? = nil, onRetry: (() -> Void)? = nil) {
+    public init(_ item: MockTransfer, onCancel: (() -> Void)? = nil, onRetry: (() -> Void)? = nil, onOpen: (() -> Void)? = nil) {
         self.item = item
         self.onCancel = onCancel
         self.onRetry = onRetry
+        self.onOpen = onOpen
     }
 
     public var body: some View {
@@ -83,6 +87,26 @@ public struct TransferRow: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("重试发送")
+                    }
+                    if item.state == .done, let onOpen {
+                        Spacer(minLength: 4)
+                        Button(action: onOpen) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.forward.app")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("OPEN")
+                                    .font(MeshDropFont.mono(10, weight: .bold))
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .foregroundStyle(MeshDropColor.limeDeep)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(MeshDropColor.limeDeep.opacity(0.5), lineWidth: 0.8)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("打开文件")
                     }
                 }
 
