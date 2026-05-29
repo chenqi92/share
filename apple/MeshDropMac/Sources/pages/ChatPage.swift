@@ -1,11 +1,12 @@
 import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
+import MeshDropKit
 
 struct ChatPage: View {
     @EnvironmentObject var state: AppState
     var forceDragOverlay: Bool = false
-    @State private var composer: String = "那我去过一遍标注，主要看 §2.3 那段"
+    @State private var composer: String = ""
 
     var body: some View {
         ZStack {
@@ -25,29 +26,45 @@ struct ChatPage: View {
 
     private var dev: MockDevice { state.selectedDevice }
 
+    /// 当前对话 = engine.history 中 peer.id 匹配选中设备的所有项，按时间正序展示。
+    private var conversation: [HistoryItem] {
+        state.engineHistoryItems
+            .filter { $0.peer.id == state.selectedDeviceID }
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    /// 收到当前对端的文件 offer 时，会话顶部弹接收确认卡片。
+    private var incomingOffer: MockPendingOffer? {
+        guard let offer = state.engineOffer, offer.peer == dev.who else { return nil }
+        return offer
+    }
+
     private var header: some View {
         HStack(spacing: 12) {
             Avatar(initials: dev.initials, color: dev.color, size: 40)
             VStack(alignment: .leading, spacing: 1) {
-                Text("\(dev.who) · \(dev.name)")
+                Text(dev.who)
                     .font(MeshDropFont.body(size: 14.5, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textPrimary)
                 HStack(spacing: 5) {
                     KindGlyph(kind: dev.kind, size: 11)
                     Text(dev.os).font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
                     Text("·").foregroundStyle(MeshDropColor.textMuted)
-                    Circle().fill(MeshDropColor.limeDeep).frame(width: 5, height: 5)
-                    Text("ONLINE").meshTag().foregroundStyle(MeshDropColor.limeDeep)
-                    Text("·").foregroundStyle(MeshDropColor.textMuted)
-                    Text("\(dev.rtt)ms").font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
+                    Circle()
+                        .fill(dev.online ? MeshDropColor.limeDeep : MeshDropColor.textMuted)
+                        .frame(width: 5, height: 5)
+                    Text(dev.online ? "ONLINE" : "OFFLINE")
+                        .meshTag()
+                        .foregroundStyle(dev.online ? MeshDropColor.limeDeep : MeshDropColor.textMuted)
+                    if dev.rtt > 0 {
+                        Text("·").foregroundStyle(MeshDropColor.textMuted)
+                        Text("\(dev.rtt)ms").font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
+                    }
                     Text("·").foregroundStyle(MeshDropColor.textMuted)
                     Text("E2E").meshTag().foregroundStyle(MeshDropColor.limeDeep)
-                    Text("·").foregroundStyle(MeshDropColor.textMuted)
-                    Text("192.168.1.78").font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
                 }
             }
             Spacer()
-            Chip(text: "已配对 · Paired", tone: .lime, mono: false)
             IconBtn(systemName: "ellipsis", size: 28)
         }
         .padding(.horizontal, 22)
@@ -58,96 +75,110 @@ struct ChatPage: View {
     private var messages: some View {
         PageScroll {
             VStack(spacing: 14) {
-                AsciiDivider(text: "TODAY · 14:08")
-
-                MsgBubble(side: .incoming, time: "14:08") {
-                    Text("下午发的那版改完了吗？想看下 §2.3 的笔记。")
-                        .font(MeshDropFont.body(size: 13))
-                }
-
-                MsgBubble(side: .outgoing, time: "14:09", delivered: true) {
-                    Text("改完了，整理一下发你 👇")
-                        .font(MeshDropFont.body(size: 13))
-                }
-
-                MsgBubble(side: .outgoing, kind: .file, time: "14:10", delivered: true) {
-                    FileChip(name: "设计稿_v3_final.fig",
-                             size: "14.2 MB · ✓ SHA-256 verified",
-                             ext: "fig",
-                             dark: false)
-                        .frame(width: 280)
-                }
-
-                MsgBubble(side: .incoming, time: "14:11") {
-                    Text("收到，我看看~ 这边晚一点也发你两张参考图。")
-                        .font(MeshDropFont.body(size: 13))
-                }
-
-                MsgBubble(side: .incoming, kind: .image, time: "14:14") {
-                    HStack(spacing: 4) {
-                        Photo(hue: 24).frame(width: 120, height: 90)
-                        Photo(hue: 200).frame(width: 120, height: 90)
+                if conversation.isEmpty && incomingOffer == nil {
+                    emptyHint
+                } else {
+                    ForEach(conversation) { item in
+                        bubble(for: item)
+                    }
+                    if let offer = incomingOffer {
+                        offerCard(offer)
                     }
                 }
-
-                MsgBubble(side: .incoming, kind: .file, time: "14:18") {
-                    FileChip(name: "iOS-mocks-final.zip",
-                             size: "48.6 MB · 67%",
-                             ext: "zip",
-                             progress: 0.67)
-                        .frame(width: 280)
-                }
-
-                // 浮窗 receive confirm
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Text("↓").foregroundStyle(MeshDropColor.sky).meshMono(11, weight: .bold)
-                        Text("来自 孟茜 的传输 · incoming")
-                            .font(MeshDropFont.body(size: 11.5, weight: .semibold))
-                            .foregroundStyle(MeshDropColor.textPrimary)
-                        Spacer()
-                        Text("刚刚")
-                            .font(MeshDropFont.mono(size: 10))
-                            .foregroundStyle(MeshDropColor.textMuted)
-                    }
-                    FileChip(name: "iOS-mocks-final.zip",
-                             size: "48.6 MB · 1 个文件",
-                             ext: "zip")
-                    HStack(spacing: 8) {
-                        Spacer()
-                        Text("拒绝 · Reject")
-                            .font(MeshDropFont.body(size: 12, weight: .semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(MeshDropColor.divider, lineWidth: 1)
-                            )
-                            .foregroundStyle(MeshDropColor.textSecondary)
-                        Text("接收 · Accept ⏎")
-                            .font(MeshDropFont.body(size: 12, weight: .semibold))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(MeshDropColor.lime)
-                            )
-                            .foregroundStyle(MeshDropColor.ink)
-                    }
-                }
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(MeshDropColor.limeFill)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(MeshDropColor.lime, lineWidth: 1)
-                        )
-                )
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 18)
         }
+    }
+
+    private var emptyHint: some View {
+        VStack(spacing: 6) {
+            Text(state.selectedDeviceID.isEmpty ? "还没有可对话的设备" : "还没有消息")
+                .font(MeshDropFont.body(size: 13, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textPrimary)
+            Text(state.selectedDeviceID.isEmpty ? "等待同一局域网的设备出现" : "发一句话开始对话")
+                .font(MeshDropFont.mono(size: 11))
+                .foregroundStyle(MeshDropColor.textMuted)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+
+    @ViewBuilder
+    private func bubble(for item: HistoryItem) -> some View {
+        let side: BubbleSide = item.direction == .outgoing ? .outgoing : .incoming
+        let time = Self.timeFormatter.string(from: item.createdAt)
+        switch item.kind {
+        case .text(let content):
+            MsgBubble(side: side, time: time, delivered: isDelivered(item)) {
+                Text(content)
+                    .font(MeshDropFont.body(size: 13))
+                    .textSelection(.enabled)
+            }
+        case .file(let name, let size, _):
+            MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item)) {
+                FileChip(name: name,
+                         size: fileSizeLabel(size: size, status: item.status),
+                         ext: fileExt(name),
+                         progress: progressFraction(item.status),
+                         dark: side == .outgoing)
+                    .frame(width: 280)
+            }
+        }
+    }
+
+    private func offerCard(_ offer: MockPendingOffer) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Text("↓").foregroundStyle(MeshDropColor.sky).meshMono(11, weight: .bold)
+                Text("来自 \(offer.peer) 的传输 · incoming")
+                    .font(MeshDropFont.body(size: 11.5, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.textPrimary)
+                Spacer()
+                Text(offer.receivedAt)
+                    .font(MeshDropFont.mono(size: 10))
+                    .foregroundStyle(MeshDropColor.textMuted)
+            }
+            FileChip(name: offer.fileName,
+                     size: offer.fileSize,
+                     ext: fileExt(offer.fileName))
+            HStack(spacing: 8) {
+                Spacer()
+                Button(action: { state.rejectCurrentOffer() }) {
+                    Text("拒绝 · Reject")
+                        .font(MeshDropFont.body(size: 12, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(MeshDropColor.divider, lineWidth: 1)
+                        )
+                        .foregroundStyle(MeshDropColor.textSecondary)
+                }
+                .buttonStyle(.plain)
+                Button(action: { state.acceptCurrentOffer() }) {
+                    Text("接收 · Accept ⏎")
+                        .font(MeshDropFont.body(size: 12, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(MeshDropColor.lime)
+                        )
+                        .foregroundStyle(MeshDropColor.ink)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(MeshDropColor.limeFill)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(MeshDropColor.lime, lineWidth: 1)
+                )
+        )
     }
 
     private var composerBar: some View {
@@ -155,15 +186,17 @@ struct ChatPage: View {
             IconBtn(systemName: "paperclip", size: 32, action: { pickFiles(imagesOnly: false) })
             IconBtn(systemName: "photo", size: 32, action: { pickFiles(imagesOnly: true) })
             HStack {
-                Text(composer.isEmpty
-                     ? "发送给 \(dev.who) · 拖入即送 / ⏎ 发送"
-                     : composer)
-                    .font(MeshDropFont.body(size: 13))
-                    .foregroundStyle(composer.isEmpty
-                                     ? MeshDropColor.textMuted
-                                     : MeshDropColor.textPrimary)
-                    .lineLimit(2)
-                Spacer()
+                TextField(
+                    state.selectedDeviceID.isEmpty
+                        ? "等待设备…"
+                        : "发送给 \(dev.who) · 拖入即送 / ⏎ 发送",
+                    text: $composer
+                )
+                .textFieldStyle(.plain)
+                .font(MeshDropFont.body(size: 13))
+                .foregroundStyle(MeshDropColor.textPrimary)
+                .onSubmit(sendComposed)
+                .disabled(state.selectedDeviceID.isEmpty)
                 Text("⏎")
                     .font(MeshDropFont.mono(size: 10, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textMuted)
@@ -183,7 +216,7 @@ struct ChatPage: View {
                             .stroke(MeshDropColor.divider, lineWidth: 1)
                     )
             )
-            IconBtn(systemName: "arrow.up", size: 32, accent: true)
+            IconBtn(systemName: "arrow.up", size: 32, accent: true, action: sendComposed)
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 14)
@@ -211,6 +244,15 @@ struct ChatPage: View {
         )
     }
 
+    // MARK: - 发送
+
+    private func sendComposed() {
+        let trimmed = composer.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !state.selectedDeviceID.isEmpty else { return }
+        state.sendText(toDeviceID: state.selectedDeviceID, content: trimmed)
+        composer = ""
+    }
+
     /// 弹 NSOpenPanel 让用户多选文件（imagesOnly=true 时限定图片类型），
     /// 选完后 batch 发给当前选中设备。
     private func pickFiles(imagesOnly: Bool) {
@@ -231,4 +273,53 @@ struct ChatPage: View {
             }
         }
     }
+
+    // MARK: - 投影辅助
+
+    private func isDelivered(_ item: HistoryItem) -> Bool {
+        item.direction == .outgoing && item.status == .completed
+    }
+
+    private func progressFraction(_ status: TransferStatus) -> Double? {
+        if case let .transferring(done, total) = status, total > 0 {
+            return Double(done) / Double(total)
+        }
+        return nil
+    }
+
+    private func fileSizeLabel(size: UInt64, status: TransferStatus) -> String {
+        let base = Self.byteFormatter.string(fromByteCount: Int64(size))
+        switch status {
+        case .completed:
+            return "\(base) · ✓ SHA-256 verified"
+        case let .transferring(done, total) where total > 0:
+            return "\(base) · \(Int(Double(done) / Double(total) * 100))%"
+        case .waitingApproval, .pending:
+            return "\(base) · 等待中"
+        case .failed:
+            return "\(base) · 失败"
+        case .canceled:
+            return "\(base) · 已取消"
+        default:
+            return base
+        }
+    }
+
+    private func fileExt(_ name: String) -> String {
+        let ext = (name as NSString).pathExtension.lowercased()
+        return ext.isEmpty ? "bin" : ext
+    }
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
+    private static let byteFormatter: ByteCountFormatter = {
+        let f = ByteCountFormatter()
+        f.allowedUnits = [.useKB, .useMB, .useGB]
+        f.countStyle = .file
+        return f
+    }()
 }

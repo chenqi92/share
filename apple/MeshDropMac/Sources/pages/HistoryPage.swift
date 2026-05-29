@@ -108,35 +108,6 @@ struct HistoryPage: View {
         )
     }
 
-    @ViewBuilder
-    private func yesterdayCard(_ i: Int) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(i == 0 ? "↑" : "↓")
-                    .font(MeshDropFont.mono(size: 14, weight: .bold))
-                    .foregroundStyle(i == 0 ? MeshDropColor.flame : MeshDropColor.sky)
-                Text(["李莉", "孟茜", "DEV-01"][i])
-                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.textPrimary)
-                Spacer()
-                Text(["18:42", "16:08", "11:24"][i])
-                    .font(MeshDropFont.mono(size: 10))
-                    .foregroundStyle(MeshDropColor.textMuted)
-            }
-            FileChip(
-                name: ["proposal.pdf", "logo-export.zip", "build-2026.05.23.dmg"][i],
-                size: ["1.2 MB", "8.4 MB", "182 MB"][i],
-                ext: ["pdf", "zip", "dmg"][i]
-            )
-            Chip(text: "DONE", tone: .lime, mono: true)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(MeshDropColor.cardBg)
-        )
-    }
 
     @ViewBuilder
     private func statusBadge(_ s: HistoryStatus) -> some View {
