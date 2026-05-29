@@ -49,6 +49,20 @@ public final class GatewayCommands {
             engine.sendText(to: dev, content: text)
             return Self.makeReply(id: cmdID, ok: true)
 
+        case "send_clipboard":
+            let peerId = (payload["peerId"] as? String) ?? ""
+            let content = (payload["content"] as? String) ?? ""
+            guard let dev = engine.devices.first(where: { $0.id == peerId }) else {
+                return Self.makeReply(id: cmdID, ok: false, error: "peer_not_found")
+            }
+            guard !content.isEmpty else {
+                return Self.makeReply(id: cmdID, ok: false, error: "empty_content")
+            }
+            let rawKind = (payload["kind"] as? String) ?? ""
+            let kind = rawKind.isEmpty ? Self.clipKind(content) : rawKind
+            engine.pushClipboard(to: dev, content: content, kind: kind)
+            return Self.makeReply(id: cmdID, ok: true)
+
         case "send_file_ref":
             let peerId = (payload["peerId"] as? String) ?? ""
             let fileRef = (payload["fileRef"] as? String) ?? ""
@@ -209,6 +223,22 @@ public final class GatewayCommands {
             }
             .store(in: &bag)
 
+        // 剪贴板入站：inbox 为 newest-first。用 scan 比对前后两帧，只推新增条目；
+        // 倒序发让客户端 inbox 顺序正确（旧→新）。
+        engine.$clipboardInbox
+            .dropFirst()
+            .scan(([] as [ClipboardEntry], [] as [ClipboardEntry])) { state, new in
+                (state.1, new)
+            }
+            .sink { [weak self] previous, current in
+                guard let self else { return }
+                let newOnes = current.filter { e in !previous.contains(where: { $0.id == e.id }) }
+                for e in newOnes.reversed() {
+                    send(Self.encodeEvent(type: "clipboard_received", payload: self.clipboardWire(e)))
+                }
+            }
+            .store(in: &bag)
+
         // 进行中传输的速率推送：每个 metrics 字典变化，挑出当前 transferring 的
         // history 条目，包成 WireTransferProgress 推给 web。
         engine.$transferMetrics
@@ -290,6 +320,29 @@ public final class GatewayCommands {
             obj["bytesTransferred"] = Int(size)
         }
         return obj
+    }
+
+    private func clipboardWire(_ e: ClipboardEntry) -> [String: Any] {
+        return [
+            "id": e.id.uuidString,
+            "peerName": e.peerName,
+            "kind": e.kind,
+            "content": e.content,
+            "ts": Int(e.receivedAt.timeIntervalSince1970),
+        ]
+    }
+
+    /// 按内容粗判剪贴板 kind（与 Apple / Android / Web / Windows / Linux 端同口径）。
+    nonisolated static func clipKind(_ content: String) -> String {
+        let t = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if (t.hasPrefix("http://") || t.hasPrefix("https://")),
+           !t.contains(where: { $0.isWhitespace }) {
+            return "link"
+        }
+        if t.contains("\n"), t.contains(where: { "{};=<>/".contains($0) }) {
+            return "code"
+        }
+        return "text"
     }
 
     private func pairingWire(_ p: PairingRequest) -> [String: Any] {
