@@ -28,6 +28,18 @@ data class HistoryItem(
     val createdAt: Long = System.currentTimeMillis(),
 )
 
+/**
+ * 收到的剪贴板推送条目（显式推送，非后台同步）。见 protocol/messages.md §0x11。
+ * kind ∈ {text|link|code}，用于 UI 区分渲染。
+ */
+data class ClipboardEntry(
+    val id: UUID = UUID.randomUUID(),
+    val peerName: String,
+    val content: String,
+    val kind: String,
+    val receivedAt: Long = System.currentTimeMillis(),
+)
+
 /** 进行中传输的实时指标。仅在 Transferring 阶段有意义，进入 terminal 时清掉。 */
 data class TransferMetrics(
     /** 平滑后的字节 / 秒。0 表示未收到足够样本。 */

@@ -35,6 +35,14 @@ data class TextMessage(
 )
 
 @Serializable
+data class ClipboardMessage(
+    val id: String,
+    val content: String,
+    val kind: String,
+    val ts: Long,
+)
+
+@Serializable
 data class FileMeta(
     val index: Int,
     val name: String,

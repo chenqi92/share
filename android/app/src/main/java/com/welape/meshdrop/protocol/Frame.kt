@@ -50,6 +50,7 @@ object MessageType {
     const val HELLO: Byte = 0x01
     const val HELLO_ACK: Byte = 0x02
     const val TEXT: Byte = 0x10
+    const val CLIPBOARD: Byte = 0x11
     const val FILE_OFFER: Byte = 0x20
     const val FILE_ACCEPT: Byte = 0x21
     const val FILE_REJECT: Byte = 0x22
