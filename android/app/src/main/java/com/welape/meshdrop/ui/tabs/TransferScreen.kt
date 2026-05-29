@@ -19,9 +19,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material3.Text
+import android.content.Intent
+import android.net.Uri
+import android.webkit.MimeTypeMap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -207,8 +213,14 @@ private fun TransferScreenContent(
         Spacer(Modifier.height(4.dp))
         AsciiDivider(label = "已完成 · COMPLETED · 今天 · ${completed.size}")
 
+        val context = LocalContext.current
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            completed.forEach { TransferRow(item = it) }
+            completed.forEach { item ->
+                val onOpen = item.savedFileUri?.let { uriStr ->
+                    { openReceivedFile(context, uriStr) }
+                }
+                TransferRow(item = item, onOpen = onOpen)
+            }
         }
 
         if (queued.isNotEmpty()) {
@@ -251,6 +263,9 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
     val active = state == TransferState.SENDING || state == TransferState.RECEIVING
     val speed = if (active && metrics != null && metrics.bytesPerSec > 1.0) formatSpeed(metrics.bytesPerSec) else null
     val eta = if (active) metrics?.etaSeconds?.let(::formatEta) else null
+    val savedUri = if (state == TransferState.DONE && direction == TransferDirection.INCOMING) {
+        file.uri?.toString()
+    } else null
     return MockTransfer(
         id = id.toString(),
         name = file.name,
@@ -262,7 +277,39 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
         state = state,
         speed = speed,
         eta = eta,
+        savedFileUri = savedUri,
     )
+}
+
+/**
+ * 用 ACTION_VIEW 让系统选默认应用打开文件。原始 file:// 在 Android 7+ 上会触发
+ * FileUriExposedException，所以走 FileProvider 给系统颁发临时 content:// 授权。
+ */
+private fun openReceivedFile(context: android.content.Context, fileUriStr: String) {
+    val raw = Uri.parse(fileUriStr)
+    val path = raw.path ?: return
+    val file = File(path)
+    if (!file.exists()) return
+    val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(
+        file.extension.lowercase(Locale.US)
+    ) ?: "*/*"
+    val authority = "${context.packageName}.fileprovider"
+    val shareUri = try {
+        FileProvider.getUriForFile(context, authority, file)
+    } catch (_: IllegalArgumentException) {
+        // 路径不在 file_provider_paths 白名单里 — 落到 raw uri 让系统报错可见
+        raw
+    }
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(shareUri, mime)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+        context.startActivity(intent)
+    } catch (_: android.content.ActivityNotFoundException) {
+        // 系统找不到任何应用能打开这个 MIME — 静默
+    }
 }
 
 private fun formatSpeed(bps: Double): String {

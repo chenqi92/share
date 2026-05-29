@@ -70,5 +70,16 @@
                     android:pathPrefix="/meshdrop/" />
             </intent-filter>
         </service>
+
+        <!-- 暴露已接收文件给系统 Intent.ACTION_VIEW（避免 FileUriExposedException） -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_provider_paths" />
+        </provider>
     </application>
 </manifest>
