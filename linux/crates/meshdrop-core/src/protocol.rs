@@ -51,6 +51,7 @@ pub mod msg_type {
     pub const HELLO: u8         = 0x01;
     pub const HELLO_ACK: u8     = 0x02;
     pub const TEXT: u8          = 0x10;
+    pub const CLIPBOARD: u8     = 0x11;
     pub const FILE_OFFER: u8    = 0x20;
     pub const FILE_ACCEPT: u8   = 0x21;
     pub const FILE_REJECT: u8   = 0x22;
@@ -90,6 +91,14 @@ pub struct HelloAckMessage {
 pub struct TextMessage {
     pub id: String,
     pub content: String,
+    pub ts: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ClipboardMessage {
+    pub id: String,
+    pub content: String,
+    pub kind: String,    // text | link | code
     pub ts: i64,
 }
 
