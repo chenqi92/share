@@ -93,6 +93,12 @@ struct TransferRow: View {
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
                     }
+                    if item.state == .failed, let reason = item.failReason {
+                        Text("· \(reason)")
+                            .font(MeshDropFont.mono(size: 11, weight: .semibold))
+                            .foregroundStyle(MeshDropColor.error)
+                            .lineLimit(1)
+                    }
                 }
 
                 if item.state == .sending || item.state == .receiving {

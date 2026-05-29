@@ -145,6 +145,8 @@ struct MockTransfer: Identifiable {
     let state: TransferState
     let speed: String?
     let eta: String?
+    /// 失败原因（校验失败 / 连接中断 / 对方拒收 …），仅 state == .failed 时有值。
+    var failReason: String? = nil
 
 #if DEBUG
     static let all: [MockTransfer] = [
