@@ -305,6 +305,13 @@ export class GatewayClient {
     return !!this.session
   }
 
+  /** 已接收文件的下载 URL（GET /api/v1/download/<historyId>，server 带
+   *  Content-Disposition: attachment）。带 ?token= 兼容无 cookie 场景。 */
+  downloadURL(historyId: string): string {
+    const base = `${this.gateway}/api/v1/download/${encodeURIComponent(historyId)}`
+    return this.session ? `${base}?token=${encodeURIComponent(this.session)}` : base
+  }
+
   forgetSession(): void {
     this.session = undefined
     try { localStorage.removeItem('meshdrop.session') } catch { /* ignore */ }
