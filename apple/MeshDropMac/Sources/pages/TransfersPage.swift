@@ -38,6 +38,7 @@ struct TransfersPage: View {
                                 item: item,
                                 onCancel: { state.cancelTransfer(item.id) },
                                 onRetry: item.from == "我" ? { state.retryTransfer(item.id) } : nil,
+                                savedURL: savedURL(for: item),
                             )
                         }
                     }
@@ -109,6 +110,15 @@ struct TransfersPage: View {
     private static func formatSpeed(_ bps: Double) -> String {
         guard bps > 1 else { return "—" }
         return "\(byteFormatter.string(fromByteCount: Int64(bps)))/s"
+    }
+
+    /// 已完成接收项的本地保存路径 —— 给 TransferRow 的 Reveal / Open 按钮用。
+    /// 仅对 done && incoming && kind=.file 的项返回 URL；其余返回 nil。
+    private func savedURL(for transfer: MockTransfer) -> URL? {
+        guard transfer.state == .done, transfer.to == "我" else { return nil }
+        guard let item = state.engineHistoryItems.first(where: { $0.id == transfer.id }),
+              case .file(_, _, let url) = item.kind else { return nil }
+        return url
     }
 
     /// 会话总计：(num, unit) 拆开方便 UI 用不同字号渲染。
