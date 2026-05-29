@@ -232,6 +232,8 @@ export function adaptTransfer(t: WireTransferProgress, state: TransferState = 's
     progress: pct,
     state,
     speed: t.speedBps > 0 ? formatSpeed(t.speedBps) : undefined,
+    speedBps: t.speedBps > 0 ? t.speedBps : undefined,
+    totalBytes: t.totalBytes > 0 ? t.totalBytes : undefined,
     eta: formatEta(t.etaSeconds),
   }
 }

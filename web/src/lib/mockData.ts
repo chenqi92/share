@@ -119,6 +119,10 @@ export interface TransferRow {
   state: TransferState
   eta?: string
   speed?: string
+  /** 原始 bytes/sec，用于 TransferPage 顶部汇总。speed 字段是格式化后的字符串。 */
+  speedBps?: number
+  /** 原始总字节，用于会话总量汇总。size 字段已是格式化字符串。 */
+  totalBytes?: number
 }
 
 export const MESHDROP_TRANSFERS: TransferRow[] = [
