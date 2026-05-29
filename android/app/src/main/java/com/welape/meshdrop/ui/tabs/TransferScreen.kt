@@ -66,12 +66,28 @@ fun TransferScreen(engine: ShareEngine? = null) {
             transfers = MockTransfers,
             onCancel = {},
             onRetry = {},
+            sessionTotalBytes = 0L,
+            currentUploadBps = 0.0,
+            currentDownloadBps = 0.0,
         )
         return
     }
     val history by engine.history.collectAsState()
     val metrics by engine.transferMetrics.collectAsState()
     val transfers = history.mapNotNull { it.toDisplayTransfer(metrics[it.id]) }
+
+    // 会话汇总：所有文件历史 size 之和；瞬时速率分方向求和。
+    val sessionTotal = history.sumOf {
+        (it.kind as? HistoryKind.File)?.size ?: 0L
+    }
+    val (up, down) = history.fold(0.0 to 0.0) { acc, h ->
+        if (h.status is TransferStatus.Transferring) {
+            val m = metrics[h.id]?.bytesPerSec ?: 0.0
+            if (h.direction == TransferDirection.OUTGOING) acc.first + m to acc.second
+            else acc.first to acc.second + m
+        } else acc
+    }
+
     TransferScreenContent(
         transfers = transfers,
         onCancel = { t ->
@@ -80,6 +96,9 @@ fun TransferScreen(engine: ShareEngine? = null) {
         onRetry = { t ->
             runCatching { UUID.fromString(t.id) }.getOrNull()?.let { engine.retryTransfer(it) }
         },
+        sessionTotalBytes = sessionTotal,
+        currentUploadBps = up,
+        currentDownloadBps = down,
     )
 }
 
@@ -88,6 +107,9 @@ private fun TransferScreenContent(
     transfers: List<MockTransfer>,
     onCancel: (MockTransfer) -> Unit,
     onRetry: (MockTransfer) -> Unit,
+    sessionTotalBytes: Long,
+    currentUploadBps: Double,
+    currentDownloadBps: Double,
 ) {
     val mesh = MeshTheme.colors
     val inProgress = transfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
@@ -143,9 +165,10 @@ private fun TransferScreenContent(
 
             Spacer(Modifier.height(10.dp))
 
+            val (sessionNum, sessionUnit) = formatSessionTotal(sessionTotalBytes)
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "1.24",
+                    text = sessionNum,
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 44.sp, color = LimeDeep, letterSpacing = (-1).sp,
@@ -153,7 +176,7 @@ private fun TransferScreenContent(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "GB sent",
+                    text = "$sessionUnit transferred",
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 14.sp, color = mesh.textTertiary,
@@ -168,8 +191,8 @@ private fun TransferScreenContent(
             Spacer(Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                MetricStat(label = "上行 ↑", value = "8.4 MB/s", color = Flame)
-                MetricStat(label = "下行 ↓", value = "11.7 MB/s", color = Sky)
+                MetricStat(label = "上行 ↑", value = formatBps(currentUploadBps), color = Flame)
+                MetricStat(label = "下行 ↓", value = formatBps(currentDownloadBps), color = Sky)
                 MetricStat(label = "活跃任务", value = "${inProgress.size}", color = LimeDeep)
             }
         }
@@ -246,6 +269,20 @@ private fun formatSpeed(bps: Double): String {
     if (bps < 1024) return String.format(Locale.US, "%.0f B/s", bps)
     if (bps < 1024 * 1024) return String.format(Locale.US, "%.1f KB/s", bps / 1024.0)
     return String.format(Locale.US, "%.1f MB/s", bps / 1024.0 / 1024.0)
+}
+
+/** SESSION 卡顶部「上行 ↑ / 下行 ↓」MetricStat 用：0 时显示 "—"。 */
+private fun formatBps(bps: Double): String = if (bps > 1.0) formatSpeed(bps) else "—"
+
+/** SESSION 卡大数字：拆 (num, unit) 给 UI 分字号渲染。 */
+private fun formatSessionTotal(bytes: Long): Pair<String, String> {
+    if (bytes <= 0) return "0" to "B"
+    val kb = bytes / 1024.0
+    if (kb < 1024) return String.format(Locale.US, "%.1f", kb) to "KB"
+    val mb = kb / 1024.0
+    if (mb < 1024) return String.format(Locale.US, "%.1f", mb) to "MB"
+    val gb = mb / 1024.0
+    return String.format(Locale.US, "%.2f", gb) to "GB"
 }
 
 private fun formatEta(secs: Double): String {
