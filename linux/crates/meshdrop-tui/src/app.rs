@@ -569,6 +569,9 @@ fn apply_engine_update(app: &mut App, update: EngineUpdate) {
             app.transfer_metrics = metrics;
             app.refresh_transfers();
         }
+        EngineUpdate::Clipboard { display } => {
+            app.clip = display;
+        }
     }
 }
 

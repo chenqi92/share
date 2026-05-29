@@ -10,7 +10,7 @@
 
 use anyhow::{Context, Result};
 use meshdrop_core::{
-    Device as CoreDevice, DeviceOS, HistoryItem as CoreHistoryItem, HistoryKind,
+    ClipboardEntry, Device as CoreDevice, DeviceOS, HistoryItem as CoreHistoryItem, HistoryKind,
     Identity, PendingFileOffer as CorePendingOffer, PendingPairing as CorePendingPairing,
     ShareEngine, TransferDirection, TransferMetrics, TransferStatus,
 };
@@ -65,6 +65,7 @@ pub enum EngineUpdate {
     Pairings { core: Vec<CorePendingPairing>, display: Vec<mock::PendingPairing> },
     Offers { core: Vec<CorePendingOffer>, display: Vec<mock::PendingOffer> },
     TransferMetricsChanged(HashMap<Uuid, TransferMetrics>),
+    Clipboard { display: Vec<mock::ClipItem> },
 }
 
 pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpdate> {
@@ -138,8 +139,44 @@ pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpd
             }
         });
     }
+    {
+        let mut rcv = engine.clipboard_rx();
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let snap = rcv.borrow().clone();
+            if tx.send(EngineUpdate::Clipboard { display: adapt_clipboard(&snap) }).is_err() { return; }
+            while rcv.changed().await.is_ok() {
+                let snap = rcv.borrow().clone();
+                if tx.send(EngineUpdate::Clipboard { display: adapt_clipboard(&snap) }).is_err() { break; }
+            }
+        });
+    }
 
     rx
+}
+
+/// 收到的剪贴板条目 → 显示模型。ago 由 received_at_ms 相对当前时间换算。
+pub fn adapt_clipboard(list: &[ClipboardEntry]) -> Vec<mock::ClipItem> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    list.iter().map(|e| {
+        let ago = if now >= e.received_at_ms {
+            let s = (now - e.received_at_ms) / 1000;
+            if s < 60 { format!("{s}s") }
+            else if s < 3600 { format!("{}m", s / 60) }
+            else { format!("{}h", s / 3600) }
+        } else {
+            "now".to_string()
+        };
+        mock::ClipItem {
+            who: e.peer_name.clone(),
+            kind: e.kind.clone(),
+            body: e.content.clone(),
+            ago,
+        }
+    }).collect()
 }
 
 // ───────── 适配：core → mock 显示 ─────────
