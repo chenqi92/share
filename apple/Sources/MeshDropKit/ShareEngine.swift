@@ -175,6 +175,15 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 发送文件
 
+    /// 批量发送：每个 URL 独立 offer + 独立 history 条目，按顺序触发 sendFile。
+    /// 当前实现是串行入队（每次 sendFile 都建一条新连接）；
+    /// 后续可优化为同连接复用 FILE_OFFER (files: [...])，但需要协议层扩展。
+    public func sendFiles(to device: Device, sourceURLs: [URL]) {
+        for url in sourceURLs {
+            sendFile(to: device, sourceURL: url)
+        }
+    }
+
     public func sendFile(to device: Device, sourceURL: URL) {
         let needsAccess = sourceURL.startAccessingSecurityScopedResource()
         do {

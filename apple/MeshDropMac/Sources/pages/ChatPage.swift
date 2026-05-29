@@ -1,4 +1,6 @@
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatPage: View {
     @EnvironmentObject var state: AppState
@@ -150,8 +152,8 @@ struct ChatPage: View {
 
     private var composerBar: some View {
         HStack(spacing: 10) {
-            IconBtn(systemName: "paperclip", size: 32)
-            IconBtn(systemName: "photo", size: 32)
+            IconBtn(systemName: "paperclip", size: 32, action: { pickFiles(imagesOnly: false) })
+            IconBtn(systemName: "photo", size: 32, action: { pickFiles(imagesOnly: true) })
             HStack {
                 Text(composer.isEmpty
                      ? "发送给 \(dev.who) · 拖入即送 / ⏎ 发送"
@@ -207,5 +209,26 @@ struct ChatPage: View {
                 .stroke(MeshDropColor.ink, style: StrokeStyle(lineWidth: 2, dash: [10, 6]))
                 .padding(16)
         )
+    }
+
+    /// 弹 NSOpenPanel 让用户多选文件（imagesOnly=true 时限定图片类型），
+    /// 选完后 batch 发给当前选中设备。
+    private func pickFiles(imagesOnly: Bool) {
+        guard !state.selectedDeviceID.isEmpty else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = true
+        panel.title = imagesOnly ? "选择图片" : "选择文件"
+        panel.prompt = "发送"
+        if imagesOnly {
+            panel.allowedContentTypes = [.image]
+        }
+        if panel.runModal() == .OK {
+            let urls = panel.urls
+            if !urls.isEmpty {
+                state.sendFiles(toDeviceID: state.selectedDeviceID, fileURLs: urls)
+            }
+        }
     }
 }

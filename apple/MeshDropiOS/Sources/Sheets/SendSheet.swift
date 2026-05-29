@@ -183,9 +183,7 @@ struct SendSheet: View {
             guard !trimmed.isEmpty else { return }
             engine.sendText(to: target, content: trimmed)
         case .file:
-            for url in stagedFiles {
-                engine.sendFile(to: target, sourceURL: url)
-            }
+            engine.sendFiles(to: target, sourceURLs: stagedFiles)
         }
         dismiss()
     }
