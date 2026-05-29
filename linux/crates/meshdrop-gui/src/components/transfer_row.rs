@@ -58,6 +58,29 @@ pub fn row(
             state_top.append(&btn);
         }
     }
+    if matches!(item.state, TransferState::Done) {
+        if let Some(path) = item.saved_path.clone() {
+            let reveal_btn = gtk::Button::from_icon_name("folder-open-symbolic");
+            reveal_btn.set_tooltip_text(Some("在文件管理器中显示 · Reveal"));
+            reveal_btn.add_css_class("flat");
+            reveal_btn.add_css_class("circular");
+            let parent = path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| path.clone());
+            reveal_btn.connect_clicked(move |_| {
+                let _ = std::process::Command::new("xdg-open").arg(&parent).spawn();
+            });
+            state_top.append(&reveal_btn);
+
+            let open_btn = gtk::Button::from_icon_name("document-open-symbolic");
+            open_btn.set_tooltip_text(Some("打开 · Open"));
+            open_btn.add_css_class("flat");
+            open_btn.add_css_class("circular");
+            let p = path;
+            open_btn.connect_clicked(move |_| {
+                let _ = std::process::Command::new("xdg-open").arg(&p).spawn();
+            });
+            state_top.append(&open_btn);
+        }
+    }
     state_box.append(&state_top);
 
     let arrow = gtk::Label::new(Some(&format!("{}  →  {}", item.from, item.to)));

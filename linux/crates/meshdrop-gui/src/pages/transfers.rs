@@ -102,6 +102,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
                     from: t.from.to_string(), to: t.to.to_string(),
                     progress: t.progress, state: t.state,
                     speed: t.speed.map(str::to_string), eta: t.eta.map(str::to_string),
+                    saved_path: None,
                 }).collect(),
             }
         }
