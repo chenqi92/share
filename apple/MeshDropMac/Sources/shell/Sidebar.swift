@@ -143,16 +143,16 @@ struct Sidebar: View {
         HStack(spacing: 10) {
             Image(systemName: system)
                 .font(.system(size: 12))
-                .foregroundStyle(active ? MeshDropColor.ink : MeshDropColor.textSecondary)
+                .foregroundStyle(active ? MeshDropColor.textPrimary : MeshDropColor.textSecondary)
                 .frame(width: 16)
             Text(title)
                 .font(MeshDropFont.body(size: 12.5, weight: active ? .semibold : .regular))
-                .foregroundStyle(active ? MeshDropColor.ink : MeshDropColor.textPrimary)
+                .foregroundStyle(active ? MeshDropColor.textPrimary : MeshDropColor.textPrimary)
             Spacer()
             if let badge {
                 Text(badge)
                     .font(MeshDropFont.mono(size: 10, weight: .semibold))
-                    .foregroundStyle(active ? MeshDropColor.ink : MeshDropColor.textMuted)
+                    .foregroundStyle(active ? MeshDropColor.textPrimary : MeshDropColor.textMuted)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(

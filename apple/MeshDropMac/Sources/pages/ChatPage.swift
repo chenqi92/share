@@ -33,12 +33,6 @@ struct ChatPage: View {
             .sorted { $0.createdAt < $1.createdAt }
     }
 
-    /// 收到当前对端的文件 offer 时，会话顶部弹接收确认卡片。
-    private var incomingOffer: MockPendingOffer? {
-        guard let offer = state.engineOffer, offer.peer == dev.who else { return nil }
-        return offer
-    }
-
     private var header: some View {
         HStack(spacing: 12) {
             Avatar(initials: dev.initials, color: dev.color, size: 40)
@@ -75,14 +69,11 @@ struct ChatPage: View {
     private var messages: some View {
         PageScroll {
             VStack(spacing: 14) {
-                if conversation.isEmpty && incomingOffer == nil {
+                if conversation.isEmpty {
                     emptyHint
                 } else {
                     ForEach(conversation) { item in
                         bubble(for: item)
-                    }
-                    if let offer = incomingOffer {
-                        offerCard(offer)
                     }
                 }
             }
@@ -125,60 +116,6 @@ struct ChatPage: View {
                     .frame(width: 280)
             }
         }
-    }
-
-    private func offerCard(_ offer: MockPendingOffer) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text("↓").foregroundStyle(MeshDropColor.sky).meshMono(11, weight: .bold)
-                Text("来自 \(offer.peer) 的传输 · incoming")
-                    .font(MeshDropFont.body(size: 11.5, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.textPrimary)
-                Spacer()
-                Text(offer.receivedAt)
-                    .font(MeshDropFont.mono(size: 10))
-                    .foregroundStyle(MeshDropColor.textMuted)
-            }
-            FileChip(name: offer.fileName,
-                     size: offer.fileSize,
-                     ext: fileExt(offer.fileName))
-            HStack(spacing: 8) {
-                Spacer()
-                Button(action: { state.rejectCurrentOffer() }) {
-                    Text("拒绝 · Reject")
-                        .font(MeshDropFont.body(size: 12, weight: .semibold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(MeshDropColor.divider, lineWidth: 1)
-                        )
-                        .foregroundStyle(MeshDropColor.textSecondary)
-                }
-                .buttonStyle(.plain)
-                Button(action: { state.acceptCurrentOffer() }) {
-                    Text("接收 · Accept ⏎")
-                        .font(MeshDropFont.body(size: 12, weight: .semibold))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(MeshDropColor.lime)
-                        )
-                        .foregroundStyle(MeshDropColor.ink)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(MeshDropColor.limeFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(MeshDropColor.lime, lineWidth: 1)
-                )
-        )
     }
 
     private var composerBar: some View {

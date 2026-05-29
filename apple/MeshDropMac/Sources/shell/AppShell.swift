@@ -22,6 +22,8 @@ struct AppShell: View {
                     StatusBar()
                 }
             }
+
+            GlobalOverlay()
         }
         .frame(minWidth: 1180, minHeight: 760)
     }

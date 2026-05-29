@@ -139,13 +139,15 @@ private struct SweepArm: View {
 
     var body: some View {
         let angle = (time.truncatingRemainder(dividingBy: 4.5)) / 4.5 * 360
+        // 从 frame 圆心向右边缘画一条线；frame 中心即雷达圆心，
+        // rotationEffect 默认绕 frame 中心旋转，扫描臂才会从圆心扫出。
         Path { p in
-            p.move(to: .zero)
-            p.addLine(to: CGPoint(x: radius, y: 0))
+            p.move(to: CGPoint(x: radius, y: radius))
+            p.addLine(to: CGPoint(x: radius * 2, y: radius))
         }
         .stroke(LinearGradient(
             colors: [MeshDropColor.lime, MeshDropColor.lime.opacity(0.05)],
-            startPoint: .leading,
+            startPoint: .center,
             endPoint: .trailing
         ), lineWidth: 2)
         .frame(width: radius * 2, height: radius * 2)
