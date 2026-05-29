@@ -398,6 +398,14 @@ impl App {
                 let eta = if active {
                     metrics.and_then(|m| m.eta_seconds).map(fmt_eta)
                 } else { None };
+                let fail_reason = self.core_history.get(i).and_then(|c| {
+                    use meshdrop_core::history::TransferStatus;
+                    match &c.status {
+                        TransferStatus::Failed(reason) => Some(reason.clone()),
+                        TransferStatus::Canceled => Some("已取消".to_string()),
+                        _ => None,
+                    }
+                });
                 Some(mock::Transfer {
                     name,
                     size,
@@ -408,6 +416,7 @@ impl App {
                     state: h.state,
                     speed,
                     eta,
+                    fail_reason,
                 })
             })
             .collect();

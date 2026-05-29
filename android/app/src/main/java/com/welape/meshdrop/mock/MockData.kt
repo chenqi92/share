@@ -149,6 +149,8 @@ data class MockTransfer(
     val id: String = "",
     /** 已接收完成项的本地落盘 file:// Uri — 用于 OPEN 按钮调 ACTION_VIEW。 */
     val savedFileUri: String? = null,
+    /** 失败原因（校验失败 / 连接中断 / 对方拒收 …），仅 state == FAILED 时有值。 */
+    val failReason: String? = null,
 )
 
 val MockTransfers: List<MockTransfer> = listOf(

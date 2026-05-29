@@ -227,16 +227,18 @@ pub struct Transfer {
     pub state: HistoryState,
     pub speed: Option<String>,
     pub eta: Option<String>,
+    /// 失败原因（校验失败 / 连接中断 / 对方拒收 …），仅 state == Failed 时有值。
+    pub fail_reason: Option<String>,
 }
 
 pub fn transfers() -> Vec<Transfer> {
     vec![
-        Transfer { name: "设计稿_v3_final.fig".into(), size: "14.2 MB".into(), ext: "fig".into(), from: "我".into(), to: "孟茜".into(), progress: 100, state: HistoryState::Done, speed: None, eta: Some("00:08".into()) },
-        Transfer { name: "iOS-mocks-final.zip".into(),  size: "48.6 MB".into(), ext: "zip".into(), from: "我".into(), to: "孟茜".into(), progress: 67,  state: HistoryState::Sending,   speed: Some("8.4 MB/s".into()), eta: Some("00:02".into()) },
-        Transfer { name: "spec_PRD_2026Q1.pdf".into(),  size: "2.1 MB".into(),  ext: "pdf".into(), from: "我".into(), to: "嘉伟".into(), progress: 34,  state: HistoryState::Sending,   speed: Some("3.1 MB/s".into()), eta: Some("00:01".into()) },
-        Transfer { name: "IMG_4821~IMG_4838.heic".into(), size: "128 MB · 18 张".into(), ext: "heic".into(), from: "坤".into(), to: "我".into(), progress: 12, state: HistoryState::Receiving, speed: Some("11.7 MB/s".into()), eta: Some("00:09".into()) },
-        Transfer { name: "release-notes.md".into(),     size: "4.8 KB".into(),  ext: "md".into(),  from: "我".into(), to: "DEV-01".into(), progress: 100, state: HistoryState::Done, speed: None, eta: Some("00:01".into()) },
-        Transfer { name: "demo-video.mp4".into(),       size: "512 MB".into(),  ext: "mp4".into(), from: "我".into(), to: "李莉".into(), progress: 0,   state: HistoryState::Queued, speed: None, eta: None },
+        Transfer { name: "设计稿_v3_final.fig".into(), size: "14.2 MB".into(), ext: "fig".into(), from: "我".into(), to: "孟茜".into(), progress: 100, state: HistoryState::Done, speed: None, eta: Some("00:08".into()), fail_reason: None },
+        Transfer { name: "iOS-mocks-final.zip".into(),  size: "48.6 MB".into(), ext: "zip".into(), from: "我".into(), to: "孟茜".into(), progress: 67,  state: HistoryState::Sending,   speed: Some("8.4 MB/s".into()), eta: Some("00:02".into()), fail_reason: None },
+        Transfer { name: "spec_PRD_2026Q1.pdf".into(),  size: "2.1 MB".into(),  ext: "pdf".into(), from: "我".into(), to: "嘉伟".into(), progress: 34,  state: HistoryState::Sending,   speed: Some("3.1 MB/s".into()), eta: Some("00:01".into()), fail_reason: None },
+        Transfer { name: "IMG_4821~IMG_4838.heic".into(), size: "128 MB · 18 张".into(), ext: "heic".into(), from: "坤".into(), to: "我".into(), progress: 12, state: HistoryState::Receiving, speed: Some("11.7 MB/s".into()), eta: Some("00:09".into()), fail_reason: None },
+        Transfer { name: "release-notes.md".into(),     size: "4.8 KB".into(),  ext: "md".into(),  from: "我".into(), to: "DEV-01".into(), progress: 100, state: HistoryState::Done, speed: None, eta: Some("00:01".into()), fail_reason: None },
+        Transfer { name: "demo-video.mp4".into(),       size: "512 MB".into(),  ext: "mp4".into(), from: "我".into(), to: "李莉".into(), progress: 0,   state: HistoryState::Queued, speed: None, eta: None, fail_reason: None },
     ]
 }
 

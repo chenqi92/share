@@ -171,6 +171,8 @@ pub struct ViewTransferRow {
     pub eta: Option<String>,
     /// 已完成接收项的本地落盘路径 —— TransferRow 据此渲染 Open / Reveal 按钮。
     pub saved_path: Option<std::path::PathBuf>,
+    /// 失败原因（校验失败 / 连接中断 / 对方拒收 …），仅 state == Failed 时有值。
+    pub fail_reason: Option<String>,
 }
 
 impl ViewTransferRow {
@@ -220,10 +222,16 @@ impl ViewTransferRow {
         } else {
             None
         };
+        let fail_reason = match &h.status {
+            TransferStatus::Failed(reason) => Some(reason.clone()),
+            TransferStatus::Canceled => Some("已取消".to_string()),
+            _ => None,
+        };
         Some(Self {
             id: h.id, name, size: size_str, ext, from, to, progress, state,
             speed, eta,
             saved_path: if matches!(state, mock::TransferState::Done) { saved_path } else { None },
+            fail_reason,
         })
     }
 }

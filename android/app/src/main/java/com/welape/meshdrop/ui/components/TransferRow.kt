@@ -56,7 +56,10 @@ fun TransferRow(
         TransferState.RECEIVING -> Triple("接收中 · RECEIVING", mesh.sky, "↓")
         TransferState.DONE -> Triple("已完成 · DONE", LimeDeep, "✓")
         TransferState.QUEUED -> Triple("排队中 · QUEUED", mesh.textTertiary, "·")
-        TransferState.FAILED -> Triple("失败 · FAILED", mesh.danger, "×")
+        TransferState.FAILED -> Triple(
+            item.failReason?.let { "失败 · $it" } ?: "失败 · FAILED",
+            mesh.danger, "×",
+        )
     }
 
     Column(
