@@ -17,5 +17,5 @@ pub use device::{Device, DeviceOS};
 pub use identity::{compute_fingerprint, Identity};
 pub use history::{HistoryItem, HistoryKind, TransferDirection, TransferStatus};
 pub use trust::{TrustRecord, TrustStore};
-pub use engine::{ShareEngine, PendingPairing, PendingFileOffer, PairingDecision, TransferMetrics};
+pub use engine::{ShareEngine, PendingPairing, PendingFileOffer, PairingDecision, TransferMetrics, ClipboardEntry};
 pub use gateway::{GatewayHandle, DEFAULT_PORT as GATEWAY_DEFAULT_PORT};

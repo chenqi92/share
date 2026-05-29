@@ -117,6 +117,11 @@ impl AppHandle {
         self.engine.send_text(peer, text);
     }
 
+    /// 显式推送剪贴板内容给对端。
+    pub fn push_clipboard(&self, peer: Device, content: String, kind: String) {
+        self.engine.push_clipboard(peer, content, kind);
+    }
+
     pub fn send_file(&self, peer: Device, path: PathBuf) {
         self.engine.send_file(peer, path);
     }

@@ -62,6 +62,17 @@ pub struct ShareEngine {
     pending_pairings_rx: watch::Receiver<Vec<PendingPairing>>,
     pending_offers_rx: watch::Receiver<Vec<PendingFileOffer>>,
     transfer_metrics_rx: watch::Receiver<HashMap<Uuid, TransferMetrics>>,
+    clipboard_rx: watch::Receiver<Vec<ClipboardEntry>>,
+}
+
+/// 剪贴板收件箱条目 —— 对端显式推来的剪贴板内容。
+#[derive(Clone, Debug)]
+pub struct ClipboardEntry {
+    pub id: Uuid,
+    pub peer_name: String,
+    pub content: String,
+    pub kind: String,        // text | link | code
+    pub received_at_ms: u64,
 }
 
 /// 进行中传输的实时指标。Key 为 history.id；进入 terminal 状态时被移除。
@@ -93,6 +104,7 @@ impl ShareEngine {
         let (pp_tx, pp_rx) = watch::channel(Vec::new());
         let (po_tx, po_rx) = watch::channel(Vec::new());
         let (tm_tx, tm_rx) = watch::channel(HashMap::<Uuid, TransferMetrics>::new());
+        let (clip_tx, clip_rx) = watch::channel(Vec::<ClipboardEntry>::new());
 
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
@@ -125,6 +137,8 @@ impl ShareEngine {
             po_tx,
             tm_tx,
             transfer_metrics: HashMap::new(),
+            clip_tx,
+            clipboard: Vec::new(),
             internal_tx,
             _discovery: discovery,
         };
@@ -142,6 +156,7 @@ impl ShareEngine {
             pending_pairings_rx: pp_rx,
             pending_offers_rx: po_rx,
             transfer_metrics_rx: tm_rx,
+            clipboard_rx: clip_rx,
         })
     }
 
@@ -150,9 +165,15 @@ impl ShareEngine {
     pub fn pending_pairings_rx(&self) -> watch::Receiver<Vec<PendingPairing>> { self.pending_pairings_rx.clone() }
     pub fn pending_offers_rx(&self) -> watch::Receiver<Vec<PendingFileOffer>> { self.pending_offers_rx.clone() }
     pub fn transfer_metrics_rx(&self) -> watch::Receiver<HashMap<Uuid, TransferMetrics>> { self.transfer_metrics_rx.clone() }
+    pub fn clipboard_rx(&self) -> watch::Receiver<Vec<ClipboardEntry>> { self.clipboard_rx.clone() }
 
     pub fn send_text(&self, peer: Device, content: String) {
         let _ = self.cmd_tx.send(UserCmd::SendText { peer, content });
+    }
+
+    /// 显式推送剪贴板内容给对端（隐私上仅在用户点按时调用，不后台同步）。
+    pub fn push_clipboard(&self, peer: Device, content: String, kind: String) {
+        let _ = self.cmd_tx.send(UserCmd::PushClipboard { peer, content, kind });
     }
 
     pub fn send_file(&self, peer: Device, path: PathBuf) {
@@ -200,6 +221,7 @@ impl ShareEngine {
 
 enum UserCmd {
     SendText { peer: Device, content: String },
+    PushClipboard { peer: Device, content: String, kind: String },
     SendFile { peer: Device, path: PathBuf },
     RespondPairing { id: Uuid, decision: PairingDecision },
     RespondOffer { id: Uuid, accept: bool },
@@ -248,6 +270,8 @@ struct State {
     po_tx: watch::Sender<Vec<PendingFileOffer>>,
     tm_tx: watch::Sender<HashMap<Uuid, TransferMetrics>>,
     transfer_metrics: HashMap<Uuid, TransferMetrics>,
+    clip_tx: watch::Sender<Vec<ClipboardEntry>>,
+    clipboard: Vec<ClipboardEntry>,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     _discovery: DiscoveryHandle,
 }
@@ -286,6 +310,7 @@ enum Role {
 
 enum ClientPayload {
     Text(String),
+    Clipboard { content: String, kind: String },
     // path 当前由 ConnCtx.source_path 持有；这里冗余但保留写法清晰
     File { #[allow(dead_code)] path: PathBuf, size: u64, sha256: String, name: String },
 }
@@ -322,6 +347,7 @@ async fn run_main_loop(
 async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
     match cmd {
         UserCmd::SendText { peer, content } => start_send_text(state, peer, content).await,
+        UserCmd::PushClipboard { peer, content, kind } => start_push_clipboard(state, peer, content, kind).await,
         UserCmd::SendFile { peer, path } => start_send_file(state, peer, path).await,
         UserCmd::RespondPairing { id, decision } => respond_pairing(state, id, decision).await,
         UserCmd::RespondOffer { id, accept } => respond_offer(state, id, accept).await,
@@ -424,6 +450,19 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
         Role::Client { target: peer, payload: ClientPayload::Text(content) },
         ConnState::AwaitingHelloAck);
     ctx.history_id = Some(item.id);
+    state.contexts.insert(ctx_id, ctx);
+}
+
+/// 显式推送剪贴板：建客户端连接，HELLO/ACK 后发 CLIPBOARD，不留 history。
+async fn start_push_clipboard(state: &mut State, peer: Device, content: String, kind: String) {
+    if content.is_empty() { return; }
+    let Some(host) = peer.host.clone() else { return };
+    let conn = Connection::connect(host, peer.port);
+    let ctx_id = Uuid::new_v4();
+    spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
+    let ctx = ConnCtx::new_client(ctx_id, conn,
+        Role::Client { target: peer, payload: ClientPayload::Clipboard { content, kind } },
+        ConnState::AwaitingHelloAck);
     state.contexts.insert(ctx_id, ctx);
 }
 
@@ -647,6 +686,7 @@ async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) 
             close_ctx(state, ctx_id, None).await;
         }
         (ConnState::Ready, msg_type::TEXT) => handle_received_text(state, ctx_id, body).await,
+        (ConnState::Ready, msg_type::CLIPBOARD) => handle_received_clipboard(state, ctx_id, body).await,
         (ConnState::Ready, msg_type::FILE_OFFER) => handle_received_offer(state, ctx_id, body).await,
         (ConnState::ReceivingFile, msg_type::FILE_CHUNK) => handle_received_chunk(state, ctx_id, body).await,
         (_, msg_type::PING) => {
@@ -736,6 +776,18 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
             tokio::time::sleep(Duration::from_millis(200)).await;
             close_ctx(state, ctx_id, None).await;
         }
+        PayloadSummary::Clipboard { content, kind } => {
+            let msg = ClipboardMessage {
+                id: Uuid::new_v4().to_string(),
+                content, kind, ts: now_secs(),
+            };
+            let body = serde_json::to_vec(&msg).unwrap_or_default();
+            if let Some(ctx) = state.contexts.get(&ctx_id) {
+                let _ = ctx.connection.send(msg_type::CLIPBOARD, body);
+            }
+            tokio::time::sleep(Duration::from_millis(200)).await;
+            close_ctx(state, ctx_id, None).await;
+        }
         PayloadSummary::File { name, size, sha256 } => {
             let tid = state.contexts.get(&ctx_id).and_then(|c| c.transfer_id)
                 .unwrap_or_else(Uuid::new_v4);
@@ -755,11 +807,15 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
 
 enum PayloadSummary {
     Text(String),
+    Clipboard { content: String, kind: String },
     File { name: String, size: u64, sha256: String },
 }
 fn payload_summary(p: &ClientPayload) -> PayloadSummary {
     match p {
         ClientPayload::Text(s) => PayloadSummary::Text(s.clone()),
+        ClientPayload::Clipboard { content, kind } => PayloadSummary::Clipboard {
+            content: content.clone(), kind: kind.clone(),
+        },
         ClientPayload::File { name, size, sha256, .. } => PayloadSummary::File {
             name: name.clone(), size: *size, sha256: sha256.clone(),
         },
@@ -841,6 +897,26 @@ async fn handle_received_text(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     state.history.insert(0, HistoryItem::new(peer, TransferDirection::Incoming,
         HistoryKind::Text(text.content), TransferStatus::Completed));
     let _ = state.history_tx.send(state.history.clone());
+}
+
+async fn handle_received_clipboard(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
+    let msg: ClipboardMessage = match serde_json::from_slice(&body) {
+        Ok(m) => m, Err(_) => return,
+    };
+    if msg.content.is_empty() { return; }
+    let peer = state.contexts.get(&ctx_id).and_then(|c| c.peer.clone());
+    let Some(peer) = peer else { return };
+    let entry = ClipboardEntry {
+        id: Uuid::new_v4(),
+        peer_name: peer.name,
+        content: msg.content,
+        kind: msg.kind,
+        received_at_ms: now_ms(),
+    };
+    state.clipboard.insert(0, entry);
+    // 上限 50 条，超出丢最旧
+    state.clipboard.truncate(50);
+    let _ = state.clip_tx.send(state.clipboard.clone());
 }
 
 async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
@@ -1066,6 +1142,12 @@ fn now_secs() -> i64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now().duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64).unwrap_or(0)
+}
+
+fn now_ms() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now().duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
 // ─── ConnCtx 构造 ─────────────────────────────────────────────────────
