@@ -147,6 +147,8 @@ data class MockTransfer(
     val speed: String? = null,
     val eta: String? = null,
     val id: String = "",
+    /** 已接收完成项的本地落盘 file:// Uri — 用于 OPEN 按钮调 ACTION_VIEW。 */
+    val savedFileUri: String? = null,
 )
 
 val MockTransfers: List<MockTransfer> = listOf(

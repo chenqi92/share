@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 路径白名单：暴露已接收文件给系统 Intent.ACTION_VIEW。 -->
+<paths>
+    <!-- 接收文件保存到 getExternalFilesDir("MeshDrop/<peer>") 下，对应这条 -->
+    <external-files-path
+        name="meshdrop_received"
+        path="MeshDrop/" />
+</paths>

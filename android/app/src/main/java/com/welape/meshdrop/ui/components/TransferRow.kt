@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
@@ -39,13 +40,15 @@ import com.welape.meshdrop.ui.theme.MeshTheme
 
 /** 下载管理器单行：文件 icon + name + size + 状态行（+ 进行中时进度条 + speed + ETA）。
  *  传入 [onCancel] 且 state 是 SENDING / RECEIVING 时，状态行右侧渲染取消图标。
- *  传入 [onRetry] 且 state 是 FAILED 时，状态行右侧渲染重试按钮。 */
+ *  传入 [onRetry] 且 state 是 FAILED 时，状态行右侧渲染重试按钮。
+ *  传入 [onOpen] 且 state 是 DONE && savedFileUri 非空时，状态行右侧渲染 OPEN 按钮。 */
 @Composable
 fun TransferRow(
     item: MockTransfer,
     modifier: Modifier = Modifier,
     onCancel: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
+    onOpen: (() -> Unit)? = null,
 ) {
     val mesh = MeshTheme.colors
     val (stateLabel, stateColor, stateGlyph) = when (item.state) {
@@ -169,6 +172,32 @@ fun TransferRow(
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W700,
                             fontSize = 10.sp, letterSpacing = 1.0.sp, color = mesh.flame,
+                        ),
+                    )
+                }
+            }
+            if (onOpen != null && item.state == TransferState.DONE) {
+                Box(Modifier.width(8.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .border(0.8.dp, LimeDeep.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                        .clickable { onOpen() }
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = null,
+                        tint = LimeDeep,
+                        modifier = Modifier.size(11.dp),
+                    )
+                    Text(
+                        text = "OPEN",
+                        style = TextStyle(
+                            fontFamily = GeistMono, fontWeight = FontWeight.W700,
+                            fontSize = 10.sp, letterSpacing = 1.0.sp, color = LimeDeep,
                         ),
                     )
                 }
