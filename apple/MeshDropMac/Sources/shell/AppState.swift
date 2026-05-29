@@ -24,6 +24,9 @@ final class AppState: ObservableObject {
     // 投影自 ShareEngine 的 UI mock-shape 状态
     @Published private(set) var engineDevices: [MockDevice] = []
     @Published private(set) var engineHistory: [MockHistory] = []
+    /// 原始 HistoryItem 引用 —— TransfersPage 汇总 session 流量 / 速率时用，
+    /// 因为 MockHistory 的 size 已经是 String，丢了原始字节数。
+    @Published private(set) var engineHistoryItems: [HistoryItem] = []
     @Published private(set) var enginePairing: MockPendingPairing? = nil
     @Published private(set) var engineOffer: MockPendingOffer? = nil
     @Published private(set) var engineTrusted: [MockTrustedDevice] = []
@@ -60,6 +63,10 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .map { items in items.map(MockHistory.from) }
             .assign(to: &$engineHistory)
+
+        engine.$history
+            .receive(on: DispatchQueue.main)
+            .assign(to: &$engineHistoryItems)
 
         engine.$pendingPairings
             .receive(on: DispatchQueue.main)
@@ -178,6 +185,44 @@ final class AppState: ObservableObject {
     /// 取消进行中的传输（发送方 / 接收方都能调）。
     func cancelTransfer(_ historyID: UUID) {
         engine.cancelTransfer(historyID)
+    }
+
+    // MARK: - 会话汇总
+
+    /// 本会话累计上传字节数 = 所有 outgoing 文件历史（done / 进行中）的 size 之和。
+    var sessionUploadBytes: UInt64 {
+        engineHistoryItems.reduce(0) { acc, h in
+            guard h.direction == .outgoing, case .file(_, let size, _) = h.kind else { return acc }
+            return acc + size
+        }
+    }
+
+    /// 本会话累计下载字节数。
+    var sessionDownloadBytes: UInt64 {
+        engineHistoryItems.reduce(0) { acc, h in
+            guard h.direction == .incoming, case .file(_, let size, _) = h.kind else { return acc }
+            return acc + size
+        }
+    }
+
+    /// 当前总上行速率 (bytes/sec)：所有进行中 outgoing 传输的瞬时速率之和。
+    var currentUploadBps: Double {
+        engineHistoryItems.reduce(0.0) { acc, h in
+            guard h.direction == .outgoing,
+                  case .transferring = h.status,
+                  let m = transferMetrics[h.id] else { return acc }
+            return acc + m.bytesPerSec
+        }
+    }
+
+    /// 当前总下行速率 (bytes/sec)。
+    var currentDownloadBps: Double {
+        engineHistoryItems.reduce(0.0) { acc, h in
+            guard h.direction == .incoming,
+                  case .transferring = h.status,
+                  let m = transferMetrics[h.id] else { return acc }
+            return acc + m.bytesPerSec
+        }
     }
 
     /// 重发失败 / 取消的发送项。源文件路径还在且可读时返回 true。

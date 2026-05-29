@@ -13,13 +13,13 @@ struct TransfersPage: View {
                     SpeedChart(bars: MockSpeed.uploadBars,
                                color: MeshDropColor.flame,
                                title: "上行 · UP",
-                               subtitle: "—",
+                               subtitle: Self.formatSpeed(state.currentUploadBps),
                                arrow: "↑")
                         .frame(maxWidth: .infinity)
                     SpeedChart(bars: MockSpeed.downloadBars,
                                color: MeshDropColor.sky,
                                title: "下行 · DOWN",
-                               subtitle: "—",
+                               subtitle: Self.formatSpeed(state.currentDownloadBps),
                                arrow: "↓")
                         .frame(maxWidth: .infinity)
                     sessionTotal
@@ -105,6 +105,23 @@ struct TransfersPage: View {
         return String(format: "%02d:%02d", s / 60, s % 60)
     }
 
+    /// 速率小标题（SpeedChart subtitle）：bytes/sec → "8.4 MB/s"，0 时返回 "—"。
+    private static func formatSpeed(_ bps: Double) -> String {
+        guard bps > 1 else { return "—" }
+        return "\(byteFormatter.string(fromByteCount: Int64(bps)))/s"
+    }
+
+    /// 会话总计：(num, unit) 拆开方便 UI 用不同字号渲染。
+    private static func formatTotal(_ bytes: UInt64) -> (String, String) {
+        if bytes == 0 { return ("0", "B") }
+        let kb = Double(bytes) / 1024
+        if kb < 1024 { return (String(format: "%.1f", kb), "KB") }
+        let mb = kb / 1024
+        if mb < 1024 { return (String(format: "%.1f", mb), "MB") }
+        let gb = mb / 1024
+        return (String(format: "%.2f", gb), "GB")
+    }
+
     private var emptyView: some View {
         VStack(spacing: 10) {
             Image(systemName: "arrow.up.arrow.down")
@@ -178,15 +195,17 @@ struct TransfersPage: View {
     }
 
     private var sessionTotal: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let total = state.sessionUploadBytes + state.sessionDownloadBytes
+        let (num, unit) = Self.formatTotal(total)
+        return VStack(alignment: .leading, spacing: 8) {
             Text("本会话总计")
                 .meshTag()
                 .foregroundStyle(MeshDropColor.textMuted)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("2.41")
+                Text(num)
                     .font(MeshDropFont.display(size: 36, weight: .bold))
                     .foregroundStyle(MeshDropColor.textPrimary)
-                Text("GB")
+                Text(unit)
                     .font(MeshDropFont.mono(size: 13, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textMuted)
             }
