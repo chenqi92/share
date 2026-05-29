@@ -152,7 +152,7 @@ public struct TransferRow: View {
         case .transferring: return item.direction == .outgoing
             ? "发送中 · 给 \(item.to)" : "接收中 · 来自 \(item.from)"
         case .queued:       return "排队 · 给 \(item.to)"
-        case .failed:       return "失败"
+        case .failed:       return item.failReason.map { "失败 · \($0)" } ?? "失败"
         }
     }
 

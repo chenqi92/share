@@ -76,6 +76,14 @@ struct TransfersPage: View {
                 guard st == .sending || st == .receiving, let secs = metrics?.etaSeconds else { return nil }
                 return Self.formatEta(secs)
             }()
+            let failReason: String? = {
+                guard st == .failed,
+                      let uuid = UUID(uuidString: h.id),
+                      let item = state.engineHistoryItems.first(where: { $0.id == uuid }) else { return nil }
+                if case .failed(let reason) = item.status { return reason }
+                if case .canceled = item.status { return "已取消" }
+                return nil
+            }()
             return MockTransfer(
                 id: UUID(uuidString: h.id) ?? UUID(),
                 name: name,
@@ -86,7 +94,8 @@ struct TransfersPage: View {
                 progress: prog,
                 state: st,
                 speed: speed,
-                eta: eta
+                eta: eta,
+                failReason: failReason
             )
         }
     }

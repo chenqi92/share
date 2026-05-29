@@ -131,6 +131,7 @@ extension HistoryItem {
         var progress = 0
         var speed: String? = nil
         var eta: String? = nil
+        var failReason: String? = nil
         switch status {
         case .completed:
             state = .done; progress = 100
@@ -145,10 +146,10 @@ extension HistoryItem {
             if let secs = metrics?.etaSeconds {
                 eta = Self.formatEta(secs)
             }
-        case .failed:
-            state = .failed
+        case .failed(let reason):
+            state = .failed; failReason = reason
         case .canceled:
-            state = .failed
+            state = .failed; failReason = "已取消"
         }
         let ext = (name as NSString).pathExtension
         return MockTransfer(
@@ -162,7 +163,8 @@ extension HistoryItem {
             state: state,
             direction: dir,
             speed: speed,
-            eta: eta
+            eta: eta,
+            failReason: failReason
         )
     }
 
