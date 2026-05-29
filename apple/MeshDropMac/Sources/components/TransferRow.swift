@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// 文件 icon (38×46) + name + size + 状态行 + （进行中时）进度条 + speed + ETA。
@@ -9,6 +10,8 @@ struct TransferRow: View {
     let item: MockTransfer
     var onCancel: (() -> Void)? = nil
     var onRetry: (() -> Void)? = nil
+    /// 已完成接收项的本地保存路径 —— 传入后右侧渲染 Reveal / Open 按钮。
+    var savedURL: URL? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -54,6 +57,22 @@ struct TransferRow: View {
                         }
                         .buttonStyle(.plain)
                         .help("重试发送 · Retry")
+                    }
+                    if let savedURL, item.state == .done, item.to == "我" {
+                        Button(action: { NSWorkspace.shared.activateFileViewerSelecting([savedURL]) }) {
+                            Image(systemName: "magnifyingglass.circle")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(MeshDropColor.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("在 Finder 中显示 · Reveal in Finder")
+                        Button(action: { NSWorkspace.shared.open(savedURL) }) {
+                            Image(systemName: "arrow.up.forward.app")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(MeshDropColor.textSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        .help("打开 · Open")
                     }
                 }
 
