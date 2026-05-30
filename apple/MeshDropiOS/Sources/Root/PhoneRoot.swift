@@ -1,7 +1,9 @@
 import SwiftUI
+import MeshDropKit
 
 struct PhoneRoot: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -12,7 +14,7 @@ struct PhoneRoot: View {
 
             NavigationStack { ChatListTab() }
                 .tabItem { Label("聊天", systemImage: "message") }
-                .badge(2)
+                .badge(engine.unreadTotal)
                 .tag(PhoneTab.chats)
 
             NavigationStack { TransferTab() }

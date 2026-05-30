@@ -15,7 +15,7 @@ struct ChatListTab: View {
             let related = history.first(where: { $0.peer.id == d.id })
             return (d, ChatListTab.previewLine(related),
                     related.map { HistoryItem.timeFormatter.string(from: $0.createdAt) },
-                    0)
+                    engine.unreadByPeer[d.id] ?? 0)
         }
     }
 
@@ -141,6 +141,7 @@ struct ChatListTab: View {
         .buttonStyle(.plain)
         .simultaneousGesture(TapGesture().onEnded {
             state.selectedDeviceID = d.id
+            engine.markRead(peerID: d.id)
         })
         .navigationDestination(for: String.self) { id in
             ChatDetailScreen(device: engine.displayDevices.first(where: { $0.id == id }) ?? d)

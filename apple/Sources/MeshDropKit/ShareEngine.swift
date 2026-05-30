@@ -39,6 +39,16 @@ public final class ShareEngine: ObservableObject {
     /// 会话级吞吐时间序列（每秒采样，最新在后），供传输页速度柱状图绘制真实数据。
     @Published public private(set) var sessionThroughput = SessionThroughput()
 
+    /// 每个对端未读的入站文本条数（key = peer.id）。收到入站文本时 +1；
+    /// UI 打开对应会话时调 markRead(peerID:) 清零。聊天 tab 角标 = unreadTotal。
+    @Published public private(set) var unreadByPeer: [String: Int] = [:]
+    public var unreadTotal: Int { unreadByPeer.values.reduce(0, +) }
+
+    /// 打开某对端会话时清掉其未读计数。
+    public func markRead(peerID: String) {
+        if unreadByPeer[peerID] != nil { unreadByPeer[peerID] = nil }
+    }
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -769,6 +779,7 @@ public final class ShareEngine: ObservableObject {
             status: .completed
         )
         history.insert(item, at: 0)
+        unreadByPeer[peer.id, default: 0] += 1
     }
 
     private func handleReceivedClipboard(body: Data, contextID: UUID) {

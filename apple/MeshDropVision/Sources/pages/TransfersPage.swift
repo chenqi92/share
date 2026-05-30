@@ -15,8 +15,17 @@ struct TransfersPage: View {
                                     selfName: engine.displayName)
     }
 
-    private var outBps: UInt64 { 0 } // 协议暂不暴露速率，留 placeholder
-    private var inBps:  UInt64 { 0 }
+    // 进行中传输的瞬时速率按方向汇总（来自 engine.transferMetrics 的真实 EMA）。
+    private var outBps: UInt64 { bps(for: .outgoing) }
+    private var inBps:  UInt64 { bps(for: .incoming) }
+    private func bps(for dir: TransferDirection) -> UInt64 {
+        let sum = engine.history.reduce(0.0) { acc, h in
+            guard case .transferring = h.status, h.direction == dir,
+                  let m = engine.transferMetrics[h.id] else { return acc }
+            return acc + m.bytesPerSec
+        }
+        return UInt64(max(0, sum))
+    }
 
     var body: some View {
         GeometryReader { geo in

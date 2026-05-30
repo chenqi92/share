@@ -69,7 +69,7 @@ struct ConversationsPage: View {
         let peer: Device
         let lastSnippet: String
         let lastAt: Date
-        let unread: Int    // 简易：未读 = incoming + 未读 stub 0；当前 history 无 read 标记，统一显示 0
+        let unread: Int    // 该 peer 未读入站文本数（engine.unreadByPeer）
     }
 
     private var conversations: [Conversation] {
@@ -92,7 +92,7 @@ struct ConversationsPage: View {
                 peer: latest.peer,
                 lastSnippet: snippet,
                 lastAt: latest.createdAt,
-                unread: 0
+                unread: engine.unreadByPeer[latest.peer.id] ?? 0
             )
         }
         .sorted { $0.lastAt > $1.lastAt }
