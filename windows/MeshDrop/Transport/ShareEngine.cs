@@ -45,6 +45,10 @@ public sealed partial class ShareEngine : ObservableObject
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private ushort _listenPort;
+    private DispatcherQueueTimer? _throughputTimer;
+    private const int ThroughputBuckets = 14;
+    private readonly List<double> _tpUp = new();
+    private readonly List<double> _tpDown = new();
 
     public Identity Identity { get; }
     public string? Model { get; }
@@ -55,6 +59,10 @@ public sealed partial class ShareEngine : ObservableObject
     [ObservableProperty] private bool _isRunning;
     [ObservableProperty] private string? _lastError;
     [ObservableProperty] private string _localIp = "—";
+
+    /// <summary>会话级吞吐时间序列（每秒一桶，bytes/sec，最新在后，上限 14）。传输页速度柱状图用。</summary>
+    [ObservableProperty] private IReadOnlyList<double> _throughputUp = Array.Empty<double>();
+    [ObservableProperty] private IReadOnlyList<double> _throughputDown = Array.Empty<double>();
 
     public ObservableCollection<Device> Devices { get; } = new();
     public ObservableCollection<HistoryItem> History { get; } = new();
@@ -131,6 +139,13 @@ public sealed partial class ShareEngine : ObservableObject
             _discovery.Start(port, DisplayName);
 
             _ = AcceptLoopAsync(_cts.Token);
+
+            // 每秒采样会话吞吐，喂给传输页速度柱状图（UI 线程 timer，安全改 ObservableProperty）。
+            _throughputTimer = _ui.CreateTimer();
+            _throughputTimer.Interval = TimeSpan.FromSeconds(1);
+            _throughputTimer.Tick += (_, _) => SampleThroughput();
+            _throughputTimer.Start();
+
             IsRunning = true;
         }
         catch (Exception ex)
@@ -159,6 +174,12 @@ public sealed partial class ShareEngine : ObservableObject
         _listener?.Stop();
         _listener = null;
         _discovery.Stop();
+        _throughputTimer?.Stop();
+        _throughputTimer = null;
+        _tpUp.Clear();
+        _tpDown.Clear();
+        ThroughputUp = Array.Empty<double>();
+        ThroughputDown = Array.Empty<double>();
         foreach (var ctx in _contexts.Values) ctx.Connection.Close();
         _contexts.Clear();
         IsRunning = false;
@@ -830,6 +851,30 @@ public sealed partial class ShareEngine : ObservableObject
         ctx.State = ConnectionContext.StateClosed;
         ctx.Connection.Close();
         return Task.CompletedTask;
+    }
+
+    /// <summary>每秒一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。</summary>
+    private void SampleThroughput()
+    {
+        double up = 0, down = 0;
+        foreach (var h in History)
+        {
+            if (h.Status is TransferStatus.Transferring && TransferMetrics.TryGetValue(h.Id, out var m))
+            {
+                if (h.Direction == TransferDirection.Outgoing) up += m.BytesPerSec;
+                else down += m.BytesPerSec;
+            }
+        }
+        Append(_tpUp, up);
+        Append(_tpDown, down);
+        ThroughputUp = _tpUp.ToArray();
+        ThroughputDown = _tpDown.ToArray();
+
+        static void Append(List<double> buf, double v)
+        {
+            buf.Add(v);
+            if (buf.Count > ThroughputBuckets) buf.RemoveRange(0, buf.Count - ThroughputBuckets);
+        }
     }
 
     private void UpdateHistory(Guid id, TransferStatus status)

@@ -50,19 +50,19 @@
                                    Value="{x:Bind ViewModel.SessionValue}"
                                    Hint="自 09:12 起"
                                    AccentBrush="{ThemeResource MdLimeDeepBrush}"
-                                   Bars="{x:Bind ViewModel.SessionBars}"/>
+                                   Bars="{x:Bind ViewModel.SessionBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="1"
                                    Label="── UP ↑ · 上行 ──"
                                    Value="{x:Bind ViewModel.UpValue}"
                                    Hint="峰值 58.2 MB/s"
                                    AccentBrush="{ThemeResource MdFlameBrush}"
-                                   Bars="{x:Bind ViewModel.UploadBars}"/>
+                                   Bars="{x:Bind ViewModel.UploadBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="2"
                                    Label="── DOWN ↓ · 下行 ──"
                                    Value="{x:Bind ViewModel.DownValue}"
                                    Hint="峰值 14.1 MB/s"
                                    AccentBrush="{ThemeResource MdSkyBrush}"
-                                   Bars="{x:Bind ViewModel.DownloadBars}"/>
+                                   Bars="{x:Bind ViewModel.DownloadBars, Mode=OneWay}"/>
                 </Grid>
 
                 <ctrl:AsciiDivider Label="── TASKS · 任务列表 · 6 ──"/>

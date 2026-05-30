@@ -36,12 +36,12 @@ public sealed partial class TransfersViewModel : ObservableObject
 
     public int DoneCount => All.Count(t => t.State == MockTransferState.Done);
 
-    // Throughput / 24h 实时统计骨架：v0.1 没历史聚合，先给 0 占位（UI 视觉不动）。
+    // 速度柱状图序列：引擎每秒采样的吞吐 → 取整。x:Bind 需 Mode=OneWay 才会随更新刷新。
     // 类型用 IReadOnlyList<int>（不是 int[]）—— WinUI 3 x:Bind 编译器在 DashTile.Bars
     // (IReadOnlyList<int>) DependencyProperty 上拒绝 int[] 直接绑定（WMC1121）
-    public IReadOnlyList<int> UploadBars { get; } = new int[14];
-    public IReadOnlyList<int> DownloadBars { get; } = new int[14];
-    public IReadOnlyList<int> SessionBars { get; } = new int[15];
+    [ObservableProperty] private IReadOnlyList<int> _uploadBars = new int[14];
+    [ObservableProperty] private IReadOnlyList<int> _downloadBars = new int[14];
+    [ObservableProperty] private IReadOnlyList<int> _sessionBars = new int[14];
 
     public string SessionValue => "—";
     public string UpValue => "—";
@@ -56,5 +56,27 @@ public sealed partial class TransfersViewModel : ObservableObject
             OnPropertyChanged(nameof(ActiveCount));
             OnPropertyChanged(nameof(DoneCount));
         };
+        _engine.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(ShareEngine.ThroughputUp) or nameof(ShareEngine.ThroughputDown))
+            {
+                RefreshBars();
+            }
+        };
+    }
+
+    private void RefreshBars()
+    {
+        var up = _engine.ThroughputUp;
+        var down = _engine.ThroughputDown;
+        if (up.Count == 0 && down.Count == 0) return;
+        UploadBars = up.Select(ToBar).ToArray();
+        DownloadBars = down.Select(ToBar).ToArray();
+        int n = Math.Max(up.Count, down.Count);
+        SessionBars = Enumerable.Range(0, n)
+            .Select(i => ToBar((i < up.Count ? up[i] : 0) + (i < down.Count ? down[i] : 0)))
+            .ToArray();
+
+        static int ToBar(double v) => (int)Math.Min(Math.Round(v), int.MaxValue);
     }
 }
