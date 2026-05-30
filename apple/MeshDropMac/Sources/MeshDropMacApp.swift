@@ -22,6 +22,7 @@ struct MeshDropMacApp: App {
                 .preferredColorScheme(nil)   // 跟随系统
                 .onAppear {
                     ShareEngine.shared.start()
+                    IncomingNotifier.startShared(engine: ShareEngine.shared)
                     gateway.startIfEnabled()
                 }
                 .onDisappear {

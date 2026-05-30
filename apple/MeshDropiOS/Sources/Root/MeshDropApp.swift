@@ -15,6 +15,7 @@ struct MeshDropApp: App {
                 .tint(MeshDropColor.lime)
                 .task {
                     engine.start()
+                    IncomingNotifier.startShared(engine: engine)
                     watchSession.start(engine: engine)
                     PendingShareQueue.shared.drain(engine: engine)
                     state.applyPreviewRouteFromEnvIfNeeded()
