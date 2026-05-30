@@ -63,7 +63,19 @@ pub struct ShareEngine {
     pending_offers_rx: watch::Receiver<Vec<PendingFileOffer>>,
     transfer_metrics_rx: watch::Receiver<HashMap<Uuid, TransferMetrics>>,
     clipboard_rx: watch::Receiver<Vec<ClipboardEntry>>,
+    throughput_rx: watch::Receiver<SessionThroughput>,
 }
+
+/// 会话级吞吐时间序列：每秒一个桶，上行 / 下行 bytes/sec。最旧在前，最新在后，
+/// 长度上限 [`TP_BUCKETS`]（不足时短）。供传输页速度柱状图绘制真实数据用。
+#[derive(Clone, Debug, Default)]
+pub struct SessionThroughput {
+    pub up: Vec<f64>,
+    pub down: Vec<f64>,
+}
+
+/// 吞吐环形缓冲保留的秒数（柱状图横轴长度）。
+pub const TP_BUCKETS: usize = 32;
 
 /// 剪贴板收件箱条目 —— 对端显式推来的剪贴板内容。
 #[derive(Clone, Debug)]
@@ -105,6 +117,7 @@ impl ShareEngine {
         let (po_tx, po_rx) = watch::channel(Vec::new());
         let (tm_tx, tm_rx) = watch::channel(HashMap::<Uuid, TransferMetrics>::new());
         let (clip_tx, clip_rx) = watch::channel(Vec::<ClipboardEntry>::new());
+        let (tp_tx, tp_rx) = watch::channel(SessionThroughput::default());
 
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
@@ -139,6 +152,8 @@ impl ShareEngine {
             transfer_metrics: HashMap::new(),
             clip_tx,
             clipboard: Vec::new(),
+            tp_tx,
+            throughput: SessionThroughput::default(),
             internal_tx,
             _discovery: discovery,
         };
@@ -157,6 +172,7 @@ impl ShareEngine {
             pending_offers_rx: po_rx,
             transfer_metrics_rx: tm_rx,
             clipboard_rx: clip_rx,
+            throughput_rx: tp_rx,
         })
     }
 
@@ -166,6 +182,7 @@ impl ShareEngine {
     pub fn pending_offers_rx(&self) -> watch::Receiver<Vec<PendingFileOffer>> { self.pending_offers_rx.clone() }
     pub fn transfer_metrics_rx(&self) -> watch::Receiver<HashMap<Uuid, TransferMetrics>> { self.transfer_metrics_rx.clone() }
     pub fn clipboard_rx(&self) -> watch::Receiver<Vec<ClipboardEntry>> { self.clipboard_rx.clone() }
+    pub fn throughput_rx(&self) -> watch::Receiver<SessionThroughput> { self.throughput_rx.clone() }
 
     pub fn send_text(&self, peer: Device, content: String) {
         let _ = self.cmd_tx.send(UserCmd::SendText { peer, content });
@@ -272,6 +289,8 @@ struct State {
     transfer_metrics: HashMap<Uuid, TransferMetrics>,
     clip_tx: watch::Sender<Vec<ClipboardEntry>>,
     clipboard: Vec<ClipboardEntry>,
+    tp_tx: watch::Sender<SessionThroughput>,
+    throughput: SessionThroughput,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     _discovery: DiscoveryHandle,
 }
@@ -335,12 +354,41 @@ async fn run_main_loop(
     mut user_rx: mpsc::UnboundedReceiver<UserCmd>,
     mut internal_rx: mpsc::UnboundedReceiver<InternalCmd>,
 ) {
+    let mut tp_tick = tokio::time::interval(Duration::from_secs(1));
+    tp_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     loop {
         tokio::select! {
             Some(cmd) = user_rx.recv() => handle_user_cmd(&mut state, cmd).await,
             Some(cmd) = internal_rx.recv() => handle_internal_cmd(&mut state, cmd).await,
+            _ = tp_tick.tick() => sample_throughput(&mut state),
             else => break,
         }
+    }
+}
+
+/// 每秒采样一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。
+fn sample_throughput(state: &mut State) {
+    let mut up = 0.0;
+    let mut down = 0.0;
+    for h in &state.history {
+        if !matches!(h.status, TransferStatus::Transferring { .. }) { continue; }
+        if let Some(m) = state.transfer_metrics.get(&h.id) {
+            match h.direction {
+                TransferDirection::Outgoing => up += m.bytes_per_sec,
+                TransferDirection::Incoming => down += m.bytes_per_sec,
+            }
+        }
+    }
+    push_bucket(&mut state.throughput.up, up);
+    push_bucket(&mut state.throughput.down, down);
+    let _ = state.tp_tx.send(state.throughput.clone());
+}
+
+fn push_bucket(buf: &mut Vec<f64>, v: f64) {
+    buf.push(v);
+    if buf.len() > TP_BUCKETS {
+        let excess = buf.len() - TP_BUCKETS;
+        buf.drain(0..excess);
     }
 }
 

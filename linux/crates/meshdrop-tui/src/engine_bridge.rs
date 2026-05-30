@@ -12,7 +12,7 @@ use anyhow::{Context, Result};
 use meshdrop_core::{
     ClipboardEntry, Device as CoreDevice, DeviceOS, HistoryItem as CoreHistoryItem, HistoryKind,
     Identity, PendingFileOffer as CorePendingOffer, PendingPairing as CorePendingPairing,
-    ShareEngine, TransferDirection, TransferMetrics, TransferStatus,
+    SessionThroughput, ShareEngine, TransferDirection, TransferMetrics, TransferStatus,
 };
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -66,6 +66,7 @@ pub enum EngineUpdate {
     Offers { core: Vec<CorePendingOffer>, display: Vec<mock::PendingOffer> },
     TransferMetricsChanged(HashMap<Uuid, TransferMetrics>),
     Clipboard { display: Vec<mock::ClipItem> },
+    Throughput { up: Vec<u8>, down: Vec<u8>, session: Vec<u8> },
 }
 
 pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpdate> {
@@ -151,8 +152,42 @@ pub fn spawn_watchers(engine: &ShareEngine) -> mpsc::UnboundedReceiver<EngineUpd
             }
         });
     }
+    {
+        let mut rcv = engine.throughput_rx();
+        let tx = tx.clone();
+        tokio::spawn(async move {
+            let snap = rcv.borrow().clone();
+            if tx.send(adapt_throughput(&snap)).is_err() { return; }
+            while rcv.changed().await.is_ok() {
+                let snap = rcv.borrow().clone();
+                if tx.send(adapt_throughput(&snap)).is_err() { break; }
+            }
+        });
+    }
 
     rx
+}
+
+/// 把秒级吞吐序列（bytes/sec）按各自 max 归一到 0..100 的 u8，供 TUI 柱状图绘制。
+/// session = 每桶 up+down。
+fn adapt_throughput(tp: &SessionThroughput) -> EngineUpdate {
+    let n = tp.up.len().max(tp.down.len());
+    let session: Vec<f64> = (0..n)
+        .map(|i| tp.up.get(i).copied().unwrap_or(0.0) + tp.down.get(i).copied().unwrap_or(0.0))
+        .collect();
+    EngineUpdate::Throughput {
+        up: scale_series(&tp.up),
+        down: scale_series(&tp.down),
+        session: scale_series(&session),
+    }
+}
+
+fn scale_series(s: &[f64]) -> Vec<u8> {
+    let m = s.iter().cloned().fold(0.0f64, f64::max);
+    if m <= 0.0 {
+        return vec![0u8; s.len()];
+    }
+    s.iter().map(|v| ((v / m) * 100.0).round().clamp(0.0, 100.0) as u8).collect()
 }
 
 /// 收到的剪贴板条目 → 显示模型。ago 由 received_at_ms 相对当前时间换算。

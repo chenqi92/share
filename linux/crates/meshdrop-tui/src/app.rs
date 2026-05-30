@@ -66,6 +66,10 @@ pub struct App {
     pub history: Vec<mock::HistoryItem>,
     pub transfers: Vec<mock::Transfer>,
     pub clip: Vec<mock::ClipItem>,
+    /// 速度柱状图序列（已按各自序列 max 归一到 0..100）。空 = 用 mock（demo/截图）。
+    pub tp_up: Vec<u8>,
+    pub tp_down: Vec<u8>,
+    pub tp_session: Vec<u8>,
     pub pending_pairing: Option<mock::PendingPairing>,
     pub pending_offer: Option<mock::PendingOffer>,
 
@@ -118,6 +122,9 @@ impl App {
             history,
             transfers,
             clip,
+            tp_up: Vec::new(),
+            tp_down: Vec::new(),
+            tp_session: Vec::new(),
             pending_pairing: None,
             pending_offer: None,
             core_devices: Vec::new(),
@@ -158,6 +165,9 @@ impl App {
             history: Vec::new(),
             transfers: Vec::new(),
             clip: Vec::new(),
+            tp_up: Vec::new(),
+            tp_down: Vec::new(),
+            tp_session: Vec::new(),
             pending_pairing: None,
             pending_offer: None,
             core_devices: Vec::new(),
@@ -571,6 +581,11 @@ fn apply_engine_update(app: &mut App, update: EngineUpdate) {
         }
         EngineUpdate::Clipboard { display } => {
             app.clip = display;
+        }
+        EngineUpdate::Throughput { up, down, session } => {
+            app.tp_up = up;
+            app.tp_down = down;
+            app.tp_session = session;
         }
     }
 }
@@ -1127,9 +1142,13 @@ fn render_speed_chart(f: &mut Frame, area: Rect, app: &App) {
         .constraints([Constraint::Percentage(33), Constraint::Percentage(33), Constraint::Percentage(34)])
         .split(inner);
 
-    bar_chart(f, cols[0], &app.theme, "UP", &mock::UPLOAD_BARS, app.theme.flame());
-    bar_chart(f, cols[1], &app.theme, "DOWN", &mock::DOWNLOAD_BARS, app.theme.sky());
-    bar_chart(f, cols[2], &app.theme, "SESSION", &mock::SESSION_BARS, app.theme.lime_deep());
+    // engine 在场时用真实吞吐序列；demo / 截图（空序列）退回 mock 装饰柱。
+    let up = if app.tp_up.is_empty() { mock::UPLOAD_BARS.to_vec() } else { app.tp_up.clone() };
+    let down = if app.tp_down.is_empty() { mock::DOWNLOAD_BARS.to_vec() } else { app.tp_down.clone() };
+    let session = if app.tp_session.is_empty() { mock::SESSION_BARS.to_vec() } else { app.tp_session.clone() };
+    bar_chart(f, cols[0], &app.theme, "UP", &up, app.theme.flame());
+    bar_chart(f, cols[1], &app.theme, "DOWN", &down, app.theme.sky());
+    bar_chart(f, cols[2], &app.theme, "SESSION", &session, app.theme.lime_deep());
 }
 
 fn bar_chart<U: AsRef<[u8]>>(

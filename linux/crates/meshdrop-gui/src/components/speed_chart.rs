@@ -2,12 +2,18 @@
 //! 由 DrawingArea cairo 自绘。
 
 use adw::prelude::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 
-pub fn chart(up: &[u32], down: &[u32], width: i32, height: i32) -> gtk::DrawingArea {
+/// 柱状图数据源：(上行高度, 下行高度)。共享给 draw_func，外部更新后 queue_draw。
+pub type ChartData = Rc<RefCell<(Vec<u32>, Vec<u32>)>>;
+
+/// 动态数据版：draw_func 每次从 `data` 读最新序列。外部更新 data 后调 `area.queue_draw()`。
+pub fn chart_shared(data: ChartData, width: i32, height: i32) -> gtk::DrawingArea {
     let area = gtk::DrawingArea::builder().content_width(width).content_height(height).build();
-    let up: Vec<u32> = up.to_vec();
-    let down: Vec<u32> = down.to_vec();
     area.set_draw_func(move |_, cr, w, h| {
+        let borrowed = data.borrow();
+        let (up, down) = (&borrowed.0, &borrowed.1);
         let (w, h) = (w as f64, h as f64);
         let n = up.len().max(down.len()).max(1);
         let bw = w / n as f64 * 0.7;

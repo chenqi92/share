@@ -5,6 +5,7 @@ use crate::engine_bridge::AppHandle;
 use crate::mock;
 use crate::view::ViewTransferRow;
 use adw::prelude::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
@@ -50,7 +51,13 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     head_row.append(&legend_total);
     chart_card.append(&head_row);
 
-    let chart = speed_chart::chart(mock::UPLOAD_BARS, mock::DOWNLOAD_BARS, 600, 130);
+    // handle 在场时从空序列起步、订阅 throughput_rx 填真实数据；否则用 mock（screenshots）。
+    let chart_data: speed_chart::ChartData = Rc::new(RefCell::new(if handle.is_some() {
+        (Vec::new(), Vec::new())
+    } else {
+        (mock::UPLOAD_BARS.to_vec(), mock::DOWNLOAD_BARS.to_vec())
+    }));
+    let chart = speed_chart::chart_shared(chart_data.clone(), 600, 130);
     chart_card.append(&chart);
     root.append(&chart_card);
 
@@ -138,6 +145,17 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             h.observe(h.engine.transfer_metrics_rx(), move |_m| {
                 let views = build_c(Some(&handle_c));
                 fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
+            });
+        }
+        // 速度柱状图：订阅 throughput_rx，每秒一桶，更新数据后重绘
+        {
+            let area_c = chart.clone();
+            let data_c = chart_data.clone();
+            h.observe(h.engine.throughput_rx(), move |tp| {
+                let up: Vec<u32> = tp.up.iter().map(|v| v.round().max(0.0) as u32).collect();
+                let down: Vec<u32> = tp.down.iter().map(|v| v.round().max(0.0) as u32).collect();
+                *data_c.borrow_mut() = (up, down);
+                area_c.queue_draw();
             });
         }
         // session legend：history + metrics 任一变都重新汇总
