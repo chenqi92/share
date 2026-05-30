@@ -24,8 +24,10 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import com.welape.meshdrop.transport.ShareEngine
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -61,6 +63,7 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 fun MeScreen(
     onOpenPairing: () -> Unit = {},
     onOpenOnboarding: () -> Unit = {},
+    engine: ShareEngine? = null,
 ) {
     val mesh = MeshTheme.colors
     val context = LocalContext.current
@@ -115,6 +118,16 @@ fun MeScreen(
             SwitchRow(title = "允许陌生设备发起配对", subtitle = "首次会弹出 6 字符代码确认", initial = true)
             DividerThin()
             SwitchRow(title = "接收时震动", subtitle = "incoming · vibrate", initial = false)
+            if (engine != null) {
+                DividerThin()
+                val autoAccept = engine.autoAcceptFromTrusted.collectAsState().value
+                SwitchRow(
+                    title = "已配对设备自动接收",
+                    subtitle = "来自已信任设备的文件自动接受",
+                    checked = autoAccept,
+                    onChange = { engine.setAutoAcceptFromTrusted(it) },
+                )
+            }
         }
 
         AsciiDivider(label = "安全 · SECURITY · E2E")
@@ -250,6 +263,47 @@ private fun SettingsCard(content: @Composable () -> Unit) {
             .background(mesh.card),
     ) {
         content()
+    }
+}
+
+/** 受控版：值与回调由外部持有（绑定到引擎设置）。 */
+@Composable
+private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val mesh = MeshTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(PaddingValues(horizontal = 16.dp, vertical = 12.dp)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = TextStyle(
+                    fontFamily = Geist, fontWeight = FontWeight.W600,
+                    fontSize = 14.sp, color = mesh.textPrimary,
+                ),
+            )
+            Text(
+                subtitle,
+                style = TextStyle(
+                    fontFamily = GeistMono, fontWeight = FontWeight.W500,
+                    fontSize = 10.sp, color = mesh.textTertiary,
+                ),
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Ink,
+                checkedTrackColor = Lime,
+                checkedBorderColor = LimeDeep,
+                uncheckedThumbColor = mesh.textTertiary,
+                uncheckedTrackColor = mesh.surface,
+                uncheckedBorderColor = mesh.outline,
+            ),
+        )
     }
 }
 

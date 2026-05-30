@@ -122,6 +122,17 @@ class ShareEngine(private val context: Context) {
         }
     }
 
+    /** 设置：收到来自已信任设备的文件 offer 时自动接受（持久化到 SharedPreferences）。 */
+    private val settingsPrefs =
+        context.getSharedPreferences("meshdrop_settings", Context.MODE_PRIVATE)
+    private val _autoAcceptFromTrusted =
+        MutableStateFlow(settingsPrefs.getBoolean("autoAcceptTrusted", false))
+    val autoAcceptFromTrusted: StateFlow<Boolean> = _autoAcceptFromTrusted.asStateFlow()
+    fun setAutoAcceptFromTrusted(value: Boolean) {
+        _autoAcceptFromTrusted.value = value
+        settingsPrefs.edit().putBoolean("autoAcceptTrusted", value).apply()
+    }
+
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
     private var acceptJob: Job? = null
@@ -747,6 +758,10 @@ class ShareEngine(private val context: Context) {
         )
         ctx.pendingOfferId = pending.id
         _pendingFileOffers.value = _pendingFileOffers.value + pending
+        // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
+        if (_autoAcceptFromTrusted.value && trustStore.isTrusted(peer.fingerprint)) {
+            respondToFileOffer(pending.id, true)
+        }
     }
 
     /** 命中 ResumeStore：复用 savedFile，append 模式开 output，发 FILE_ACCEPT 带 resume_offset。返回 true 表示已接管（成功进入续传态，或已 close 上下文）。 */

@@ -141,6 +141,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                 MeshTab.ME -> MeScreen(
                     onOpenPairing = { state.sheet = MeshSheet.PAIRING },
                     onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
+                    engine = engine,
                 )
             }
         }
