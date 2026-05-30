@@ -24,6 +24,9 @@ public partial class App : Application
         MainWindow.Activate();
         if (MainWindow is Window w) w.Closed += OnMainWindowClosed;
 
+        // 收到文件 offer / 文本 / 剪贴板时弹系统 Toast。
+        Notifications.ToastService.Start(ShareEngine.Shared);
+
         _ = StartBackgroundAsync();
     }
 
