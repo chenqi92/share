@@ -46,6 +46,9 @@ export interface EngineState {
   transfers: TransferRow[]
   history: HistoryDay[]
   clipboardInbox: ClipboardItem[]
+  /** 速度柱状图实时序列（每秒采样，live 模式才填）。 */
+  uploadBars: number[]
+  downBars: number[]
   pendingOffer?: PendingOffer
   pendingPairing?: PendingPairing
   selectedPeerId?: string
@@ -69,6 +72,8 @@ export interface EngineState {
   retryTransfer: (transferId: string) => Promise<void>
   /** 已接收文件的下载 URL；mock 模式返回 undefined（无真实文件）。 */
   downloadURL: (historyId: string) => string | undefined
+  /** 每秒采样一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。 */
+  sampleThroughput: () => void
 }
 
 function isMock(): boolean {
@@ -99,6 +104,8 @@ export const useEngine = create<EngineState>((set, get) => ({
   transfers: isMock() ? MESHDROP_TRANSFERS : [],
   history: isMock() ? MESHDROP_HISTORY_BY_DAY : [],
   clipboardInbox: isMock() ? MESHDROP_CLIPBOARD : [],
+  uploadBars: [],
+  downBars: [],
   pendingOffer: undefined,
   pendingPairing: undefined,
   selectedPeerId: isMock() ? 'jiawei' : undefined,
@@ -234,6 +241,20 @@ export const useEngine = create<EngineState>((set, get) => ({
     if (get().mode !== 'live') return undefined
     return getClient().downloadURL(historyId)
   },
+
+  sampleThroughput: () => {
+    let up = 0
+    let down = 0
+    for (const t of get().transfers) {
+      if (t.state === 'sending') up += t.speedBps ?? 0
+      else if (t.state === 'receiving') down += t.speedBps ?? 0
+    }
+    const cap = 32
+    set({
+      uploadBars: [...get().uploadBars, up].slice(-cap),
+      downBars: [...get().downBars, down].slice(-cap),
+    })
+  },
 }))
 
 /**
@@ -299,7 +320,9 @@ export function useEngineConnection() {
       },
     })
     c.connect()
-    return () => { unsub() }
+    // 每秒采样吞吐，喂给传输页速度柱状图。
+    const tpTimer = window.setInterval(() => useEngine.getState().sampleThroughput(), 1000)
+    return () => { unsub(); window.clearInterval(tpTimer) }
   }, [])
 }
 

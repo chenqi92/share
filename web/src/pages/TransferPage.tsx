@@ -21,8 +21,13 @@ export function TransferPage() {
   const mode = useEngine((s) => s.mode)
   const cancelTransfer = useEngine((s) => s.cancelTransfer)
   const retryTransfer = useEngine((s) => s.retryTransfer)
+  const uploadBars = useEngine((s) => s.uploadBars)
+  const downBars = useEngine((s) => s.downBars)
   const peerCount = devices.filter((d) => d.online).length
   const source = mode === 'live' ? transfers : MESHDROP_TRANSFERS
+  // live 且已有采样 → 真实序列；否则用 mock 装饰柱。
+  const chartUp = mode === 'live' && uploadBars.length ? uploadBars : MESHDROP_UPLOAD_BARS
+  const chartDown = mode === 'live' && downBars.length ? downBars : MESHDROP_DOWNLOAD_BARS
 
   const rows = source.filter((t) => {
     if (filter === '发送 · SEND') return t.state === 'sending' || t.state === 'queued'
@@ -94,7 +99,7 @@ export function TransferPage() {
           </div>
         </header>
 
-        <SpeedChart upBars={MESHDROP_UPLOAD_BARS} downBars={MESHDROP_DOWNLOAD_BARS} />
+        <SpeedChart upBars={chartUp} downBars={chartDown} />
 
         <div
           className="flex items-center gap-2 flex-wrap"
