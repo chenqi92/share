@@ -63,9 +63,6 @@ struct TransferTab: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { MeshDropLockup(size: 17) }
-            ToolbarItem(placement: .topBarTrailing) {
-                IconBtn("arrow.up.arrow.down", size: 30, variant: .ghost)
-            }
         }
         .quickLookPreview($previewURL)
     }

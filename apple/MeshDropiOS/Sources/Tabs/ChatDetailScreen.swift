@@ -59,9 +59,6 @@ struct ChatDetailScreen: View {
                     }
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                IconBtn("ellipsis", size: 30, variant: .ghost)
-            }
         }
         .onChange(of: incomingOffer?.id) { _, newID in
             if newID != nil { state.showOfferSheet = true }

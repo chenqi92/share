@@ -37,7 +37,7 @@ struct MeTab: View {
         .toolbar {
             ToolbarItem(placement: .principal) { MeshDropLockup(size: 17) }
             ToolbarItem(placement: .topBarTrailing) {
-                IconBtn("gearshape", size: 30, variant: .ghost) { state.showSettings = true }
+                Button { state.showSettings = true } label: { Image(systemName: "gearshape") }
             }
         }
     }

@@ -68,9 +68,7 @@ struct ChatListTab: View {
                 MeshDropLockup(size: 17)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                IconBtn("square.and.pencil", size: 30, variant: .ghost) {
-                    state.showSendSheet = true
-                }
+                Button { state.showSendSheet = true } label: { Image(systemName: "square.and.pencil") }
             }
         }
     }

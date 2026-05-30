@@ -10,6 +10,7 @@ struct ClipboardTab: View {
     @Environment(\.colorScheme) private var scheme
 
     @State private var draft: String = ""
+    @FocusState private var editorFocused: Bool
 
     private var devices: [Device] { engine.devices }
     private var target: Device? {
@@ -38,12 +39,14 @@ struct ClipboardTab: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) { MeshDropLockup(size: 17) }
-            ToolbarItem(placement: .topBarTrailing) {
-                IconBtn("doc.on.clipboard", size: 30, variant: .ghost)
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("完成") { editorFocused = false }
             }
         }
     }
@@ -94,6 +97,7 @@ struct ClipboardTab: View {
             }
 
             TextEditor(text: $draft)
+                .focused($editorFocused)
                 .font(MeshDropFont.body(14))
                 .frame(minHeight: 90)
                 .scrollContentBackground(.hidden)
@@ -141,6 +145,7 @@ struct ClipboardTab: View {
         guard !content.isEmpty else { return }
         engine.pushClipboard(to: dev, content: content, kind: Self.clipKind(content))
         draft = ""
+        editorFocused = false
     }
 
     // MARK: - 收件行
