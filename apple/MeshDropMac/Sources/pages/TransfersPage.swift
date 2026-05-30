@@ -10,13 +10,13 @@ struct TransfersPage: View {
                 header
 
                 HStack(alignment: .top, spacing: 14) {
-                    SpeedChart(bars: MockSpeed.uploadBars,
+                    SpeedChart(bars: state.uploadBars.isEmpty ? MockSpeed.uploadBars : state.uploadBars,
                                color: MeshDropColor.flame,
                                title: "上行 · UP",
                                subtitle: Self.formatSpeed(state.currentUploadBps),
                                arrow: "↑")
                         .frame(maxWidth: .infinity)
-                    SpeedChart(bars: MockSpeed.downloadBars,
+                    SpeedChart(bars: state.downloadBars.isEmpty ? MockSpeed.downloadBars : state.downloadBars,
                                color: MeshDropColor.sky,
                                title: "下行 · DOWN",
                                subtitle: Self.formatSpeed(state.currentDownloadBps),
@@ -229,15 +229,18 @@ struct TransfersPage: View {
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             GeometryReader { geo in
+                let bars = state.sessionBars.isEmpty ? MockSpeed.sessionBars : state.sessionBars
+                let maxV = max(CGFloat(bars.max() ?? 1), 1)
+                let barW = max(2, (geo.size.width - CGFloat(max(bars.count - 1, 0)) * 2) / CGFloat(max(bars.count, 1)))
                 HStack(alignment: .bottom, spacing: 2) {
-                    ForEach(Array(MockSpeed.sessionBars.enumerated()), id: \.offset) { _, v in
+                    ForEach(Array(bars.enumerated()), id: \.offset) { _, v in
                         Capsule()
                             .fill(MeshDropColor.lime)
-                            .frame(width: (geo.size.width - 14 * 2) / 15,
-                                   height: max(2, CGFloat(v) * 3.5))
+                            .frame(width: barW,
+                                   height: max(2, geo.size.height * CGFloat(v) / maxV))
                     }
                 }
-                .frame(maxHeight: .infinity, alignment: .bottom)
+                .frame(maxWidth: .infinity, alignment: .bottomLeading)
             }
             .frame(height: 56)
         }

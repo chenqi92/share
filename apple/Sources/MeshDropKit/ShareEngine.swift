@@ -36,6 +36,9 @@ public final class ShareEngine: ObservableObject {
     /// 剪贴板收件箱：对端显式推来的剪贴板条目（最新在前），不进聊天历史。
     @Published public private(set) var clipboardInbox: [ClipboardEntry] = []
 
+    /// 会话级吞吐时间序列（每秒采样，最新在后），供传输页速度柱状图绘制真实数据。
+    @Published public private(set) var sessionThroughput = SessionThroughput()
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -47,7 +50,11 @@ public final class ShareEngine: ObservableObject {
     private let trustStore = TrustStore()
     private let resumeStore = ResumeStore()
     private var devicesTask: Task<Void, Never>?
+    private var throughputTask: Task<Void, Never>?
     private var contexts: [UUID: ConnectionContext] = [:]
+
+    /// 吞吐环形缓冲保留的秒数（柱状图横轴长度）。
+    private static let throughputBuckets = 32
 
     /// 接收 chunk 时每写满这么多字节就把进度刷一次 ResumeStore。
     /// 4 MiB ≈ 16 个 256 KiB chunk —— 平衡崩溃时丢失上限和 I/O 频次。
@@ -87,6 +94,14 @@ public final class ShareEngine: ObservableObject {
                 }
             }
             Task { await refreshTrusted() }
+            // 每秒采样一次会话吞吐，喂给传输页速度柱状图。
+            throughputTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard let self else { return }
+                    self.sampleThroughput()
+                }
+            }
             // 即使 LAN 上暂时一台都没有也算启动完成；3 秒后清掉 isStarting
             Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -104,6 +119,9 @@ public final class ShareEngine: ObservableObject {
         discovery = nil
         devicesTask?.cancel()
         devicesTask = nil
+        throughputTask?.cancel()
+        throughputTask = nil
+        sessionThroughput = SessionThroughput()
         devices = []
         isStarting = false
         let active = Array(contexts.values)
@@ -1004,6 +1022,26 @@ public final class ShareEngine: ObservableObject {
         if let error {
             log.debug("ctx \(id) closed with error: \(error.localizedDescription)")
         }
+    }
+
+    /// 每秒一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。
+    private func sampleThroughput() {
+        var up = 0.0
+        var down = 0.0
+        for item in history {
+            guard case .transferring = item.status, let m = transferMetrics[item.id] else { continue }
+            switch item.direction {
+            case .outgoing: up += m.bytesPerSec
+            case .incoming: down += m.bytesPerSec
+            }
+        }
+        var s = sessionThroughput
+        s.up.append(up)
+        s.down.append(down)
+        let cap = Self.throughputBuckets
+        if s.up.count > cap { s.up.removeFirst(s.up.count - cap) }
+        if s.down.count > cap { s.down.removeFirst(s.down.count - cap) }
+        sessionThroughput = s
     }
 
     private func updateHistoryStatus(_ id: UUID, status: TransferStatus) {

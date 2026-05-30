@@ -23,7 +23,7 @@ struct SpeedChart: View {
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             GeometryReader { geo in
-                let maxV = CGFloat(bars.max() ?? 1)
+                let maxV = max(CGFloat(bars.max() ?? 1), 1)
                 let barW = (geo.size.width - CGFloat(bars.count - 1) * 3) / CGFloat(bars.count)
                 HStack(alignment: .bottom, spacing: 3) {
                     ForEach(Array(bars.enumerated()), id: \.offset) { _, v in

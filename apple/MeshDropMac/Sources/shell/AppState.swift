@@ -35,6 +35,11 @@ final class AppState: ObservableObject {
     /// 剪贴板收件箱（对端推来的），ClipboardPage 用。
     @Published private(set) var clipboardInbox: [ClipboardEntry] = []
 
+    /// 速度柱状图序列（每秒一桶，bytes/sec 取整）。空 = 还没有采样数据。
+    @Published private(set) var uploadBars: [Int] = []
+    @Published private(set) var downloadBars: [Int] = []
+    @Published private(set) var sessionBars: [Int] = []
+
     // 网络层状态（顶部 banner 用）
     @Published private(set) var isScanning: Bool = false
     @Published private(set) var lastError: String? = nil
@@ -92,6 +97,28 @@ final class AppState: ObservableObject {
         engine.$clipboardInbox
             .receive(on: DispatchQueue.main)
             .assign(to: &$clipboardInbox)
+
+        engine.$sessionThroughput
+            .receive(on: DispatchQueue.main)
+            .map { $0.up.map { v in Int(v.rounded()) } }
+            .assign(to: &$uploadBars)
+
+        engine.$sessionThroughput
+            .receive(on: DispatchQueue.main)
+            .map { $0.down.map { v in Int(v.rounded()) } }
+            .assign(to: &$downloadBars)
+
+        engine.$sessionThroughput
+            .receive(on: DispatchQueue.main)
+            .map { tp in
+                let n = max(tp.up.count, tp.down.count)
+                return (0..<n).map { i in
+                    let u = i < tp.up.count ? tp.up[i] : 0
+                    let d = i < tp.down.count ? tp.down[i] : 0
+                    return Int((u + d).rounded())
+                }
+            }
+            .assign(to: &$sessionBars)
 
         engine.$isStarting
             .receive(on: DispatchQueue.main)

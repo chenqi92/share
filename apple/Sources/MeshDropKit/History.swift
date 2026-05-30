@@ -54,6 +54,17 @@ public struct ClipboardEntry: Identifiable, Sendable, Equatable {
     }
 }
 
+/// 会话级吞吐时间序列：每秒一个桶，上行 / 下行 bytes/sec。最旧在前、最新在后，
+/// 长度上限 32（不足时短）。供传输页速度柱状图绘制真实数据用。
+public struct SessionThroughput: Sendable, Equatable {
+    public var up: [Double]
+    public var down: [Double]
+    public init(up: [Double] = [], down: [Double] = []) {
+        self.up = up
+        self.down = down
+    }
+}
+
 /// 进行中传输的实时指标。仅在 .transferring 阶段有意义，进入 terminal 时清除。
 public struct TransferMetrics: Sendable, Equatable {
     /// 平滑后的字节/秒。0 表示未收到足够样本。
