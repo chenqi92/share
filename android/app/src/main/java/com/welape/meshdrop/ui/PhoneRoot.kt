@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.welape.meshdrop.mock.MockChatPreviews
 import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.mock.MockHistory
+import com.welape.meshdrop.data.TransferStatus
 import com.welape.meshdrop.transport.ShareEngine
 import com.welape.meshdrop.ui.components.MeshIconBtn
 import com.welape.meshdrop.ui.sheets.DevicePickerSheet
@@ -79,6 +80,10 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val chatPreviewsUi = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
 
+    // 角标：聊天 = 未读入站文本数，传输 = 进行中任务数（真实数据，引擎缺席时为 0）
+    val chatUnread = (engine?.unreadByPeer?.collectAsState()?.value ?: emptyMap()).values.sum()
+    val activeTransfers = realHistoryRaw?.count { it.status is TransferStatus.Transferring } ?: 0
+
     Box(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
@@ -96,6 +101,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             onTapDevice = {
                                 state.openChatDeviceId = it
                                 inChatDetail = true
+                                engine?.markRead(it)
                             },
                             devices = devicesUi,
                             isStarting = isStarting,
@@ -114,6 +120,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             onOpenChat = {
                                 state.openChatDeviceId = it
                                 inChatDetail = true
+                                engine?.markRead(it)
                             },
                             previews = chatPreviewsUi,
                             devices = devicesUi,
@@ -152,7 +159,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     }
                 }
             }
-            BottomNavBar(state = state, onPickTab = {
+            BottomNavBar(state = state, chatUnread = chatUnread, activeTransfers = activeTransfers, onPickTab = {
                 state.tab = it
                 inChatDetail = false
             })
@@ -189,7 +196,12 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
 }
 
 @Composable
-fun BottomNavBar(state: MeshAppState, onPickTab: (MeshTab) -> Unit) {
+fun BottomNavBar(
+    state: MeshAppState,
+    chatUnread: Int = 0,
+    activeTransfers: Int = 0,
+    onPickTab: (MeshTab) -> Unit,
+) {
     val mesh = MeshTheme.colors
     Row(
         modifier = Modifier
@@ -210,7 +222,11 @@ fun BottomNavBar(state: MeshAppState, onPickTab: (MeshTab) -> Unit) {
             NavTabItem(
                 icon = icon,
                 label = label,
-                badge = if (tab == MeshTab.CHAT) 2 else if (tab == MeshTab.TRANSFER) 3 else 0,
+                badge = when (tab) {
+                    MeshTab.CHAT -> chatUnread
+                    MeshTab.TRANSFER -> activeTransfers
+                    else -> 0
+                },
                 selected = state.tab == tab,
                 onClick = { onPickTab(tab) },
                 modifier = Modifier.weight(1f),

@@ -111,6 +111,17 @@ class ShareEngine(private val context: Context) {
     private val _sessionThroughput = MutableStateFlow(SessionThroughput())
     val sessionThroughput: StateFlow<SessionThroughput> = _sessionThroughput.asStateFlow()
 
+    /** 每个对端未读入站文本条数（key = peer.id）。收到入站文本 +1；打开会话时 markRead 清零。 */
+    private val _unreadByPeer = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val unreadByPeer: StateFlow<Map<String, Int>> = _unreadByPeer.asStateFlow()
+
+    /** 打开某对端会话时清掉其未读计数。 */
+    fun markRead(peerId: String) {
+        if (_unreadByPeer.value.containsKey(peerId)) {
+            _unreadByPeer.value = _unreadByPeer.value - peerId
+        }
+    }
+
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
     private var acceptJob: Job? = null
@@ -698,6 +709,8 @@ class ShareEngine(private val context: Context) {
                 status = TransferStatus.Completed,
             )
         )
+        _unreadByPeer.value = _unreadByPeer.value +
+            (peer.id to ((_unreadByPeer.value[peer.id] ?: 0) + 1))
     }
 
     private fun handleReceivedClipboard(ctx: ConnectionContext, body: ByteArray) {
