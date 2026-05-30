@@ -49,6 +49,12 @@ public final class ShareEngine: ObservableObject {
         if unreadByPeer[peerID] != nil { unreadByPeer[peerID] = nil }
     }
 
+    /// 设置：收到来自已信任设备的文件 offer 时自动接受（持久化到 UserDefaults）。
+    @Published public var autoAcceptFromTrusted: Bool =
+        UserDefaults.standard.bool(forKey: "meshdrop.autoAcceptTrusted") {
+        didSet { UserDefaults.standard.set(autoAcceptFromTrusted, forKey: "meshdrop.autoAcceptTrusted") }
+    }
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -839,6 +845,10 @@ public final class ShareEngine: ObservableObject {
                 )
                 ctx.pendingOfferID = pending.id
                 self.pendingFileOffers.append(pending)
+                // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
+                if self.autoAcceptFromTrusted, await self.trustStore.isTrusted(peer.fingerprint) {
+                    self.respondToFileOffer(pending.id, accept: true)
+                }
             }
         }
     }

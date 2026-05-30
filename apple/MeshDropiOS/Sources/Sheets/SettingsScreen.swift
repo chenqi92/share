@@ -8,7 +8,6 @@ struct SettingsScreen: View {
     @EnvironmentObject var engine: ShareEngine
     @State private var visible: Bool = true
     @State private var requireConfirm: Bool = true
-    @State private var autoAcceptTrusted: Bool = true
     @State private var notifyOnArrival: Bool = true
     @State private var confirmingReset: Bool = false
 
@@ -127,8 +126,8 @@ struct SettingsScreen: View {
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
-            Toggle(isOn: $autoAcceptTrusted) {
-                row(title: "信任设备自动接收", detail: "小于 5 MB 自动接收")
+            Toggle(isOn: $engine.autoAcceptFromTrusted) {
+                row(title: "信任设备自动接收", detail: "来自已配对设备的文件自动接收")
             }
             .tint(MeshDropColor.lime).padding(14)
             divider

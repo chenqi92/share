@@ -4,9 +4,9 @@ import MeshDropKit
 struct SettingsPage: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var gateway: GatewayService
+    @ObservedObject private var engine = ShareEngine.shared
     @State private var visibleToAll = true
     @State private var requireFingerprint = true
-    @State private var autoAcceptFromTrusted = true
     @State private var autoAcceptUntrusted = false
     @State private var clipboardSync = true
     @State private var startAtLogin = true
@@ -107,7 +107,7 @@ struct SettingsPage: View {
                 }
 
                 section("接收 · Receive") {
-                    toggle("已配对设备自动接受", on: $autoAcceptFromTrusted)
+                    toggle("已配对设备自动接受", on: $engine.autoAcceptFromTrusted)
                     toggle("陌生设备自动接受（不建议）", on: $autoAcceptUntrusted)
                     field("默认存放路径", trailing:
                         Text("~/Downloads/MeshDrop/")
