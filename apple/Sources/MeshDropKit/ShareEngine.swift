@@ -55,6 +55,12 @@ public final class ShareEngine: ObservableObject {
         didSet { UserDefaults.standard.set(autoAcceptFromTrusted, forKey: "meshdrop.autoAcceptTrusted") }
     }
 
+    /// 设置：收到入站内容时弹系统通知（默认开；持久化到 UserDefaults）。IncomingNotifier 据此决定是否弹。
+    @Published public var notificationsEnabled: Bool =
+        (UserDefaults.standard.object(forKey: "meshdrop.notify") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "meshdrop.notify") }
+    }
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）

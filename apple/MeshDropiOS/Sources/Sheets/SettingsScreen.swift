@@ -8,7 +8,6 @@ struct SettingsScreen: View {
     @EnvironmentObject var engine: ShareEngine
     @State private var visible: Bool = true
     @State private var requireConfirm: Bool = true
-    @State private var notifyOnArrival: Bool = true
     @State private var confirmingReset: Bool = false
 
     private var me: MockMe { engine.displaySelf }
@@ -131,7 +130,7 @@ struct SettingsScreen: View {
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
-            Toggle(isOn: $notifyOnArrival) {
+            Toggle(isOn: $engine.notificationsEnabled) {
                 row(title: "到达通知", detail: "横幅 / 锁屏 / Dynamic Island")
             }
             .tint(MeshDropColor.lime).padding(14)

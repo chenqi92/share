@@ -72,6 +72,7 @@ public final class IncomingNotifier {
     }
 
     private func post(title: String, body: String) {
+        guard engine.notificationsEnabled else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = String(body.prefix(140))
