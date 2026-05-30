@@ -1,8 +1,11 @@
-//! 桌面通知封装。本轮 UI-only：mock 时只 log 一行。
-//! 真接 backend 时替换为 notify-rust 调用。
+//! 桌面通知封装：用 GIO 的 `Notification` + `Application::send_notification`，
+//! 走 org.freedesktop.Notifications / org.gtk.Notifications，无需额外依赖。
 
-#![allow(dead_code)]
+use gtk::gio;
+use gtk::prelude::*;
 
-pub fn toast(_summary: &str, _body: &str) {
-    log::info!("[mock notify] {_summary} — {_body}");
+pub fn toast(app: &impl IsA<gio::Application>, summary: &str, body: &str) {
+    let n = gio::Notification::new(summary);
+    n.set_body(Some(body));
+    app.send_notification(None, &n);
 }

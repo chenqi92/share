@@ -7,12 +7,16 @@ use crate::components::{ascii_divider, chip, device_row, icon_btn, meshdrop_logo
 use crate::dialogs;
 use crate::engine_bridge::{AppHandle, EngineStatus};
 use crate::mock;
+use crate::notify;
 use crate::pages;
 use crate::theme;
 use crate::view::ViewDevice;
 use adw::prelude::*;
+use meshdrop_core::history::{HistoryKind, TransferDirection};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
+use uuid::Uuid;
 
 const PAGES: &[(&str, &str, &str)] = &[
     ("discovery", "附近 · Nearby",   "🛰"),
@@ -179,6 +183,52 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
             if list.is_empty() { return; }
             dialogs::file_offer::present(&win_auto2, Some(&h_auto2));
         });
+
+        // 系统通知：入站文件 offer / 文本 / 剪贴板（窗口不在前台时尤其有用）。
+        // 各自用 seen 集合去重，并以当前快照预填，避免启动时为既有项补发。
+        {
+            let app_c = app.clone();
+            let seen: Rc<RefCell<HashSet<Uuid>>> =
+                Rc::new(RefCell::new(h.engine.pending_offers_rx().borrow().iter().map(|o| o.id).collect()));
+            h.observe(h.engine.pending_offers_rx(), move |list| {
+                let mut s = seen.borrow_mut();
+                for o in list {
+                    if s.insert(o.id) {
+                        notify::toast(&app_c, &format!("{} 想发文件给你", o.peer.name), &o.file_name);
+                    }
+                }
+            });
+        }
+        {
+            let app_c = app.clone();
+            let seen: Rc<RefCell<HashSet<Uuid>>> =
+                Rc::new(RefCell::new(h.engine.history_rx().borrow().iter().map(|i| i.id).collect()));
+            h.observe(h.engine.history_rx(), move |items| {
+                let mut s = seen.borrow_mut();
+                for it in items {
+                    if !s.insert(it.id) { continue; }
+                    if !matches!(it.direction, TransferDirection::Incoming) { continue; }
+                    match &it.kind {
+                        HistoryKind::Text(t) => notify::toast(&app_c, &it.peer.name, t),
+                        HistoryKind::File { name, .. } =>
+                            notify::toast(&app_c, &format!("{} 发来文件", it.peer.name), name),
+                    }
+                }
+            });
+        }
+        {
+            let app_c = app.clone();
+            let seen: Rc<RefCell<HashSet<Uuid>>> =
+                Rc::new(RefCell::new(h.engine.clipboard_rx().borrow().iter().map(|e| e.id).collect()));
+            h.observe(h.engine.clipboard_rx(), move |items| {
+                let mut s = seen.borrow_mut();
+                for e in items {
+                    if s.insert(e.id) {
+                        notify::toast(&app_c, &format!("{} 推送了剪贴板", e.peer_name), &e.content);
+                    }
+                }
+            });
+        }
 
         // 错误态：可在未来某接口暴露 lastError；当前先做空。
         let _ = error_banner.clone();
