@@ -40,8 +40,6 @@
 				<integer>5</integer>
 			</dict>
 		</dict>
-		<key>NSExtensionMainStoryboard</key>
-		<string></string>
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
 		<key>NSExtensionPrincipalClass</key>
