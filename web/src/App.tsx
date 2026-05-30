@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useEngineConnection } from './hooks/useEngine'
 import { BrowserChrome } from './components/BrowserChrome'
 import { MainPage } from './pages/MainPage'
+import { ChatPage } from './pages/ChatPage'
 import { ReceivePage } from './pages/ReceivePage'
 import { TransferPage } from './pages/TransferPage'
 import { ClipboardPage } from './pages/ClipboardPage'
@@ -13,6 +14,7 @@ import { MeshDropMark } from './components/MeshDropLogo'
 
 const PAGES = [
   { id: 'main', label: '主页 · MAIN' },
+  { id: 'chat', label: '聊天 · CHAT' },
   { id: 'receive', label: '接收 · RECEIVE' },
   { id: 'transfer', label: '传输 · TRANSFER' },
   { id: 'clipboard', label: '剪贴板 · CLIPBOARD' },
@@ -36,6 +38,7 @@ export function App() {
 
   const url =
     page === 'main' ? 'http://192.168.1.42/room/客厅' :
+    page === 'chat' ? 'http://192.168.1.42/chat' :
     page === 'receive' ? 'http://192.168.1.42/incoming/嘉伟' :
     page === 'transfer' ? 'http://192.168.1.42/transfers' :
     page === 'clipboard' ? 'http://192.168.1.42/clipboard' :
@@ -45,6 +48,7 @@ export function App() {
 
   const pageNode =
     page === 'main' ? <MainPage /> :
+    page === 'chat' ? <ChatPage /> :
     page === 'receive' ? <ReceivePage /> :
     page === 'transfer' ? <TransferPage /> :
     page === 'clipboard' ? <ClipboardPage /> :
