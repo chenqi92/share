@@ -40,6 +40,15 @@ data class ClipboardEntry(
     val receivedAt: Long = System.currentTimeMillis(),
 )
 
+/**
+ * 会话级吞吐时间序列：每秒一个桶，上行 / 下行 bytes/sec。最旧在前、最新在后，
+ * 长度上限 32（不足时短）。供传输页速度柱状图绘制真实数据用。
+ */
+data class SessionThroughput(
+    val up: List<Double> = emptyList(),
+    val down: List<Double> = emptyList(),
+)
+
 /** 进行中传输的实时指标。仅在 Transferring 阶段有意义，进入 terminal 时清掉。 */
 data class TransferMetrics(
     /** 平滑后的字节 / 秒。0 表示未收到足够样本。 */

@@ -49,6 +49,7 @@ import com.welape.meshdrop.mock.TransferState
 import com.welape.meshdrop.transport.ShareEngine
 import java.util.Locale
 import java.util.UUID
+import kotlin.math.roundToInt
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.ChipTone
 import com.welape.meshdrop.ui.components.MeshChip
@@ -80,6 +81,7 @@ fun TransferScreen(engine: ShareEngine? = null) {
     }
     val history by engine.history.collectAsState()
     val metrics by engine.transferMetrics.collectAsState()
+    val throughput by engine.sessionThroughput.collectAsState()
     val transfers = history.mapNotNull { it.toDisplayTransfer(metrics[it.id]) }
 
     // 会话汇总：所有文件历史 size 之和；瞬时速率分方向求和。
@@ -105,6 +107,8 @@ fun TransferScreen(engine: ShareEngine? = null) {
         sessionTotalBytes = sessionTotal,
         currentUploadBps = up,
         currentDownloadBps = down,
+        upBars = throughput.up.map { it.roundToInt() },
+        downBars = throughput.down.map { it.roundToInt() },
     )
 }
 
@@ -116,6 +120,8 @@ private fun TransferScreenContent(
     sessionTotalBytes: Long,
     currentUploadBps: Double,
     currentDownloadBps: Double,
+    upBars: List<Int> = emptyList(),
+    downBars: List<Int> = emptyList(),
 ) {
     val mesh = MeshTheme.colors
     val inProgress = transfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
@@ -192,7 +198,11 @@ private fun TransferScreenContent(
             }
             Spacer(Modifier.height(6.dp))
 
-            SpeedChart(upBars = MockUploadBars, downBars = MockDownloadBars, height = 88.dp)
+            SpeedChart(
+                upBars = upBars.ifEmpty { MockUploadBars },
+                downBars = downBars.ifEmpty { MockDownloadBars },
+                height = 88.dp,
+            )
 
             Spacer(Modifier.height(10.dp))
 

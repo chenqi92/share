@@ -15,6 +15,7 @@ import com.welape.meshdrop.data.IdentityStore
 import com.welape.meshdrop.data.PairingDecision
 import com.welape.meshdrop.data.PendingFileOffer
 import com.welape.meshdrop.data.PendingPairing
+import com.welape.meshdrop.data.SessionThroughput
 import com.welape.meshdrop.data.TransferDirection
 import com.welape.meshdrop.data.TransferStatus
 import com.welape.meshdrop.data.TrustRecord
@@ -106,10 +107,15 @@ class ShareEngine(private val context: Context) {
     private val _clipboardInbox = MutableStateFlow<List<ClipboardEntry>>(emptyList())
     val clipboardInbox: StateFlow<List<ClipboardEntry>> = _clipboardInbox.asStateFlow()
 
+    /** 会话级吞吐时间序列（每秒采样，最新在后），供传输页速度柱状图绘制真实数据。 */
+    private val _sessionThroughput = MutableStateFlow(SessionThroughput())
+    val sessionThroughput: StateFlow<SessionThroughput> = _sessionThroughput.asStateFlow()
+
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
     private var listener: ServerSocket? = null
     private var acceptJob: Job? = null
     private var devicesJob: Job? = null
+    private var throughputJob: Job? = null
 
     // MARK: - 生命周期
 
@@ -139,6 +145,13 @@ class ShareEngine(private val context: Context) {
                         }
                     }
                 }
+                // 每秒采样会话吞吐，喂给传输页速度柱状图
+                throughputJob = launch {
+                    while (true) {
+                        delay(1000)
+                        sampleThroughput()
+                    }
+                }
                 _isStarting.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "start failed", e)
@@ -154,6 +167,8 @@ class ShareEngine(private val context: Context) {
         discovery.stop()
         devicesJob?.cancel()
         acceptJob?.cancel()
+        throughputJob?.cancel()
+        _sessionThroughput.value = SessionThroughput()
         val active = contexts.values.toList()
         contexts.clear()
         for (ctx in active) ctx.connection.close()
@@ -937,6 +952,23 @@ class ShareEngine(private val context: Context) {
             (totalBytes - currentBytes).toDouble() / bps
         } else null
         _transferMetrics.value = _transferMetrics.value + (hid to TransferMetrics(bps, eta))
+    }
+
+    /** 每秒一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。 */
+    private fun sampleThroughput() {
+        val metrics = _transferMetrics.value
+        var up = 0.0
+        var down = 0.0
+        for (h in _history.value) {
+            if (h.status !is TransferStatus.Transferring) continue
+            val m = metrics[h.id] ?: continue
+            if (h.direction == TransferDirection.OUTGOING) up += m.bytesPerSec else down += m.bytesPerSec
+        }
+        val cur = _sessionThroughput.value
+        _sessionThroughput.value = SessionThroughput(
+            up = (cur.up + up).takeLast(32),
+            down = (cur.down + down).takeLast(32),
+        )
     }
 
     private fun failHistory(id: UUID, reason: String) {
