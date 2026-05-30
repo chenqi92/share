@@ -64,6 +64,9 @@ public sealed partial class ShareEngine : ObservableObject
     [ObservableProperty] private IReadOnlyList<double> _throughputUp = Array.Empty<double>();
     [ObservableProperty] private IReadOnlyList<double> _throughputDown = Array.Empty<double>();
 
+    /// <summary>设置：收到来自已信任设备的文件 offer 时自动接受（持久化到 LocalAppData）。</summary>
+    [ObservableProperty] private bool _autoAcceptFromTrusted;
+
     public ObservableCollection<Device> Devices { get; } = new();
     public ObservableCollection<HistoryItem> History { get; } = new();
     public ObservableCollection<PendingPairing> PendingPairings { get; } = new();
@@ -97,8 +100,31 @@ public sealed partial class ShareEngine : ObservableObject
 
         _discovery = new MdnsDiscovery(Identity, DisplayName, Model);
         _discovery.DevicesChanged += OnDevicesChanged;
+        _autoAcceptFromTrusted = LoadAutoAccept();
 
         foreach (var r in _trustStore.Snapshot()) Trusted.Add(r);
+    }
+
+    partial void OnAutoAcceptFromTrustedChanged(bool value) => SaveAutoAccept(value);
+
+    private static string AutoAcceptPath() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MeshDrop", "auto_accept");
+
+    private static bool LoadAutoAccept()
+    {
+        try { return File.Exists(AutoAcceptPath()) && File.ReadAllText(AutoAcceptPath()).Trim() == "1"; }
+        catch { return false; }
+    }
+
+    private static void SaveAutoAccept(bool value)
+    {
+        try
+        {
+            var p = AutoAcceptPath();
+            Directory.CreateDirectory(Path.GetDirectoryName(p)!);
+            File.WriteAllText(p, value ? "1" : "0");
+        }
+        catch { }
     }
 
     public void SetDisplayName(string name)
@@ -777,10 +803,13 @@ public sealed partial class ShareEngine : ObservableObject
         var first = offer.Files[0];
         var pending = new PendingFileOffer(tid, ctx.Peer, first.Name, first.Size, first.Sha256, DateTime.Now);
         ctx.PendingOfferId = pending.Id;
+        var trusted = _trustStore.IsTrusted(ctx.Peer.Fingerprint);
         _ui.TryEnqueue(() =>
         {
             PendingFileOffers.Add(pending);
             RaiseEvent(new EngineEvent.OfferPending(pending));
+            // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
+            if (AutoAcceptFromTrusted && trusted) RespondToFileOffer(pending.Id, true);
         });
     }
 

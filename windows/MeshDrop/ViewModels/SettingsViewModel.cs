@@ -23,7 +23,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     // 安全/加密
     [ObservableProperty] private bool _e2eRequired = true;
     [ObservableProperty] private bool _autoAccept = false;
-    [ObservableProperty] private bool _autoAcceptTrusted = true;
+    [ObservableProperty] private bool _autoAcceptTrusted;
     [ObservableProperty] private bool _requireFingerprintConfirm = true;
 
     // 行为/接收
@@ -52,6 +52,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public SettingsViewModel()
     {
         _displayName = _engine.DisplayName;
+        _autoAcceptTrusted = _engine.AutoAcceptFromTrusted;
         _receiveDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MeshDrop");
 
@@ -80,6 +81,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     partial void OnDisplayNameChanged(string value) => _engine.SetDisplayName(value);
+
+    partial void OnAutoAcceptTrustedChanged(bool value) => _engine.AutoAcceptFromTrusted = value;
 
     /// <summary>
     /// 重置身份（security.md §设备身份）。删除 LocalAppData/MeshDrop 下的 ID + 密钥；
