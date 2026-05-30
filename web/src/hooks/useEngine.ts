@@ -88,6 +88,13 @@ function buildHistoryDays(items: HistoryEntry[]): HistoryDay[] {
   return [{ label: `TODAY · 今天 · ${items.length} 件`, items }]
 }
 
+/** 收到对端内容时弹一条浏览器通知（需用户已授权）。无权限 / 不支持时静默。 */
+function notifyIncoming(title: string, body: string) {
+  if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (Notification.permission !== 'granted') return
+  try { new Notification(title, { body: body.slice(0, 120) }) } catch { /* ignore */ }
+}
+
 /** 按内容粗判剪贴板 kind（与 Apple / Android 端同口径）。 */
 export function clipKind(content: string): ClipboardItem['kind'] {
   const t = content.trim()
@@ -313,13 +320,22 @@ export function useEngineConnection() {
         const day = useEngine.getState().history[0]
         const items = day ? [item, ...day.items] : [item]
         useEngine.setState({ history: buildHistoryDays(items) })
+        if (h.direction === 'received') {
+          const body = h.kind === 'text' ? (h.text ?? '') : (h.files?.[0]?.name ?? '文件')
+          notifyIncoming(`来自 ${h.peerName}`, body)
+        }
       },
       onClipboardReceived: (c) => {
         const inbox = useEngine.getState().clipboardInbox
         useEngine.setState({ clipboardInbox: [adaptClipboard(c), ...inbox].slice(0, 50) })
+        notifyIncoming(`${c.peerName} 推送了剪贴板`, c.content)
       },
     })
     c.connect()
+    // 首次连接时请求通知授权（用户可拒绝；拒绝后 notifyIncoming 自动静默）。
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => { /* ignore */ })
+    }
     // 每秒采样吞吐，喂给传输页速度柱状图。
     const tpTimer = window.setInterval(() => useEngine.getState().sampleThroughput(), 1000)
     return () => { unsub(); window.clearInterval(tpTimer) }
