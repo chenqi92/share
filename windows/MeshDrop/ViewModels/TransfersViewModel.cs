@@ -43,9 +43,16 @@ public sealed partial class TransfersViewModel : ObservableObject
     [ObservableProperty] private IReadOnlyList<int> _downloadBars = new int[14];
     [ObservableProperty] private IReadOnlyList<int> _sessionBars = new int[14];
 
-    public string SessionValue => "—";
-    public string UpValue => "—";
-    public string DownValue => "—";
+    // 当前瞬时速率 + 会话峰值（来自引擎吞吐序列）。x:Bind 需 Mode=OneWay。
+    [ObservableProperty] private string _sessionValue = "—";
+    [ObservableProperty] private string _upValue = "—";
+    [ObservableProperty] private string _downValue = "—";
+    [ObservableProperty] private string _upHint = "";
+    [ObservableProperty] private string _downHint = "";
+    [ObservableProperty] private string _sessionHint = "";
+
+    private double _peakUp;
+    private double _peakDown;
 
     public TransfersViewModel()
     {
@@ -77,6 +84,26 @@ public sealed partial class TransfersViewModel : ObservableObject
             .Select(i => ToBar((i < up.Count ? up[i] : 0) + (i < down.Count ? down[i] : 0)))
             .ToArray();
 
+        double curUp = up.Count > 0 ? up[^1] : 0;
+        double curDown = down.Count > 0 ? down[^1] : 0;
+        _peakUp = Math.Max(_peakUp, up.Count > 0 ? up.Max() : 0);
+        _peakDown = Math.Max(_peakDown, down.Count > 0 ? down.Max() : 0);
+        UpValue = FmtBps(curUp);
+        DownValue = FmtBps(curDown);
+        SessionValue = FmtBps(curUp + curDown);
+        UpHint = _peakUp > 0 ? $"峰值 {FmtBps(_peakUp)}" : "";
+        DownHint = _peakDown > 0 ? $"峰值 {FmtBps(_peakDown)}" : "";
+        SessionHint = (_peakUp + _peakDown) > 0 ? $"峰值 {FmtBps(_peakUp + _peakDown)}" : "";
+
         static int ToBar(double v) => (int)Math.Min(Math.Round(v), int.MaxValue);
+    }
+
+    private static string FmtBps(double bps)
+    {
+        if (bps < 1) return "0 B/s";
+        if (bps < 1024) return $"{bps:0} B/s";
+        if (bps < 1024 * 1024) return $"{bps / 1024:0.0} KB/s";
+        if (bps < 1024d * 1024 * 1024) return $"{bps / 1024 / 1024:0.0} MB/s";
+        return $"{bps / 1024 / 1024 / 1024:0.00} GB/s";
     }
 }

@@ -47,20 +47,20 @@
                     </Grid.ColumnDefinitions>
                     <ctrl:DashTile Grid.Column="0"
                                    Label="── SESSION · 传输总量 ──"
-                                   Value="{x:Bind ViewModel.SessionValue}"
-                                   Hint="自 09:12 起"
+                                   Value="{x:Bind ViewModel.SessionValue, Mode=OneWay}"
+                                   Hint="{x:Bind ViewModel.SessionHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdLimeDeepBrush}"
                                    Bars="{x:Bind ViewModel.SessionBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="1"
                                    Label="── UP ↑ · 上行 ──"
-                                   Value="{x:Bind ViewModel.UpValue}"
-                                   Hint="峰值 58.2 MB/s"
+                                   Value="{x:Bind ViewModel.UpValue, Mode=OneWay}"
+                                   Hint="{x:Bind ViewModel.UpHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdFlameBrush}"
                                    Bars="{x:Bind ViewModel.UploadBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="2"
                                    Label="── DOWN ↓ · 下行 ──"
-                                   Value="{x:Bind ViewModel.DownValue}"
-                                   Hint="峰值 14.1 MB/s"
+                                   Value="{x:Bind ViewModel.DownValue, Mode=OneWay}"
+                                   Hint="{x:Bind ViewModel.DownHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdSkyBrush}"
                                    Bars="{x:Bind ViewModel.DownloadBars, Mode=OneWay}"/>
                 </Grid>

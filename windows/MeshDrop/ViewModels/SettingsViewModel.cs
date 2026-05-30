@@ -40,7 +40,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string Fingerprint => HumanFp(_engine.Identity.Fingerprint);
     public string Ip => _engine.LocalIp;
     public string DeviceModel => _engine.Model ?? "Windows PC";
-    public string AppVersion => "meshdrop 0.4.0 (build 200)";
+    public string AppVersion
+    {
+        get
+        {
+            var v = typeof(SettingsViewModel).Assembly.GetName().Version;
+            return v is null ? "meshdrop" : $"meshdrop {v.Major}.{v.Minor}.{v.Build}";
+        }
+    }
 
     public SettingsViewModel()
     {
