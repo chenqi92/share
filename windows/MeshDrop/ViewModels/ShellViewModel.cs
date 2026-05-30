@@ -5,7 +5,7 @@ using MeshDrop.Transport;
 
 namespace MeshDrop.ViewModels;
 
-public enum ShellSection { Discovery, Chat, Transfers, History, Trust, Settings }
+public enum ShellSection { Discovery, Chat, Transfers, History, Clipboard, Trust, Settings }
 
 public sealed partial class ShellViewModel : ObservableObject
 {

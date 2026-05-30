@@ -28,6 +28,7 @@ public sealed partial class ShellSidebar : Microsoft.UI.Xaml.Controls.UserContro
     private void OnChat_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.Chat);
     private void OnTransfers_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.Transfers);
     private void OnHistory_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.History);
+    private void OnClipboard_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.Clipboard);
     private void OnTrust_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.Trust);
     private void OnSettings_Click(object sender, RoutedEventArgs e) => SectionChanged?.Invoke(this, ShellSection.Settings);
 

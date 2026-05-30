@@ -63,6 +63,7 @@ public sealed partial class MainWindow : Window
         ChatPg.Visibility = Visibility.Collapsed;
         TransfersPg.Visibility = Visibility.Collapsed;
         HistoryPg.Visibility = Visibility.Collapsed;
+        ClipboardPg.Visibility = Visibility.Collapsed;
         TrustPg.Visibility = Visibility.Collapsed;
         SettingsPg.Visibility = Visibility.Collapsed;
 
@@ -72,6 +73,7 @@ public sealed partial class MainWindow : Window
             case ShellSection.Chat:      ChatPg.Visibility = Visibility.Visible;      break;
             case ShellSection.Transfers: TransfersPg.Visibility = Visibility.Visible; break;
             case ShellSection.History:   HistoryPg.Visibility = Visibility.Visible;   break;
+            case ShellSection.Clipboard: ClipboardPg.Visibility = Visibility.Visible; break;
             case ShellSection.Trust:     TrustPg.Visibility = Visibility.Visible;     break;
             case ShellSection.Settings:  SettingsPg.Visibility = Visibility.Visible;  break;
         }

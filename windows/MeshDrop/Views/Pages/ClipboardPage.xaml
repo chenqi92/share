@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MeshDrop.Views.Pages.ClipboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ctrl="using:MeshDrop.Views.Controls"
+    xmlns:models="using:MeshDrop.Models">
+
+    <Grid Background="{ThemeResource MdPaperBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Padding="24,18,24,8" Spacing="4">
+            <TextBlock Text="剪贴板 · Clipboard"
+                       FontFamily="{StaticResource MdDisplayFontFamily}"
+                       FontWeight="Bold"
+                       FontSize="28"
+                       CharacterSpacing="-25"/>
+            <TextBlock Text="显式推送 · 由你点一下才发，不是后台静默同步"
+                       FontFamily="{StaticResource MdMonoFontFamily}"
+                       FontSize="11"
+                       Opacity="0.65"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Padding="24,8,24,18">
+            <StackPanel Spacing="14">
+
+                <!-- 推送编辑器 -->
+                <Border CornerRadius="12"
+                        Background="{ThemeResource MdCardBrush}"
+                        BorderBrush="{ThemeResource MdLineBrush}"
+                        BorderThickness="1"
+                        Padding="14">
+                    <StackPanel Spacing="10">
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="推送到"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{StaticResource MdMonoFontFamily}"
+                                       FontSize="11"
+                                       Opacity="0.65"/>
+                            <ComboBox Grid.Column="1"
+                                      HorizontalAlignment="Stretch"
+                                      PlaceholderText="选择设备"
+                                      ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
+                                      DisplayMemberPath="Who"
+                                      SelectedValuePath="Id"
+                                      SelectedValue="{x:Bind ViewModel.SelectedDeviceId, Mode=TwoWay}"/>
+                            <Button Grid.Column="2"
+                                    Style="{StaticResource MdOutlineButtonStyle}"
+                                    Command="{x:Bind ViewModel.ReadSystemClipboardCommand}">
+                                <TextBlock Text="读取剪贴板"/>
+                            </Button>
+                        </Grid>
+
+                        <TextBox Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="粘贴或输入要推送的内容…"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 MinHeight="90"
+                                 FontFamily="{StaticResource MdBodyFontFamily}"
+                                 FontSize="13"/>
+
+                        <Button HorizontalAlignment="Right"
+                                Style="{StaticResource MdAccentButtonStyle}"
+                                Command="{x:Bind ViewModel.PushCommand}">
+                            <TextBlock Text="↑ 推送 · Push"/>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <ctrl:AsciiDivider Label="{x:Bind ViewModel.InboxLabel, Mode=OneWay}" Margin="0,4,0,0"/>
+
+                <ItemsControl ItemsSource="{x:Bind ViewModel.Inbox, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Spacing="8"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:ClipboardEntry">
+                            <Border CornerRadius="10"
+                                    Background="{ThemeResource MdCardBrush}"
+                                    BorderBrush="{ThemeResource MdLineBrush}"
+                                    BorderThickness="1"
+                                    Padding="12,10,12,10">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="{StaticResource MdMonoFontFamily}"
+                                                   FontSize="11"
+                                                   Foreground="{ThemeResource MdSkyBrush}">
+                                            <Run Text="↓ "/><Run Text="{x:Bind PeerName}"/>
+                                        </TextBlock>
+                                        <ctrl:ChipControl Grid.Column="1"
+                                                          Text="{x:Bind Kind}"
+                                                          Tone="Outline"
+                                                          Mono="True"
+                                                          VerticalAlignment="Center"/>
+                                    </Grid>
+                                    <TextBlock Text="{x:Bind Content}"
+                                               FontFamily="{StaticResource MdBodyFontFamily}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               MaxLines="6"
+                                               TextTrimming="WordEllipsis"
+                                               IsTextSelectionEnabled="True"/>
+                                    <Button HorizontalAlignment="Right"
+                                            Style="{StaticResource MdOutlineButtonStyle}"
+                                            Tag="{x:Bind Content}"
+                                            Click="OnCopy_Click">
+                                        <TextBlock Text="复制"/>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -98,6 +98,16 @@
                         <TextBlock Grid.Column="1" Text="历史 · History" VerticalAlignment="Center" FontSize="13"/>
                     </Grid>
                 </Button>
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnClipboard_Click">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="📋" FontSize="13"/>
+                        <TextBlock Grid.Column="1" Text="剪贴板 · Clipboard" VerticalAlignment="Center" FontSize="13"/>
+                    </Grid>
+                </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTrust_Click">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>

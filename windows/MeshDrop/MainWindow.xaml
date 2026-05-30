@@ -25,6 +25,7 @@
                 <pages:ChatPage x:Name="ChatPg"        Visibility="Collapsed"/>
                 <pages:TransfersPage x:Name="TransfersPg" Visibility="Collapsed"/>
                 <pages:HistoryPage x:Name="HistoryPg"  Visibility="Collapsed"/>
+                <pages:ClipboardPage x:Name="ClipboardPg" Visibility="Collapsed"/>
                 <pages:TrustPage x:Name="TrustPg"      Visibility="Collapsed"/>
                 <pages:SettingsPage x:Name="SettingsPg" Visibility="Collapsed"/>
             </Grid>
