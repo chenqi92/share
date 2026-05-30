@@ -13,6 +13,7 @@ use log::{debug, info, warn};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::fs::{File, OpenOptions};
@@ -64,6 +65,8 @@ pub struct ShareEngine {
     transfer_metrics_rx: watch::Receiver<HashMap<Uuid, TransferMetrics>>,
     clipboard_rx: watch::Receiver<Vec<ClipboardEntry>>,
     throughput_rx: watch::Receiver<SessionThroughput>,
+    /// 设置：收到已信任设备的文件 offer 时自动接受。句柄与主任务共享，持久化到配置文件。
+    auto_accept: Arc<AtomicBool>,
 }
 
 /// 会话级吞吐时间序列：每秒一个桶，上行 / 下行 bytes/sec。最旧在前，最新在后，
@@ -118,6 +121,7 @@ impl ShareEngine {
         let (tm_tx, tm_rx) = watch::channel(HashMap::<Uuid, TransferMetrics>::new());
         let (clip_tx, clip_rx) = watch::channel(Vec::<ClipboardEntry>::new());
         let (tp_tx, tp_rx) = watch::channel(SessionThroughput::default());
+        let auto_accept = Arc::new(AtomicBool::new(load_auto_accept()));
 
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
@@ -154,6 +158,7 @@ impl ShareEngine {
             clipboard: Vec::new(),
             tp_tx,
             throughput: SessionThroughput::default(),
+            auto_accept: auto_accept.clone(),
             internal_tx,
             _discovery: discovery,
         };
@@ -173,7 +178,16 @@ impl ShareEngine {
             transfer_metrics_rx: tm_rx,
             clipboard_rx: clip_rx,
             throughput_rx: tp_rx,
+            auto_accept,
         })
+    }
+
+    /// 当前「已信任设备自动接收」开关。
+    pub fn auto_accept_from_trusted(&self) -> bool { self.auto_accept.load(Ordering::Relaxed) }
+    /// 设置并持久化「已信任设备自动接收」。
+    pub fn set_auto_accept(&self, value: bool) {
+        self.auto_accept.store(value, Ordering::Relaxed);
+        let _ = save_auto_accept(value);
     }
 
     pub fn devices_rx(&self) -> watch::Receiver<Vec<Device>> { self.devices_rx.clone() }
@@ -291,6 +305,7 @@ struct State {
     clipboard: Vec<ClipboardEntry>,
     tp_tx: watch::Sender<SessionThroughput>,
     throughput: SessionThroughput,
+    auto_accept: Arc<AtomicBool>,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     _discovery: DiscoveryHandle,
 }
@@ -975,6 +990,7 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     let Ok(tid) = Uuid::parse_str(&offer.transfer_id) else { return };
     let peer = state.contexts.get(&ctx_id).and_then(|c| c.peer.clone());
     let Some(peer) = peer else { return };
+    let trusted = state.trust_store.is_trusted(&peer.fingerprint);
 
     let pending = PendingFileOffer {
         id: tid, peer, file_name: first.name.clone(),
@@ -985,6 +1001,10 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     }
     state.pending_offers.push(pending);
     let _ = state.po_tx.send(state.pending_offers.clone());
+    // 设置开启且对端已信任 → 自动接受（复用标准流程，会把该项移出 pending）。
+    if trusted && state.auto_accept.load(Ordering::Relaxed) {
+        respond_offer(state, tid, true).await;
+    }
 }
 
 async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
@@ -1196,6 +1216,27 @@ fn now_ms() -> u64 {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now().duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as u64).unwrap_or(0)
+}
+
+// ─── 设置持久化（自动接收开关）────────────────────────────────────────
+
+fn auto_accept_path() -> Option<PathBuf> {
+    dirs::data_local_dir().map(|d| d.join("MeshDrop").join("auto_accept"))
+}
+
+fn load_auto_accept() -> bool {
+    auto_accept_path()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .map(|s| s.trim() == "1")
+        .unwrap_or(false)
+}
+
+fn save_auto_accept(value: bool) -> std::io::Result<()> {
+    if let Some(p) = auto_accept_path() {
+        if let Some(dir) = p.parent() { std::fs::create_dir_all(dir)?; }
+        std::fs::write(p, if value { "1" } else { "0" })?;
+    }
+    Ok(())
 }
 
 // ─── ConnCtx 构造 ─────────────────────────────────────────────────────

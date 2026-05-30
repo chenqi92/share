@@ -158,6 +158,22 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     e3.add_suffix(&chip::chip("TOFU", chip::Tone::Outline, true));
     g2.add(&e3);
 
+    // 已信任设备自动接收（真实设置，持久化到配置文件）
+    let aa_row = adw::ActionRow::builder()
+        .title("已信任设备自动接收 · Auto-accept from trusted")
+        .subtitle("来自已配对设备的文件 offer 自动接受，无需手动确认")
+        .build();
+    let aa_sw = gtk::Switch::new();
+    aa_sw.set_valign(gtk::Align::Center);
+    if let Some(h) = handle {
+        aa_sw.set_active(h.engine.auto_accept_from_trusted());
+        let h_c = h.clone();
+        aa_sw.connect_active_notify(move |s| h_c.engine.set_auto_accept(s.is_active()));
+    }
+    aa_row.add_suffix(&aa_sw);
+    aa_row.set_activatable_widget(Some(&aa_sw));
+    g2.add(&aa_row);
+
     // 重置身份（security.md §设备身份）
     let e4 = adw::ActionRow::builder()
         .title("重置身份 · Reset identity")
