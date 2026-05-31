@@ -6,7 +6,6 @@ import { TransferRow } from '../components/TransferRow'
 import { AsciiDivider } from '../components/AsciiDivider'
 import {
   MESHDROP_DOWNLOAD_BARS,
-  MESHDROP_ME,
   MESHDROP_TRANSFERS,
   MESHDROP_UPLOAD_BARS,
 } from '../lib/mockData'
@@ -17,6 +16,7 @@ const FILTERS = ['全部 · ALL', '发送 · SEND', '接收 · RECV', '完成 ·
 export function TransferPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('全部 · ALL')
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const transfers = useEngine((s) => s.transfers)
   const mode = useEngine((s) => s.mode)
   const cancelTransfer = useEngine((s) => s.cancelTransfer)
@@ -144,7 +144,7 @@ export function TransferPage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

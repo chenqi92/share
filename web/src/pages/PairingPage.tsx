@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
-import { MESHDROP_ME } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
 
 function FakeQr({ size = 220 }: { size?: number }) {
@@ -60,6 +59,7 @@ function FakeQr({ size = 220 }: { size?: number }) {
 
 export function PairingPage() {
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
   const conn = useEngine((s) => s.conn)
   const pair = useEngine((s) => s.pair)
@@ -276,7 +276,7 @@ export function PairingPage() {
                 gap: 'clamp(8px, 1.4vw, 18px)',
               }}
             >
-              {MESHDROP_ME.pairingCode.split('').map((ch, i) => (
+              {me.pairingCode.split('').map((ch, i) => (
                 <span
                   key={i}
                   style={{
@@ -400,7 +400,7 @@ export function PairingPage() {
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

@@ -8,10 +8,10 @@ import { AsciiDivider } from '../components/AsciiDivider'
 import { FileCard } from '../components/FileCard'
 import { Modal } from '../components/Modal'
 import { useEngine } from '../hooks/useEngine'
-import { MESHDROP_ME } from '../lib/mockData'
 
 export function MainPage() {
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const selectedPeerId = useEngine((s) => s.selectedPeerId)
   const selectPeer = useEngine((s) => s.selectPeer)
   const transfers = useEngine((s) => s.transfers)
@@ -174,7 +174,7 @@ export function MainPage() {
                 }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--lime-deep)' }} />
-                {MESHDROP_ME.visibility}
+                {me.visibility}
               </div>
               <div
                 className="font-display"
@@ -186,7 +186,7 @@ export function MainPage() {
                   color: 'var(--text)',
                 }}
               >
-                {MESHDROP_ME.name}
+                {me.name}
               </div>
               <div
                 style={{
@@ -198,9 +198,9 @@ export function MainPage() {
                   lineHeight: 1.45,
                 }}
               >
-                {MESHDROP_ME.os}
+                {me.os}
                 <br />
-                {MESHDROP_ME.ip}
+                {me.ip}
                 <br />
                 匿名访客 · 关浏览器即下线
               </div>
@@ -280,7 +280,7 @@ export function MainPage() {
 
       <StatusBar
         peerCount={peerCount}
-        hostIp={MESHDROP_ME.hostIp}
+        hostIp={me.hostIp}
         modeLabel={mode === 'live' ? `LIVE · ${conn.toUpperCase()}` : 'OFFLINE PREVIEW'}
       />
 

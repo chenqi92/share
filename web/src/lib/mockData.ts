@@ -138,7 +138,18 @@ export const MESHDROP_UPLOAD_BARS = [3, 5, 8, 7, 9, 6, 11, 12, 14, 11, 10, 11, 1
 export const MESHDROP_DOWNLOAD_BARS = [8, 9, 7, 6, 5, 7, 10, 12, 11, 12, 11, 12, 11, 12]
 export const MESHDROP_SESSION_BARS = [2, 3, 5, 4, 6, 8, 7, 9, 10, 12, 11, 12, 11, 12, 14]
 
-export const MESHDROP_ME = {
+/** 本机身份（资料卡 / 配对页 / 设置页用）。mock 模式用下方常量，live 模式由 engine 派生。 */
+export interface MeIdentity {
+  name: string
+  fingerprint: string
+  ip: string
+  hostIp: string
+  os: string
+  visibility: string
+  pairingCode: string
+}
+
+export const MESHDROP_ME: MeIdentity = {
   name: '访客 · Visitor',
   fingerprint: 'ZX8K · L72M · 9FQ3 · 7HD2',
   ip: '192.168.1.207',

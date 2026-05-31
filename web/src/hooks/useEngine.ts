@@ -15,11 +15,13 @@ import {
   MESHDROP_HISTORY_BY_DAY,
   MESHDROP_TRANSFERS,
   MESHDROP_CLIPBOARD,
+  MESHDROP_ME,
   MESHDROP_PENDING_OFFER,
   MESHDROP_PENDING_PAIRING,
   type ClipboardItem,
   type HistoryDay,
   type HistoryEntry,
+  type MeIdentity,
   type MeshDevice,
   type PendingOffer,
   type PendingPairing,
@@ -30,6 +32,7 @@ import {
   adaptClipboard,
   adaptDevice,
   adaptHistory,
+  adaptMe,
   adaptOffer,
   adaptPairing,
   adaptTransfer,
@@ -37,11 +40,14 @@ import {
   isGatewayConfigured,
   type EngineConnState,
 } from '../lib/engine'
+import { autoAcceptEnabled, notificationsEnabled } from '../lib/settings'
 
 export interface EngineState {
   mode: 'live' | 'mock'
   conn: EngineConnState
 
+  /** 本机身份：mock 模式用常量；live 模式从 host 握手快照 me 字段 + 浏览器 UA 派生。 */
+  me: MeIdentity
   devices: MeshDevice[]
   transfers: TransferRow[]
   history: HistoryDay[]
@@ -88,9 +94,10 @@ function buildHistoryDays(items: HistoryEntry[]): HistoryDay[] {
   return [{ label: `TODAY · 今天 · ${items.length} 件`, items }]
 }
 
-/** 收到对端内容时弹一条浏览器通知（需用户已授权）。无权限 / 不支持时静默。 */
+/** 收到对端内容时弹一条浏览器通知（需用户已授权 + 设置里开启通知）。无权限 / 不支持时静默。 */
 function notifyIncoming(title: string, body: string) {
   if (typeof window === 'undefined' || !('Notification' in window)) return
+  if (!notificationsEnabled()) return
   if (Notification.permission !== 'granted') return
   try { new Notification(title, { body: body.slice(0, 120) }) } catch { /* ignore */ }
 }
@@ -107,6 +114,8 @@ export const useEngine = create<EngineState>((set, get) => ({
   mode: isMock() ? 'mock' : 'live',
   conn: 'idle',
 
+  // mock 用写死常量；live 先放一个浏览器 UA 派生的占位，握手快照到达后由 onState 覆盖。
+  me: isMock() ? MESHDROP_ME : adaptMe(undefined),
   devices: isMock() ? MESHDROP_DEVICES : [],
   transfers: isMock() ? MESHDROP_TRANSFERS : [],
   history: isMock() ? MESHDROP_HISTORY_BY_DAY : [],
@@ -280,6 +289,7 @@ export function useEngineConnection() {
         const history = buildHistoryDays(snap.history.map(adaptHistory))
         const transfers = snap.transfers.map((t) => adaptTransfer(t))
         useEngine.setState({
+          me: adaptMe(snap.me),
           devices, history, transfers,
           pendingOffer: snap.pendingOffers[0] ? adaptOffer(snap.pendingOffers[0]) : undefined,
           pendingPairing: snap.pendingPairings[0] ? adaptPairing(snap.pendingPairings[0]) : undefined,
@@ -300,7 +310,11 @@ export function useEngineConnection() {
       },
       onPairingPending: (p) => useEngine.setState({ pendingPairing: adaptPairing(p) }),
       onPairingResolved: () => useEngine.setState({ pendingPairing: undefined }),
-      onOfferPending: (o) => useEngine.setState({ pendingOffer: adaptOffer(o) }),
+      onOfferPending: (o) => {
+        useEngine.setState({ pendingOffer: adaptOffer(o) })
+        // 设置里开启「自动接收」时，直接接受并清掉待审弹窗。
+        if (autoAcceptEnabled()) { useEngine.getState().acceptOffer() }
+      },
       onOfferResolved: () => useEngine.setState({ pendingOffer: undefined }),
       onTransferProgress: (t) => {
         const next = useEngine.getState().transfers.map((r) =>

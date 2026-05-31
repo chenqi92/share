@@ -4,13 +4,13 @@ import { StatusBar } from '../components/StatusBar'
 import {
   MESHDROP_DEVICES,
   MESHDROP_HISTORY_BY_DAY,
-  MESHDROP_ME,
   type MeshDevice,
 } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
 
 export function ChatPage() {
   const liveDevices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const liveHistory = useEngine((s) => s.history)
   const selectedPeerId = useEngine((s) => s.selectedPeerId)
   const selectPeer = useEngine((s) => s.selectPeer)
@@ -228,7 +228,7 @@ export function ChatPage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

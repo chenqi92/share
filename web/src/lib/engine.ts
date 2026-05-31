@@ -9,7 +9,7 @@
  *   - GET  /api/v1/download/<offerId> 接受 offer 后下载文件
  */
 
-import type { ClipboardItem, DeviceKind, HistoryEntry, MeshDevice, PendingOffer, PendingPairing, TransferRow, TransferState } from './mockData'
+import type { ClipboardItem, DeviceKind, HistoryEntry, MeIdentity, MeshDevice, PendingOffer, PendingPairing, TransferRow, TransferState } from './mockData'
 
 // ---------- wire types (protocol/companion-bridges.md §3) ----------
 
@@ -263,6 +263,43 @@ export function adaptClipboard(c: WireClipboardItem): ClipboardItem {
     kind: c.kind,
     body: c.content,
     ago: formatAgo(c.ts),
+  }
+}
+
+/** 从 UA 粗判「浏览器 · 系统」串，作为本机资料卡的 os 字段。 */
+function detectBrowserOS(): string {
+  if (typeof navigator === 'undefined') return 'Web'
+  const ua = navigator.userAgent
+  let browser = 'Browser'
+  if (/Edg\//.test(ua)) browser = 'Edge'
+  else if (/OPR\//.test(ua)) browser = 'Opera'
+  else if (/Firefox\//.test(ua)) browser = 'Firefox'
+  else if (/Chrome\//.test(ua)) browser = 'Chrome'
+  else if (/Safari\//.test(ua)) browser = 'Safari'
+  let os = 'Web'
+  if (/Windows/.test(ua)) os = 'Windows'
+  else if (/Mac OS X|Macintosh/.test(ua)) os = 'macOS'
+  else if (/Android/.test(ua)) os = 'Android'
+  else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS'
+  else if (/Linux/.test(ua)) os = 'Linux'
+  return `${browser} · ${os}`
+}
+
+/**
+ * live 模式本机身份。host 端在握手快照里带 me 字段（displayName / fingerprint /
+ * ip / hostIp）。浏览器出于隐私沙箱限制拿不到本机 LAN IP，所以 ip 完全依赖 host
+ * 上报；host 未提供时退化为占位串，但仍来自 engine 状态而非硬编码常量。os 用浏览
+ * 器 UA 推断；pairingCode 当前协议未在 me 字段里下发，host 补发后可在此映射。
+ */
+export function adaptMe(me?: StateSnapshot['payload']['me']): MeIdentity {
+  return {
+    name: me?.displayName || '本机 · This device',
+    fingerprint: me?.fingerprint || '—',
+    ip: me?.ip || 'LAN（host 未上报）',
+    hostIp: me?.hostIp || '—',
+    os: detectBrowserOS(),
+    visibility: '访客可见',
+    pairingCode: '—',
   }
 }
 

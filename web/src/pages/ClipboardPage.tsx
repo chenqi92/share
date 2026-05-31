@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import { AsciiDivider } from '../components/AsciiDivider'
-import { MESHDROP_ME, type ClipboardItem } from '../lib/mockData'
+import { type ClipboardItem } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
 
 const KIND_GLYPH: Record<ClipboardItem['kind'], string> = {
@@ -95,6 +95,7 @@ function ClipboardCell({ item, onCopy }: { item: ClipboardItem; onCopy: (body: s
 
 export function ClipboardPage() {
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const inbox = useEngine((s) => s.clipboardInbox)
   const selectedPeerId = useEngine((s) => s.selectedPeerId)
   const pushClipboard = useEngine((s) => s.pushClipboard)
@@ -299,7 +300,7 @@ export function ClipboardPage() {
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

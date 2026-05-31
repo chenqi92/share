@@ -4,7 +4,6 @@ import { FileCard } from '../components/FileCard'
 import { StatusBar } from '../components/StatusBar'
 import {
   MESHDROP_HISTORY_BY_DAY,
-  MESHDROP_ME,
   type HistoryEntry,
 } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
@@ -175,6 +174,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
 
 export function HistoryPage() {
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const liveHistory = useEngine((s) => s.history)
   const mode = useEngine((s) => s.mode)
   const downloadURL = useEngine((s) => s.downloadURL)
@@ -254,7 +254,7 @@ export function HistoryPage() {
         ))}
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

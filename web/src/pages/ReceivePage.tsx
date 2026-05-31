@@ -1,5 +1,5 @@
 import { useEngine } from '../hooks/useEngine'
-import { MESHDROP_ME, MESHDROP_PENDING_OFFER } from '../lib/mockData'
+import { MESHDROP_PENDING_OFFER } from '../lib/mockData'
 import { Avatar } from '../components/Avatar'
 import { Chip } from '../components/Chip'
 import { FileCard } from '../components/FileCard'
@@ -9,6 +9,7 @@ import { AsciiDivider } from '../components/AsciiDivider'
 
 export function ReceivePage() {
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
   const live = useEngine((s) => s.pendingOffer)
   const acceptOffer = useEngine((s) => s.acceptOffer)
@@ -30,7 +31,7 @@ export function ReceivePage() {
         }}>
           没有待审项 · NO PENDING OFFER
         </div>
-        <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+        <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
       </div>
     )
   }
@@ -235,7 +236,7 @@ export function ReceivePage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }

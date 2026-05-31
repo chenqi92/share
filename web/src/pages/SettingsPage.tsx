@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
-import { MESHDROP_ME } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
+import { loadSettings, saveSettings, type AppSettings } from '../lib/settings'
 
 interface ToggleRowProps {
   label: string
@@ -119,13 +119,22 @@ function SelectRow({ label, hint, value, options, onChange }: SelectRowProps) {
 }
 
 export function SettingsPage() {
-  const [autoAccept, setAutoAccept] = useState(false)
+  // 自动接收 / 通知：持久化到 localStorage，engine 的 onOfferPending / notifyIncoming 会读取，
+  // 不再是「关页即丢、且 live 模式不生效」的纯本地 state。
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings())
+  const updateSettings = (patch: Partial<AppSettings>) =>
+    setSettings((prev) => {
+      const next = { ...prev, ...patch }
+      saveSettings(next)
+      return next
+    })
   const [showInRadar, setShowInRadar] = useState(true)
   const [keepHistory, setKeepHistory] = useState(false)
   const [defaultPath, setDefaultPath] = useState('浏览器下载')
   const [scope, setScope] = useState('LAN 内全部')
   const [confirmingForget, setConfirmingForget] = useState(false)
   const devices = useEngine((s) => s.devices)
+  const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
   const conn = useEngine((s) => s.conn)
   const forgetSession = useEngine((s) => s.forgetSession)
@@ -203,9 +212,9 @@ export function SettingsPage() {
           />
           <ToggleRow
             label="访客身份记住浏览器"
-            hint="关闭即关页清空（推荐）。打开后会写一条非永久 cookie 让自动重连工作。"
-            value={false}
-            onChange={() => {}}
+            hint="关闭即关页清空（推荐）。打开后保留 session token 让自动重连工作；关闭会立即清掉。"
+            value={mode === 'live' && conn !== 'unpaired'}
+            onChange={(on) => { if (!on) forgetSession() }}
           />
         </section>
 
@@ -235,14 +244,20 @@ export function SettingsPage() {
                 letterSpacing: '0.02em',
               }}
             >
-              fingerprint · {MESHDROP_ME.fingerprint}
+              fingerprint · {me.fingerprint}
             </span>
           </div>
           <ToggleRow
             label="未配对设备的文件 offer 自动接收"
             hint="不推荐 · 仅在你完全控制 LAN 时打开。"
-            value={autoAccept}
-            onChange={setAutoAccept}
+            value={settings.autoAccept}
+            onChange={(v) => updateSettings({ autoAccept: v })}
+          />
+          <ToggleRow
+            label="收到文件 / 剪贴板时弹通知"
+            hint="需要浏览器通知权限；关闭后即使有权限也不弹。"
+            value={settings.notifications}
+            onChange={(v) => updateSettings({ notifications: v })}
           />
         </section>
 
@@ -375,14 +390,14 @@ export function SettingsPage() {
             }}
           >
             meshdrop-web · v0.1.0-ui<br />
-            host · {MESHDROP_ME.hostIp} (Lily's MacBook · macOS 14.5 · gateway)<br />
-            session · #4f2a · opened 6m 12s ago<br />
-            engine · WebRTC DataChannel + WebCrypto X25519 · MOCK MODE
+            host · {me.hostIp}<br />
+            session · {mode === 'live' ? conn.toUpperCase() : '—'}<br />
+            engine · WebRTC DataChannel + WebCrypto X25519 · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
           </div>
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={MESHDROP_ME.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
     </div>
   )
 }
