@@ -173,6 +173,24 @@ internal static class EngineProjection
         }
     }
 
+    // ─── ClipboardEntry → MockClipboard ───────────────────────────
+
+    public static MockClipboard ToMock(this ClipboardEntry e)
+    {
+        var kind = e.Kind switch
+        {
+            "link" => MockClipboardKind.Link,
+            "code" => MockClipboardKind.Code,
+            _ => MockClipboardKind.Text,   // 未知 / "text" 都归 Text
+        };
+        return new MockClipboard(
+            Id: e.Id.ToString(),
+            Who: e.PeerName,
+            Kind: kind,
+            Body: e.Content ?? "",
+            Ago: e.ReceivedAt.ToString("HH:mm:ss"));
+    }
+
     public static MockTrust ToMock(this TrustRecord t)
     {
         var date = DateTimeOffset.FromUnixTimeMilliseconds(t.LastSeenMs).LocalDateTime;

@@ -51,6 +51,7 @@ public partial class App : Application
     {
         try { _gateway?.Stop(); } catch { }
         try { ShareEngine.Shared.Stop(); } catch { }
+        try { Notifications.ToastService.Stop(); } catch { }
     }
 }
 

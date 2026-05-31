@@ -3,8 +3,9 @@ using CommunityToolkit.WinUI.Notifications;
 namespace MeshDrop.Notifications;
 
 /// <summary>
-/// 用 CommunityToolkit.WinUI.Notifications 构造 incoming file / text 的 Toast。
-/// 仅生成 ToastContent，不直接 Show — 是否 Show 由调用方控制（本轮 mock 不真正发系统通知）。
+/// 用 CommunityToolkit.WinUI.Notifications 构造 incoming file / text 的 Toast XML。
+/// 这里只产出纯 <see cref="ToastContent"/>（无副作用，便于单测 / 预览）；真正弹系统
+/// 通知由 <see cref="ToastService"/> 经 Windows App SDK <c>AppNotificationManager</c> 完成。
 /// </summary>
 public static class ToastBuilder
 {
