@@ -2,6 +2,9 @@ import SwiftUI
 
 struct DiscoveryPage: View {
     @EnvironmentObject var state: AppState
+    private var screenshotTime: Double? {
+        ProcessInfo.processInfo.environment["MESHDROP_SCREENSHOT"] == "1" ? 1.4 : nil
+    }
 
     var body: some View {
         PageScroll {
@@ -79,7 +82,7 @@ struct DiscoveryPage: View {
                             Radar(devices: state.engineDevices,
                                   variant: .sweep,
                                   selectedDeviceID: state.selectedDeviceID,
-                                  staticTime: 1.4)
+                                  staticTime: screenshotTime)
                                 .frame(height: 460)
                         }
 

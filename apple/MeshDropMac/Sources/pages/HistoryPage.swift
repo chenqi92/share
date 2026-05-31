@@ -76,10 +76,22 @@ struct HistoryPage: View {
             // 内容
             switch h.kind {
             case .image:
-                HStack(spacing: 4) {
-                    Photo(hue: 24).frame(width: 60, height: 60)
-                    Photo(hue: 200).frame(width: 60, height: 60)
-                    Photo(hue: 90).frame(width: 60, height: 60)
+                VStack(alignment: .leading, spacing: 6) {
+                    ImagePreview(url: h.fileURL, base64: nil, cornerRadius: 10)
+                        .frame(height: 132)
+                    if let name = h.name {
+                        HStack(spacing: 6) {
+                            Text(name)
+                                .font(MeshDropFont.body(size: 11.5, weight: .semibold))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            if let size = h.size {
+                                Text("· \(size)")
+                                    .font(MeshDropFont.mono(size: 10))
+                                    .foregroundStyle(MeshDropColor.textMuted)
+                            }
+                        }
+                    }
                 }
             case .file:
                 FileChip(name: h.name ?? "", size: h.size ?? "", ext: h.ext ?? "",

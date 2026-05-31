@@ -1,13 +1,24 @@
 import SwiftUI
 import MeshDropKit
+import PhotosUI
+import UIKit
+import UniformTypeIdentifiers
 
 struct DiscoverTab: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+    @State private var showFileImporter: Bool = false
+    @State private var showPhotoPicker: Bool = false
+    @State private var photoSelection: [PhotosPickerItem] = []
+    @State private var quickNotice: QuickNotice?
+    @State private var quickStatus: String?
 
     private var devices: [MockDevice] { engine.displayDevices }
     private var me: MockMe { engine.displaySelf }
+    private var quickTarget: Device? {
+        engine.devices.first(where: { $0.id == state.selectedDeviceID }) ?? engine.devices.first
+    }
 
     var body: some View {
         ZStack {
@@ -22,8 +33,8 @@ struct DiscoverTab: View {
                     }
                     heroBlock
                     radarBlock
-                    deviceListBlock
                     quickStripBlock
+                    deviceListBlock
                     AsciiDivider("LAN · \(me.ip)/24 · \(engine.isStarting ? "SCANNING" : "LIVE")")
                     statusBar
                     Spacer(minLength: 60)
@@ -34,6 +45,38 @@ struct DiscoverTab: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.data],
+            allowsMultipleSelection: true
+        ) { result in
+            switch result {
+            case .success(let urls):
+                sendPickedFiles(urls)
+            case .failure(let error):
+                quickNotice = QuickNotice(title: "文件无法读取", message: error.localizedDescription)
+            }
+        }
+        .photosPicker(isPresented: $showPhotoPicker,
+                      selection: $photoSelection,
+                      maxSelectionCount: 0,
+                      matching: .images)
+        .onChange(of: photoSelection) { _, items in
+            guard !items.isEmpty else { return }
+            Task { await sendPickedPhotos(items) }
+        }
+        .onChange(of: quickStatus) { _, value in
+            guard let value else { return }
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                if quickStatus == value { quickStatus = nil }
+            }
+        }
+        .alert(item: $quickNotice) { notice in
+            Alert(title: Text(notice.title),
+                  message: Text(notice.message),
+                  dismissButton: .default(Text("好")))
+        }
     }
 
     // MARK: - Sections
@@ -124,7 +167,7 @@ struct DiscoverTab: View {
                         .contextMenu {
                             Button("发送…") {
                                 state.selectedDeviceID = d.id
-                                state.showSendSheet = true
+                                state.presentSend(.text)
                             }
                             Button("查看资料") {}
                             Button("静音") {}
@@ -164,17 +207,23 @@ struct DiscoverTab: View {
         VStack(alignment: .leading, spacing: 8) {
             AsciiDivider("QUICK SEND · 快捷发送")
             HStack(spacing: 10) {
-                quickItem("文本",  "text.alignleft",  variant: .ink)
-                quickItem("剪贴板", "doc.on.clipboard", variant: .ghost)
-                quickItem("照片",   "photo.on.rectangle", variant: .ghost)
-                quickItem("文件",   "folder",         variant: .ghost)
+                quickItem("文本",  "text.alignleft",  variant: .ink, action: openQuickText)
+                quickItem("剪贴板", "doc.on.clipboard", variant: .ghost, action: sendClipboardNow)
+                quickItem("照片",   "photo.on.rectangle", variant: .ghost, action: openPhotoPickerNow)
+                quickItem("文件",   "folder",         variant: .ghost, action: openFilePickerNow)
+            }
+            if let quickStatus {
+                Text(quickStatus)
+                    .font(MeshDropFont.mono(10.5, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.limeDeep)
+                    .transition(.opacity)
             }
         }
     }
 
     @ViewBuilder
-    private func quickItem(_ label: String, _ symbol: String, variant: IconBtn.Variant) -> some View {
-        Button { state.showSendSheet = true } label: {
+    private func quickItem(_ label: String, _ symbol: String, variant: IconBtn.Variant, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             VStack(spacing: 6) {
                 IconBtn(symbol, size: 44, variant: variant, shape: .square, wrapInButton: false)
                 Text(label)
@@ -185,6 +234,80 @@ struct DiscoverTab: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func openQuickText() {
+        guard let target = ensureQuickTarget() else { return }
+        state.selectedDeviceID = target.id
+        state.presentSend(.text, allowsKindSwitch: false)
+    }
+
+    private func sendClipboardNow() {
+        guard let target = ensureQuickTarget() else { return }
+        let content = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !content.isEmpty else {
+            quickNotice = QuickNotice(title: "剪贴板为空", message: "复制一段文字后再点剪贴板快捷发送。")
+            return
+        }
+        engine.pushClipboard(to: target, content: content, kind: ClipboardTab.clipKind(content))
+        showQuickSuccess("已发送剪贴板给 \(target.name)")
+    }
+
+    private func openPhotoPickerNow() {
+        guard let target = ensureQuickTarget() else { return }
+        state.selectedDeviceID = target.id
+        showPhotoPicker = true
+    }
+
+    private func openFilePickerNow() {
+        guard let target = ensureQuickTarget() else { return }
+        state.selectedDeviceID = target.id
+        showFileImporter = true
+    }
+
+    private func ensureQuickTarget() -> Device? {
+        guard let target = quickTarget else {
+            quickNotice = QuickNotice(title: "没有可发送设备", message: "等附近设备出现后再使用快捷发送。")
+            return nil
+        }
+        state.selectedDeviceID = target.id
+        return target
+    }
+
+    private func sendPickedFiles(_ urls: [URL]) {
+        guard let target = ensureQuickTarget(), !urls.isEmpty else { return }
+        urls.forEach { engine.sendFile(to: target, sourceURL: $0) }
+        showQuickSuccess("已发送 \(urls.count) 个文件给 \(target.name)")
+    }
+
+    private func sendPickedPhotos(_ items: [PhotosPickerItem]) async {
+        defer { photoSelection = [] }
+        guard let target = ensureQuickTarget() else { return }
+        var sent = 0
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let ext = item.supportedContentTypes.first(where: { $0.preferredFilenameExtension != nil })?
+                .preferredFilenameExtension ?? "jpg"
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("IMG-\(UUID().uuidString).\(ext)")
+            do {
+                try data.write(to: url)
+                engine.sendFile(to: target, sourceURL: url)
+                sent += 1
+            } catch {
+                continue
+            }
+        }
+        if sent > 0 {
+            showQuickSuccess("已发送 \(sent) 张照片给 \(target.name)")
+        } else {
+            quickNotice = QuickNotice(title: "照片无法读取", message: "没有成功读取可发送的图片。")
+        }
+    }
+
+    private func showQuickSuccess(_ message: String) {
+        quickStatus = message
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     private var statusBar: some View {
@@ -202,4 +325,10 @@ struct DiscoverTab: View {
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
         }
     }
+}
+
+private struct QuickNotice: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
 }

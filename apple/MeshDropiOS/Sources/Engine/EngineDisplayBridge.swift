@@ -1,13 +1,16 @@
 import Foundation
 import MeshDropKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Device → MockDevice 适配
 
 extension Device {
     /// 把真实 Device 投射成 UI 用的 MockDevice。dist / angle / 颜色 / initials 来自 id 的稳定哈希，
     /// 保证同一台设备每次出现在雷达上的位置都一致。
-    public var displayMock: MockDevice {
+    public var displayMock: MockDevice { displayMock(isOnline: true) }
+
+    public func displayMock(isOnline: Bool) -> MockDevice {
         let bucket = Self.bucket(id)
         return MockDevice(
             id: id,
@@ -20,7 +23,7 @@ extension Device {
             initials: Self.initials(name),
             os: Self.osLabel(os),
             rtt: 12 + bucket % 40,
-            isOnline: true
+            isOnline: isOnline
         )
     }
 
@@ -105,18 +108,19 @@ extension HistoryItem {
                 progress: progress,
                 status: status
             )
-        case .file(let name, let size, _):
+        case .file(let name, let size, let url):
             let ext = (name as NSString).pathExtension
             return MockHistoryItem(
                 id: id.uuidString,
                 dir: dir,
                 peer: peer.name,
                 time: Self.timeFormatter.string(from: createdAt),
-                kind: .file,
-                count: nil,
+                kind: Self.isImageFile(name: name, url: url) ? .image : .file,
+                count: Self.isImageFile(name: name, url: url) ? 1 : nil,
                 name: name,
                 size: Self.byteFormatter.string(fromByteCount: Int64(size)),
                 ext: ext.isEmpty ? "?" : ext,
+                fileURL: url,
                 content: nil,
                 progress: progress,
                 status: status
@@ -183,17 +187,31 @@ extension HistoryItem {
                 fileName: nil, fileSize: nil, fileExt: nil,
                 imageCount: nil, delivered: delivered
             )
-        case .file(let name, let size, _):
+        case .file(let name, let size, let url):
             let ext = (name as NSString).pathExtension
             return MockMessage(
-                id: id.uuidString, dir: dir, kind: .file,
+                id: id.uuidString,
+                dir: dir,
+                kind: Self.isImageFile(name: name, url: url) ? .image : .file,
                 text: nil, time: time,
                 fileName: name,
                 fileSize: Self.byteFormatter.string(fromByteCount: Int64(size)),
                 fileExt: ext.isEmpty ? "?" : ext,
-                imageCount: nil, delivered: delivered
+                fileURL: url,
+                imageCount: Self.isImageFile(name: name, url: url) ? 1 : nil,
+                delivered: delivered
             )
         }
+    }
+
+    static func isImageFile(name: String, url: URL?) -> Bool {
+        if let url {
+            let values = try? url.resourceValues(forKeys: [.contentTypeKey])
+            if values?.contentType?.conforms(to: .image) == true { return true }
+        }
+        let ext = (name as NSString).pathExtension
+        guard !ext.isEmpty else { return false }
+        return UTType(filenameExtension: ext)?.conforms(to: .image) == true
     }
 
     static let timeFormatter: DateFormatter = {
@@ -242,15 +260,25 @@ extension PairingRequest {
 
 extension PendingFileOffer {
     public var displayMock: MockPendingOffer {
-        MockPendingOffer(
+        let isImage = Self.isImage(fileName: fileName, mime: mime)
+        return MockPendingOffer(
             id: id.uuidString,
             peer: peer.name,
             deviceName: peer.model ?? peer.name,
             fileName: fileName,
             fileSize: formattedSize,
+            isImage: isImage,
+            previewBase64: previewBase64,
             note: nil,
             receivedAt: PairingRequest.ago(receivedAt)
         )
+    }
+
+    private static func isImage(fileName: String, mime: String?) -> Bool {
+        if mime?.hasPrefix("image/") == true { return true }
+        let ext = (fileName as NSString).pathExtension
+        guard !ext.isEmpty else { return false }
+        return UTType(filenameExtension: ext)?.conforms(to: .image) == true
     }
 }
 

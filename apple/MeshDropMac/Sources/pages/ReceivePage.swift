@@ -3,13 +3,16 @@ import SwiftUI
 /// Receive Confirmation —— 文件 offer + 文字便签弹框。
 struct ReceivePage: View {
     @EnvironmentObject var state: AppState
+    private var screenshotTime: Double? {
+        ProcessInfo.processInfo.environment["MESHDROP_SCREENSHOT"] == "1" ? 1.0 : nil
+    }
 
     var body: some View {
         ZStack {
             MeshDropColor.background
 
             VStack {
-                Radar(devices: state.engineDevices, variant: .sweep, staticTime: 1.0)
+                Radar(devices: state.engineDevices, variant: .sweep, staticTime: screenshotTime)
                     .frame(width: 480, height: 480)
                     .opacity(0.25)
                     .blur(radius: 6)
@@ -67,9 +70,7 @@ struct ReceivePage: View {
                 Spacer()
             }
 
-            FileChip(name: offer.fileName,
-                     size: offer.fileSize,
-                     ext: (offer.fileName as NSString).pathExtension.lowercased())
+            offerPreview(offer)
 
             HStack(spacing: 14) {
                 Text("将存到 ~/Documents/MeshDrop/\(offer.peer)/")
@@ -110,5 +111,38 @@ struct ReceivePage: View {
                 .shadow(color: MeshDropColor.ink12, radius: 18, x: 0, y: 6)
         )
         .padding(.horizontal, 80)
+    }
+
+    @ViewBuilder
+    private func offerPreview(_ offer: MockPendingOffer) -> some View {
+        if offer.isImage {
+            ImagePreview(url: nil, base64: offer.previewBase64, cornerRadius: 14)
+                .frame(height: 240)
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(offer.fileName)
+                            .font(MeshDropFont.body(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Text(offer.fileSize)
+                            .font(MeshDropFont.mono(size: 10.5))
+                            .opacity(0.8)
+                    }
+                    .foregroundStyle(.white)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        LinearGradient(
+                            colors: [.black.opacity(0.62), .black.opacity(0.12)],
+                            startPoint: .bottom,
+                            endPoint: .top
+                        )
+                    )
+                }
+        } else {
+            FileChip(name: offer.fileName,
+                     size: offer.fileSize,
+                     ext: (offer.fileName as NSString).pathExtension.lowercased())
+        }
     }
 }

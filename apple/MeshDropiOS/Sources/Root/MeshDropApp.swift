@@ -42,12 +42,15 @@ final class AppState: ObservableObject {
     @Published var selectedDeviceID: String = ""
     @Published var phoneTab: PhoneTab = .discover
     @Published var showSendSheet: Bool = false
+    @Published var sendSheetInitialKind: SendSheet.SendKind = .text
+    @Published var sendSheetAllowsKindSwitch: Bool = true
     @Published var showOfferSheet: Bool = false
     @Published var showPairingSheet: Bool = false
     @Published var showOnboarding: Bool = false
     @Published var showSettings: Bool = false
     @Published var showHistory: Bool = false
     @Published var showTrustManager: Bool = false
+    @Published var showClipboardSheet: Bool = false
     @Published var showShareExt: Bool = false
     @Published var showLiveActivity: Bool = false
 
@@ -62,10 +65,21 @@ final class AppState: ObservableObject {
         if !pendingShares.isEmpty { showPendingShareResolver = true }
     }
 
+    func presentSend(_ kind: SendSheet.SendKind, allowsKindSwitch: Bool = true) {
+        sendSheetInitialKind = kind
+        sendSheetAllowsKindSwitch = allowsKindSwitch
+        showSendSheet = true
+    }
+
     /// 选中设备的 UI 展示模型。LAN 上没有任何设备时返回一个占位的"等待"卡片。
     func selectedDeviceDisplay(engine: ShareEngine) -> MockDevice {
-        if let real = engine.devices.first(where: { $0.id == selectedDeviceID }) {
-            return real.displayMock
+        if !selectedDeviceID.isEmpty {
+            if let real = engine.devices.first(where: { $0.id == selectedDeviceID }) {
+                return real.displayMock
+            }
+            if let historical = engine.history.first(where: { $0.peer.id == selectedDeviceID }) {
+                return historical.peer.displayMock(isOnline: false)
+            }
         }
         if let any = engine.devices.first {
             return any.displayMock
@@ -86,10 +100,11 @@ final class AppState: ObservableObject {
         case "history":       phoneTab = .me; showHistory = true
         case "settings":      phoneTab = .me; showSettings = true
         case "trust":         phoneTab = .me; showTrustManager = true
+        case "clipboard":     phoneTab = .chats; showClipboardSheet = true
         case "pairing":       phoneTab = .me; showPairingSheet = true
         case "onboarding":    showOnboarding = true
         case "receive":       phoneTab = .me; showOfferSheet = true
-        case "send":          phoneTab = .discover; showSendSheet = true
+        case "send":          phoneTab = .discover; presentSend(.text)
         case "share-ext":     phoneTab = .me; showShareExt = true
         case "live-activity": phoneTab = .me; showLiveActivity = true
         default: break

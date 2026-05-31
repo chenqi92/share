@@ -60,9 +60,7 @@ final class AppState: ObservableObject {
             .sink { [weak self] list in
                 guard let self else { return }
                 self.engineDevices = list.map { MockDevice.from($0, online: true) }
-                if !list.contains(where: { $0.id == self.selectedDeviceID }) {
-                    self.selectedDeviceID = list.first?.id ?? ""
-                }
+                self.repairSelectedDevice(liveDevices: list)
             }
             .store(in: &cancellables)
 
@@ -73,7 +71,12 @@ final class AppState: ObservableObject {
 
         engine.$history
             .receive(on: DispatchQueue.main)
-            .assign(to: &$engineHistoryItems)
+            .sink { [weak self] items in
+                guard let self else { return }
+                self.engineHistoryItems = items
+                self.repairSelectedDevice(liveDevices: self.engine.devices)
+            }
+            .store(in: &cancellables)
 
         engine.$pendingPairings
             .receive(on: DispatchQueue.main)
@@ -135,7 +138,17 @@ final class AppState: ObservableObject {
         if let dev = engineDevices.first(where: { $0.id == selectedDeviceID }) {
             return dev
         }
+        if let historical = engineHistoryItems.first(where: { $0.peer.id == selectedDeviceID }) {
+            return MockDevice.from(historical.peer, online: false)
+        }
+        if selectedDeviceID.isEmpty, let historical = engineHistoryItems.first {
+            return MockDevice.from(historical.peer, online: false)
+        }
         return engineDevices.first ?? MockDevice.placeholder
+    }
+
+    var canSendToSelectedDevice: Bool {
+        !selectedDeviceID.isEmpty && engine.devices.contains(where: { $0.id == selectedDeviceID })
     }
 
     /// 本机信息（IP / OS / 指纹 / 可见性）。
@@ -296,6 +309,18 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - 网络辅助
+
+    private func repairSelectedDevice(liveDevices: [Device]) {
+        if selectedDeviceID.isEmpty {
+            selectedDeviceID = liveDevices.first?.id ?? engineHistoryItems.first?.peer.id ?? ""
+            return
+        }
+        if liveDevices.contains(where: { $0.id == selectedDeviceID }) ||
+            engineHistoryItems.contains(where: { $0.peer.id == selectedDeviceID }) {
+            return
+        }
+        selectedDeviceID = liveDevices.first?.id ?? engineHistoryItems.first?.peer.id ?? ""
+    }
 
     private static func firstIPv4() -> String? {
         var ifaddr: UnsafeMutablePointer<ifaddrs>?

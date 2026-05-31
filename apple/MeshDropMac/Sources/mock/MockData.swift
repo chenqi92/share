@@ -51,6 +51,7 @@ struct MockHistory: Identifiable {
     var name: String? = nil
     var size: String? = nil
     var ext: String? = nil
+    var fileURL: URL? = nil
     var content: String? = nil
     var count: Int? = nil
     var progress: Int? = nil
@@ -92,6 +93,8 @@ struct MockPendingOffer {
     let deviceName: String
     let fileName: String
     let fileSize: String
+    var isImage: Bool = false
+    var previewBase64: String? = nil
     let note: String
     let receivedAt: String
 

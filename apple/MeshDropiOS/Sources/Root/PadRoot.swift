@@ -24,10 +24,21 @@ struct PadRoot: View {
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .sheet(isPresented: $state.showSendSheet) { SendSheet() }
+        .onAppear { presentIncomingPromptsIfNeeded() }
+        .onChange(of: engine.pendingPairings.first?.id) { _, _ in
+            presentIncomingPromptsIfNeeded()
+        }
+        .onChange(of: engine.pendingFileOffers.first?.id) { _, _ in
+            presentIncomingPromptsIfNeeded()
+        }
+        .sheet(isPresented: $state.showSendSheet) {
+            SendSheet(initialKind: state.sendSheetInitialKind,
+                      allowsKindSwitch: state.sendSheetAllowsKindSwitch)
+        }
         .sheet(isPresented: $state.showOfferSheet) { FileOfferSheet() }
         .sheet(isPresented: $state.showPairingSheet) { PairingSheet() }
         .sheet(isPresented: $state.showOnboarding) { OnboardingSheet() }
+        .sheet(isPresented: $state.showClipboardSheet) { NavigationStack { ClipboardTab() } }
 #if DEBUG
         .sheet(isPresented: $state.showShareExt) { NavigationStack { ShareExtensionMock() } }
 #endif
@@ -37,6 +48,14 @@ struct PadRoot: View {
         }) {
             PendingShareResolverSheet(items: state.pendingShares)
                 .environmentObject(engine)
+        }
+    }
+
+    private func presentIncomingPromptsIfNeeded() {
+        if !engine.pendingPairings.isEmpty {
+            state.showPairingSheet = true
+        } else if !engine.pendingFileOffers.isEmpty {
+            state.showOfferSheet = true
         }
     }
 }

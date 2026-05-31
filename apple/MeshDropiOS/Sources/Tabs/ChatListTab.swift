@@ -6,7 +6,24 @@ struct ChatListTab: View {
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
 
-    private var devices: [MockDevice] { engine.displayDevices }
+    private var devices: [MockDevice] {
+        var seen = Set<String>()
+        var merged: [MockDevice] = []
+
+        func append(_ device: MockDevice) {
+            guard !seen.contains(device.id) else { return }
+            seen.insert(device.id)
+            merged.append(device)
+        }
+
+        engine.displayDevices.forEach(append)
+        engine.history
+            .sorted { $0.createdAt > $1.createdAt }
+            .forEach { item in
+                append(item.peer.displayMock(isOnline: false))
+            }
+        return merged
+    }
 
     /// 用最近 history 中出现过的 peer + 当前 LAN 设备合并，按"是否有近期消息"排序。
     private var recents: [(device: MockDevice, lastMsg: String?, lastTime: String?, unread: Int)] {
@@ -67,17 +84,25 @@ struct ChatListTab: View {
             ToolbarItem(placement: .principal) {
                 MeshDropLockup(size: 17)
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button { state.showSendSheet = true } label: { Image(systemName: "square.and.pencil") }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button { state.showClipboardSheet = true } label: {
+                    Image(systemName: "doc.on.clipboard")
+                }
+                Button { state.presentSend(.text) } label: {
+                    Image(systemName: "square.and.pencil")
+                }
             }
+        }
+        .navigationDestination(for: String.self) { id in
+            ChatDetailScreen(device: deviceForChat(id) ?? MockDevice.placeholder)
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("聊天")
+            Text("发送")
                 .font(MeshDropFont.display(28, weight: .bold))
-            Text("Chats.")
+            Text("Text, clipboard, files.")
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
@@ -141,9 +166,11 @@ struct ChatListTab: View {
             state.selectedDeviceID = d.id
             engine.markRead(peerID: d.id)
         })
-        .navigationDestination(for: String.self) { id in
-            ChatDetailScreen(device: engine.displayDevices.first(where: { $0.id == id }) ?? d)
-        }
+    }
+
+    private func deviceForChat(_ id: String) -> MockDevice? {
+        engine.displayDevices.first(where: { $0.id == id })
+        ?? engine.history.first(where: { $0.peer.id == id })?.peer.displayMock(isOnline: false)
     }
 
     private var muted: Color { scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45 }

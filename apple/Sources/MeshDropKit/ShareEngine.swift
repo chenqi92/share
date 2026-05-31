@@ -2,7 +2,9 @@ import Foundation
 import Network
 import Combine
 import CryptoKit
+import ImageIO
 import OSLog
+import UniformTypeIdentifiers
 
 private let log = Logger(subsystem: "com.welape.meshdrop", category: "Engine")
 
@@ -692,9 +694,15 @@ public final class ShareEngine: ObservableObject {
             let fileName = sourceURL.lastPathComponent
             let transferID = ctx.transferID ?? UUID()
             ctx.transferID = transferID
+            let media = Self.filePreviewMetadata(for: sourceURL)
             let offer = FileOfferMessage(
                 transfer_id: transferID.uuidString,
-                files: [FileMeta(index: 0, name: fileName, size: fileSize, sha256: sha256)]
+                files: [FileMeta(index: 0,
+                                 name: fileName,
+                                 size: fileSize,
+                                 sha256: sha256,
+                                 mime: media.mime,
+                                 preview_b64: media.previewBase64)]
             )
             do {
                 let offerBody = try MessageCodec.encode(offer)
@@ -847,7 +855,9 @@ public final class ShareEngine: ObservableObject {
                     peer: peer,
                     fileName: first.name,
                     fileSize: first.size,
-                    sha256: first.sha256
+                    sha256: first.sha256,
+                    mime: first.mime,
+                    previewBase64: first.preview_b64
                 )
                 ctx.pendingOfferID = pending.id
                 self.pendingFileOffers.append(pending)
@@ -913,7 +923,9 @@ public final class ShareEngine: ObservableObject {
                 peer: peer,
                 fileName: fileMeta.name,
                 fileSize: fileMeta.size,
-                sha256: fileMeta.sha256
+                sha256: fileMeta.sha256,
+                mime: fileMeta.mime,
+                previewBase64: fileMeta.preview_b64
             )
             ctx.pendingOfferID = pending.id
             pendingFileOffers.append(pending)
@@ -1152,6 +1164,40 @@ public final class ShareEngine: ObservableObject {
             if !fm.fileExists(atPath: candidate.path) { return candidate }
             n += 1
         }
+    }
+
+    nonisolated private static func filePreviewMetadata(for url: URL) -> (mime: String?, previewBase64: String?) {
+        let ext = url.pathExtension
+        let type = ext.isEmpty ? nil : UTType(filenameExtension: ext)
+        let mime = type?.preferredMIMEType
+        guard type?.conforms(to: .image) == true,
+              let preview = makeImagePreviewBase64(url: url) else {
+            return (mime, nil)
+        }
+        return (mime, preview)
+    }
+
+    nonisolated private static func makeImagePreviewBase64(url: URL) -> String? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageIfAbsent: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 480
+        ]
+        guard let thumb = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else { return nil }
+        let props: [CFString: Any] = [kCGImageDestinationLossyCompressionQuality: 0.72]
+        CGImageDestinationAddImage(destination, thumb, props as CFDictionary)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return (data as Data).base64EncodedString()
     }
 
     // MARK: - 平台默认信息

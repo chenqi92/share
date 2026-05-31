@@ -25,6 +25,7 @@ struct ChatPage: View {
     }
 
     private var dev: MockDevice { state.selectedDevice }
+    private var canSend: Bool { state.canSendToSelectedDevice }
 
     /// 当前对话 = engine.history 中 peer.id 匹配选中设备的所有项，按时间正序展示。
     private var conversation: [HistoryItem] {
@@ -87,12 +88,17 @@ struct ChatPage: View {
             Text(state.selectedDeviceID.isEmpty ? "还没有可对话的设备" : "还没有消息")
                 .font(MeshDropFont.body(size: 13, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textPrimary)
-            Text(state.selectedDeviceID.isEmpty ? "等待同一局域网的设备出现" : "发一句话开始对话")
+            Text(emptyDetail)
                 .font(MeshDropFont.mono(size: 11))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)
+    }
+
+    private var emptyDetail: String {
+        if state.selectedDeviceID.isEmpty { return "等待同一局域网的设备出现" }
+        return canSend ? "发一句话开始对话" : "设备已离线 · 历史仍保留"
     }
 
     @ViewBuilder
@@ -106,14 +112,35 @@ struct ChatPage: View {
                     .font(MeshDropFont.body(size: 13))
                     .textSelection(.enabled)
             }
-        case .file(let name, let size, _):
-            MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item)) {
-                FileChip(name: name,
-                         size: fileSizeLabel(size: size, status: item.status),
-                         ext: fileExt(name),
-                         progress: progressFraction(item.status),
-                         dark: side == .outgoing)
-                    .frame(width: 280)
+        case .file(let name, let size, let url):
+            if isImageFile(name: name, url: url) {
+                MsgBubble(side: side, kind: .image, time: time, delivered: isDelivered(item)) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ImagePreview(url: url, base64: nil, cornerRadius: 12)
+                            .frame(width: 280, height: 188)
+                        HStack(spacing: 6) {
+                            Text(name)
+                                .font(MeshDropFont.body(size: 12, weight: .semibold))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Text("· \(fileSizeLabel(size: size, status: item.status))")
+                                .font(MeshDropFont.mono(size: 10.5))
+                                .opacity(0.65)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.bottom, 4)
+                    }
+                    .frame(width: 288)
+                }
+            } else {
+                MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item)) {
+                    FileChip(name: name,
+                             size: fileSizeLabel(size: size, status: item.status),
+                             ext: fileExt(name),
+                             progress: progressFraction(item.status),
+                             dark: side == .outgoing)
+                        .frame(width: 280)
+                }
             }
         }
     }
@@ -121,19 +148,21 @@ struct ChatPage: View {
     private var composerBar: some View {
         HStack(spacing: 10) {
             IconBtn(systemName: "paperclip", size: 32, action: { pickFiles(imagesOnly: false) })
+                .disabled(!canSend)
+                .opacity(canSend ? 1 : 0.45)
             IconBtn(systemName: "photo", size: 32, action: { pickFiles(imagesOnly: true) })
+                .disabled(!canSend)
+                .opacity(canSend ? 1 : 0.45)
             HStack {
                 TextField(
-                    state.selectedDeviceID.isEmpty
-                        ? "等待设备…"
-                        : "发送给 \(dev.who) · 拖入即送 / ⏎ 发送",
+                    composerPlaceholder,
                     text: $composer
                 )
                 .textFieldStyle(.plain)
                 .font(MeshDropFont.body(size: 13))
                 .foregroundStyle(MeshDropColor.textPrimary)
                 .onSubmit(sendComposed)
-                .disabled(state.selectedDeviceID.isEmpty)
+                .disabled(!canSend)
                 Text("⏎")
                     .font(MeshDropFont.mono(size: 10, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textMuted)
@@ -154,9 +183,17 @@ struct ChatPage: View {
                     )
             )
             IconBtn(systemName: "arrow.up", size: 32, accent: true, action: sendComposed)
+                .disabled(!canSend)
+                .opacity(canSend ? 1 : 0.45)
         }
         .padding(.horizontal, 22)
         .padding(.vertical, 14)
+    }
+
+    private var composerPlaceholder: String {
+        if state.selectedDeviceID.isEmpty { return "等待设备…" }
+        if !canSend { return "设备已离线 · 历史仍保留" }
+        return "发送给 \(dev.who) · 拖入即送 / ⏎ 发送"
     }
 
     private var dropOverlay: some View {
@@ -185,7 +222,7 @@ struct ChatPage: View {
 
     private func sendComposed() {
         let trimmed = composer.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !state.selectedDeviceID.isEmpty else { return }
+        guard !trimmed.isEmpty, canSend else { return }
         state.sendText(toDeviceID: state.selectedDeviceID, content: trimmed)
         composer = ""
     }
@@ -193,7 +230,7 @@ struct ChatPage: View {
     /// 弹 NSOpenPanel 让用户多选文件（imagesOnly=true 时限定图片类型），
     /// 选完后 batch 发给当前选中设备。
     private func pickFiles(imagesOnly: Bool) {
-        guard !state.selectedDeviceID.isEmpty else { return }
+        guard canSend else { return }
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
@@ -245,6 +282,16 @@ struct ChatPage: View {
     private func fileExt(_ name: String) -> String {
         let ext = (name as NSString).pathExtension.lowercased()
         return ext.isEmpty ? "bin" : ext
+    }
+
+    private func isImageFile(name: String, url: URL?) -> Bool {
+        if let url {
+            let values = try? url.resourceValues(forKeys: [.contentTypeKey])
+            if values?.contentType?.conforms(to: .image) == true { return true }
+        }
+        let ext = (name as NSString).pathExtension
+        guard !ext.isEmpty else { return false }
+        return UTType(filenameExtension: ext)?.conforms(to: .image) == true
     }
 
     private static let timeFormatter: DateFormatter = {

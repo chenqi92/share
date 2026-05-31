@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import MeshDropKit
+import UniformTypeIdentifiers
 
 // MARK: - Engine 类型 → UI mock-shape 类型 的投影
 //
@@ -60,9 +61,10 @@ extension MockHistory {
                 content: s,
                 status: status
             )
-        case .file(let name, let size, _):
+        case .file(let name, let size, let url):
             let ext = (name as NSString).pathExtension.lowercased()
             let sizeStr = byteFormatter.string(fromByteCount: Int64(size))
+            let isImage = Self.isImageFile(name: name, url: url)
             let progress: Int? = {
                 if case let .transferring(done, total) = item.status, total > 0 {
                     return Int(Double(done) / Double(total) * 100)
@@ -74,14 +76,26 @@ extension MockHistory {
                 dir: dir,
                 peer: item.peer.name,
                 time: time,
-                kind: .file,
+                kind: isImage ? .image : .file,
                 name: name,
                 size: sizeStr,
                 ext: ext.isEmpty ? "bin" : ext,
+                fileURL: url,
+                count: isImage ? 1 : nil,
                 progress: progress,
                 status: status
             )
         }
+    }
+
+    private static func isImageFile(name: String, url: URL?) -> Bool {
+        if let url {
+            let values = try? url.resourceValues(forKeys: [.contentTypeKey])
+            if values?.contentType?.conforms(to: .image) == true { return true }
+        }
+        let ext = (name as NSString).pathExtension
+        guard !ext.isEmpty else { return false }
+        return UTType(filenameExtension: ext)?.conforms(to: .image) == true
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -105,15 +119,25 @@ extension MockPendingPairing {
 
 extension MockPendingOffer {
     static func from(_ offer: PendingFileOffer) -> MockPendingOffer {
-        MockPendingOffer(
+        let isImage = isImageOffer(fileName: offer.fileName, mime: offer.mime)
+        return MockPendingOffer(
             id: offer.id.uuidString,
             peer: offer.peer.name,
             deviceName: offer.peer.model ?? offer.peer.name,
             fileName: offer.fileName,
             fileSize: offer.formattedSize,
+            isImage: isImage,
+            previewBase64: offer.previewBase64,
             note: "",
             receivedAt: shortAgo(from: offer.receivedAt)
         )
+    }
+
+    private static func isImageOffer(fileName: String, mime: String?) -> Bool {
+        if mime?.hasPrefix("image/") == true { return true }
+        let ext = (fileName as NSString).pathExtension
+        guard !ext.isEmpty else { return false }
+        return UTType(filenameExtension: ext)?.conforms(to: .image) == true
     }
 }
 

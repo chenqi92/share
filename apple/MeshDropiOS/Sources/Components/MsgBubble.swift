@@ -60,16 +60,27 @@ public struct MsgBubble: View {
             }
             .padding(10)
         case .image:
-            let cols = min(3, message.imageCount ?? 1)
-            HStack(spacing: 4) {
-                ForEach(0..<(message.imageCount ?? 1), id: \.self) { i in
-                    Photo(hue: 30 + i * 60)
-                        .frame(width: 88, height: 110)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            VStack(alignment: .leading, spacing: 6) {
+                ImagePreview(url: message.fileURL, base64: message.previewBase64, cornerRadius: 12)
+                    .frame(width: 220, height: 160)
+                if let name = message.fileName {
+                    HStack(spacing: 6) {
+                        Text(name)
+                            .font(MeshDropFont.body(12, weight: .semibold))
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        if let size = message.fileSize {
+                            Text("· \(size)")
+                                .font(MeshDropFont.mono(10.5))
+                                .opacity(0.65)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 4)
                 }
             }
             .padding(4)
-            .frame(maxWidth: CGFloat(cols) * 92 + 8)
+            .frame(width: 228)
         }
     }
 

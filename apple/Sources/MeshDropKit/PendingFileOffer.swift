@@ -7,6 +7,8 @@ public struct PendingFileOffer: Identifiable, Sendable, Equatable {
     public let fileName: String
     public let fileSize: UInt64
     public let sha256: String
+    public let mime: String?
+    public let previewBase64: String?
     public let receivedAt: Date
 
     public init(
@@ -15,6 +17,8 @@ public struct PendingFileOffer: Identifiable, Sendable, Equatable {
         fileName: String,
         fileSize: UInt64,
         sha256: String,
+        mime: String? = nil,
+        previewBase64: String? = nil,
         receivedAt: Date = Date()
     ) {
         self.id = id
@@ -22,6 +26,8 @@ public struct PendingFileOffer: Identifiable, Sendable, Equatable {
         self.fileName = fileName
         self.fileSize = fileSize
         self.sha256 = sha256
+        self.mime = mime
+        self.previewBase64 = previewBase64
         self.receivedAt = receivedAt
     }
 

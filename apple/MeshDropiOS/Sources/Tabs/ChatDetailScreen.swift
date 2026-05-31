@@ -13,6 +13,20 @@ struct ChatDetailScreen: View {
     @State private var photoSelection: [PhotosPickerItem] = []
     @FocusState private var composerFocused: Bool
 
+    private var currentDevice: MockDevice {
+        if let online = engine.displayDevices.first(where: { $0.id == device.id }) {
+            return online
+        }
+        if let historical = engine.history.first(where: { $0.peer.id == device.id }) {
+            return historical.peer.displayMock(isOnline: false)
+        }
+        return device
+    }
+
+    private var realTarget: Device? {
+        engine.devices.first(where: { $0.id == device.id })
+    }
+
     /// 当前对话 = engine.history 中 peer.id 匹配的所有项，按时间正序展示。
     private var messages: [MockMessage] {
         engine.history
@@ -23,7 +37,7 @@ struct ChatDetailScreen: View {
 
     /// 收到本 peer 的 file offer 时自动弹 FileOfferSheet（之前 mock 是 timer，现在是真事件）。
     private var incomingOffer: PendingFileOffer? {
-        engine.pendingFileOffers.first(where: { $0.peer.id == device.id })
+        engine.pendingFileOffers.first(where: { $0.peer.id == currentDevice.id })
     }
 
     var body: some View {
@@ -54,11 +68,14 @@ struct ChatDetailScreen: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
-                    Avatar(initials: device.initials, color: device.color, size: 26, online: device.isOnline)
+                    Avatar(initials: currentDevice.initials,
+                           color: currentDevice.color,
+                           size: 26,
+                           online: currentDevice.isOnline)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(device.who)
+                        Text(currentDevice.who)
                             .font(MeshDropFont.body(14, weight: .semibold))
-                        Text("\(device.os) · \(device.rtt)ms · E2E")
+                        Text(currentDevice.isOnline ? "\(currentDevice.os) · \(currentDevice.rtt)ms · E2E" : "\(currentDevice.os) · OFFLINE · E2E")
                             .font(MeshDropFont.mono(9.5))
                             .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                     }
@@ -83,14 +100,20 @@ struct ChatDetailScreen: View {
 
     private var chatHeader: some View {
         HStack(spacing: 8) {
-            Chip(device.isOnline ? "ONLINE" : "OFFLINE",
-                 tone: device.isOnline ? .lime : .outline,
+            Chip(currentDevice.isOnline ? "ONLINE" : "OFFLINE",
+                 tone: currentDevice.isOnline ? .lime : .outline,
                  mono: true, uppercased: true, icon: "circle.fill")
             Chip("E2E", tone: .outline, mono: true, uppercased: true)
             Spacer()
-            Text("RTT \(device.rtt)ms")
-                .font(MeshDropFont.mono(10))
-                .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
+            if currentDevice.isOnline {
+                Text("RTT \(currentDevice.rtt)ms")
+                    .font(MeshDropFont.mono(10))
+                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
+            } else {
+                Text("历史可查看 · 暂停发送")
+                    .font(MeshDropFont.mono(10))
+                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
+            }
         }
     }
 
@@ -113,17 +136,21 @@ struct ChatDetailScreen: View {
                     IconBtn("paperclip", size: 32, variant: .ghost, wrapInButton: false)
                 }
                 .buttonStyle(.plain)
+                .disabled(realTarget == nil)
+                .opacity(realTarget == nil ? 0.45 : 1)
 
                 PhotosPicker(selection: $photoSelection,
                              maxSelectionCount: 0,
                              matching: .images) {
                     IconBtn("photo", size: 32, variant: .ghost, wrapInButton: false)
                 }
+                .disabled(realTarget == nil)
+                .opacity(realTarget == nil ? 0.45 : 1)
             }
 
             ZStack(alignment: .leading) {
                 if composerText.isEmpty {
-                    Text("想说点什么…")
+                    Text(realTarget == nil ? "设备已离线 · 历史仍保留" : "想说点什么…")
                         .font(MeshDropFont.body(14))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
                         .allowsHitTesting(false)
@@ -134,6 +161,7 @@ struct ChatDetailScreen: View {
                     .submitLabel(.send)
                     .focused($composerFocused)
                     .onSubmit(sendComposed)
+                    .disabled(realTarget == nil)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
@@ -151,7 +179,8 @@ struct ChatDetailScreen: View {
                 IconBtn("arrow.up", size: 38, variant: .lime, shape: .circle, wrapInButton: false)
             }
             .buttonStyle(.plain)
-            .disabled(composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(realTarget == nil || composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .opacity(realTarget == nil ? 0.45 : 1)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -166,7 +195,7 @@ struct ChatDetailScreen: View {
 
     private func sendComposed() {
         let trimmed = composerText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let real = engine.realDevice(for: device.id) else { return }
+        guard !trimmed.isEmpty, let real = realTarget else { return }
         engine.sendText(to: real, content: trimmed)
         composerText = ""
         composerFocused = false
@@ -174,7 +203,7 @@ struct ChatDetailScreen: View {
 
     /// 通过系统文件选择器把文件直接发给当前会话对端。
     private func sendFiles(_ urls: [URL]) {
-        guard let real = engine.realDevice(for: device.id) else { return }
+        guard let real = realTarget else { return }
         for url in urls {
             let didStart = url.startAccessingSecurityScopedResource()
             defer { if didStart { url.stopAccessingSecurityScopedResource() } }
@@ -185,7 +214,7 @@ struct ChatDetailScreen: View {
     /// 通过相册选择器把图片落临时文件后发给当前会话对端。
     private func sendPhotos(_ items: [PhotosPickerItem]) async {
         defer { photoSelection = [] }
-        guard let real = engine.realDevice(for: device.id) else { return }
+        guard let real = realTarget else { return }
         for item in items {
             guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
             let ext = item.supportedContentTypes.first(where: { $0.preferredFilenameExtension != nil })?

@@ -30,11 +30,15 @@ public actor Connection {
 
     /// 用目标设备建一条出方连接。
     public init(connectingTo device: Device) {
-        let host = NWEndpoint.Host("\(device.id).local")
-        let port = NWEndpoint.Port(rawValue: device.port)!
         let params = NWParameters.tcp
         params.includePeerToPeer = true
-        self.nw = NWConnection(host: host, port: port, using: params)
+        let endpoint = NWEndpoint.service(
+            name: device.id,
+            type: TXTRecord.serviceType,
+            domain: "local",
+            interface: nil
+        )
+        self.nw = NWConnection(to: endpoint, using: params)
     }
 
     public func start(

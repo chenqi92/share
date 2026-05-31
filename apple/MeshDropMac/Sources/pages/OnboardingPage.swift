@@ -1,6 +1,10 @@
 import SwiftUI
 
 struct OnboardingPage: View {
+    private var screenshotTime: Double? {
+        ProcessInfo.processInfo.environment["MESHDROP_SCREENSHOT"] == "1" ? 0.6 : nil
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -20,7 +24,7 @@ struct OnboardingPage: View {
                 VStack(alignment: .center, spacing: 14) {
                     Radar(devices: OnboardingPage.demoDevices,
                           variant: .sweep,
-                          staticTime: 0.6)
+                          staticTime: screenshotTime)
                         .frame(width: 400, height: 400)
                     HStack(spacing: 8) {
                         stepDot(active: false)

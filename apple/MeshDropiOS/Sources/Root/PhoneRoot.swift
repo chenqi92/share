@@ -13,7 +13,7 @@ struct PhoneRoot: View {
                 .tag(PhoneTab.discover)
 
             NavigationStack { ChatListTab() }
-                .tabItem { Label("聊天", systemImage: "message") }
+                .tabItem { Label("发送", systemImage: "paperplane") }
                 .badge(engine.unreadTotal)
                 .tag(PhoneTab.chats)
 
@@ -21,25 +21,46 @@ struct PhoneRoot: View {
                 .tabItem { Label("传输", systemImage: "arrow.up.arrow.down") }
                 .tag(PhoneTab.transfers)
 
-            NavigationStack { ClipboardTab() }
-                .tabItem { Label("剪贴板", systemImage: "doc.on.clipboard") }
-                .tag(PhoneTab.clipboard)
-
             NavigationStack { MeTab() }
                 .tabItem { Label("我", systemImage: "person.circle") }
                 .tag(PhoneTab.me)
         }
         .tint(MeshDropColor.limeDeep)
-        .sheet(isPresented: $state.showSendSheet) { SendSheet() }
+        .onAppear { presentIncomingPromptsIfNeeded() }
+        .onChange(of: engine.pendingPairings.first?.id) { _, _ in
+            presentIncomingPromptsIfNeeded()
+        }
+        .onChange(of: engine.pendingFileOffers.first?.id) { _, _ in
+            presentIncomingPromptsIfNeeded()
+        }
+        .sheet(isPresented: $state.showSendSheet) {
+            SendSheet(initialKind: state.sendSheetInitialKind,
+                      allowsKindSwitch: state.sendSheetAllowsKindSwitch)
+        }
         .sheet(isPresented: $state.showOfferSheet) { FileOfferSheet() }
         .sheet(isPresented: $state.showPairingSheet) { PairingSheet() }
         .sheet(isPresented: $state.showOnboarding) { OnboardingSheet() }
         .sheet(isPresented: $state.showSettings) { NavigationStack { SettingsScreen() } }
         .sheet(isPresented: $state.showTrustManager) { NavigationStack { TrustManagerScreen() } }
         .sheet(isPresented: $state.showHistory) { NavigationStack { HistoryScreen() } }
+        .sheet(isPresented: $state.showClipboardSheet) { NavigationStack { ClipboardTab() } }
 #if DEBUG
         .sheet(isPresented: $state.showShareExt) { NavigationStack { ShareExtensionMock() } }
 #endif
         .sheet(isPresented: $state.showLiveActivity) { NavigationStack { LiveActivityMock() } }
+        .sheet(isPresented: $state.showPendingShareResolver, onDismiss: {
+            state.pendingShares = PendingShareQueue.shared.unresolvedItems()
+        }) {
+            PendingShareResolverSheet(items: state.pendingShares)
+                .environmentObject(engine)
+        }
+    }
+
+    private func presentIncomingPromptsIfNeeded() {
+        if !engine.pendingPairings.isEmpty {
+            state.showPairingSheet = true
+        } else if !engine.pendingFileOffers.isEmpty {
+            state.showOfferSheet = true
+        }
     }
 }

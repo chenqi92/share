@@ -86,68 +86,68 @@ struct MeTab: View {
     }
 
     private var actionList: some View {
-        VStack(spacing: 0) {
-            actionRow("传输历史", "clock.arrow.circlepath",
-                      detail: "\(historyToday) 条今天") { state.showHistory = true }
-            divider
-            actionRow("信任管理", "checkmark.shield",
-                      detail: "\(trustedCount) 台已配对") { state.showTrustManager = true }
-            divider
-            actionRow("配对新设备", "qrcode",
-                      detail: "QR / 6 位代码") { state.showPairingSheet = true }
-            divider
-            actionRow("快速上手", "sparkles",
-                      detail: "3 步介绍") { state.showOnboarding = true }
-            divider
-            actionRow("设置", "gearshape",
-                      detail: "可见性 / 加密 / 行为") { state.showSettings = true }
-            divider
-            actionRow("Share Extension 预览", "square.and.arrow.up",
-                      detail: "拦截系统 share sheet") { state.showShareExt = true }
-            divider
-            actionRow("Live Activity 预览", "clock.badge",
-                      detail: "锁屏 + 灵动岛 进度") { state.showLiveActivity = true }
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 10),
+                GridItem(.flexible(), spacing: 10)
+            ],
+            spacing: 10
+        ) {
+            actionTile("传输历史", "clock.arrow.circlepath",
+                       detail: "\(historyToday) 条今天") { state.showHistory = true }
+            actionTile("信任管理", "checkmark.shield",
+                       detail: "\(trustedCount) 台已配对") { state.showTrustManager = true }
+            actionTile("配对新设备", "qrcode",
+                       detail: "QR / 6 位代码") { state.showPairingSheet = true }
+            actionTile("快速上手", "sparkles",
+                       detail: "3 步介绍") { state.showOnboarding = true }
+            actionTile("设置", "gearshape",
+                       detail: "可见性 / 加密") { state.showSettings = true }
+            actionTile("Share 预览", "square.and.arrow.up",
+                       detail: "系统分享入口") { state.showShareExt = true }
+            actionTile("实时活动", "clock.badge",
+                       detail: "锁屏进度") { state.showLiveActivity = true }
         }
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
-        )
     }
 
     @ViewBuilder
-    private func actionRow(_ title: String, _ icon: String, detail: String, action: @escaping () -> Void) -> some View {
+    private func actionTile(_ title: String, _ icon: String, detail: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-                    .frame(width: 28)
-                Text(title)
-                    .font(MeshDropFont.body(14.5, weight: .semibold))
-                    .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-                Spacer()
-                Text(detail)
-                    .font(MeshDropFont.mono(11))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.35) : MeshDropColor.ink30)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(scheme == .dark ? Color.white.opacity(0.06) : MeshDropColor.ink06)
+                    )
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(MeshDropFont.body(14, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
+                    Text(detail)
+                        .font(MeshDropFont.mono(10.5))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
+                }
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 96, alignment: .leading)
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
+            )
         }
         .buttonStyle(.plain)
-    }
-
-    private var divider: some View {
-        Rectangle()
-            .fill(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line)
-            .frame(height: 0.5)
-            .padding(.leading, 54)
     }
 
     @ViewBuilder
@@ -163,9 +163,29 @@ struct MeTab: View {
                         .font(MeshDropFont.mono(10))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 }
-                FileChip(name: offer.fileName,
-                         size: offer.fileSize,
-                         ext: (offer.fileName as NSString).pathExtension)
+                if offer.isImage {
+                    ImagePreview(url: nil, base64: offer.previewBase64, cornerRadius: 12)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 150)
+                        .overlay(alignment: .bottomLeading) {
+                            Text("\(offer.fileName) · \(offer.fileSize)")
+                                .font(MeshDropFont.mono(10.5, weight: .semibold))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundStyle(.white)
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    LinearGradient(colors: [.black.opacity(0), .black.opacity(0.55)],
+                                                   startPoint: .top,
+                                                   endPoint: .bottom)
+                                )
+                        }
+                } else {
+                    FileChip(name: offer.fileName,
+                             size: offer.fileSize,
+                             ext: (offer.fileName as NSString).pathExtension)
+                }
                 HStack(spacing: 8) {
                     Button { state.showOfferSheet = true } label: {
                         Text("查看并选择")

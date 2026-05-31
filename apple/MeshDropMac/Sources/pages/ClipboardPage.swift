@@ -62,13 +62,13 @@ struct ClipboardPage: View {
             .foregroundStyle(MeshDropColor.ink)
         }
         .buttonStyle(.plain)
-        .disabled(state.selectedDeviceID.isEmpty)
-        .opacity(state.selectedDeviceID.isEmpty ? 0.5 : 1)
+        .disabled(!state.canSendToSelectedDevice)
+        .opacity(state.canSendToSelectedDevice ? 1 : 0.5)
         .help("读取本机剪贴板并推送给选中设备")
     }
 
     private func pushCurrentClipboard() {
-        guard !state.selectedDeviceID.isEmpty,
+        guard state.canSendToSelectedDevice,
               let content = NSPasteboard.general.string(forType: .string),
               !content.isEmpty else { return }
         state.pushClipboard(toDeviceID: state.selectedDeviceID, content: content)

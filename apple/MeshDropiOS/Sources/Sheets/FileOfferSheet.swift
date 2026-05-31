@@ -85,16 +85,28 @@ struct FileOfferSheet: View {
 
     private func fileCard(_ offer: MockPendingOffer) -> some View {
         let ext = (offer.fileName as NSString).pathExtension
-        return HStack(spacing: 14) {
-            FileTile(ext: ext.isEmpty ? "?" : ext, size: 56)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(offer.fileName)
-                    .font(MeshDropFont.body(15, weight: .semibold))
-                Text(offer.fileSize)
-                    .font(MeshDropFont.mono(11))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
+        return VStack(alignment: .leading, spacing: 12) {
+            if offer.isImage {
+                ImagePreview(url: nil, base64: offer.previewBase64, cornerRadius: 14)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 210)
+                    .overlay(alignment: .bottomLeading) {
+                        LinearGradient(colors: [.black.opacity(0), .black.opacity(0.55)],
+                                       startPoint: .top,
+                                       endPoint: .bottom)
+                            .frame(height: 72)
+                            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        fileCaption(offer)
+                            .foregroundStyle(.white)
+                            .padding(12)
+                    }
+            } else {
+                HStack(spacing: 14) {
+                    FileTile(ext: ext.isEmpty ? "?" : ext, size: 56)
+                    fileCaption(offer)
+                    Spacer()
+                }
             }
-            Spacer()
         }
         .padding(14)
         .background(
@@ -105,6 +117,18 @@ struct FileOfferSheet: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
         )
+    }
+
+    private func fileCaption(_ offer: MockPendingOffer) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(offer.fileName)
+                .font(MeshDropFont.body(15, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Text(offer.isImage ? "\(offer.fileSize) · 图片" : offer.fileSize)
+                .font(MeshDropFont.mono(11))
+                .foregroundStyle(offer.isImage ? .white.opacity(0.75) : (scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60))
+        }
     }
 
     private func verify(_ offer: PendingFileOffer) -> some View {

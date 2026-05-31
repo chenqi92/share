@@ -118,9 +118,7 @@ struct GlobalOverlay: View {
                 Spacer()
             }
 
-            FileChip(name: offer.fileName,
-                     size: offer.fileSize,
-                     ext: (offer.fileName as NSString).pathExtension.lowercased())
+            offerPreview(offer)
 
             HStack(spacing: 10) {
                 Spacer()
@@ -131,6 +129,45 @@ struct GlobalOverlay: View {
         .padding(20)
         .frame(width: 460)
         .background(modalBackground)
+    }
+
+    @ViewBuilder
+    private func offerPreview(_ offer: MockPendingOffer) -> some View {
+        if offer.isImage {
+            VStack(alignment: .leading, spacing: 8) {
+                ImagePreview(url: nil, base64: offer.previewBase64, cornerRadius: 14)
+                    .frame(height: 220)
+                    .overlay(alignment: .bottomLeading) {
+                        fileCaption(offer)
+                            .padding(10)
+                            .background(
+                                LinearGradient(
+                                    colors: [.black.opacity(0.62), .black.opacity(0.12)],
+                                    startPoint: .bottom,
+                                    endPoint: .top
+                                )
+                            )
+                    }
+            }
+        } else {
+            FileChip(name: offer.fileName,
+                     size: offer.fileSize,
+                     ext: (offer.fileName as NSString).pathExtension.lowercased())
+        }
+    }
+
+    private func fileCaption(_ offer: MockPendingOffer) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(offer.fileName)
+                .font(MeshDropFont.body(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Text(offer.fileSize)
+                .font(MeshDropFont.mono(size: 10.5))
+                .opacity(0.8)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - 复用

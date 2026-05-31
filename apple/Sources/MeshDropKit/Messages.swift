@@ -48,6 +48,8 @@ public struct FileMeta: Codable, Sendable {
     public var name: String
     public var size: UInt64
     public var sha256: String
+    public var mime: String?
+    public var preview_b64: String?
 }
 
 public struct FileOfferMessage: Codable, Sendable {

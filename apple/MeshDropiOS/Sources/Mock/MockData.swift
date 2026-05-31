@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 // COMMON §9 view DTO 类型定义。这些 `Mock*` 类型在 runtime 由 ShareEngine 模型经
@@ -59,6 +60,7 @@ public struct MockHistoryItem: Identifiable, Hashable, Sendable {
     public let name: String?      // 文件名
     public let size: String?
     public let ext: String?
+    public var fileURL: URL? = nil
     public let content: String?   // text
     public let progress: Int?     // 0-100
     public let status: MockStatus
@@ -75,6 +77,8 @@ public struct MockMessage: Identifiable, Hashable, Sendable {
     public let fileName: String?
     public let fileSize: String?
     public let fileExt: String?
+    public var fileURL: URL? = nil
+    public var previewBase64: String? = nil
     public let imageCount: Int?
     public let delivered: Bool
 }
@@ -97,6 +101,8 @@ public struct MockPendingOffer: Sendable {
     public let deviceName: String
     public let fileName: String
     public let fileSize: String
+    public var isImage: Bool = false
+    public var previewBase64: String? = nil
     public let note: String?           // 文字便签
     public let receivedAt: String
 }
