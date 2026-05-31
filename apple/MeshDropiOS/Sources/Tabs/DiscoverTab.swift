@@ -176,12 +176,13 @@ struct DiscoverTab: View {
     private func quickItem(_ label: String, _ symbol: String, variant: IconBtn.Variant) -> some View {
         Button { state.showSendSheet = true } label: {
             VStack(spacing: 6) {
-                IconBtn(symbol, size: 44, variant: variant, shape: .square)
+                IconBtn(symbol, size: 44, variant: variant, shape: .square, wrapInButton: false)
                 Text(label)
                     .font(MeshDropFont.body(11, weight: .medium))
                     .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
             }
             .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
