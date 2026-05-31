@@ -10,30 +10,40 @@ public struct IconBtn: View {
     var size: CGFloat = 32
     var variant: Variant = .ghost
     var shape: ShapeKind = .circle
+    /// false 时只渲染图标本体（不包 Button），用于外层已有 Button / PhotosPicker 提供点击的场景。
+    var wrapInButton: Bool = true
     var action: () -> Void = {}
 
     @Environment(\.colorScheme) private var scheme
 
     public init(_ symbol: String, size: CGFloat = 32, variant: Variant = .ghost,
-                shape: ShapeKind = .circle, action: @escaping () -> Void = {}) {
+                shape: ShapeKind = .circle, wrapInButton: Bool = true,
+                action: @escaping () -> Void = {}) {
         self.symbol = symbol
         self.size = size
         self.variant = variant
         self.shape = shape
+        self.wrapInButton = wrapInButton
         self.action = action
     }
 
     public var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size * 0.42, weight: .semibold))
-                .foregroundStyle(fg)
-                .frame(width: size, height: size)
-                .background(bg)
-                .overlay(borderOverlay)
-                .clipShape(maskShape)
+        if wrapInButton {
+            Button(action: action) { iconView }
+                .buttonStyle(.plain)
+        } else {
+            iconView
         }
-        .buttonStyle(.plain)
+    }
+
+    private var iconView: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.42, weight: .semibold))
+            .foregroundStyle(fg)
+            .frame(width: size, height: size)
+            .background(bg)
+            .overlay(borderOverlay)
+            .clipShape(maskShape)
     }
 
     private var bg: Color {

@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 import MeshDropKit
 
 struct ChatDetailScreen: View {
@@ -7,6 +9,9 @@ struct ChatDetailScreen: View {
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
     @State private var composerText: String = ""
+    @State private var showFileImporter: Bool = false
+    @State private var photoSelection: [PhotosPickerItem] = []
+    @FocusState private var composerFocused: Bool
 
     /// 当前对话 = engine.history 中 peer.id 匹配的所有项，按时间正序展示。
     private var messages: [MockMessage] {
@@ -63,6 +68,17 @@ struct ChatDetailScreen: View {
         .onChange(of: incomingOffer?.id) { _, newID in
             if newID != nil { state.showOfferSheet = true }
         }
+        .onAppear { engine.markRead(peerID: device.id) }
+        .onChange(of: messages.count) { _, _ in engine.markRead(peerID: device.id) }
+        .fileImporter(isPresented: $showFileImporter,
+                      allowedContentTypes: [.data],
+                      allowsMultipleSelection: true) { result in
+            if case .success(let urls) = result { sendFiles(urls) }
+        }
+        .onChange(of: photoSelection) { _, items in
+            guard !items.isEmpty else { return }
+            Task { await sendPhotos(items) }
+        }
     }
 
     private var chatHeader: some View {
@@ -93,34 +109,46 @@ struct ChatDetailScreen: View {
     private var composer: some View {
         HStack(spacing: 10) {
             HStack(spacing: 6) {
-                IconBtn("paperclip", size: 32, variant: .ghost) { state.showSendSheet = true }
-                IconBtn("photo", size: 32, variant: .ghost) { state.showSendSheet = true }
+                Button { showFileImporter = true } label: {
+                    IconBtn("paperclip", size: 32, variant: .ghost, wrapInButton: false)
+                }
+                .buttonStyle(.plain)
+
+                PhotosPicker(selection: $photoSelection,
+                             maxSelectionCount: 0,
+                             matching: .images) {
+                    IconBtn("photo", size: 32, variant: .ghost, wrapInButton: false)
+                }
             }
 
-            HStack {
+            ZStack(alignment: .leading) {
                 if composerText.isEmpty {
                     Text("想说点什么…")
                         .font(MeshDropFont.body(14))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
+                        .allowsHitTesting(false)
                 }
                 TextField("", text: $composerText)
                     .font(MeshDropFont.body(14))
                     .textFieldStyle(.plain)
                     .submitLabel(.send)
+                    .focused($composerFocused)
                     .onSubmit(sendComposed)
-                Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 9)
+            .frame(maxWidth: .infinity)
             .background(
                 Capsule().fill(scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card)
             )
             .overlay(
                 Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
             )
+            .contentShape(Capsule())
+            .onTapGesture { composerFocused = true }
 
             Button(action: sendComposed) {
-                IconBtn("arrow.up", size: 38, variant: .lime, shape: .circle)
+                IconBtn("arrow.up", size: 38, variant: .lime, shape: .circle, wrapInButton: false)
             }
             .buttonStyle(.plain)
             .disabled(composerText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -141,5 +169,35 @@ struct ChatDetailScreen: View {
         guard !trimmed.isEmpty, let real = engine.realDevice(for: device.id) else { return }
         engine.sendText(to: real, content: trimmed)
         composerText = ""
+        composerFocused = false
+    }
+
+    /// 通过系统文件选择器把文件直接发给当前会话对端。
+    private func sendFiles(_ urls: [URL]) {
+        guard let real = engine.realDevice(for: device.id) else { return }
+        for url in urls {
+            let didStart = url.startAccessingSecurityScopedResource()
+            defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+            engine.sendFile(to: real, sourceURL: url)
+        }
+    }
+
+    /// 通过相册选择器把图片落临时文件后发给当前会话对端。
+    private func sendPhotos(_ items: [PhotosPickerItem]) async {
+        defer { photoSelection = [] }
+        guard let real = engine.realDevice(for: device.id) else { return }
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let ext = item.supportedContentTypes.first(where: { $0.preferredFilenameExtension != nil })?
+                .preferredFilenameExtension ?? "jpg"
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("IMG-\(UUID().uuidString).\(ext)")
+            do {
+                try data.write(to: url)
+                engine.sendFile(to: real, sourceURL: url)
+            } catch {
+                continue
+            }
+        }
     }
 }
