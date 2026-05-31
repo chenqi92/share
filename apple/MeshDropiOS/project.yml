@@ -63,6 +63,9 @@ targets:
       - target: MeshDropShareExtension
         embed: true
         codeSign: true
+      - target: MeshDropWidgets
+        embed: true
+        codeSign: true
 
   MeshDropShareExtension:
     type: app-extension
@@ -98,6 +101,34 @@ targets:
         DEVELOPMENT_TEAM: 2U97K3U27A
         CODE_SIGN_ENTITLEMENTS: ../MeshDropShareExtensionIOS/MeshDropShareExtensionIOS.entitlements
         # SLComposeServiceViewController 在 Social.framework，无需手动链接
+    dependencies:
+      - package: MeshDropKit
+        product: MeshDropKit
+
+  # Live Activity / 灵动岛 的 Widget Extension。共享 MeshDropKit 里的
+  # MeshDropTransferActivityAttributes（主 app 与本扩展用同一份类型）。
+  MeshDropWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ../MeshDropWidgets/Sources
+    info:
+      path: ../MeshDropWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: MeshDrop
+        CFBundleName: MeshDropWidgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop.widgets
+        PRODUCT_NAME: MeshDropWidgets
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: ../MeshDropWidgets/MeshDropWidgets.entitlements
     dependencies:
       - package: MeshDropKit
         product: MeshDropKit

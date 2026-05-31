@@ -20,6 +20,7 @@ targets:
       - path: Resources
         excludes:
           - Info.plist
+          - MeshDropWatch.entitlements
     info:
       path: Resources/Info.plist
       properties:
@@ -46,3 +47,35 @@ targets:
         TARGETED_DEVICE_FAMILY: "4"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: Resources/MeshDropWatch.entitlements
+    dependencies:
+      - target: MeshDropWatchComplications
+        embed: true
+        codeSign: true
+
+  # 表盘复杂功能（WidgetKit）。读 App Group 共享快照（ComplicationSnapshot.swift），
+  # 与 watch app 用同一个 group.com.welape.meshdrop。
+  MeshDropWatchComplications:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - ../MeshDropWatchComplications/Sources
+      - Sources/bridge/ComplicationSnapshot.swift   # 与 watch app 共享同一份快照读写代码
+    info:
+      path: ../MeshDropWatchComplications/Info.plist
+      properties:
+        CFBundleDisplayName: MeshDrop
+        CFBundleName: MeshDropWatchComplications
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.watch.complications
+        PRODUCT_NAME: MeshDropWatchComplications
+        GENERATE_INFOPLIST_FILE: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: ../MeshDropWatchComplications/MeshDropWatchComplications.entitlements
