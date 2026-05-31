@@ -42,8 +42,9 @@ pub struct AppHandle {
     pub self_ip: Rc<RefCell<Option<String>>>,
 }
 
-// 一些 send_file / clear_history 等 API 当前 UI 没接，留给后续 settings / context
-// menu 使用。Rust 默认对 unused public 也报 warn —— 该 impl 整块允许 dead_code
+// send_file（discovery 设备卡片）/ clear_history（history 页）已接入 UI。
+// push_clipboard / send_files / remove_history 等仍留作后续 context menu 使用，
+// 故整块保留 allow(dead_code) 以免少量未用 API 触发 warn。
 #[allow(dead_code)]
 impl AppHandle {
     /// 在专用线程启动 tokio runtime，构造 Engine + Gateway。

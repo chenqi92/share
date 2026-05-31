@@ -182,6 +182,19 @@ impl ShareEngine {
         })
     }
 
+    /// 查询某指纹是否已信任（供 CLI / TUI 决定是否自动接受 offer 用）。
+    pub fn is_trusted(&self, fingerprint: &str) -> bool {
+        self.trust_store.is_trusted(fingerprint)
+    }
+
+    /// 按指纹撤销信任并持久化（TUI `:revoke <fp>` / GUI 撤销按钮用）。
+    /// 返回该指纹此前是否在信任列表中。
+    pub fn revoke_trust(&self, fingerprint: &str) -> bool {
+        let was_trusted = self.trust_store.is_trusted(fingerprint);
+        self.trust_store.revoke(fingerprint);
+        was_trusted
+    }
+
     /// 当前「已信任设备自动接收」开关。
     pub fn auto_accept_from_trusted(&self) -> bool { self.auto_accept.load(Ordering::Relaxed) }
     /// 设置并持久化「已信任设备自动接收」。

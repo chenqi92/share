@@ -2,7 +2,7 @@
 //! 当 handle.is_some()：订阅 engine.history_rx 实时刷新。
 //! 否则使用 mock 数据（screenshots 模式）。
 
-use crate::components::{ascii_divider, chip, file_chip};
+use crate::components::{ascii_divider, chip, file_chip, icon_btn};
 use crate::engine_bridge::AppHandle;
 use crate::mock;
 use crate::view::{ViewHistoryKind, ViewHistoryRow};
@@ -31,7 +31,19 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     title_row.append(&chip::chip("FILES · 文件", chip::Tone::Outline, true));
     title_row.append(&chip::chip("TEXT · 文字", chip::Tone::Outline, true));
     title_row.append(&chip::chip("IMAGE · 图片", chip::Tone::Outline, true));
+    // 清空历史按钮 —— 仅真实模式生效，mock（screenshots）下禁用。
+    let clear_btn = icon_btn::icon_btn("清空 · Clear", "清空全部历史记录", icon_btn::IconBtnTone::Danger);
+    title_row.append(&clear_btn);
     root.append(&title_row);
+
+    if let Some(h) = handle {
+        let h_c = h.clone();
+        clear_btn.connect_clicked(move |_| {
+            h_c.clear_history();
+        });
+    } else {
+        clear_btn.set_sensitive(false);
+    }
 
     let today_div = ascii_divider::build("── TODAY · 今天 · 0 件 ──");
     root.append(&today_div.root);

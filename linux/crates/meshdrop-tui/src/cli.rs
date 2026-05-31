@@ -598,11 +598,14 @@ fn handle_incoming_offer(
         &offer.sha256[..offer.sha256.len().min(16)],
     );
     if auto_accept_trusted {
-        // engine 内部没暴露 is_trusted 查询；这里以 「凡是能完成 HELLO_ACK 进入 offer 状态的
-        // peer 必然已通过握手」为前提，按 prompt 要求自动接受。
-        // —— TODO：core 后续暴露 trust_store 查询时再细化。
-        engine.respond_file_offer(offer.id, true);
-        eprintln!("[offer] 已自动接受（--auto-accept-trusted）");
+        // 仅自动接受「已信任」对端的文件；陌生 peer 即便开了 --auto-accept-trusted
+        // 也保持挂起（headless 下等同拒绝交互，由发起方超时）。
+        if engine.is_trusted(&offer.peer.fingerprint) {
+            engine.respond_file_offer(offer.id, true);
+            eprintln!("[offer] 已自动接受（已信任设备 · --auto-accept-trusted）");
+        } else {
+            eprintln!("[offer] 未自动接受（{} 不在信任列表 · 先在 TUI / GUI 配对信任）", offer.peer.name);
+        }
     } else {
         // 不弹 prompt（headless）；仅记录、不自动接受
         eprintln!("[offer] 未自动接受（需 --auto-accept-trusted 或 TUI 模式手动）");

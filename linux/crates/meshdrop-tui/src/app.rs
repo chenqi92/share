@@ -341,7 +341,26 @@ impl App {
                 }
             }
             ["trust"] => self.status = "用 :pair 流程信任设备（收到配对请求后按 t）".into(),
-            ["revoke", fp] => self.status = format!("撤销信任：{}（暂未接 TrustStore 写入）", fp),
+            ["revoke", fp] => {
+                // 用户可能粘贴带分隔符的展示型指纹（如 "ZX8K · L72M …"），
+                // 归一成 trust store 里存的紧凑小写 hex 再撤销。
+                let normalized: String = fp
+                    .chars()
+                    .filter(|c| c.is_ascii_alphanumeric())
+                    .collect::<String>()
+                    .to_lowercase();
+                if let Some(engine) = &self.engine {
+                    if normalized.is_empty() {
+                        self.status = "用法：:revoke <fingerprint>".into();
+                    } else if engine.revoke_trust(&normalized) {
+                        self.status = format!("已撤销信任：{}", fp);
+                    } else {
+                        self.status = format!("指纹不在信任列表：{}", fp);
+                    }
+                } else {
+                    self.status = format!("（mock）撤销信任：{}", fp);
+                }
+            }
             ["f", path] => {
                 let path_buf = std::path::PathBuf::from(expand_home(path));
                 if !path_buf.exists() {
@@ -760,13 +779,15 @@ fn apply(app: &mut App, action: Action) {
             if app.focus == Focus::History {
                 if let Some(i) = app.history_state.selected() {
                     if i < app.history.len() {
-                        let id = app.history[i].id;
                         if let Some(engine) = &app.engine {
-                            // mock id 是 u64，从 core UUID 截出来；删除时只能按显示位置近似
-                            // — 实际删除走 engine.remove_history(uuid)，需要 UUID 回查。
-                            // 为简化：在 engine 模式不支持单条删除（用 :c 清空全部）
-                            let _ = (engine, id);
-                            app.status = "engine 模式下请用 :c 清空（单条删除暂未接）".into();
+                            // display 列表与 core_history 由同一快照、同序构建（见 engine_bridge），
+                            // 故同一下标对应同一条；按下标回查真实 UUID 删除。
+                            if let Some(core) = app.core_history.get(i) {
+                                engine.remove_history(core.id);
+                                app.status = "删除一条历史".into();
+                            } else {
+                                app.status = "找不到对应记录".into();
+                            }
                         } else {
                             app.history.remove(i);
                             if i >= app.history.len() && i > 0 {

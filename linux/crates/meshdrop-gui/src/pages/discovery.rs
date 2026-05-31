@@ -114,7 +114,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     empty_card.set_visible(initial_views.is_empty());
 
     // 初始填充
-    fill_devices(&list_card, &initial_views);
+    fill_devices(&list_card, &initial_views, handle);
     devices_div.set_text(&format!("── DEVICES · 设备 · {} ──", initial_views.len()));
 
     // 终端块（保留视觉占位）
@@ -158,10 +158,11 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         let radar_handle = r;
         let dev_div_lbl = devices_div.label.clone();
         let radar_div_lbl = radar_div.label.clone();
+        let h_for_rows = h.clone();
         h.observe(h.engine.devices_rx(), move |devs| {
             let views: Vec<ViewDevice> = devs.iter().enumerate()
                 .map(|(i, d)| ViewDevice::from_device(d, i)).collect();
-            fill_devices(&list_clone, &views);
+            fill_devices(&list_clone, &views, Some(&h_for_rows));
             empty_clone.set_visible(views.is_empty());
             dev_div_lbl.set_text(&format!("── DEVICES · 设备 · {} ──", views.len()));
             radar_div_lbl.set_text(&format!("── RADAR · 雷达 · {} PEERS ──", views.len()));
@@ -172,12 +173,12 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     root.upcast()
 }
 
-fn fill_devices(container: &gtk::Box, devs: &[ViewDevice]) {
+fn fill_devices(container: &gtk::Box, devs: &[ViewDevice], handle: Option<&Rc<AppHandle>>) {
     while let Some(child) = container.first_child() {
         container.remove(&child);
     }
     for d in devs {
-        let row = crate::components::device_row::build(d, false);
+        let row = crate::components::device_row::build_with_handle(d, false, handle);
         container.append(&row);
     }
 }
