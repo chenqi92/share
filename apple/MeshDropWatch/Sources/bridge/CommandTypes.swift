@@ -59,6 +59,10 @@ enum BridgeEventType: String, Codable {
     case transferProgress = "transfer_progress"
     case transferDone     = "transfer_done"
     case historyAdded     = "history_added"
+    /// phone 收到入站文本，内联推来。
+    case inboxText        = "inbox_text"
+    /// phone 收到入站文件并经 transferFile 送来，这条事件带元数据 + ref。
+    case inboxFileReady   = "inbox_file_ready"
 }
 
 struct BridgeEvent: Codable {
@@ -129,6 +133,25 @@ struct BridgeTransferProgress: Codable, Hashable {
         guard totalBytes > 0 else { return 0 }
         return min(100, Int(bytesSent * 100 / totalBytes))
     }
+}
+
+/// 入站收件项（phone → watch 中转的真实接收内容）。
+/// 文本内容内联在 `text`；文件落盘后 `localPath` 指向 watch 本地副本。
+struct BridgeInboxItem: Codable, Identifiable, Hashable {
+    let id: String
+    let peerName: String
+    let kind: String          // "text" | "file"
+    let text: String?
+    let fileName: String?
+    let sizeBytes: UInt64?
+    let fileRef: String?
+    let receivedAt: Int64
+    /// 文件落盘后的本地路径（watch 端填，事件里没有）。
+    var localPath: String?
+
+    var isText: Bool { kind == "text" }
+    /// 文件已传完可用（kind==file 且本地有副本）。
+    var fileAvailable: Bool { kind == "file" && localPath != nil }
 }
 
 // MARK: - AnyCodable

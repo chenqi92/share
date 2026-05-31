@@ -109,6 +109,8 @@ final class WatchSessionController: NSObject, ObservableObject {
         // history: 新增推 history_added，transferring 项节流推 transfer_progress / transfer_done
         var seenHistory: Set<UUID> = []
         var lastProgressAt: [UUID: Date] = [:]
+        // 已转发到 watch 的入站收件项（避免 history 多次发布时重复推 / 重复传文件）。
+        var forwardedInbox: Set<UUID> = []
         engine.$history
             .sink { [weak self] items in
                 guard let self else { return }
@@ -135,6 +137,11 @@ final class WatchSessionController: NSObject, ObservableObject {
                         self.push(event: .init(type: .transferDone,
                                                payload: .init(transferId: item.id.uuidString,
                                                               ok: true)))
+                        // 入站完成的内容中转给 watch（文本内联 / 文件经 transferFile）。
+                        if item.direction == .incoming, !forwardedInbox.contains(item.id) {
+                            forwardedInbox.insert(item.id)
+                            self.forwardIncomingToWatch(item)
+                        }
                     case .failed(let msg):
                         self.push(event: .init(type: .transferDone,
                                                payload: .init(transferId: item.id.uuidString,
@@ -145,6 +152,62 @@ final class WatchSessionController: NSObject, ObservableObject {
                 }
             }
             .store(in: &subs)
+    }
+
+    // MARK: - 入站内容中转给 watch
+
+    /// 把一条已完成的**入站**历史项推给 watch。
+    /// - 文本：内联在 `inbox_text` 事件里（无需文件通道）。
+    /// - 文件：先 `transferFile(_:metadata:)` 把文件送过去（即便 watch 当前不 reachable，
+    ///   WCSession 也会排队后台传），落盘后 watch 端凭 metadata 的 ref 关联到 `inbox_file_ready`
+    ///   事件。事件本身用 sendMessage 推（reachable 时即时；否则 watch 端重连后靠 transferFile
+    ///   完成回调兜底，见 WatchSessionClient）。
+    private func forwardIncomingToWatch(_ item: HistoryItem) {
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.activationState == .activated else { return }
+
+        switch item.kind {
+        case .text(let content):
+            let inbox = WatchBridge.InboxItemDTO(
+                id: item.id.uuidString,
+                peerName: item.peer.name,
+                kind: "text",
+                text: content,
+                receivedAt: Int64(item.createdAt.timeIntervalSince1970)
+            )
+            push(event: .init(type: .inboxText, payload: .init(inbox: inbox)))
+
+        case .file(let name, let size, let url):
+            guard let fileURL = url, FileManager.default.fileExists(atPath: fileURL.path) else {
+                log.error("入站文件 \(name) 无可用 URL，无法中转给 watch")
+                return
+            }
+            // 大文件经 WCSession 很慢；这里设一个保护上限（32 MiB），超过只推元数据不传字节，
+            // watch 端展示「请在 iPhone 上查看」。
+            let maxWatchFileBytes: UInt64 = 32 * 1024 * 1024
+            let ref = item.id.uuidString
+            let inbox = WatchBridge.InboxItemDTO(
+                id: item.id.uuidString,
+                peerName: item.peer.name,
+                kind: "file",
+                fileName: name,
+                sizeBytes: size,
+                fileRef: size <= maxWatchFileBytes ? ref : nil,
+                receivedAt: Int64(item.createdAt.timeIntervalSince1970)
+            )
+            if size <= maxWatchFileBytes {
+                let metadata: [String: Any] = [
+                    "ref": ref,
+                    "kind": "inbox_file",
+                    "name": name,
+                    "peerName": item.peer.name,
+                    "historyId": item.id.uuidString,
+                ]
+                session.transferFile(fileURL, metadata: metadata)
+            }
+            push(event: .init(type: .inboxFileReady, payload: .init(inbox: inbox)))
+        }
     }
 
     private func isWatchReachable() -> Bool {

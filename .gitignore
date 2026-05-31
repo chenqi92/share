@@ -26,6 +26,12 @@ build/
 Package.resolved
 
 # Android
+# 上架签名与密码：绝不入库（丢失/泄露都会很麻烦）
+*.jks
+*.keystore
+android/key.properties
+# 备案特征值（含密码/签名）：本地保留，勿入库
+备案信息.md
 android/.gradle/
 android/.kotlin/
 android/build/

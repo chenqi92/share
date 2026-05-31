@@ -4,11 +4,14 @@ import MeshDropKit
 @main
 struct MeshDropVisionApp: App {
 
+    /// 主窗口的稳定 id。CloseHandleOrnament 用它调 dismissWindow(id:) 关窗。
+    static let mainWindowID = "main"
+
     @State private var tab: AppTab = .nearby
     @StateObject private var engine = ShareEngine.shared
 
     var body: some Scene {
-        WindowGroup(id: "main") {
+        WindowGroup(id: Self.mainWindowID) {
             RootView(tab: $tab)
                 .environmentObject(engine)
                 .frame(minWidth: 1600, idealWidth: 1800, maxWidth: .infinity,

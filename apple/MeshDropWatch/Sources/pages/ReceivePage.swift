@@ -18,20 +18,30 @@ struct ReceivePage: View {
 
     private var isOffline: Bool { debugOffer == nil && !proxy.isOnline }
 
+    /// 真实收件箱（iPhone 中转来的入站内容）。debug 模式下为空。
+    private var inboxItems: [BridgeInboxItem] { debugOffer == nil ? proxy.inbox : [] }
+
     var body: some View {
         ZStack {
             MD.dink.ignoresSafeArea()
             ScrollView(.vertical, showsIndicators: false) {
-                if isOffline {
-                    offlineCard
-                        .padding(.horizontal, 8)
-                        .padding(.top, 6)
-                } else if let offer {
-                    offerCard(offer)
-                } else {
-                    emptyCard
-                        .padding(.horizontal, 8)
-                        .padding(.top, 6)
+                VStack(spacing: 8) {
+                    // 1. 待审 offer（接受/拒绝）。
+                    if let offer { offerCard(offer) }
+
+                    // 2. 已接收内容（真实收件箱）。
+                    if !inboxItems.isEmpty {
+                        inboxSection
+                    }
+
+                    // 3. 都没有时：离线 / 空态。
+                    if offer == nil && inboxItems.isEmpty {
+                        if isOffline {
+                            offlineCard.padding(.horizontal, 8).padding(.top, 6)
+                        } else {
+                            emptyCard.padding(.horizontal, 8).padding(.top, 6)
+                        }
+                    }
                 }
             }
         }
@@ -155,6 +165,80 @@ struct ReceivePage: View {
         .padding(10)
         .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(MD.dink2))
         .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(MD.dline, lineWidth: 0.5))
+    }
+
+    // MARK: - 收件箱（真实接收）
+
+    private var inboxSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 3) {
+                Circle().fill(MD.lime).frame(width: 5, height: 5)
+                Text("收件箱 · INBOX")
+                    .font(MDFont.mono(10, weight: .bold))
+                    .tracking(1.4)
+                    .foregroundColor(MD.lime)
+                Spacer()
+            }
+            .padding(.horizontal, 4)
+
+            ForEach(inboxItems) { item in
+                inboxRow(item)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.top, 2)
+    }
+
+    @ViewBuilder
+    private func inboxRow(_ item: BridgeInboxItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text(item.peerName)
+                    .font(MDFont.mono(9, weight: .bold))
+                    .tracking(0.6)
+                    .foregroundColor(MD.dim)
+                    .lineLimit(1)
+                Spacer()
+                Button {
+                    WKInterfaceDevice.current().play(.click)
+                    proxy.removeInboxItem(item.id)
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(MD.dim)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if item.isText {
+                Text(item.text ?? "")
+                    .font(MDFont.body(13, weight: .regular))
+                    .foregroundColor(MD.dpaper)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                FileChipMini(
+                    name: item.fileName ?? "文件",
+                    size: byteString(item.sizeBytes),
+                    ext: (item.fileName as NSString?)?.pathExtension ?? ""
+                )
+                Text(item.fileAvailable ? "已存到 iPhone · 表上可预览" : "正在从 iPhone 传输…")
+                    .font(MDFont.mono(8, weight: .medium))
+                    .foregroundColor(item.fileAvailable ? MD.lime : MD.dim)
+            }
+        }
+        .padding(10)
+        .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(MD.dink2))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(MD.dline, lineWidth: 0.5))
+    }
+
+    private func byteString(_ n: UInt64?) -> String {
+        guard let n else { return "—" }
+        let units = ["B", "KB", "MB", "GB"]
+        var v = Double(n)
+        var idx = 0
+        while v >= 1024 && idx < units.count - 1 { v /= 1024; idx += 1 }
+        return idx == 0 ? "\(Int(v)) \(units[idx])" : String(format: "%.1f %@", v, units[idx])
     }
 
     private func actionRow(offer: WatchOfferVM) -> some View {

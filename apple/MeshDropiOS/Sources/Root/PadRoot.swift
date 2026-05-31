@@ -32,5 +32,11 @@ struct PadRoot: View {
         .sheet(isPresented: $state.showShareExt) { NavigationStack { ShareExtensionMock() } }
 #endif
         .sheet(isPresented: $state.showLiveActivity) { NavigationStack { LiveActivityMock() } }
+        .sheet(isPresented: $state.showPendingShareResolver, onDismiss: {
+            state.pendingShares = PendingShareQueue.shared.unresolvedItems()
+        }) {
+            PendingShareResolverSheet(items: state.pendingShares)
+                .environmentObject(engine)
+        }
     }
 }

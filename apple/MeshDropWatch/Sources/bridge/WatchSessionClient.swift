@@ -45,6 +45,8 @@ final class WatchSessionClient: NSObject {
     var onReachabilityChanged: ((Bool) -> Void)?
     var onEvent: ((BridgeEvent) -> Void)?
     var onActivationCompleted: ((Bool, String?) -> Void)?
+    /// iPhone 经 transferFile 中转来的入站文件落盘完成：(ref, 本地副本 URL)。
+    var onFileReceived: ((String, URL) -> Void)?
 
     // MARK: - 内部
 
@@ -158,5 +160,32 @@ extension WatchSessionClient: WCSessionDelegate {
         } catch {
             log.error("收到非事件 message：\(error.localizedDescription)")
         }
+    }
+
+    /// iPhone transferFile 中转来的入站文件。WCSession 会在 inbox 临时目录给一个 fileURL，
+    /// 必须在本回调返回前把它移走（系统随后清理）。落到 caches 下按 ref 命名。
+    func session(_ session: WCSession, didReceive file: WCSessionFile) {
+        let ref = (file.metadata?["ref"] as? String) ?? UUID().uuidString
+        let name = (file.metadata?["name"] as? String) ?? ref
+        let dst = Self.inboxFileURL(ref: ref, name: name)
+        let fm = FileManager.default
+        do {
+            if fm.fileExists(atPath: dst.path) { try fm.removeItem(at: dst) }
+            try fm.moveItem(at: file.fileURL, to: dst)
+            log.info("收到入站文件 ref=\(ref, privacy: .public)")
+            onFileReceived?(ref, dst)
+        } catch {
+            log.error("入站文件落盘失败：\(error.localizedDescription)")
+        }
+    }
+
+    /// 入站文件本地落盘约定路径（caches/com.welape.meshdrop.inbox/<ref>-<name>）。
+    static func inboxFileURL(ref: String, name: String) -> URL {
+        let fm = FileManager.default
+        let base = (try? fm.url(for: .cachesDirectory, in: .userDomainMask,
+                                appropriateFor: nil, create: true)) ?? fm.temporaryDirectory
+        let dir = base.appendingPathComponent("com.welape.meshdrop.inbox", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("\(ref)-\(name)")
     }
 }

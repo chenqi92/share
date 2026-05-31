@@ -23,6 +23,12 @@ public final class PendingShareQueue {
 
     public static let appGroupID = "group.com.welape.meshdrop"
 
+    /// 占位 peerID：share extension 入队时还不知道目标 peer（LAN 设备列表是动态的，扩展进程
+    /// 看不到）。主 app drain 时遇到该值会保留，等用户在「选目标」UI 里挑设备再发。
+    /// extension 端和主 app 端共用这个常量，避免字符串两处写死不一致。
+    /// nonisolated：供 PendingItem（值类型，非 MainActor）和 extension 进程随处引用。
+    public nonisolated static let unresolvedPeerID = "_pending_"
+
     private let log = Logger(subsystem: "com.welape.meshdrop", category: "PendingShareQueue")
     private let fm = FileManager.default
 
@@ -40,23 +46,106 @@ public final class PendingShareQueue {
     }
 
     /// payload 元数据。share extension 序列化写入 `meta.json`。
-    public struct PendingItem: Codable {
+    public struct PendingItem: Codable, Identifiable, Hashable {
         public let id: String
         public let peerID: String
         public let kind: Kind
         public let createdAt: Date
 
-        public enum Kind: Codable {
+        public enum Kind: Codable, Hashable {
             case text(String)
             case file(name: String, sizeBytes: UInt64)
         }
+
+        /// 目标 peer 是否还未确定（等用户在主 app 里选）。
+        public var isUnresolved: Bool { peerID == PendingShareQueue.unresolvedPeerID }
+
+        /// UI 摘要：文本取前若干字符，文件取文件名。
+        public var summary: String {
+            switch kind {
+            case .text(let s):
+                let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed.count > 80 ? String(trimmed.prefix(80)) + "…" : trimmed
+            case .file(let name, _):
+                return name
+            }
+        }
+
+        /// 字节数（文件项），文本项为 nil。
+        public var sizeBytes: UInt64? {
+            if case .file(_, let n) = kind { return n }
+            return nil
+        }
     }
 
-    /// 主 app 启动时调：把所有待发项 drain 给 engine。
+    /// 一条待发项 + 其在 container 里的目录（主 app 选 peer / 消费时用）。
+    public struct ResolvedPendingItem: Identifiable, Hashable {
+        public let item: PendingItem
+        public let itemDir: URL
+        public var id: String { item.id }
+    }
+
+    /// 主 app 启动时调：把**已确定 peer**的待发项 drain 给 engine。
+    /// 占位 peer（`_pending_`）的项会被跳过，留给主 app 的「选目标」UI 处理（见 `pendingItems()`）。
     public func drain(engine: ShareEngine) {
+        for resolved in allPending() {
+            // 占位 peer 的项不在这里发——等用户选 peer。
+            guard !resolved.item.isUnresolved else { continue }
+            drainOne(resolved, engine: engine)
+        }
+    }
+
+    /// 列出所有待发项（含占位 peer 的）。主 app UI 据此判断是否要弹「选目标」面板。
+    /// 最新创建的在前。
+    public func pendingItems() -> [ResolvedPendingItem] {
+        allPending().sorted { $0.item.createdAt > $1.item.createdAt }
+    }
+
+    /// 仅列出还没确定 peer 的待发项（UI 选目标用）。
+    public func unresolvedItems() -> [ResolvedPendingItem] {
+        pendingItems().filter { $0.item.isUnresolved }
+    }
+
+    /// 把一条待发项发给用户选定的 peer，发出后删除目录。
+    /// 文本立即发；文件先把 container 里的副本复制到 engine 可长期持有的临时目录再发
+    /// （container 副本随后删除，避免重复发送）。
+    public func send(_ resolved: ResolvedPendingItem, to peer: Device, engine: ShareEngine) {
+        let itemDir = resolved.itemDir
+        switch resolved.item.kind {
+        case .text(let content):
+            engine.sendText(to: peer, content: content)
+            try? fm.removeItem(at: itemDir)
+        case .file(let name, _):
+            let src = itemDir.appendingPathComponent(name)
+            guard fm.fileExists(atPath: src.path) else {
+                log.error("\(resolved.item.id) 文件 \(name) 不存在，删除该项")
+                try? fm.removeItem(at: itemDir)
+                return
+            }
+            // 复制出 container，让 engine 流式读取期间不依赖 container 生命周期。
+            let staged = stagedCopyURL(name: name)
+            do {
+                if fm.fileExists(atPath: staged.path) { try fm.removeItem(at: staged) }
+                try fm.copyItem(at: src, to: staged)
+                engine.sendFile(to: peer, sourceURL: staged)
+            } catch {
+                log.error("暂存文件副本失败，直接用 container 副本发：\(error.localizedDescription)")
+                engine.sendFile(to: peer, sourceURL: src)
+            }
+            try? fm.removeItem(at: itemDir)
+        }
+    }
+
+    /// 丢弃一条待发项（用户在「选目标」UI 取消 / 删除）。
+    public func discard(_ resolved: ResolvedPendingItem) {
+        try? fm.removeItem(at: resolved.itemDir)
+    }
+
+    /// 扫描 `pending/` 下所有有效子目录，解析 meta.json。
+    private func allPending() -> [ResolvedPendingItem] {
         guard let dir = Self.pendingDir else {
-            log.debug("App Group container 不可用，跳过 drain（entitlement 未配置）")
-            return
+            log.debug("App Group container 不可用，跳过（entitlement 未配置）")
+            return []
         }
         let entries: [URL]
         do {
@@ -64,41 +153,39 @@ public final class PendingShareQueue {
                 .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true }
         } catch {
             log.error("读取 pending 目录失败：\(error.localizedDescription)")
-            return
+            return []
         }
-        for item in entries {
-            drainOne(item, engine: engine)
+        return entries.compactMap { itemDir in
+            let metaURL = itemDir.appendingPathComponent("meta.json")
+            guard let metaData = try? Data(contentsOf: metaURL),
+                  let meta = try? JSONDecoder().decode(PendingItem.self, from: metaData) else {
+                log.error("无法解析 \(itemDir.lastPathComponent)/meta.json，已删除")
+                try? fm.removeItem(at: itemDir)
+                return nil
+            }
+            return ResolvedPendingItem(item: meta, itemDir: itemDir)
         }
     }
 
-    /// 单条 payload 的 drain：读 meta → 找 peer → engine.send* → 删目录。
-    private func drainOne(_ itemDir: URL, engine: ShareEngine) {
-        let metaURL = itemDir.appendingPathComponent("meta.json")
-        guard let metaData = try? Data(contentsOf: metaURL),
-              let meta = try? JSONDecoder().decode(PendingItem.self, from: metaData) else {
-            log.error("无法解析 \(itemDir.lastPathComponent)/meta.json，已删除")
-            try? fm.removeItem(at: itemDir)
-            return
-        }
+    /// 单条已确定 peer 的 payload drain：找 peer → engine.send* → 删目录。
+    private func drainOne(_ resolved: ResolvedPendingItem, engine: ShareEngine) {
+        let meta = resolved.item
         // peer 必须在线才能发，否则保留待下次 drain
         guard let peer = engine.devices.first(where: { $0.id == meta.peerID }) else {
             log.info("peer \(meta.peerID) 不在线，保留 \(meta.id) 等下次 drain")
             return
         }
-        switch meta.kind {
-        case .text(let content):
-            engine.sendText(to: peer, content: content)
-        case .file(let name, _):
-            let fileURL = itemDir.appendingPathComponent(name)
-            if fm.fileExists(atPath: fileURL.path) {
-                engine.sendFile(to: peer, sourceURL: fileURL)
-            } else {
-                log.error("\(meta.id) 文件 \(name) 不存在，跳过")
-            }
-        }
-        // engine.sendFile 是 async streaming：这里立即删 meta，但文件等 send 内部读完才能删。
-        // 简化：删 meta 阻止重发，文件落在原地直到主 app 退出时由 OS 清理 / 下次 drain 略过。
-        try? fm.removeItem(at: metaURL)
+        send(resolved, to: peer, engine: engine)
+    }
+
+    /// container 外的暂存副本路径（caches/MeshDropPendingSend/）。
+    private func stagedCopyURL(name: String) -> URL {
+        let base = (try? fm.url(for: .cachesDirectory, in: .userDomainMask,
+                                appropriateFor: nil, create: true)) ?? fm.temporaryDirectory
+        let dir = base.appendingPathComponent("MeshDropPendingSend", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        // 加 uuid 前缀避免同名覆盖正在发送的另一份。
+        return dir.appendingPathComponent(UUID().uuidString + "-" + name)
     }
 
     /// Share Extension 端调用：把一条待发 payload 写入 container。

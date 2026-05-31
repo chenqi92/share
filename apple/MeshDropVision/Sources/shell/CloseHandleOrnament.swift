@@ -2,9 +2,12 @@ import SwiftUI
 
 /// 主窗口左下 56pt 玻璃圆盘 ornament：单击关闭 / 隐藏。
 struct CloseHandleOrnament: View {
+    @Environment(\.dismissWindow) private var dismissWindow
+
     var body: some View {
         Button {
-            // 本轮 mock；真实场景调 dismissWindow()
+            // 关闭主窗口。WindowGroup(id:) 注册的稳定 id，dismissWindow 按 id 关。
+            dismissWindow(id: MeshDropVisionApp.mainWindowID)
         } label: {
             ZStack {
                 Circle()

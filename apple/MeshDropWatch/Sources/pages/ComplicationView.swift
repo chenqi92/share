@@ -1,8 +1,12 @@
 import SwiftUI
 
-/// 表盘 complication 预览（corner / circular 两种形态）
-/// 本轮 UI-FIRST 不接 ClockKit/Widget Bundle，只展示视觉。
-struct ComplicationView: View {
+/// 表盘 complication 的**应用内预览**（corner / circular 两种形态）。
+///
+/// 真正上表盘的 complication 用 WidgetKit 实现，在独立的 Widget Extension target
+/// （见 `MeshDropWatchComplications/`：TimelineProvider + accessoryCircular/Rectangular/
+/// Inline/Corner 视图）。该 extension 进程通过 App Group 共享快照（ComplicationStore）读
+/// 设备数。本文件只是 app 内给用户看的视觉示意，读 `proxy.devices.count` 实时反映。
+struct ComplicationPreviewView: View {
     @ObservedObject var proxy: WatchEngineProxy = .shared
 
     /// Preview / 调试用：直接指定 count；nil 则走 proxy。
@@ -80,5 +84,5 @@ struct ComplicationView: View {
 }
 
 #Preview {
-    ComplicationView(debugCount: 5)
+    ComplicationPreviewView(debugCount: 5)
 }

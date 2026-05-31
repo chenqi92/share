@@ -21,7 +21,8 @@ final class ShareViewController: SLComposeServiceViewController {
     private let log = Logger(subsystem: "com.welape.meshdrop", category: "ShareExtension")
 
     /// 占位 peerID：drain 时若没匹配到实际设备就保留，等主 app UI 选目标。
-    private static let unresolvedPeerID = "_pending_"
+    /// 复用 MeshDropKit 里的共享常量，保证扩展与主 app 两端一致。
+    private static let unresolvedPeerID = PendingShareQueue.unresolvedPeerID
 
     override func isContentValid() -> Bool {
         // 文本或附件至少要有一个

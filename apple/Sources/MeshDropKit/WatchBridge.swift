@@ -145,6 +145,11 @@ extension WatchBridge {
         case transferProgress = "transfer_progress"
         case transferDone     = "transfer_done"
         case historyAdded     = "history_added"
+        /// phone 收到一条**入站文本** → 内联推给 watch（无需走文件通道）。
+        case inboxText        = "inbox_text"
+        /// phone 收到一条**入站文件**并落盘完成 → 先 transferFile 把文件送到 watch，
+        /// 再推这条事件告诉 watch「ref=xxx 这个已传完的文件属于这条收件项」。
+        case inboxFileReady   = "inbox_file_ready"
     }
 
     public struct Event: Codable, Sendable {
@@ -174,6 +179,8 @@ extension WatchBridge {
             public var speedBps: UInt64?
             public var ok: Bool?
             public var error: String?
+            /// inbox_text / inbox_file_ready 用：收件项内容。
+            public var inbox: InboxItemDTO?
 
             public init(
                 device: DeviceDTO? = nil,
@@ -186,7 +193,8 @@ extension WatchBridge {
                 totalBytes: UInt64? = nil,
                 speedBps: UInt64? = nil,
                 ok: Bool? = nil,
-                error: String? = nil
+                error: String? = nil,
+                inbox: InboxItemDTO? = nil
             ) {
                 self.device = device
                 self.pairing = pairing
@@ -199,6 +207,7 @@ extension WatchBridge {
                 self.speedBps = speedBps
                 self.ok = ok
                 self.error = error
+                self.inbox = inbox
             }
         }
     }
@@ -264,6 +273,33 @@ extension WatchBridge {
             self.sizeBytes = sizeBytes
             self.noteText = noteText
             self.createdAt = createdAt
+        }
+    }
+
+    /// 入站收件项（phone → watch）。文本内联在 `text`；文件已经过 `transferFile` 送到 watch，
+    /// `fileRef` 给出落盘文件名，watch 端按约定路径取。
+    public struct InboxItemDTO: Codable, Sendable, Identifiable, Equatable {
+        public var id: String          // = phone 端 historyID.uuidString
+        public var peerName: String
+        public var kind: String        // "text" | "file"
+        public var text: String?
+        public var fileName: String?
+        public var sizeBytes: UInt64?
+        public var fileRef: String?    // transferFile 落盘的引用名（kind==file）
+        public var receivedAt: Int64
+
+        public init(id: String, peerName: String, kind: String,
+                    text: String? = nil, fileName: String? = nil,
+                    sizeBytes: UInt64? = nil, fileRef: String? = nil,
+                    receivedAt: Int64) {
+            self.id = id
+            self.peerName = peerName
+            self.kind = kind
+            self.text = text
+            self.fileName = fileName
+            self.sizeBytes = sizeBytes
+            self.fileRef = fileRef
+            self.receivedAt = receivedAt
         }
     }
 

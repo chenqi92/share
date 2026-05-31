@@ -6,6 +6,7 @@ struct MeshDropApp: App {
     @StateObject private var state = AppState()
     @StateObject private var engine = ShareEngine.shared
     @StateObject private var watchSession = WatchSessionController.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
@@ -17,8 +18,18 @@ struct MeshDropApp: App {
                     engine.start()
                     IncomingNotifier.startShared(engine: engine)
                     watchSession.start(engine: engine)
+                    // 传输进度驱动 Live Activity（灵动岛 / 锁屏）。
+                    LiveActivityManager.shared.attach(to: engine)
+                    // 已确定 peer 的项直接发；未决项（占位 peer）交给「选目标」面板。
                     PendingShareQueue.shared.drain(engine: engine)
+                    state.refreshPendingShares()
                     state.applyPreviewRouteFromEnvIfNeeded()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // 从「分享」回到主 app 时再 drain + 刷新一次未决项。
+                    guard phase == .active else { return }
+                    PendingShareQueue.shared.drain(engine: engine)
+                    state.refreshPendingShares()
                 }
         }
     }
@@ -39,6 +50,17 @@ final class AppState: ObservableObject {
     @Published var showTrustManager: Bool = false
     @Published var showShareExt: Bool = false
     @Published var showLiveActivity: Bool = false
+
+    /// 来自 Share Extension 的未决分享项（占位 peer）。非空时弹「选目标」面板。
+    @Published var pendingShares: [PendingShareQueue.ResolvedPendingItem] = []
+    /// 「选目标」面板显隐。
+    @Published var showPendingShareResolver: Bool = false
+
+    /// 从队列重新载入未决项，有则弹面板。主 app 启动 / 回前台时调。
+    func refreshPendingShares() {
+        pendingShares = PendingShareQueue.shared.unresolvedItems()
+        if !pendingShares.isEmpty { showPendingShareResolver = true }
+    }
 
     /// 选中设备的 UI 展示模型。LAN 上没有任何设备时返回一个占位的"等待"卡片。
     func selectedDeviceDisplay(engine: ShareEngine) -> MockDevice {
