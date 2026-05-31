@@ -107,6 +107,21 @@ internal sealed class GatewayCommands
                         _engine.RemoveHistoryItem(id);
                         return Reply(cmd.Id, true);
                     }
+                case "cancel_transfer":
+                    {
+                        var p = cmd.Payload.Deserialize<HistoryItemPayload>() ?? new HistoryItemPayload();
+                        if (!Guid.TryParse(p.ItemId, out var id)) return Reply(cmd.Id, false, "bad_id");
+                        _engine.CancelTransfer(id);
+                        return Reply(cmd.Id, true);
+                    }
+                case "retry_transfer":
+                    {
+                        var p = cmd.Payload.Deserialize<HistoryItemPayload>() ?? new HistoryItemPayload();
+                        if (!Guid.TryParse(p.ItemId, out var id)) return Reply(cmd.Id, false, "bad_id");
+                        return _engine.RetryTransfer(id)
+                            ? Reply(cmd.Id, true)
+                            : Reply(cmd.Id, false, "retry_unavailable");
+                    }
                 default:
                     return Reply(cmd.Id, false, "unknown_command");
             }

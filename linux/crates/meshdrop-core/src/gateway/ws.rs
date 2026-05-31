@@ -15,6 +15,7 @@ use futures_util::{SinkExt, StreamExt};
 use log::{debug, info, warn};
 use serde_json::{json, Value};
 use sha1::{Digest as _, Sha1};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::AsyncWriteExt as _;
 use tokio::net::TcpStream;
@@ -247,6 +248,23 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
                 (false, Some("peer_not_found".into()), None)
             }
         }
+        "send_file_ref" => {
+            let peer_id = payload.get("peerId").and_then(|p| p.as_str()).unwrap_or("");
+            let file_ref = payload.get("fileRef").and_then(|p| p.as_str()).unwrap_or("");
+            if file_ref.is_empty() {
+                (false, Some("file_ref_invalid".into()), None)
+            } else if let Some(peer) = find_peer(engine, peer_id) {
+                let path = PathBuf::from(file_ref);
+                if path.is_file() {
+                    engine.send_file(peer, path);
+                    (true, None, None)
+                } else {
+                    (false, Some("file_ref_invalid".into()), None)
+                }
+            } else {
+                (false, Some("peer_not_found".into()), None)
+            }
+        }
         "accept_pairing" => respond_pairing(engine, &payload, true),
         "reject_pairing" => respond_pairing(engine, &payload, false),
         "accept_offer" => {
@@ -271,6 +289,26 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
                 None => (false, Some("bad_item_id".into()), None),
             }
         }
+        "cancel_transfer" => {
+            match parse_history_id(&payload) {
+                Some(id) if history_contains(engine, id) => {
+                    engine.cancel_transfer(id);
+                    (true, None, None)
+                }
+                Some(_) => (false, Some("history_not_found".into()), None),
+                None => (false, Some("bad_item_id".into()), None),
+            }
+        }
+        "retry_transfer" => {
+            match parse_history_id(&payload) {
+                Some(id) if history_contains(engine, id) => {
+                    engine.retry_transfer(id);
+                    (true, None, None)
+                }
+                Some(_) => (false, Some("history_not_found".into()), None),
+                None => (false, Some("bad_item_id".into()), None),
+            }
+        }
         other => {
             warn!("gateway: unsupported command type {}", other);
             (false, Some("unsupported_command".into()), None)
@@ -283,6 +321,16 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
         "error": error,
         "result": result,
     })
+}
+
+fn parse_history_id(payload: &Value) -> Option<Uuid> {
+    payload.get("itemId")
+        .and_then(|p| p.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok())
+}
+
+fn history_contains(engine: &ShareEngine, id: Uuid) -> bool {
+    engine.history_rx().borrow().iter().any(|h| h.id == id)
 }
 
 fn respond_pairing(engine: &ShareEngine, payload: &Value, accept: bool)

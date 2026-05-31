@@ -5,7 +5,7 @@
  * 间接收发，本端不直接挂 LAN。协议：
  *   - WS  /api/v1/control  双向命令 / 事件（companion-bridges §1, §2）
  *   - POST /api/v1/pair    用 6 字符代码换 session cookie
- *   - POST /api/v1/upload  multipart 上传，返回 uploadToken 作为 send_file_ref.fileRef
+ *   - POST /api/v1/upload  multipart 上传，返回 token 作为 send_file_ref.fileRef
  *   - GET  /api/v1/download/<offerId> 接受 offer 后下载文件
  */
 

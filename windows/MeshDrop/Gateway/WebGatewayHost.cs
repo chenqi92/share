@@ -24,7 +24,7 @@ namespace MeshDrop.Gateway;
 ///   - POST /api/v1/pair        → 验 pairing code，下发 session cookie + token（companion-bridges §4.3）
 ///                                 别名 /api/v1/auth 保留兼容旧客户端
 ///   - WS  /api/v1/control      → 双向命令 / 事件通道（cookie / ?token= / x-meshdrop-token 任一鉴权）
-///   - POST /api/v1/upload      → multipart 暂存文件，返 uploadToken
+///   - POST /api/v1/upload      → multipart 暂存文件，返 token
 ///   - GET  /api/v1/download/{} → 接受 offer 后下载流（v0.1：本地保存路径）
 ///
 /// 用 TcpListener + SslStream + System.Net.WebSockets 手搭，
@@ -178,8 +178,9 @@ public sealed class WebGatewayHost
             {
                 // v0.1 占位：直接把 body 当文件流写到 LocalAppData/uploads/<guid>，返回 fileRef
                 var tokenPath = await SaveUploadAsync(body);
+                var escapedToken = tokenPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
                 await WriteJsonAsync(ssl, 200,
-                    $"{{\"ok\":true,\"uploadToken\":\"{tokenPath.Replace("\\", "\\\\")}\"}}", ct);
+                    $"{{\"ok\":true,\"token\":\"{escapedToken}\",\"uploadToken\":\"{escapedToken}\"}}", ct);
                 return;
             }
             if (method == "GET" && path.StartsWith("/api/v1/download/"))

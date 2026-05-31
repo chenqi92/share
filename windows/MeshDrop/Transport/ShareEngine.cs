@@ -468,6 +468,23 @@ public sealed partial class ShareEngine : ObservableObject
         });
     }
 
+    /// <summary>
+    /// 重发失败/取消的 outgoing 文件项。保留旧 history，新建一条发送记录走完整文件流程。
+    /// </summary>
+    public bool RetryTransfer(Guid historyId)
+    {
+        var item = History.FirstOrDefault(h => h.Id == historyId);
+        if (item is null || item.Direction != TransferDirection.Outgoing)
+            return false;
+        if (item.Kind is not HistoryKind.File { LocalPath: { Length: > 0 } path })
+            return false;
+        if (!File.Exists(path))
+            return false;
+
+        SendFile(item.Peer, path);
+        return true;
+    }
+
     // ─── 入站连接 + 启动 ────────────────────────────────────────────────
 
     private async Task AcceptLoopAsync(CancellationToken ct)
