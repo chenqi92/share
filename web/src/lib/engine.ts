@@ -546,3 +546,27 @@ export function getClient(): GatewayClient {
 export function isGatewayConfigured(): boolean {
   return !!detectGateway()
 }
+
+export function getGatewayEndpoint(): string {
+  return detectGateway()
+}
+
+export function setGatewayEndpoint(raw: string): void {
+  const value = raw.trim().replace(/\/$/, '')
+  if (!value) {
+    try { localStorage.removeItem('meshdrop.gateway') } catch { /* ignore */ }
+    _client = undefined
+    return
+  }
+  let url: URL
+  try {
+    url = new URL(value)
+  } catch {
+    throw new Error('gateway URL 无效')
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('gateway URL 必须以 http:// 或 https:// 开头')
+  }
+  try { localStorage.setItem('meshdrop.gateway', url.toString().replace(/\/$/, '')) } catch { /* ignore */ }
+  _client = undefined
+}

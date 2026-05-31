@@ -12,6 +12,7 @@ pub mod trust;
 pub mod connection;
 pub mod engine;
 pub mod gateway;
+mod resume;
 
 pub use device::{Device, DeviceOS};
 pub use identity::{compute_fingerprint, Identity};

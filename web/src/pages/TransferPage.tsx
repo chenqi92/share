@@ -25,9 +25,9 @@ export function TransferPage() {
   const downBars = useEngine((s) => s.downBars)
   const peerCount = devices.filter((d) => d.online).length
   const source = mode === 'live' ? transfers : MESHDROP_TRANSFERS
-  // live 且已有采样 → 真实序列；否则用 mock 装饰柱。
-  const chartUp = mode === 'live' && uploadBars.length ? uploadBars : MESHDROP_UPLOAD_BARS
-  const chartDown = mode === 'live' && downBars.length ? downBars : MESHDROP_DOWNLOAD_BARS
+  const idleBars = Array.from({ length: 32 }, () => 0)
+  const chartUp = mode === 'live' ? (uploadBars.length ? uploadBars : idleBars) : MESHDROP_UPLOAD_BARS
+  const chartDown = mode === 'live' ? (downBars.length ? downBars : idleBars) : MESHDROP_DOWNLOAD_BARS
 
   const rows = source.filter((t) => {
     if (filter === '发送 · SEND') return t.state === 'sending' || t.state === 'queued'

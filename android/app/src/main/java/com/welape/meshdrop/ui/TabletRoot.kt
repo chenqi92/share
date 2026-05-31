@@ -41,6 +41,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,6 +88,8 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
 
     val realDevicesRaw = engine?.devices?.collectAsState()?.value
     val realHistoryRaw = engine?.history?.collectAsState()?.value
+    val pendingPairings = engine?.pendingPairings?.collectAsState()?.value ?: emptyList()
+    val pendingFileOffers = engine?.pendingFileOffers?.collectAsState()?.value ?: emptyList()
     val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
     val lastError = engine?.lastError?.collectAsState()?.value
 
@@ -94,8 +97,32 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
         ?: if (engine == null) MockDevices else emptyList()
     val chatPreviewsUi: List<MockChatPreview> = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
+    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
+        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice()
 
     var pendingDraft by remember { mutableStateOf("") }
+    var promptedPairingId by remember { mutableStateOf<String?>(null) }
+    var promptedOfferId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(
+        pendingPairings.firstOrNull()?.id,
+        pendingFileOffers.firstOrNull()?.id,
+        state.sheet,
+    ) {
+        if (state.sheet != MeshSheet.NONE) return@LaunchedEffect
+        val pairing = pendingPairings.firstOrNull()
+        val offer = pendingFileOffers.firstOrNull()
+        when {
+            pairing != null && pairing.id.toString() != promptedPairingId -> {
+                promptedPairingId = pairing.id.toString()
+                state.sheet = MeshSheet.PAIRING
+            }
+            offer != null && offer.id.toString() != promptedOfferId -> {
+                promptedOfferId = offer.id.toString()
+                state.sheet = MeshSheet.FILE_OFFER
+            }
+        }
+    }
 
     Row(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         NavRail(state = state)
@@ -134,7 +161,18 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     onDismissError = { engine?.clearLastError() },
                 )
                 MeshTab.CHAT -> state.openChatDeviceId?.let { id ->
-                    ChatDetailScreen(deviceId = id, onBack = null, showDropOverlay = state.showDropOverlay)
+                    ChatDetailScreen(
+                        deviceId = id,
+                        onBack = null,
+                        showDropOverlay = state.showDropOverlay,
+                        device = uiDeviceFor(id),
+                        messages = realHistoryRaw?.toChatMessages(id),
+                        useMockFallback = engine == null,
+                        onSendText = { text ->
+                            realDevicesRaw?.firstOrNull { it.id == id }?.let { engine?.sendText(it, text) }
+                        },
+                        onAttachFile = { state.sheet = MeshSheet.SEND },
+                    )
                 }
                 MeshTab.TRANSFER -> TransferScreen(engine = engine)
                 MeshTab.CLIPBOARD -> ClipboardScreen(engine = engine)
@@ -167,8 +205,24 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     }
                 },
             )
-            MeshSheet.PAIRING -> PairingSheet(onClose = { state.sheet = MeshSheet.NONE })
-            MeshSheet.FILE_OFFER -> FileOfferSheet(onClose = { state.sheet = MeshSheet.NONE })
+            MeshSheet.PAIRING -> {
+                val pairing = pendingPairings.firstOrNull()
+                PairingSheet(
+                    pairing = pairing,
+                    useMockFallback = engine == null,
+                    onDecision = { decision -> pairing?.id?.let { engine?.respondToPairing(it, decision) } },
+                    onClose = { state.sheet = MeshSheet.NONE },
+                )
+            }
+            MeshSheet.FILE_OFFER -> {
+                val offer = pendingFileOffers.firstOrNull()
+                FileOfferSheet(
+                    offer = offer,
+                    useMockFallback = engine == null,
+                    onRespond = { accept -> offer?.id?.let { engine?.respondToFileOffer(it, accept) } },
+                    onClose = { state.sheet = MeshSheet.NONE },
+                )
+            }
             MeshSheet.ONBOARDING -> OnboardingSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.NONE -> Unit
         }
@@ -190,9 +244,8 @@ private fun NavRail(state: MeshAppState) {
         Spacer(Modifier.height(18.dp))
         val items = listOf(
             Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "聊天"),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "发送"),
             Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
-            Triple(MeshTab.CLIPBOARD, Icons.Outlined.ContentPaste, "剪贴板"),
             Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -44,7 +44,7 @@ import com.welape.meshdrop.ui.theme.MeshTheme
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
 
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
     val mesh = MeshTheme.colors
     Column(
         modifier = Modifier
@@ -63,7 +63,7 @@ fun HistoryScreen() {
                 ),
             )
             Text(
-                text = "${MockHistory.size} 条最近 · 端到端加密 · 本机存储",
+                text = "${items.size} 条最近 · 端到端加密 · 本机存储",
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,
@@ -81,10 +81,10 @@ fun HistoryScreen() {
             MeshChip(text = "文字", tone = ChipTone.OUTLINE)
         }
 
-        AsciiDivider(label = "今天 · TODAY · ${MockHistory.size} 件")
+        AsciiDivider(label = "今天 · TODAY · ${items.size} 件")
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            MockHistory.forEach { item -> HistoryRow(item) }
+            items.forEach { item -> HistoryRow(item) }
         }
 
         Spacer(Modifier.height(80.dp))

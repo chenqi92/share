@@ -3,6 +3,7 @@ import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import { useEngine } from '../hooks/useEngine'
+import { getGatewayEndpoint } from '../lib/engine'
 import { loadSettings, saveSettings, type AppSettings } from '../lib/settings'
 
 interface ToggleRowProps {
@@ -232,9 +233,11 @@ export function SettingsPage() {
               flexWrap: 'wrap',
             }}
           >
-            <Chip tone="lime" mono>● X25519 · CHACHA20</Chip>
+            <Chip tone={mode === 'live' ? 'lime' : 'outline'} mono>
+              {mode === 'live' ? '● NATIVE E2E VIA GATEWAY' : '● MOCK SESSION'}
+            </Chip>
             <Chip tone="outline" mono>SHA-256 校验</Chip>
-            <Chip tone="outline" mono>WebCrypto subtle</Chip>
+            <Chip tone="outline" mono>HTTPS / WSS SESSION</Chip>
             <span
               style={{
                 marginLeft: 'auto',
@@ -285,7 +288,7 @@ export function SettingsPage() {
                   letterSpacing: '0.02em',
                 }}
               >
-                gateway · {window.location.host}
+                gateway · {getGatewayEndpoint() || window.location.host}
               </span>
               <button
                 onClick={() => setConfirmingForget(true)}
@@ -392,7 +395,7 @@ export function SettingsPage() {
             meshdrop-web · v0.1.0-ui<br />
             host · {me.hostIp}<br />
             session · {mode === 'live' ? conn.toUpperCase() : '—'}<br />
-            engine · WebRTC DataChannel + WebCrypto X25519 · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
+            engine · Native Web Gateway + LAN E2E transport · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
           </div>
         </section>
       </div>

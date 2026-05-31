@@ -1,7 +1,8 @@
 # MeshDrop 协议规范 v0.1
 
-本目录是 MeshDrop 各端实现的真相。所有 5 端（macOS / iOS / Android / Windows /
-Linux）都按此规范实现，互通性由协议合规性而非任何一端的实现保证。
+本目录是 MeshDrop 各端实现的真相。macOS / iOS / Android / Windows / Linux /
+Web Gateway / companion 端都以这里的 wire format 为准；互通性由协议合规性和
+conformance 证据保证，而不是任一端的 UI 状态保证。
 
 ## 协议版本
 
@@ -79,5 +80,5 @@ mDNS 已经提供了发现机制）。
 
 当前 11 个黄金向量覆盖 v0.1 所有消息类型（HELLO / HELLO_ACK / TEXT /
 FILE_OFFER / FILE_ACCEPT × 2 / FILE_REJECT / FILE_COMPLETE / FILE_CANCEL /
-FILE_CHUNK / PING）。Apple 与 Linux 端已在 CI 上跑同一份向量做 decoder
-方向断言；其它端跟着加自己语言的等价测试。
+FILE_CHUNK / PING）。Apple / Android / Linux 端已有等价 decoder 测试；Windows
+仍需要在 Windows CI/本机环境补同源向量测试。

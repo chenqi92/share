@@ -13,7 +13,7 @@ android/
     ├── build.gradle.kts
     └── src/main/
         ├── AndroidManifest.xml
-        ├── java/freq/share/
+        ├── java/com/welape/meshdrop/
         │   ├── ShareApplication.kt
         │   ├── MainActivity.kt
         │   ├── data/          # Device, Identity, TXTRecord
@@ -23,35 +23,35 @@ android/
         └── res/values/{strings,themes}.xml
 ```
 
-## 构建
-
-第一次需要生成 Gradle Wrapper（用本机已安装的 Gradle）：
+## 构建 / 测试
 
 ```bash
 cd android
-gradle wrapper --gradle-version 8.11
 ./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest
 ./gradlew :app:installDebug
 ```
 
-或者直接 Android Studio 打开 `android/` 目录，IDE 会自动同步并生成 wrapper。
+或者直接 Android Studio 打开 `android/` 目录。
 
 ## 当前覆盖
 
 - ✅ Identity（Ed25519，SharedPreferences 存储，TODO 切到 EncryptedSharedPreferences）
 - ✅ mDNS 发现（NsdManager + 协程封装）
+- ✅ TCP framing / HELLO / HELLO_ACK / TOFU pairing
+- ✅ TEXT / CLIPBOARD / FILE offer/chunk/complete/cancel
+- ✅ FILE_ACCEPT.resume_offset 断点续传
+- ✅ Share Target + 待发送选择目标
+- ✅ Wear OS DataLayer bridge
 - ✅ Compose UI（Material 3 + 动态色 / Material You）
 - ✅ Android 13+ NEARBY_WIFI_DEVICES 运行时权限
-- ⚠️ Transport：accept 后直接 close（骨架）
-- ⚠️ Pairing / Text / File：未实现
+- ✅ 截图测试使用 Paparazzi `2.0.0-alpha02`
+- ⚠️ UI 层仍复用 `mock/MockData.kt` 里的 DTO / preview sample；运行时入口已优先走 ShareEngine
 
 ## TODO
 
 - [ ] EncryptedSharedPreferences 替换 SharedPreferences
-- [ ] TCP I/O 协程实装 Frame 读写
-- [ ] HELLO 握手 + 配对对话框
-- [ ] TEXT 发送
-- [ ] FILE 传输（含 SAF 选择 / 写入）
-- [ ] TLS 1.3 双向证书校验
+- [ ] TLS 1.3 双向证书校验 / 应用层端到端加密
 - [ ] 切到 `NsdManager.registerServiceInfoCallback`（API 33+ 替代已废弃的
       `resolveService`）
+- [ ] 把 UI DTO 从 `Mock*` 命名迁到 `Display*`，降低误读

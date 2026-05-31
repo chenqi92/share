@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,8 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
 
     val realDevicesRaw = engine?.devices?.collectAsState()?.value
     val realHistoryRaw = engine?.history?.collectAsState()?.value
+    val pendingPairings = engine?.pendingPairings?.collectAsState()?.value ?: emptyList()
+    val pendingFileOffers = engine?.pendingFileOffers?.collectAsState()?.value ?: emptyList()
     val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
     val lastError = engine?.lastError?.collectAsState()?.value
 
@@ -79,20 +82,52 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
         ?: if (engine == null) MockHistory else emptyList()
     val chatPreviewsUi = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
+    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
+        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice()
 
     // 角标：聊天 = 未读入站文本数，传输 = 进行中任务数（真实数据，引擎缺席时为 0）
     val chatUnread = (engine?.unreadByPeer?.collectAsState()?.value ?: emptyMap()).values.sum()
     val activeTransfers = realHistoryRaw?.count { it.status is TransferStatus.Transferring } ?: 0
+    var promptedPairingId by remember { mutableStateOf<String?>(null) }
+    var promptedOfferId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(
+        pendingPairings.firstOrNull()?.id,
+        pendingFileOffers.firstOrNull()?.id,
+        state.sheet,
+    ) {
+        if (state.sheet != MeshSheet.NONE) return@LaunchedEffect
+        val pairing = pendingPairings.firstOrNull()
+        val offer = pendingFileOffers.firstOrNull()
+        when {
+            pairing != null && pairing.id.toString() != promptedPairingId -> {
+                promptedPairingId = pairing.id.toString()
+                state.sheet = MeshSheet.PAIRING
+            }
+            offer != null && offer.id.toString() != promptedOfferId -> {
+                promptedOfferId = offer.id.toString()
+                state.sheet = MeshSheet.FILE_OFFER
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
                 when (state.tab) {
                     MeshTab.DISCOVER -> if (inChatDetail && state.openChatDeviceId != null) {
+                        val chatId = state.openChatDeviceId!!
                         ChatDetailScreen(
-                            deviceId = state.openChatDeviceId!!,
+                            deviceId = chatId,
                             onBack = { inChatDetail = false },
                             showDropOverlay = state.showDropOverlay,
+                            device = uiDeviceFor(chatId),
+                            messages = realHistoryRaw?.toChatMessages(chatId),
+                            useMockFallback = engine == null,
+                            onSendText = { text ->
+                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine?.sendText(it, text) }
+                            },
+                            onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
                     } else {
                         DiscoverScreen(
@@ -110,10 +145,18 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                         )
                     }
                     MeshTab.CHAT -> if (inChatDetail && state.openChatDeviceId != null) {
+                        val chatId = state.openChatDeviceId!!
                         ChatDetailScreen(
-                            deviceId = state.openChatDeviceId!!,
+                            deviceId = chatId,
                             onBack = { inChatDetail = false },
                             showDropOverlay = state.showDropOverlay,
+                            device = uiDeviceFor(chatId),
+                            messages = realHistoryRaw?.toChatMessages(chatId),
+                            useMockFallback = engine == null,
+                            onSendText = { text ->
+                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine?.sendText(it, text) }
+                            },
+                            onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
                     } else {
                         ChatListScreen(
@@ -188,8 +231,24 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     }
                 },
             )
-            MeshSheet.PAIRING -> PairingSheet(onClose = { state.sheet = MeshSheet.NONE })
-            MeshSheet.FILE_OFFER -> FileOfferSheet(onClose = { state.sheet = MeshSheet.NONE })
+            MeshSheet.PAIRING -> {
+                val pairing = pendingPairings.firstOrNull()
+                PairingSheet(
+                    pairing = pairing,
+                    useMockFallback = engine == null,
+                    onDecision = { decision -> pairing?.id?.let { engine?.respondToPairing(it, decision) } },
+                    onClose = { state.sheet = MeshSheet.NONE },
+                )
+            }
+            MeshSheet.FILE_OFFER -> {
+                val offer = pendingFileOffers.firstOrNull()
+                FileOfferSheet(
+                    offer = offer,
+                    useMockFallback = engine == null,
+                    onRespond = { accept -> offer?.id?.let { engine?.respondToFileOffer(it, accept) } },
+                    onClose = { state.sheet = MeshSheet.NONE },
+                )
+            }
             MeshSheet.ONBOARDING -> OnboardingSheet(onClose = { state.sheet = MeshSheet.NONE })
             MeshSheet.NONE -> Unit
         }
@@ -214,9 +273,8 @@ fun BottomNavBar(
     ) {
         val tabs = listOf(
             Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "聊天"),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "发送"),
             Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
-            Triple(MeshTab.CLIPBOARD, Icons.Outlined.ContentPaste, "剪贴板"),
             Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
         )
         tabs.forEach { (tab, icon, label) ->

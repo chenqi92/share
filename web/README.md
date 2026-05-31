@@ -12,7 +12,7 @@ npm install
 npm run dev               # vite dev server，默认 http://localhost:5173
 ```
 
-dev 模式需要手工指定 gateway URL：
+dev 模式需要手工指定 gateway URL。可以在配对页输入并保存，也可以用 URL：
 
 ```
 http://localhost:5173?gw=https://<lan-ip>:7384
@@ -24,7 +24,8 @@ http://localhost:5173?gw=https://<lan-ip>:7384
 localStorage.setItem('meshdrop.gateway', 'https://<lan-ip>:7384')
 ```
 
-之后再刷新页面即可。token 会自动持久化在 localStorage。
+之后再刷新页面即可。token 会自动持久化在 localStorage。没有 gateway 时 live 模式不会
+自动回退到假数据；需要截图/演示数据请显式加 `?mock=1`。
 
 ## 构建
 
@@ -41,12 +42,12 @@ npm run preview           # 起 vite preview 看构建后的产物
 
 ## Gateway 连接
 
-`src/lib/engine.ts` 里 `detectGateway()` 三层 fallback：
+`src/lib/engine.ts` 里 `detectGateway()` 的顺序：
 
 1. URL `?gw=<url>` 显式覆盖
 2. `localStorage['meshdrop.gateway']` 上次配置
 3. 当前 `window.location.origin`（gateway 把 web 嵌在自己 host 上时这一步直接命中）
-4. 否则 `about:blank` 占位（dev 模式无 gateway 时）
+4. 否则返回空串，由配对页提示配置 gateway
 
 API 与 gateway 之间走（按 `companion-bridges.md §4.3`）：
 
@@ -55,7 +56,7 @@ API 与 gateway 之间走（按 `companion-bridges.md §4.3`）：
 | `POST /api/v1/pair` | 6 字符配对码 → 24h session token + Set-Cookie |
 | `WS /api/v1/control?token=<sid>` | 双向命令 / 事件通道 |
 | `POST /api/v1/upload` | multipart 上传 → `{token:"<path>"}` 作为 `send_file_ref.fileRef` |
-| `GET /api/v1/download/<historyId>` | 流式下载已接收文件（仅 macOS gateway 当前实装） |
+| `GET /api/v1/download/<historyId>` | 流式下载已接收文件 |
 
 `Cookie meshdrop_session`、`?token=`、`x-meshdrop-token` header 任一都能鉴权（与 Apple / Linux / Windows gateway 三端约定一致）。
 

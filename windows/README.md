@@ -12,7 +12,7 @@ windows/
     ├── MainWindow.xaml + .cs       # Sidebar | Pages | StatusBar
     ├── app.manifest                # DPI, longPathAware
     ├── Theme/                      # MeshDropColors (light/dark) + Fonts + Generic
-    ├── Mock/MockData.cs            # COMMON §9 数据
+    ├── Mock/MockData.cs            # UI DTO + preview sample（运行时由 EngineProjection 投影）
     ├── Models/                     # 协议层（保留）
     ├── Protocol/, Transport/, Discovery/   # 协议层（保留）
     ├── ViewModels/                 # Shell + 6 个 Page 的 VM
@@ -69,9 +69,14 @@ dotnet run --project MeshDrop -c Debug -p:Platform=x64
 - ✅ Send / Pairing / FileOffer / Onboarding 4 个对话框
 - ✅ 系统托盘 + Tray Flyout (mini live transfer + Nearby)
 - ✅ Toast 构造器（接收 / 拒绝 / 查看 三按钮）
-- ⚠️ 本轮 UI-only，**未接** ShareEngine — 所有数据来自 Mock/MockData
+- ✅ UI 已通过 `EngineProjection` 接 ShareEngine；`MockData.cs` 只保留 DTO / preview sample
 
 ## 协议层状态
 
-保留：Protocol/Frame、Messages；Models/Identity、TXTRecord、TrustStore；
-Discovery/MdnsDiscovery；Transport/ShareEngine、Connection。本轮 UI 不调用它们。
+已接入：Protocol/Frame、Messages；Models/Identity、TXTRecord、TrustStore；
+Discovery/MdnsDiscovery；Transport/ShareEngine、Connection；WebGatewayHost。
+
+当前限制：
+- Windows WinUI 项目必须在 Windows + .NET 8 / Windows App SDK 环境构建；macOS 上无法验证。
+- 文件断点续传已接入 `FILE_ACCEPT.resume_offset`：接收侧持久化半成品进度，重发同一文件时自动从已落盘 offset 续传。
+- 部分 Settings toggles 仍是 UI 偏好占位，未全部映射到 ShareEngine。

@@ -2,8 +2,8 @@
  * 真实 engine hook —— 替代 useMockEngine。
  *
  * 行为：
- *   - gateway 已配置且配对成功：从 WS 拉真实 state，所有 send/* 走 GatewayClient
- *   - gateway 未配置 / 未配对 / 连接失败：回退到 mock 数据，所有写入仅本地状态
+ *   - live：从 native Web Gateway 的 WS 拉真实 state，所有 send/* 走 GatewayClient
+ *   - mock：仅在显式 `?mock=1` / `?mock=true` 时启用，所有写入仅本地状态
  *
  * 上面两种模式对组件透明 —— store 的 shape 一致。
  */
@@ -37,7 +37,6 @@ import {
   adaptPairing,
   adaptTransfer,
   getClient,
-  isGatewayConfigured,
   type EngineConnState,
 } from '../lib/engine'
 import { autoAcceptEnabled, notificationsEnabled } from '../lib/settings'
@@ -86,7 +85,7 @@ function isMock(): boolean {
   if (typeof window === 'undefined') return true
   const q = new URLSearchParams(window.location.search).get('mock')
   if (q === '1' || q === 'true') return true
-  return !isGatewayConfigured()
+  return false
 }
 
 function buildHistoryDays(items: HistoryEntry[]): HistoryDay[] {

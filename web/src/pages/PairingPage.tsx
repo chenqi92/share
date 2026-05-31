@@ -3,6 +3,7 @@ import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import { useEngine } from '../hooks/useEngine'
+import { getGatewayEndpoint, isGatewayConfigured, setGatewayEndpoint } from '../lib/engine'
 
 function FakeQr({ size = 220 }: { size?: number }) {
   // 21×21 deterministic-looking pattern with the three locator squares.
@@ -71,9 +72,26 @@ export function PairingPage() {
   const [code, setCode] = useState('')
   const [pairing, setPairing] = useState(false)
   const [pairErr, setPairErr] = useState<string | undefined>()
+  const [gateway, setGateway] = useState(() => getGatewayEndpoint())
+  const [gatewayErr, setGatewayErr] = useState<string | undefined>()
+  const [gatewayReady, setGatewayReady] = useState(() => isGatewayConfigured())
+
+  const saveGateway = () => {
+    setGatewayErr(undefined)
+    try {
+      setGatewayEndpoint(gateway)
+      setGatewayReady(isGatewayConfigured())
+    } catch (e) {
+      setGatewayErr((e as Error).message)
+    }
+  }
 
   const submitCode = async () => {
     setPairErr(undefined)
+    if (!gatewayReady) {
+      setPairErr('请先设置 native Web Gateway 地址')
+      return
+    }
     setPairing(true)
     try {
       const ok = await pair(code.trim())
@@ -116,6 +134,65 @@ export function PairingPage() {
               gap: 12,
             }}
           >
+            {!gatewayReady && (
+              <div style={{
+                padding: 12,
+                borderRadius: 10,
+                background: 'var(--flame-fill)',
+                borderLeft: '3px solid var(--flame)',
+                fontSize: 12.5,
+                color: 'var(--text)',
+                lineHeight: 1.5,
+              }}>
+                当前未配置 native Web Gateway。输入运行 MeshDrop native 端的地址后再配对。
+              </div>
+            )}
+            <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
+              <input
+                value={gateway}
+                onChange={(e) => {
+                  setGateway(e.target.value)
+                  setGatewayReady(false)
+                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveGateway() }}
+                placeholder="https://192.168.1.12:7384"
+                spellCheck={false}
+                style={{
+                  flex: '1 1 260px',
+                  minWidth: 240,
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 12.5,
+                }}
+              />
+              <button
+                onClick={saveGateway}
+                style={{
+                  padding: '9px 14px',
+                  borderRadius: 10,
+                  background: 'var(--lime)',
+                  color: 'var(--ink)',
+                  fontWeight: 700,
+                  fontSize: 12.5,
+                  cursor: 'pointer',
+                }}
+              >
+                保存 gateway
+              </button>
+              <div style={{
+                flex: '1 1 100%',
+                color: gatewayErr ? 'var(--error)' : 'var(--text-faint)',
+                fontFamily: '"Geist Mono", monospace',
+                fontSize: 10.5,
+                letterSpacing: '0.04em',
+              }}>
+                {gatewayErr ?? (gatewayReady ? `gateway · ${getGatewayEndpoint()}` : '例: https://192.168.1.12:7384 或 http://127.0.0.1:7384')}
+              </div>
+            </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Chip tone={conn === 'open' ? 'lime' : 'outline'} mono>

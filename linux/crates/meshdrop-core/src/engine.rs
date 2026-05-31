@@ -7,22 +7,25 @@ use crate::discovery::{self, DiscoveryHandle};
 use crate::history::{format_bytes, HistoryItem, HistoryKind, TransferDirection, TransferStatus};
 use crate::identity::Identity;
 use crate::protocol::*;
+use crate::resume::{ResumeRecord, ResumeStore};
 use crate::trust::TrustStore;
 use anyhow::{Context, Result};
 use log::{debug, info, warn};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use std::io::SeekFrom;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::fs::{File, OpenOptions};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::{mpsc, watch};
 use uuid::Uuid;
 
 const CHUNK_SIZE: usize = 256 * 1024;
+const RESUME_PERSIST_INTERVAL: u64 = 4 * 1024 * 1024;
 
 // ─── 公开类型 ──────────────────────────────────────────────────────────
 
@@ -159,6 +162,7 @@ impl ShareEngine {
             tp_tx,
             throughput: SessionThroughput::default(),
             auto_accept: auto_accept.clone(),
+            resume_store: ResumeStore::new(),
             internal_tx,
             _discovery: discovery,
         };
@@ -319,6 +323,7 @@ struct State {
     tp_tx: watch::Sender<SessionThroughput>,
     throughput: SessionThroughput,
     auto_accept: Arc<AtomicBool>,
+    resume_store: ResumeStore,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     _discovery: DiscoveryHandle,
 }
@@ -341,6 +346,7 @@ struct ConnCtx {
     file_size: u64,
     sent_bytes: u64,
     received_bytes: u64,
+    last_persisted_bytes: u64,
     file_input: Option<File>,
     file_output: Option<File>,
 
@@ -453,15 +459,18 @@ async fn cancel_transfer(state: &mut State, history_id: Uuid) {
     };
 
     // 接收态：关 file_output + 删半成品
-    let (transfer_id, save_path, is_receiving) = {
+    let (transfer_id, save_path, is_receiving, peer, expected_sha) = {
         let ctx = state.contexts.get_mut(&ctx_id).unwrap();
         let is_recv = matches!(ctx.state, ConnState::ReceivingFile);
         if is_recv {
             if let Some(mut out) = ctx.file_output.take() { let _ = out.flush().await; }
         }
-        (ctx.transfer_id, ctx.save_path.clone(), is_recv)
+        (ctx.transfer_id, ctx.save_path.clone(), is_recv, ctx.peer.clone(), ctx.expected_sha256.clone())
     };
     if is_receiving {
+        if let (Some(peer), Some(sha)) = (&peer, &expected_sha) {
+            clear_resume_record(state, peer, sha);
+        }
         if let Some(path) = &save_path {
             let _ = tokio::fs::remove_file(path).await;
         }
@@ -707,6 +716,8 @@ async fn respond_offer(state: &mut State, offer_id: Uuid, accept: bool) {
         ctx.file_output = Some(file_out);
         ctx.save_path = Some(save_path);
         ctx.file_size = offer.file_size;
+        ctx.received_bytes = 0;
+        ctx.last_persisted_bytes = 0;
         ctx.expected_sha256 = Some(offer.sha256);
         ctx.transfer_id = Some(offer.id);
         ctx.pending_offer_id = None;
@@ -746,7 +757,7 @@ async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) 
     match (ctx_state, msg_type) {
         (ConnState::AwaitingHello, msg_type::HELLO) => server_recv_hello(state, ctx_id, body).await,
         (ConnState::AwaitingHelloAck, msg_type::HELLO_ACK) => client_recv_ack(state, ctx_id, body).await,
-        (ConnState::AwaitingFileAccept, msg_type::FILE_ACCEPT) => client_start_send_file(state, ctx_id).await,
+        (ConnState::AwaitingFileAccept, msg_type::FILE_ACCEPT) => client_start_send_file(state, ctx_id, body).await,
         (ConnState::AwaitingFileAccept, msg_type::FILE_REJECT) => {
             let reason = serde_json::from_slice::<FileRejectMessage>(&body)
                 .map(|m| m.reason).unwrap_or_else(|_| "rejected".into());
@@ -765,6 +776,7 @@ async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) 
         (ConnState::Ready, msg_type::CLIPBOARD) => handle_received_clipboard(state, ctx_id, body).await,
         (ConnState::Ready, msg_type::FILE_OFFER) => handle_received_offer(state, ctx_id, body).await,
         (ConnState::ReceivingFile, msg_type::FILE_CHUNK) => handle_received_chunk(state, ctx_id, body).await,
+        (_, msg_type::FILE_CANCEL) => handle_file_cancel(state, ctx_id).await,
         (_, msg_type::PING) => {
             if let Some(ctx) = state.contexts.get(&ctx_id) {
                 let _ = ctx.connection.send(msg_type::PONG, b"{}".to_vec());
@@ -776,6 +788,38 @@ async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) 
             close_ctx(state, ctx_id, None).await;
         }
     }
+}
+
+async fn handle_file_cancel(state: &mut State, ctx_id: Uuid) {
+    let (history_id, save_path, peer, expected_sha, is_receiving) = {
+        let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
+        let is_receiving = matches!(ctx.state, ConnState::ReceivingFile);
+        if is_receiving {
+            if let Some(mut out) = ctx.file_output.take() {
+                let _ = out.flush().await;
+            }
+        }
+        (
+            ctx.history_id,
+            ctx.save_path.clone(),
+            ctx.peer.clone(),
+            ctx.expected_sha256.clone(),
+            is_receiving,
+        )
+    };
+
+    if is_receiving {
+        if let (Some(peer), Some(sha)) = (&peer, &expected_sha) {
+            clear_resume_record(state, peer, sha);
+        }
+        if let Some(path) = &save_path {
+            let _ = tokio::fs::remove_file(path).await;
+        }
+    }
+    if let Some(h) = history_id {
+        update_status(state, h, TransferStatus::Canceled);
+    }
+    close_ctx(state, ctx_id, None).await;
 }
 
 async fn server_recv_hello(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
@@ -898,17 +942,51 @@ fn payload_summary(p: &ClientPayload) -> PayloadSummary {
     }
 }
 
-async fn client_start_send_file(state: &mut State, ctx_id: Uuid) {
-    let path = state.contexts.get(&ctx_id).and_then(|c| c.source_path.clone());
+async fn client_start_send_file(state: &mut State, ctx_id: Uuid, accept_body: Vec<u8>) {
+    let (path, file_size, transfer_id, history_id) = {
+        let Some(ctx) = state.contexts.get(&ctx_id) else { return };
+        (ctx.source_path.clone(), ctx.file_size, ctx.transfer_id, ctx.history_id)
+    };
     let Some(path) = path else { return };
+    let Some(transfer_id) = transfer_id else { return };
+    let accept: FileAcceptMessage = match serde_json::from_slice(&accept_body) {
+        Ok(a) => a,
+        Err(e) => {
+            if let Some(h) = history_id {
+                update_status(state, h, TransferStatus::Failed(format!("FILE_ACCEPT 解码失败: {}", e)));
+            }
+            close_ctx(state, ctx_id, None).await;
+            return;
+        }
+    };
+    let accept_transfer_id = Uuid::parse_str(&accept.transfer_id).ok();
+    if accept.index != 0 || accept_transfer_id != Some(transfer_id) {
+        if let Some(h) = history_id {
+            update_status(state, h, TransferStatus::Failed("FILE_ACCEPT transfer_id 不匹配".into()));
+        }
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
+    let resume_offset = accept.resume_offset.min(file_size);
     match File::open(&path).await {
-        Ok(f) => {
+        Ok(mut f) => {
+            if resume_offset > 0 {
+                if let Err(e) = f.seek(SeekFrom::Start(resume_offset)).await {
+                    if let Some(h) = history_id {
+                        update_status(state, h, TransferStatus::Failed(e.to_string()));
+                    }
+                    close_ctx(state, ctx_id, None).await;
+                    return;
+                }
+                info!("resume send from offset={}/{}", resume_offset, file_size);
+            }
             if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
                 ctx.file_input = Some(f);
+                ctx.sent_bytes = resume_offset;
                 ctx.state = ConnState::SendingFile;
                 if let Some(h) = ctx.history_id {
                     let size = ctx.file_size;
-                    update_status(state, h, TransferStatus::Transferring { done: 0, total: size });
+                    update_status(state, h, TransferStatus::Transferring { done: resume_offset, total: size });
                 }
             }
             stream_chunks(state, ctx_id).await;
@@ -924,14 +1002,13 @@ async fn client_start_send_file(state: &mut State, ctx_id: Uuid) {
 
 async fn stream_chunks(state: &mut State, ctx_id: Uuid) {
     // 从 ctx 拿出 file_input + transfer_id + file_size + connection 的 clone
-    let (mut input, transfer_id, file_size, conn_clone) = {
+    let (mut input, transfer_id, file_size, conn_clone, mut offset) = {
         let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
         let Some(f) = ctx.file_input.take() else { return };
         let Some(tid) = ctx.transfer_id else { return };
-        (f, tid, ctx.file_size, ctx.connection.clone())
+        (f, tid, ctx.file_size, ctx.connection.clone(), ctx.sent_bytes)
     };
 
-    let mut offset: u64 = 0;
     let mut buf = vec![0u8; CHUNK_SIZE];
 
     while offset < file_size {
@@ -1000,14 +1077,22 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         Ok(o) => o, Err(_) => return,
     };
     let Some(first) = offer.files.first() else { return };
+    let meta = first.clone();
     let Ok(tid) = Uuid::parse_str(&offer.transfer_id) else { return };
     let peer = state.contexts.get(&ctx_id).and_then(|c| c.peer.clone());
     let Some(peer) = peer else { return };
     let trusted = state.trust_store.is_trusted(&peer.fingerprint);
 
+    if let Some(record) = valid_resume_record(state, &peer, &meta).await {
+        if start_auto_resume_receive(state, ctx_id, &peer, tid, &meta, record).await {
+            return;
+        }
+        clear_resume_record(state, &peer, &meta.sha256);
+    }
+
     let pending = PendingFileOffer {
-        id: tid, peer, file_name: first.name.clone(),
-        file_size: first.size, sha256: first.sha256.clone(),
+        id: tid, peer, file_name: meta.name.clone(),
+        file_size: meta.size, sha256: meta.sha256.clone(),
     };
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
         ctx.pending_offer_id = Some(tid);
@@ -1020,14 +1105,103 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     }
 }
 
+async fn valid_resume_record(state: &mut State, peer: &Device, meta: &FileMeta) -> Option<ResumeRecord> {
+    let record = state.resume_store.find(&peer.fingerprint, &meta.sha256)?;
+    let invalid = record.file_size != meta.size
+        || record.sha256 != meta.sha256
+        || record.peer_fingerprint != peer.fingerprint
+        || record.bytes_done == 0
+        || record.bytes_done >= meta.size;
+    if invalid {
+        clear_resume_record(state, peer, &meta.sha256);
+        return None;
+    }
+    let valid_file = tokio::fs::metadata(&record.saved_path)
+        .await
+        .map(|m| m.is_file() && m.len() >= record.bytes_done)
+        .unwrap_or(false);
+    if !valid_file {
+        clear_resume_record(state, peer, &meta.sha256);
+        return None;
+    }
+    Some(record)
+}
+
+async fn start_auto_resume_receive(
+    state: &mut State,
+    ctx_id: Uuid,
+    peer: &Device,
+    transfer_id: Uuid,
+    meta: &FileMeta,
+    record: ResumeRecord,
+) -> bool {
+    let mut file_out = match OpenOptions::new().write(true).open(&record.saved_path).await {
+        Ok(f) => f,
+        Err(e) => {
+            warn!("auto-resume open failed: {}", e);
+            return false;
+        }
+    };
+    if let Err(e) = file_out.set_len(record.bytes_done).await {
+        warn!("auto-resume truncate failed: {}", e);
+        return false;
+    }
+    if let Err(e) = file_out.seek(SeekFrom::Start(record.bytes_done)).await {
+        warn!("auto-resume seek failed: {}", e);
+        return false;
+    }
+
+    let item = HistoryItem::new(peer.clone(), TransferDirection::Incoming,
+        HistoryKind::File { name: meta.name.clone(), size: meta.size, path: Some(record.saved_path.clone()) },
+        TransferStatus::Transferring { done: record.bytes_done, total: meta.size });
+    state.history.insert(0, item.clone());
+    let _ = state.history_tx.send(state.history.clone());
+
+    if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
+        ctx.file_output = Some(file_out);
+        ctx.save_path = Some(record.saved_path.clone());
+        ctx.file_size = meta.size;
+        ctx.expected_sha256 = Some(meta.sha256.clone());
+        ctx.transfer_id = Some(transfer_id);
+        ctx.pending_offer_id = None;
+        ctx.received_bytes = record.bytes_done;
+        ctx.last_persisted_bytes = record.bytes_done;
+        ctx.state = ConnState::ReceivingFile;
+        ctx.history_id = Some(item.id);
+
+        let body = serde_json::to_vec(&FileAcceptMessage {
+            transfer_id: transfer_id.to_string(), index: 0, resume_offset: record.bytes_done,
+        }).unwrap_or_default();
+        if ctx.connection.send(msg_type::FILE_ACCEPT, body).is_err() {
+            let hid = ctx.history_id;
+            if let Some(h) = hid {
+                update_status(state, h, TransferStatus::Failed("发送 FILE_ACCEPT 失败".into()));
+            }
+            close_ctx(state, ctx_id, None).await;
+        }
+        info!("auto-resume receive {} from {}/{}", meta.name, record.bytes_done, meta.size);
+    }
+    true
+}
+
 async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
-    let Some((_, data)) = decode_file_chunk(&body) else { return };
+    let Some((header, data)) = decode_file_chunk(&body) else { return };
     let mut completed = false;
     let mut h_for_update: Option<Uuid> = None;
     let mut total = 0u64;
     let mut received = 0u64;
+    let mut should_persist = false;
 
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
+        if ctx.transfer_id != Some(header.transfer_id)
+            || header.index != 0
+            || header.offset != ctx.received_bytes
+            || ctx.received_bytes.saturating_add(data.len() as u64) > ctx.file_size {
+            let hid = ctx.history_id;
+            if let Some(h) = hid { update_status(state, h, TransferStatus::Failed("FILE_CHUNK offset 不匹配".into())); }
+            close_ctx(state, ctx_id, None).await;
+            return;
+        }
         if let Some(out) = ctx.file_output.as_mut() {
             if let Err(e) = out.write_all(data).await {
                 let hid = ctx.history_id;
@@ -1041,11 +1215,16 @@ async fn handle_received_chunk(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         received = ctx.received_bytes;
         total = ctx.file_size;
         h_for_update = ctx.history_id;
+        should_persist = ctx.received_bytes < ctx.file_size
+            && ctx.received_bytes.saturating_sub(ctx.last_persisted_bytes) >= RESUME_PERSIST_INTERVAL;
         if ctx.received_bytes >= ctx.file_size { completed = true; }
     }
     if let Some(h) = h_for_update {
         record_progress(state, ctx_id, received, total);
         update_status(state, h, TransferStatus::Transferring { done: received, total });
+    }
+    if should_persist {
+        persist_resume_record(state, ctx_id);
     }
 
     if completed {
@@ -1077,14 +1256,17 @@ async fn finish_receive(state: &mut State, ctx_id: Uuid) {
 
 /// 收到 ReceiveHashVerified 后：发 FILE_COMPLETE / 标记历史 / 关 ctx。
 async fn on_receive_hash_verified(state: &mut State, ctx_id: Uuid, ok: bool) {
-    let (save_path, transfer_id, history_id) = {
+    let (save_path, transfer_id, history_id, peer, expected_sha) = {
         let Some(ctx) = state.contexts.get(&ctx_id) else { return };
-        (ctx.save_path.clone(), ctx.transfer_id, ctx.history_id)
+        (ctx.save_path.clone(), ctx.transfer_id, ctx.history_id, ctx.peer.clone(), ctx.expected_sha256.clone())
     };
 
     if !ok {
         if let Some(h) = history_id {
             update_status(state, h, TransferStatus::Failed("校验失败".into()));
+        }
+        if let (Some(peer), Some(sha)) = (&peer, &expected_sha) {
+            clear_resume_record(state, peer, sha);
         }
         if let Some(path) = save_path {
             let _ = tokio::fs::remove_file(&path).await;
@@ -1101,22 +1283,107 @@ async fn on_receive_hash_verified(state: &mut State, ctx_id: Uuid, ok: bool) {
         }
     }
     if let Some(h) = history_id { update_status(state, h, TransferStatus::Completed); }
+    if let (Some(peer), Some(sha)) = (&peer, &expected_sha) {
+        clear_resume_record(state, peer, sha);
+    }
     tokio::time::sleep(Duration::from_millis(150)).await;
     close_ctx(state, ctx_id, None).await;
 }
 
 async fn close_ctx(state: &mut State, ctx_id: Uuid, reason: Option<String>) {
-    let Some(ctx) = state.contexts.remove(&ctx_id) else { return };
-    if let ConnState::AwaitingPairApproval(pid) = ctx.state {
-        state.pending_pairings.retain(|p| p.id != pid);
+    let Some(mut ctx) = state.contexts.remove(&ctx_id) else { return };
+    let ctx_state = ctx.state.clone();
+    if let ConnState::AwaitingPairApproval(pid) = &ctx_state {
+        state.pending_pairings.retain(|p| p.id != *pid);
         let _ = state.pp_tx.send(state.pending_pairings.clone());
     }
     if let Some(oid) = ctx.pending_offer_id {
         state.pending_offers.retain(|o| o.id != oid);
         let _ = state.po_tx.send(state.pending_offers.clone());
     }
+    if matches!(ctx_state, ConnState::ReceivingFile)
+        && ctx.file_output.is_some()
+        && ctx.received_bytes < ctx.file_size {
+        if let Some(out) = ctx.file_output.as_mut() {
+            let _ = out.flush().await;
+        }
+        if ctx.received_bytes > ctx.last_persisted_bytes {
+            persist_resume_record_from_ctx(state, &ctx);
+        }
+        if let Some(h) = ctx.history_id {
+            if !history_is_terminal(state, h) {
+                update_status(state, h, TransferStatus::Failed("连接中断 · 等待续传".into()));
+            }
+        }
+    } else if matches!(ctx_state, ConnState::SendingFile) && ctx.sent_bytes < ctx.file_size {
+        if let Some(h) = ctx.history_id {
+            if !history_is_terminal(state, h) {
+                update_status(state, h, TransferStatus::Failed("连接中断".into()));
+            }
+        }
+    }
     ctx.connection.close();
     if let Some(r) = reason { debug!("ctx {} closed: {}", ctx_id, r); }
+}
+
+fn persist_resume_record(state: &mut State, ctx_id: Uuid) {
+    let Some(record) = state.contexts.get(&ctx_id).and_then(resume_record_from_ctx) else { return };
+    let bytes_done = record.bytes_done;
+    match state.resume_store.upsert(record) {
+        Ok(()) => {
+            if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
+                ctx.last_persisted_bytes = bytes_done;
+            }
+        }
+        Err(e) => warn!("resume persist failed: {}", e),
+    }
+}
+
+fn persist_resume_record_from_ctx(state: &mut State, ctx: &ConnCtx) {
+    let Some(record) = resume_record_from_ctx(ctx) else { return };
+    if let Err(e) = state.resume_store.upsert(record) {
+        warn!("resume persist failed: {}", e);
+    }
+}
+
+fn resume_record_from_ctx(ctx: &ConnCtx) -> Option<ResumeRecord> {
+    if ctx.received_bytes == 0 || ctx.received_bytes >= ctx.file_size {
+        return None;
+    }
+    let peer = ctx.peer.as_ref()?;
+    let transfer_id = ctx.transfer_id?;
+    let expected = ctx.expected_sha256.as_ref()?;
+    let saved_path = ctx.save_path.as_ref()?;
+    let file_name = saved_path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("file")
+        .to_string();
+    Some(ResumeRecord {
+        peer_fingerprint: peer.fingerprint.clone(),
+        transfer_id: transfer_id.to_string(),
+        file_name,
+        file_size: ctx.file_size,
+        sha256: expected.clone(),
+        saved_path: saved_path.clone(),
+        bytes_done: ctx.received_bytes,
+        updated_at_ms: now_ms(),
+    })
+}
+
+fn clear_resume_record(state: &mut State, peer: &Device, sha256: &str) {
+    if let Err(e) = state.resume_store.clear(&peer.fingerprint, sha256) {
+        warn!("resume clear failed: {}", e);
+    }
+}
+
+fn history_is_terminal(state: &State, history_id: Uuid) -> bool {
+    state.history.iter().any(|h| {
+        h.id == history_id && matches!(
+            h.status,
+            TransferStatus::Completed | TransferStatus::Failed(_) | TransferStatus::Canceled
+        )
+    })
 }
 
 fn update_status(state: &mut State, history_id: Uuid, status: TransferStatus) {
@@ -1262,7 +1529,7 @@ impl ConnCtx {
             state: ConnState::AwaitingHello,
             peer: None, history_id: None, transfer_id: None, pending_offer_id: None,
             source_path: None, save_path: None, expected_sha256: None,
-            file_size: 0, sent_bytes: 0, received_bytes: 0,
+            file_size: 0, sent_bytes: 0, received_bytes: 0, last_persisted_bytes: 0,
             file_input: None, file_output: None,
             last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
         }
@@ -1272,7 +1539,7 @@ impl ConnCtx {
             id, connection, role, state,
             peer: None, history_id: None, transfer_id: None, pending_offer_id: None,
             source_path: None, save_path: None, expected_sha256: None,
-            file_size: 0, sent_bytes: 0, received_bytes: 0,
+            file_size: 0, sent_bytes: 0, received_bytes: 0, last_persisted_bytes: 0,
             file_input: None, file_output: None,
             last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
         }

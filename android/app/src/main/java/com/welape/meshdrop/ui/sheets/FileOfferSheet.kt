@@ -28,6 +28,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.data.PendingFileOffer
 import com.welape.meshdrop.mock.MockPendingOfferItem
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.ChipTone
@@ -42,10 +43,16 @@ import com.welape.meshdrop.ui.theme.Ink
 import com.welape.meshdrop.ui.theme.Lime
 import com.welape.meshdrop.ui.theme.MeshTheme
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FileOfferSheet(onClose: () -> Unit) {
+fun FileOfferSheet(
+    offer: PendingFileOffer? = null,
+    useMockFallback: Boolean = true,
+    onRespond: (Boolean) -> Unit = {},
+    onClose: () -> Unit,
+) {
     val mesh = MeshTheme.colors
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -54,19 +61,35 @@ fun FileOfferSheet(onClose: () -> Unit) {
         containerColor = mesh.card,
         contentColor = mesh.textPrimary,
     ) {
-        FileOfferSheetContent(onClose = onClose)
+        FileOfferSheetContent(
+            offer = offer,
+            useMockFallback = useMockFallback,
+            onRespond = onRespond,
+            onClose = onClose,
+        )
     }
 }
 
 @Composable
-fun FileOfferSheetContent(onClose: () -> Unit = {}) {
+fun FileOfferSheetContent(
+    offer: PendingFileOffer? = null,
+    useMockFallback: Boolean = true,
+    onRespond: (Boolean) -> Unit = {},
+    onClose: () -> Unit = {},
+) {
     val mesh = MeshTheme.colors
+    val model = offer?.toFileOfferSheetModel()
+        ?: if (useMockFallback) MockPendingOfferItem.toFileOfferSheetModel() else null
     Column(
         modifier = Modifier
             .background(mesh.card)
             .fillMaxWidth()
             .padding(PaddingValues(horizontal = 22.dp, vertical = 24.dp)),
     ) {
+        if (model == null) {
+            EmptyOffer("暂无待接收文件", onClose)
+            return@Column
+        }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "收到文件 · Incoming",
@@ -76,10 +99,10 @@ fun FileOfferSheetContent(onClose: () -> Unit = {}) {
                     ),
                 )
                 Spacer(Modifier.weight(1f))
-                MeshChip(text = MockPendingOfferItem.receivedAt.uppercase(), tone = ChipTone.LIME, mono = true)
+                MeshChip(text = model.receivedAt.uppercase(), tone = ChipTone.LIME, mono = true)
             }
             Text(
-                "${MockPendingOfferItem.peer} · ${MockPendingOfferItem.deviceName} 发送了一个文件",
+                "${model.peer} · ${model.deviceName} 发送了一个文件",
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 13.sp, color = mesh.textSecondary,
@@ -98,18 +121,18 @@ fun FileOfferSheetContent(onClose: () -> Unit = {}) {
                     .padding(PaddingValues(horizontal = 14.dp, vertical = 14.dp)),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    MeshAvatar(initials = "JW", color = AvatarLilac, sizeDp = 36)
+                    MeshAvatar(initials = model.initials, color = AvatarLilac, sizeDp = 36)
                     Spacer(Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            MockPendingOfferItem.peer,
+                            model.peer,
                             style = TextStyle(
                                 fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                                 fontSize = 14.sp, color = mesh.textPrimary,
                             ),
                         )
                         Text(
-                            MockPendingOfferItem.deviceName,
+                            model.deviceName,
                             style = TextStyle(
                                 fontFamily = GeistMono, fontWeight = FontWeight.W500,
                                 fontSize = 10.sp, color = mesh.textTertiary,
@@ -120,18 +143,18 @@ fun FileOfferSheetContent(onClose: () -> Unit = {}) {
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    FileGlyph(ext = "pages", sizeDp = 44.dp)
+                    FileGlyph(ext = model.fileExt, sizeDp = 44.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            MockPendingOfferItem.fileName,
+                            model.fileName,
                             style = TextStyle(
                                 fontFamily = Geist, fontWeight = FontWeight.W700,
                                 fontSize = 14.sp, color = mesh.textPrimary,
                             ),
                         )
                         Text(
-                            MockPendingOfferItem.fileSize,
+                            model.fileSize,
                             style = TextStyle(
                                 fontFamily = GeistMono, fontWeight = FontWeight.W600,
                                 fontSize = 12.sp, color = mesh.textSecondary,
@@ -144,7 +167,7 @@ fun FileOfferSheetContent(onClose: () -> Unit = {}) {
                 MonoLabel("文字便签 · NOTE")
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "“${MockPendingOfferItem.note}”",
+                    "“${model.note}”",
                     style = TextStyle(
                         fontFamily = Geist, fontWeight = FontWeight.W400,
                         fontSize = 13.sp, color = mesh.textPrimary, lineHeight = 18.sp,
@@ -159,20 +182,94 @@ fun FileOfferSheetContent(onClose: () -> Unit = {}) {
                 ActionBtn(
                     label = "拒绝", subtitle = "DENY",
                     bg = mesh.surface, fg = mesh.danger, border = mesh.outline,
-                    modifier = Modifier.weight(1f), onClick = onClose,
+                    modifier = Modifier.weight(1f), onClick = {
+                        onRespond(false)
+                        onClose()
+                    },
                 )
                 ActionBtn(
                     label = "接收", subtitle = "ACCEPT",
                     bg = mesh.card, fg = mesh.textPrimary, border = mesh.textPrimary,
-                    modifier = Modifier.weight(1f), onClick = onClose,
+                    modifier = Modifier.weight(1f), onClick = {
+                        onRespond(true)
+                        onClose()
+                    },
                 )
                 ActionBtn(
                     label = "保存到相册", subtitle = "TO PHOTOS",
                     bg = Lime, fg = Ink, border = Color.Transparent,
-                    modifier = Modifier.weight(1f), onClick = onClose,
+                    modifier = Modifier.weight(1f), onClick = {
+                        onRespond(true)
+                        onClose()
+                    },
                 )
             }
             Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun EmptyOffer(message: String, onClose: () -> Unit) {
+    val mesh = MeshTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(
+            message,
+            style = TextStyle(
+                fontFamily = Geist, fontWeight = FontWeight.W600,
+                fontSize = 14.sp, color = mesh.textPrimary,
+            ),
+        )
+        ActionBtn(
+            label = "关闭", subtitle = "CLOSE",
+            bg = mesh.surface, fg = mesh.textPrimary, border = mesh.outline,
+            onClick = onClose,
+        )
+    }
+}
+
+private data class FileOfferSheetModel(
+    val peer: String,
+    val deviceName: String,
+    val fileName: String,
+    val fileSize: String,
+    val fileExt: String,
+    val note: String,
+    val initials: String,
+    val receivedAt: String,
+)
+
+private fun PendingFileOffer.toFileOfferSheetModel(): FileOfferSheetModel {
+    val peerName = peer.name.ifBlank { peer.id.take(8) }
+    return FileOfferSheetModel(
+        peer = peerName,
+        deviceName = peer.model ?: peer.os.raw,
+        fileName = fileName,
+        fileSize = formattedSize,
+        fileExt = fileName.substringAfterLast('.', "bin").lowercase(),
+        note = "SHA-256 ${sha256.take(16).uppercase()}",
+        initials = peerName.take(2).uppercase(),
+        receivedAt = relativeAge(receivedAt),
+    )
+}
+
+private fun com.welape.meshdrop.mock.MockPendingOffer.toFileOfferSheetModel(): FileOfferSheetModel =
+    FileOfferSheetModel(
+        peer = peer,
+        deviceName = deviceName,
+        fileName = fileName,
+        fileSize = fileSize,
+        fileExt = fileName.substringAfterLast('.', "bin").lowercase(),
+        note = note,
+        initials = peer.take(2).uppercase(),
+        receivedAt = receivedAt,
+    )
+
+private fun relativeAge(ts: Long): String {
+    val seconds = max(0L, (System.currentTimeMillis() - ts) / 1000)
+    return when {
+        seconds < 60 -> "${seconds}s ago"
+        seconds < 3600 -> "${seconds / 60}m ago"
+        else -> "${seconds / 3600}h ago"
     }
 }
 

@@ -5,7 +5,14 @@ interface Props {
 }
 
 export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
-  const max = Math.max(...upBars, ...downBars, 14)
+  const count = Math.max(upBars.length, downBars.length, 1)
+  const bars = Array.from({ length: count }, (_, i) => ({
+    up: upBars[i] ?? 0,
+    down: downBars[i] ?? 0,
+  }))
+  const peakUp = Math.max(...bars.map((b) => b.up), 0)
+  const peakDown = Math.max(...bars.map((b) => b.down), 0)
+  const max = Math.max(peakUp, peakDown, 1)
 
   return (
     <div
@@ -46,31 +53,31 @@ export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height }}>
-        {upBars.map((u, i) => {
-          const d = downBars[i] ?? 0
+        {bars.map(({ up, down }, i) => {
           return (
             <div
               key={i}
               style={{
-                flex: 1,
+                  flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
-                height: '100%',
-                gap: 2,
-              }}
-            >
-              <div
-                style={{
-                  height: `${(u / max) * 60}%`,
+                  height: '100%',
+                  gap: 2,
+                  minWidth: 0,
+                }}
+              >
+                <div
+                  style={{
+                  height: `${(up / max) * 60}%`,
                   background: 'var(--flame)',
                   borderRadius: '3px 3px 0 0',
                   opacity: 0.92,
                 }}
               />
-              <div
-                style={{
-                  height: `${(d / max) * 60}%`,
+                <div
+                  style={{
+                  height: `${(down / max) * 60}%`,
                   background: 'var(--sky)',
                   borderRadius: '0 0 3px 3px',
                   opacity: 0.92,
@@ -91,10 +98,17 @@ export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
           textTransform: 'uppercase',
         }}
       >
-        <span>peak ↑ 12.6 MB/s</span>
-        <span>peak ↓ 11.7 MB/s</span>
-        <span>session 6m 12s</span>
+        <span>peak ↑ {formatBps(peakUp)}</span>
+        <span>peak ↓ {formatBps(peakDown)}</span>
+        <span>{bars.some((b) => b.up > 0 || b.down > 0) ? 'live samples' : 'waiting for samples'}</span>
       </div>
     </div>
   )
+}
+
+function formatBps(bps: number): string {
+  if (!bps || bps <= 1) return '—'
+  if (bps < 1024) return `${Math.round(bps)} B/s`
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(1)} KB/s`
+  return `${(bps / 1024 / 1024).toFixed(1)} MB/s`
 }

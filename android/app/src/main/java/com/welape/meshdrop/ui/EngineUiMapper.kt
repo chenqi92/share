@@ -13,6 +13,10 @@ import com.welape.meshdrop.mock.HistoryStatus
 import com.welape.meshdrop.mock.MockChatPreview
 import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockHistoryItem
+import com.welape.meshdrop.mock.MockMessage
+import com.welape.meshdrop.mock.MsgKind
+import com.welape.meshdrop.mock.MsgSide
+import com.welape.meshdrop.mock.MsgState
 import com.welape.meshdrop.ui.theme.AvatarLilac
 import com.welape.meshdrop.ui.theme.AvatarMint
 import com.welape.meshdrop.ui.theme.AvatarPeach
@@ -132,3 +136,47 @@ fun List<HistoryItem>.toChatPreviews(): List<MockChatPreview> {
         )
     }.sortedByDescending { it.lastTime }
 }
+
+/** 历史按 peerId 投影成 ChatDetail 的消息流。 */
+fun List<HistoryItem>.toChatMessages(peerId: String): List<MockMessage> =
+    filter { it.peer.id == peerId }
+        .sortedBy { it.createdAt }
+        .map { item ->
+            val side = when (item.direction) {
+                TransferDirection.OUTGOING -> MsgSide.OUT
+                TransferDirection.INCOMING -> MsgSide.IN
+            }
+            val state = when (item.status) {
+                TransferStatus.Completed -> MsgState.DELIVERED
+                is TransferStatus.Failed, TransferStatus.Canceled -> MsgState.FAILED
+                TransferStatus.Pending, TransferStatus.WaitingApproval, is TransferStatus.Transferring -> MsgState.SENT
+            }
+            when (val kind = item.kind) {
+                is HistoryKind.Text -> MockMessage(
+                    id = item.id.toString(),
+                    side = side,
+                    kind = MsgKind.TEXT,
+                    time = timeFmt.format(Date(item.createdAt)),
+                    text = kind.content,
+                    state = state,
+                )
+                is HistoryKind.File -> {
+                    val progress = when (val status = item.status) {
+                        is TransferStatus.Transferring ->
+                            if (status.bytesTotal > 0) ((status.bytesDone * 100) / status.bytesTotal).toInt() else null
+                        else -> null
+                    }
+                    MockMessage(
+                        id = item.id.toString(),
+                        side = side,
+                        kind = MsgKind.FILE,
+                        time = timeFmt.format(Date(item.createdAt)),
+                        fileName = kind.name,
+                        fileSize = humanSize(kind.size),
+                        fileExt = kind.name.substringAfterLast('.', "bin").lowercase(),
+                        state = state,
+                        progress = progress,
+                    )
+                }
+            }
+        }

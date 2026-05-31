@@ -31,6 +31,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.data.PairingDecision
+import com.welape.meshdrop.data.PendingPairing
 import com.welape.meshdrop.mock.MockPendingPairingItem
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.ChipTone
@@ -44,10 +46,16 @@ import com.welape.meshdrop.ui.theme.LimeDeep
 import com.welape.meshdrop.ui.theme.MeshTheme
 import com.welape.meshdrop.ui.theme.Paper
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PairingSheet(onClose: () -> Unit) {
+fun PairingSheet(
+    pairing: PendingPairing? = null,
+    useMockFallback: Boolean = true,
+    onDecision: (PairingDecision) -> Unit = {},
+    onClose: () -> Unit,
+) {
     val mesh = MeshTheme.colors
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -56,19 +64,35 @@ fun PairingSheet(onClose: () -> Unit) {
         containerColor = mesh.card,
         contentColor = mesh.textPrimary,
     ) {
-        PairingSheetContent(onClose = onClose)
+        PairingSheetContent(
+            pairing = pairing,
+            useMockFallback = useMockFallback,
+            onDecision = onDecision,
+            onClose = onClose,
+        )
     }
 }
 
 @Composable
-fun PairingSheetContent(onClose: () -> Unit = {}) {
+fun PairingSheetContent(
+    pairing: PendingPairing? = null,
+    useMockFallback: Boolean = true,
+    onDecision: (PairingDecision) -> Unit = {},
+    onClose: () -> Unit = {},
+) {
     val mesh = MeshTheme.colors
+    val model = pairing?.toPairingSheetModel()
+        ?: if (useMockFallback) MockPendingPairingItem.toPairingSheetModel() else null
     androidx.compose.foundation.layout.Column(
         modifier = Modifier
             .background(mesh.card)
             .fillMaxWidth()
             .padding(PaddingValues(horizontal = 22.dp, vertical = 24.dp)),
     ) {
+        if (model == null) {
+            EmptyPending("暂无配对请求", onClose)
+            return@Column
+        }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "配对 · Pairing",
@@ -81,7 +105,7 @@ fun PairingSheetContent(onClose: () -> Unit = {}) {
                 MeshChip(text = "E2E", tone = ChipTone.LIME, mono = true)
             }
             Text(
-                "对方在 ${MockPendingPairingItem.receivedAt} 请求与你配对",
+                "对方在 ${model.receivedAt} 请求与你配对",
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 13.sp, color = mesh.textSecondary,
@@ -98,7 +122,7 @@ fun PairingSheetContent(onClose: () -> Unit = {}) {
                     MonoLabel("6 字符代码 · PIN")
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = MockPendingPairingItem.pinCode,
+                        text = model.pinCode,
                         style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 36.sp, color = LimeDeep, letterSpacing = 4.sp,
@@ -107,7 +131,7 @@ fun PairingSheetContent(onClose: () -> Unit = {}) {
                     Spacer(Modifier.height(8.dp))
                     MonoLabel("REQUESTED BY")
                     Text(
-                        text = "${MockPendingPairingItem.peer} · ${MockPendingPairingItem.deviceName}",
+                        text = "${model.peer} · ${model.deviceName}",
                         style = TextStyle(
                             fontFamily = Geist, fontWeight = FontWeight.W600,
                             fontSize = 13.sp, color = mesh.textPrimary,
@@ -120,7 +144,7 @@ fun PairingSheetContent(onClose: () -> Unit = {}) {
 
             // 指纹分组（4-4 8 组，两行）
             Column {
-                val groups = MockPendingPairingItem.fingerprintGroups
+                val groups = model.fingerprintGroups
                 groups.chunked(4).forEach { row ->
                     Text(
                         text = row.joinToString("  ·  "),
@@ -141,22 +165,94 @@ fun PairingSheetContent(onClose: () -> Unit = {}) {
                     label = "拒绝", subtitle = "DENY",
                     bg = mesh.surface, fg = mesh.textPrimary,
                     border = mesh.outline, modifier = Modifier.weight(1f),
-                    onClick = onClose,
+                    onClick = {
+                        onDecision(PairingDecision.REJECT)
+                        onClose()
+                    },
                 )
                 BigActionButton(
                     label = "允许一次", subtitle = "ALLOW ONCE",
                     bg = mesh.card, fg = mesh.textPrimary,
                     border = mesh.textPrimary, modifier = Modifier.weight(1f),
-                    onClick = onClose,
+                    onClick = {
+                        onDecision(PairingDecision.ALLOW_ONCE)
+                        onClose()
+                    },
                 )
                 BigActionButton(
                     label = "信任", subtitle = "TRUST FOREVER",
                     bg = Lime, fg = Ink, border = Color.Transparent,
                     modifier = Modifier.weight(1f),
-                    onClick = onClose,
+                    onClick = {
+                        onDecision(PairingDecision.TRUST)
+                        onClose()
+                    },
                 )
             }
             Spacer(Modifier.height(24.dp))
+    }
+}
+
+@Composable
+private fun EmptyPending(message: String, onClose: () -> Unit) {
+    val mesh = MeshTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(
+            message,
+            style = TextStyle(
+                fontFamily = Geist, fontWeight = FontWeight.W600,
+                fontSize = 14.sp, color = mesh.textPrimary,
+            ),
+        )
+        BigActionButton(
+            label = "关闭", subtitle = "CLOSE",
+            bg = mesh.surface, fg = mesh.textPrimary, border = mesh.outline,
+            onClick = onClose,
+        )
+    }
+}
+
+private data class PairingSheetModel(
+    val peer: String,
+    val deviceName: String,
+    val fingerprintGroups: List<String>,
+    val pinCode: String,
+    val receivedAt: String,
+)
+
+private fun PendingPairing.toPairingSheetModel(): PairingSheetModel {
+    val groups = peer.humanFingerprint.split(" ").filter { it.isNotBlank() }
+    val shortCode = peer.fingerprint
+        .filter { it.isLetterOrDigit() }
+        .take(6)
+        .uppercase()
+        .ifBlank { "------" }
+        .chunked(1)
+        .joinToString("-")
+    return PairingSheetModel(
+        peer = peer.name.ifBlank { peer.id.take(8) },
+        deviceName = peer.model ?: peer.os.raw,
+        fingerprintGroups = groups,
+        pinCode = shortCode,
+        receivedAt = relativeAge(receivedAt),
+    )
+}
+
+private fun com.welape.meshdrop.mock.MockPendingPairing.toPairingSheetModel(): PairingSheetModel =
+    PairingSheetModel(
+        peer = peer,
+        deviceName = deviceName,
+        fingerprintGroups = fingerprintGroups,
+        pinCode = pinCode,
+        receivedAt = receivedAt,
+    )
+
+private fun relativeAge(ts: Long): String {
+    val seconds = max(0L, (System.currentTimeMillis() - ts) / 1000)
+    return when {
+        seconds < 60 -> "${seconds}s ago"
+        seconds < 3600 -> "${seconds / 60}m ago"
+        else -> "${seconds / 3600}h ago"
     }
 }
 

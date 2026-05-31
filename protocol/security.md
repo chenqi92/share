@@ -9,12 +9,12 @@
 - 设备指纹 `fp`：`SHA-256(public_key)` 取前 16 字节，32 位小写 hex。`fp` 在
   mDNS TXT 与 HELLO 中都会出现，必须一致；否则握手失败。
 
-| 平台    | 私钥存储                                       |
-| ------- | ---------------------------------------------- |
-| iOS / macOS | Keychain（accessible: `afterFirstUnlock`）    |
-| Android | EncryptedSharedPreferences（AndroidKeyStore 派生密钥）|
-| Windows | DPAPI (`ProtectedData.Protect`)，文件落 LocalAppData |
-| Linux   | libsecret（`org.freedesktop.secrets`）+ 文件回退 |
+| 平台    | 当前实现 | 目标实现 |
+| ------- | -------- | -------- |
+| iOS / macOS | Keychain（accessible: `afterFirstUnlock`） | 同当前 |
+| Android | SharedPreferences | EncryptedSharedPreferences（AndroidKeyStore 派生密钥） |
+| Windows | DPAPI (`ProtectedData.Protect`)，文件落 LocalAppData | 同当前 |
+| Linux   | 文件存储 | libsecret（`org.freedesktop.secrets`）+ 文件回退 |
 
 设备 `id`（UUID）和 Ed25519 密钥一起生成，跨重启稳定；用户在设置中可以"重置
 身份"重新生成（会导致所有对端把本机视为新设备需重新配对）。

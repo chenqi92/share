@@ -86,13 +86,14 @@ sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
 - ✅ 协议层完整（Frame / 11 个消息 / FileChunkHeader）
 - ✅ mDNS 发现 + 信任库 (TOFU)
 - ✅ HELLO 握手 + 配对 + 文本 / 文件双向传输（SHA-256 校验）
-- ✅ GUI：libadwaita 设备列表 + 历史 + SendDialog / PairingDialog / FileOfferDialog（已接 backend，旧 UI）
+- ✅ GUI：libadwaita shell 已接 ShareEngine + Web Gateway；`--screenshots` 模式才跳过 engine 使用 mock
 - ✅ TUI：ratatui 全键盘 + 自动弹窗，零系统依赖
-- ✅ GUI v2：按 MeshDrop 设计语言（paper + lime + 报纸感）重做，11 张页面 mock 驱动，等待与 backend 重新对接
+- ✅ Web Gateway：TLS 自签证书 + `/api/v1/pair` + WebSocket control + upload/download
 
 ## TODO
 
 - [ ] 私钥落 libsecret
 - [ ] TLS 1.3 双向证书校验（rustls）
-- [ ] 多文件批量 + 断点续传
+- [x] `FILE_ACCEPT.resume_offset` 断点续传
+- [ ] GUI 顶部全局 Send 流程继续打磨（逐设备发送已接）
 - [ ] Flatpak 打包

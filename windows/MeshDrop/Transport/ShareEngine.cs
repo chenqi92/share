@@ -34,11 +34,13 @@ public static class MeshDropEngine
 public sealed partial class ShareEngine : ObservableObject
 {
     private const int ChunkSize = 256 * 1024;
+    private const long ResumePersistInterval = 4L * 1024L * 1024L;
     private static readonly Lazy<ShareEngine> s_lazy = new(() => new ShareEngine());
     public static ShareEngine Shared => s_lazy.Value;
 
     private readonly DispatcherQueue _ui;
     private readonly TrustStore _trustStore = new();
+    private readonly ResumeStore _resumeStore = new();
     private readonly MdnsDiscovery _discovery;
     private readonly ConcurrentDictionary<Guid, ConnectionContext> _contexts = new();
 
@@ -411,6 +413,8 @@ public sealed partial class ShareEngine : ObservableObject
             ctx.OutputStream = stream;
             ctx.SavedPath = path;
             ctx.FileSize = offer.FileSize;
+            ctx.ReceivedBytes = 0;
+            ctx.LastPersistedBytes = 0;
             ctx.ExpectedSha256 = offer.Sha256;
             ctx.TransferId = offer.Id;
             ctx.PendingOfferId = null;
@@ -452,6 +456,7 @@ public sealed partial class ShareEngine : ObservableObject
             {
                 try { ctx.OutputStream?.Dispose(); } catch { }
                 ctx.OutputStream = null;
+                ClearResumeRecord(ctx);
                 if (ctx.SavedPath is { } path)
                 {
                     try { if (File.Exists(path)) File.Delete(path); } catch { }
@@ -538,7 +543,7 @@ public sealed partial class ShareEngine : ObservableObject
         { await ClientReceivedAckAsync(ctx, body); return; }
 
         if (state == ConnectionContext.StateAwaitingFileAccept && type == MessageType.FILE_ACCEPT)
-        { await ClientStartSendingAsync(ctx); return; }
+        { await ClientStartSendingAsync(ctx, body); return; }
 
         if (state == ConnectionContext.StateAwaitingFileAccept && type == MessageType.FILE_REJECT)
         {
@@ -580,6 +585,7 @@ public sealed partial class ShareEngine : ObservableObject
             {
                 try { ctx.OutputStream?.Dispose(); } catch { }
                 ctx.OutputStream = null;
+                ClearResumeRecord(ctx);
                 if (ctx.SavedPath is { } path)
                 {
                     try { if (File.Exists(path)) File.Delete(path); } catch { }
@@ -714,15 +720,36 @@ public sealed partial class ShareEngine : ObservableObject
 
     // ─── 文件发送 ────────────────────────────────────────────────────────
 
-    private async Task ClientStartSendingAsync(ConnectionContext ctx)
+    private async Task ClientStartSendingAsync(ConnectionContext ctx, byte[] acceptBody)
     {
         if (ctx.Role is not ConnectionContext.RoleClient role) return;
         if (role.Payload is not ConnectionContext.PayloadFile f) return;
+        FileAcceptMessage accept;
+        try { accept = MessageCodec.Decode<FileAcceptMessage>(acceptBody); }
+        catch (Exception ex)
+        {
+            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed($"FILE_ACCEPT 解码失败: {ex.Message}")); });
+            await CloseContextAsync(ctx.Id, ex);
+            return;
+        }
+        if (accept.Index != 0
+            || ctx.TransferId is not { } transferId
+            || !Guid.TryParse(accept.TransferId, out var acceptTransferId)
+            || acceptTransferId != transferId)
+        {
+            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed("FILE_ACCEPT transfer_id 不匹配")); });
+            await CloseContextAsync(ctx.Id, null);
+            return;
+        }
+        var resumeOffset = Math.Clamp(accept.ResumeOffset, 0, f.FileSize);
         try
         {
             ctx.InputStream = new FileStream(f.SourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (resumeOffset > 0)
+                ctx.InputStream.Seek(resumeOffset, SeekOrigin.Begin);
+            ctx.SentBytes = resumeOffset;
             ctx.State = ConnectionContext.StateSendingFile;
-            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(0, f.FileSize)); });
+            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(resumeOffset, f.FileSize)); });
             _ = StreamChunksAsync(ctx);
         }
         catch (Exception ex)
@@ -737,7 +764,7 @@ public sealed partial class ShareEngine : ObservableObject
         if (ctx.InputStream is not { } input || ctx.TransferId is not { } tid) return;
         var fileSize = ctx.FileSize;
         var buf = new byte[ChunkSize];
-        long offset = 0;
+        var offset = ctx.SentBytes;
 
         while (offset < fileSize && !ctx.Connection.IsClosed)
         {
@@ -780,7 +807,7 @@ public sealed partial class ShareEngine : ObservableObject
         TextMessage? text = null;
         try { text = MessageCodec.Decode<TextMessage>(body); } catch { }
         if (text is null) return;
-        var peer = ctx.Peer;
+        var peer = ctx.Peer!;
         var content = text.Content;
         _ui.TryEnqueue(() =>
         {
@@ -818,11 +845,16 @@ public sealed partial class ShareEngine : ObservableObject
         if (!Guid.TryParse(offer.TransferId, out var tid)) return;
 
         var first = offer.Files[0];
-        var pending = new PendingFileOffer(tid, ctx.Peer, first.Name, first.Size, first.Sha256, DateTime.Now);
-        ctx.PendingOfferId = pending.Id;
+        var peer = ctx.Peer!;
         var trusted = _trustStore.IsTrusted(ctx.Peer.Fingerprint);
         _ui.TryEnqueue(() =>
         {
+            var resume = FindValidResumeRecord(peer, first);
+            if (resume is not null && StartAutoResumeReceive(ctx, peer, tid, first, resume))
+                return;
+
+            var pending = new PendingFileOffer(tid, peer, first.Name, first.Size, first.Sha256, DateTime.Now);
+            ctx.PendingOfferId = pending.Id;
             PendingFileOffers.Add(pending);
             RaiseEvent(new EngineEvent.OfferPending(pending));
             // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
@@ -830,11 +862,88 @@ public sealed partial class ShareEngine : ObservableObject
         });
     }
 
+    private ResumeRecord? FindValidResumeRecord(Device peer, FileMeta meta)
+    {
+        var record = _resumeStore.Find(peer.Fingerprint, meta.Sha256);
+        if (record is null) return null;
+        var invalid = record.FileSize != meta.Size
+            || record.Sha256 != meta.Sha256
+            || record.PeerFingerprint != peer.Fingerprint
+            || record.BytesDone <= 0
+            || record.BytesDone >= meta.Size
+            || !File.Exists(record.SavedPath);
+        if (!invalid)
+        {
+            try { invalid = new FileInfo(record.SavedPath).Length < record.BytesDone; }
+            catch { invalid = true; }
+        }
+        if (!invalid) return record;
+        _resumeStore.Clear(peer.Fingerprint, meta.Sha256);
+        return null;
+    }
+
+    private bool StartAutoResumeReceive(
+        ConnectionContext ctx,
+        Device peer,
+        Guid transferId,
+        FileMeta meta,
+        ResumeRecord record)
+    {
+        FileStream stream;
+        try
+        {
+            stream = new FileStream(record.SavedPath, FileMode.Open, FileAccess.Write, FileShare.None);
+            stream.SetLength(record.BytesDone);
+            stream.Seek(record.BytesDone, SeekOrigin.Begin);
+        }
+        catch
+        {
+            _resumeStore.Clear(peer.Fingerprint, meta.Sha256);
+            return false;
+        }
+
+        ctx.OutputStream = stream;
+        ctx.SavedPath = record.SavedPath;
+        ctx.FileSize = meta.Size;
+        ctx.ExpectedSha256 = meta.Sha256;
+        ctx.TransferId = transferId;
+        ctx.PendingOfferId = null;
+        ctx.ReceivedBytes = record.BytesDone;
+        ctx.LastPersistedBytes = record.BytesDone;
+        ctx.State = ConnectionContext.StateReceivingFile;
+
+        var item = HistoryItem.Create(peer, TransferDirection.Incoming,
+            new HistoryKind.File(meta.Name, meta.Size, record.SavedPath),
+            new TransferStatus.Transferring(record.BytesDone, meta.Size));
+        History.Insert(0, item);
+        RaiseEvent(new EngineEvent.HistoryAdded(item));
+        ctx.HistoryId = item.Id;
+
+        _ = Task.Run(async () =>
+        {
+            var body = MessageCodec.Encode(new FileAcceptMessage(transferId.ToString(), 0, record.BytesDone));
+            try { await ctx.Connection.SendAsync(MessageType.FILE_ACCEPT, body); }
+            catch (Exception ex) { await CloseContextAsync(ctx.Id, ex); }
+        });
+        return true;
+    }
+
     private async Task HandleReceivedChunkAsync(ConnectionContext ctx, byte[] body)
     {
         var parsed = FileChunkHeader.Decode(body);
         if (parsed is null) return;
+        var header = parsed.Value.header;
         var data = parsed.Value.data;
+        var offsetMismatch = ctx.TransferId != header.TransferId
+            || header.Index != 0
+            || header.Offset > long.MaxValue
+            || (long)header.Offset != ctx.ReceivedBytes
+            || ctx.ReceivedBytes + data.Length > ctx.FileSize;
+        if (offsetMismatch)
+        {
+            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed("FILE_CHUNK offset 不匹配")); });
+            await CloseContextAsync(ctx.Id, null); return;
+        }
         if (ctx.OutputStream is not { } output) return;
         try { await output.WriteAsync(data); }
         catch (Exception ex)
@@ -851,6 +960,10 @@ public sealed partial class ShareEngine : ObservableObject
             if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Transferring(recv, size));
         });
 
+        if (ctx.ReceivedBytes < ctx.FileSize
+            && ctx.ReceivedBytes - ctx.LastPersistedBytes >= ResumePersistInterval)
+            PersistResumeRecord(ctx);
+
         if (ctx.ReceivedBytes >= ctx.FileSize)
         {
             try { output.Dispose(); } catch { }
@@ -863,9 +976,11 @@ public sealed partial class ShareEngine : ObservableObject
                 if (actual != expected)
                 {
                     _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed("校验失败")); });
+                    ClearResumeRecord(ctx);
                     try { File.Delete(path); } catch { }
                     await CloseContextAsync(ctx.Id, null); return;
                 }
+                ClearResumeRecord(ctx);
             }
 
             if (ctx.TransferId is { } tid)
@@ -892,11 +1007,69 @@ public sealed partial class ShareEngine : ObservableObject
             _ui.TryEnqueue(() => { var x = PendingPairings.FirstOrDefault(p => p.Id == pp); if (x is not null) PendingPairings.Remove(x); });
         if (ctx.PendingOfferId is { } po)
             _ui.TryEnqueue(() => { var x = PendingFileOffers.FirstOrDefault(o => o.Id == po); if (x is not null) PendingFileOffers.Remove(x); });
+        if (ctx.State == ConnectionContext.StateReceivingFile
+            && ctx.OutputStream is not null
+            && ctx.ReceivedBytes < ctx.FileSize)
+        {
+            try { ctx.OutputStream.Flush(); } catch { }
+            if (ctx.ReceivedBytes > ctx.LastPersistedBytes)
+                PersistResumeRecord(ctx);
+            _ui.TryEnqueue(() =>
+            {
+                if (ctx.HistoryId is { } h && !IsHistoryTerminal(h))
+                    UpdateHistory(h, new TransferStatus.Failed("连接中断 · 等待续传"));
+            });
+        }
+        else if (ctx.State == ConnectionContext.StateSendingFile && ctx.SentBytes < ctx.FileSize)
+        {
+            _ui.TryEnqueue(() =>
+            {
+                if (ctx.HistoryId is { } h && !IsHistoryTerminal(h))
+                    UpdateHistory(h, new TransferStatus.Failed("连接中断"));
+            });
+        }
         try { ctx.InputStream?.Dispose(); } catch { }
         try { ctx.OutputStream?.Dispose(); } catch { }
         ctx.State = ConnectionContext.StateClosed;
         ctx.Connection.Close();
         return Task.CompletedTask;
+    }
+
+    private void PersistResumeRecord(ConnectionContext ctx)
+    {
+        if (ctx.Peer is null
+            || ctx.TransferId is not { } tid
+            || string.IsNullOrEmpty(ctx.ExpectedSha256)
+            || string.IsNullOrEmpty(ctx.SavedPath)
+            || ctx.ReceivedBytes <= 0
+            || ctx.ReceivedBytes >= ctx.FileSize)
+            return;
+
+        var record = new ResumeRecord(
+            ctx.Peer.Fingerprint,
+            tid,
+            Path.GetFileName(ctx.SavedPath),
+            ctx.FileSize,
+            ctx.ExpectedSha256,
+            ctx.SavedPath,
+            ctx.ReceivedBytes,
+            DateTimeOffset.UtcNow);
+        _resumeStore.Upsert(record);
+        ctx.LastPersistedBytes = ctx.ReceivedBytes;
+    }
+
+    private void ClearResumeRecord(ConnectionContext ctx)
+    {
+        if (ctx.Peer is null || string.IsNullOrEmpty(ctx.ExpectedSha256)) return;
+        _resumeStore.Clear(ctx.Peer.Fingerprint, ctx.ExpectedSha256);
+    }
+
+    private bool IsHistoryTerminal(Guid id)
+    {
+        var item = History.FirstOrDefault(h => h.Id == id);
+        return item?.Status is TransferStatus.Completed
+            or TransferStatus.Failed
+            or TransferStatus.Canceled;
     }
 
     /// <summary>每秒一次：把进行中传输的瞬时速率按方向汇总成一个时间桶，推入环形序列。</summary>
@@ -1086,6 +1259,7 @@ internal sealed class ConnectionContext
     public long FileSize { get; set; }
     public long SentBytes { get; set; }
     public long ReceivedBytes { get; set; }
+    public long LastPersistedBytes { get; set; }
     public string? SavedPath { get; set; }
     public string? ExpectedSha256 { get; set; }
 
