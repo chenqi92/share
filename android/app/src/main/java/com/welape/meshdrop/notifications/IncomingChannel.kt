@@ -7,16 +7,31 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.welape.meshdrop.MainActivity
 import com.welape.meshdrop.R
+import com.welape.meshdrop.data.PendingFileOffer
+import com.welape.meshdrop.data.PendingPairing
+import java.util.UUID
 
 /**
- * Heads-up incoming file 通知 channel + 三按钮 mock。
- * 真实接入引擎在下一轮；本轮供截图 + 触发演示。
+ * Heads-up「收到文件 / 配对请求」通知 channel。
+ *
+ * 由 [com.welape.meshdrop.ShareApplication] 订阅引擎 pendingFileOffers / pendingPairings 流驱动：
+ * 新增一条 → [showFileOffer] / [showPairing] 弹高优先级通知；
+ * 该条被消费（用户在通知或 app 内处理）→ [cancel] 撤掉。
+ *
+ * accept / decline 走 [IncomingActionReceiver]，无需打开 app 即可决定；点通知主体进 app。
  */
 object IncomingChannel {
     private const val CHANNEL_ID = "incoming_file"
-    private const val NOTIF_ID = 4201
+
+    /** 通知 id：用 UUID hash 映射到稳定区间，保证同一 offer/pairing 复用同一条通知。 */
+    private const val NOTIF_BASE = 4200
+    private const val NOTIF_SPAN = 90
+
+    private fun notifIdFor(id: UUID): Int =
+        NOTIF_BASE + Math.floorMod(id.hashCode(), NOTIF_SPAN)
 
     fun ensure(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -27,52 +42,109 @@ object IncomingChannel {
             "收到文件 · Incoming",
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "其他设备发来的文件请求"
+            description = "其他设备发来的文件 / 配对请求"
             enableVibration(true)
         }
         nm.createNotificationChannel(channel)
     }
 
-    fun showIncomingMock(context: Context, peer: String, fileName: String, size: String) {
+    /** 收到真实文件 offer：接收 / 拒绝 action + 点击进 app。 */
+    fun showFileOffer(context: Context, offer: PendingFileOffer) {
         ensure(context)
-        val openAppIntent = PendingIntent.getActivity(
+        val notifId = notifIdFor(offer.id)
+        val peer = offer.peer.name.ifEmpty { offer.peer.model ?: "未知设备" }
+
+        val accept = actionIntent(
+            context, IncomingActionReceiver.ACTION_OFFER_ACCEPT, offer.id, notifId,
+        )
+        val decline = actionIntent(
+            context, IncomingActionReceiver.ACTION_OFFER_DECLINE, offer.id, notifId,
+        )
+
+        val builder = baseBuilder(context, "$peer 发来文件", "${offer.fileName} · ${offer.formattedSize}")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("$peer · MeshDrop\n${offer.fileName} · ${offer.formattedSize}"),
+            )
+            .addAction(0, "接收", accept)
+            .addAction(0, "拒绝", decline)
+
+        notify(context, notifId, builder)
+    }
+
+    /** 收到真实配对请求：信任一次 / 拒绝 action + 点击进 app。 */
+    fun showPairing(context: Context, pairing: PendingPairing) {
+        ensure(context)
+        val notifId = notifIdFor(pairing.id)
+        val peer = pairing.peer.name.ifEmpty { pairing.peer.model ?: "未知设备" }
+
+        val accept = actionIntent(
+            context, IncomingActionReceiver.ACTION_PAIR_ACCEPT, pairing.id, notifId,
+        )
+        val decline = actionIntent(
+            context, IncomingActionReceiver.ACTION_PAIR_DECLINE, pairing.id, notifId,
+        )
+
+        val builder = baseBuilder(context, "$peer 请求配对", "允许后即可互相收发")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("$peer (${pairing.peer.model ?: "?"}) 请求与本机配对"),
+            )
+            .addAction(0, "允许一次", accept)
+            .addAction(0, "拒绝", decline)
+
+        notify(context, notifId, builder)
+    }
+
+    /** 撤掉某条 offer/pairing 的通知（已被处理 / 已从 pending 移除时调）。 */
+    fun cancel(context: Context, id: UUID) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.cancel(notifIdFor(id))
+    }
+
+    private fun baseBuilder(
+        context: Context,
+        title: String,
+        text: String,
+    ): NotificationCompat.Builder {
+        val openApp = PendingIntent.getActivity(
             context, 0,
             Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val accept = PendingIntent.getActivity(
-            context, 1,
-            Intent(context, MainActivity::class.java).putExtra("mock_action", "accept"),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val reject = PendingIntent.getActivity(
-            context, 2,
-            Intent(context, MainActivity::class.java).putExtra("mock_action", "reject"),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val toPhotos = PendingIntent.getActivity(
-            context, 3,
-            Intent(context, MainActivity::class.java).putExtra("mock_action", "to_photos"),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("$peer 发来文件")
-            .setContentText("$fileName · $size")
-            .setStyle(
-                NotificationCompat.BigTextStyle()
-                    .bigText("$peer · MeshDrop\n$fileName · $size\n点接收即可保存"),
-            )
-            .setContentIntent(openAppIntent)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setContentIntent(openApp)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .addAction(0, "接收", accept)
-            .addAction(0, "拒绝", reject)
-            .addAction(0, "保存到相册", toPhotos)
             .setAutoCancel(true)
+    }
 
+    private fun actionIntent(
+        context: Context,
+        action: String,
+        id: UUID,
+        notifId: Int,
+    ): PendingIntent {
+        val intent = Intent(context, IncomingActionReceiver::class.java).apply {
+            this.action = action
+            putExtra(IncomingActionReceiver.EXTRA_ID, id.toString())
+            putExtra(IncomingActionReceiver.EXTRA_NOTIF_ID, notifId)
+        }
+        // requestCode 用 action+id 组合保证每个 action 的 PendingIntent 唯一，避免 extras 互相覆盖。
+        val requestCode = (action + id.toString()).hashCode()
+        return PendingIntent.getBroadcast(
+            context, requestCode, intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
+    private fun notify(context: Context, notifId: Int, builder: NotificationCompat.Builder) {
+        // POST_NOTIFICATIONS 未授予（Android 13+）时 notify 会被系统静默丢弃，这里防御性判断避免无意义调用。
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.notify(NOTIF_ID, builder.build())
+        nm.notify(notifId, builder.build())
     }
 }

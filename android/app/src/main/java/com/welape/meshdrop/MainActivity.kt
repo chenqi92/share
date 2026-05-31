@@ -22,6 +22,12 @@ class MainActivity : ComponentActivity() {
         if (granted) appEngine().start()
     }
 
+    // Android 13+：POST_NOTIFICATIONS 是运行时权限；未授予时入站 offer / 传输进度通知会被系统静默丢弃。
+    // 拒绝不阻断主流程（保活 Service 仍跑，只是没可见通知）。
+    private val notificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { /* no-op */ }
+
     private fun appEngine() = (application as ShareApplication).engine
     private fun app() = application as ShareApplication
 
@@ -33,7 +39,16 @@ class MainActivity : ComponentActivity() {
             }
         }
         ensurePermissionThenStart()
+        ensureNotificationPermission()
         handleShareIntent(intent)
+    }
+
+    private fun ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     override fun onNewIntent(intent: Intent) {
