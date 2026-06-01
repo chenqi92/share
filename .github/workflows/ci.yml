@@ -58,7 +58,7 @@ jobs:
           java-version: '21'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v6
       - name: Run :app JVM unit tests
         working-directory: android
         run: ./gradlew :app:testDebugUnitTest --no-daemon
