@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use ed25519_dalek::{SigningKey, VerifyingKey};
-use rand::rngs::OsRng;
+use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
@@ -36,7 +36,9 @@ impl Identity {
         }
 
         let id = Uuid::new_v4().simple().to_string();   // 32 hex 小写
-        let signing_key = SigningKey::generate(&mut OsRng);
+        let mut secret = [0u8; 32];
+        rand::rng().fill_bytes(&mut secret);            // ThreadRng: OS 播种 CSPRNG
+        let signing_key = SigningKey::from_bytes(&secret);
         fs::write(&id_path, &id)?;
         fs::write(&key_path, signing_key.to_bytes())?;
         // 仅当前用户可读

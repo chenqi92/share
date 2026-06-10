@@ -2,7 +2,7 @@
 //!   - 6 字符邀请码（启动时生成，在 GUI Settings 里显示）
 //!   - 浏览器输入正确码后下发 session token，24h 过期。
 
-use rand::Rng;
+use rand::RngExt;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -65,10 +65,10 @@ impl Default for PairingGate {
 }
 
 fn gen_code() -> String {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     // 格式 ABC-D23（带连字符，易读）
     let part = |n: usize, rng: &mut rand::rngs::ThreadRng| -> String {
-        (0..n).map(|_| CODE_CHARSET[rng.gen_range(0..CODE_CHARSET.len())] as char).collect()
+        (0..n).map(|_| CODE_CHARSET[rng.random_range(0..CODE_CHARSET.len())] as char).collect()
     };
     format!("{}-{}", part(3, &mut rng), part(3, &mut rng))
 }
