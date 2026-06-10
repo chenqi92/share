@@ -89,6 +89,76 @@ public final class ShareEngine: ObservableObject {
         self.displayName = Self.defaultDisplayName()
     }
 
+    #if DEBUG
+    /// 仅 DEBUG / 离线截图预览用：注入一组演示数据（设备 / 历史 / 信任 / 待接收 / 待配对 /
+    /// 吞吐），不触发任何网络或权限请求。app 检测到 `MESHDROP_PREVIEW_ROUTE` 时调用；
+    /// release 构建由 `#if DEBUG` 完全排除，假名 / 假数据不会进入发布产物。
+    @MainActor
+    public func seedPreviewData(route: String) {
+        func dev(_ id: String, who: String, model: String, _ os: DeviceOS, _ fp: String) -> Device {
+            Device(id: id, name: who, os: os, model: model, fingerprint: fp, port: 9580)
+        }
+        let lily   = dev("a1b2c3d4e5f60718293a4b5c6d7e8f90", who: "李莉",   model: "Lily's MacBook",  .macos,   "9f3a7c2e8b1d40563a9e7c3201ab77de")
+        let kun    = dev("b2c3d4e5f6071829304a5b6c7d8e9f01", who: "坤",     model: "Kun · Pixel 8",    .android, "1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f")
+        let jiawei = dev("c3d4e5f60718293041a5b6c7d8e9f012", who: "嘉伟",   model: "Jiawei · iPad",    .ios,     "2233445566778899aabbccddeeff0011")
+        let mengxi = dev("d4e5f6071829304152b6c7d8e9f01234", who: "孟茜",   model: "Meng Xi · iPhone", .ios,     "7788990011223344556677889900aabb")
+        let dev01  = dev("e5f607182930415263c7d8e9f0123456", who: "工位机", model: "DEV-01 · Win 11",  .windows, "aabbccddeeff00112233445566778899")
+        devices = [lily, kun, jiawei, mengxi, dev01]
+
+        let now = Date()
+        func ago(_ minutes: Int) -> Date { now.addingTimeInterval(Double(-minutes) * 60) }
+        history = [
+            HistoryItem(peer: jiawei, direction: .outgoing, kind: .file(name: "iOS-mocks-final.zip", size: 48_600_000, url: nil),
+                        status: .transferring(bytesDone: 32_500_000, bytesTotal: 48_600_000), createdAt: ago(1)),
+            HistoryItem(peer: kun, direction: .incoming, kind: .file(name: "IMG_4821~38.heic", size: 128_000_000, url: nil),
+                        status: .transferring(bytesDone: 15_360_000, bytesTotal: 128_000_000), createdAt: ago(1)),
+            HistoryItem(peer: lily, direction: .outgoing, kind: .file(name: "demo-video.mp4", size: 512_000_000, url: nil),
+                        status: .pending, createdAt: ago(2)),
+            HistoryItem(peer: mengxi, direction: .incoming, kind: .file(name: "IMG_4821.heic", size: 2_400_000, url: nil),
+                        status: .completed, createdAt: ago(4)),
+            HistoryItem(peer: jiawei, direction: .outgoing, kind: .file(name: "设计稿_v3_final.fig", size: 14_200_000, url: nil),
+                        status: .completed, createdAt: ago(6)),
+            HistoryItem(peer: lily, direction: .outgoing, kind: .text("改完了，整理一下发你"), status: .completed, createdAt: ago(8)),
+            HistoryItem(peer: mengxi, direction: .incoming, kind: .text("收到，下午开会前给反馈"), status: .completed, createdAt: ago(9)),
+            HistoryItem(peer: mengxi, direction: .outgoing, kind: .text("嘉伟说图改完了，我转给你看下"), status: .completed, createdAt: ago(10)),
+        ]
+        transferMetrics = [
+            history[0].id: TransferMetrics(bytesPerSec: 6_200_000, etaSeconds: 2.6),
+            history[1].id: TransferMetrics(bytesPerSec: 4_100_000, etaSeconds: 27),
+        ]
+        var upSeries: [Double] = []
+        var downSeries: [Double] = []
+        for i in 0..<32 {
+            let t = Double(i)
+            upSeries.append(3_500_000.0 + 2_400_000.0 * (0.5 + 0.5 * sin(t / 3.0)))
+            downSeries.append(5_000_000.0 + 3_000_000.0 * (0.5 + 0.5 * sin(t / 2.3 + 1.0)))
+        }
+        sessionThroughput = SessionThroughput(up: upSeries, down: downSeries)
+        // 待接收 / 待配对会被 PhoneRoot 自动弹成 sheet，因此只在对应截图路由下注入，
+        // 避免盖住 discover / transfers 等其它页面。
+        if route == "receive" {
+            pendingFileOffers = [
+                PendingFileOffer(id: UUID(), peer: mengxi, fileName: "设计稿_v3_final.fig",
+                                 fileSize: 14_200_000,
+                                 sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                 mime: nil, previewBase64: nil, receivedAt: now)
+            ]
+        }
+        if route == "pairing" {
+            pendingPairings = [
+                PairingRequest(peer: dev01, receivedAt: now)
+            ]
+        }
+        trusted = [
+            TrustRecord(fingerprint: lily.fingerprint,   name: lily.model ?? lily.name,   firstSeen: ago(60 * 24), lastSeen: ago(8)),
+            TrustRecord(fingerprint: mengxi.fingerprint, name: mengxi.model ?? mengxi.name, firstSeen: ago(60 * 48), lastSeen: ago(4)),
+            TrustRecord(fingerprint: jiawei.fingerprint, name: jiawei.model ?? jiawei.name, firstSeen: ago(60 * 12), lastSeen: ago(6)),
+        ]
+        unreadByPeer = [mengxi.id: 2]
+        isStarting = false
+    }
+    #endif
+
     // MARK: - 生命周期
 
     public func start() {

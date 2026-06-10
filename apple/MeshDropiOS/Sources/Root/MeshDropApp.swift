@@ -15,6 +15,14 @@ struct MeshDropApp: App {
                 .environmentObject(engine)
                 .tint(MeshDropColor.lime)
                 .task {
+                    #if DEBUG
+                    if let route = ProcessInfo.processInfo.environment["MESHDROP_PREVIEW_ROUTE"] {
+                        // 离线截图预览：只注入演示数据并跳转，不联网、不请求通知权限。
+                        engine.seedPreviewData(route: route)
+                        state.applyPreviewRouteFromEnvIfNeeded()
+                        return
+                    }
+                    #endif
                     engine.start()
                     IncomingNotifier.startShared(engine: engine)
                     watchSession.start(engine: engine)
