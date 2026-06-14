@@ -286,14 +286,16 @@ export function useEngineConnection() {
     const unsub = c.subscribe({
       onConn: (conn) => useEngine.setState({ conn }),
       onState: (snap) => {
-        const devices = snap.devices.map(adaptDevice)
-        const history = buildHistoryDays(snap.history.map(adaptHistory))
-        const transfers = snap.transfers.map((t) => adaptTransfer(t))
+        // gateway 实现间字段不一致（缺 transfers/pendingOffers/pendingPairings）→ 一律兜底，防崩。
+        const off = snap.pendingOffers?.[0]
+        const pp = snap.pendingPairings?.[0]
         useEngine.setState({
           me: adaptMe(snap.me),
-          devices, history, transfers,
-          pendingOffer: snap.pendingOffers[0] ? adaptOffer(snap.pendingOffers[0]) : undefined,
-          pendingPairing: snap.pendingPairings[0] ? adaptPairing(snap.pendingPairings[0]) : undefined,
+          devices: snap.devices.map(adaptDevice),
+          history: buildHistoryDays(snap.history.map(adaptHistory)),
+          transfers: (snap.transfers ?? []).map((t) => adaptTransfer(t)),
+          pendingOffer: off ? adaptOffer(off) : undefined,
+          pendingPairing: pp ? adaptPairing(pp) : undefined,
         })
       },
       onDevicesSnapshot: (list) => useEngine.setState({ devices: list.map(adaptDevice) }),

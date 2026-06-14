@@ -82,9 +82,11 @@ export interface StateSnapshot {
   payload: {
     devices: WireDevice[]
     history: WireHistoryItem[]
-    pendingPairings: WirePairing[]
-    pendingOffers: WireOffer[]
-    transfers: WireTransferProgress[]
+    // 各 gateway 实现对这些字段的发送并不一致（Linux 当前不发，macOS 不发 transfers），
+    // 故标为可选并在消费端兜底，避免对 undefined 调用 .map()/[] 崩溃。
+    pendingPairings?: WirePairing[]
+    pendingOffers?: WireOffer[]
+    transfers?: WireTransferProgress[]
     me?: {
       displayName: string
       fingerprint: string
