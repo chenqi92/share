@@ -45,7 +45,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
     let header = vec![
         meshdrop_logo::wordmark(theme),
         Line::from(Span::styled(
-            "An intranet drop · radar discovery · drag-to-send · E2E encryption",
+            "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)",
             Style::default().fg(theme.muted()),
         )),
     ];
@@ -66,7 +66,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
         keyrow(theme, "d  c",         "删除选中历史 / 清空历史"),
         keyrow(theme, "x",            "取消选中进行中传输（仅 Transfers 焦点）"),
         keyrow(theme, "R",            "重发选中失败发送项（仅 Transfers 焦点）"),
-        keyrow(theme, "F1  F2  F3",   "切换页：发现 · 传输 · 历史"),
+        keyrow(theme, "F1..F6",       "切换页：发现 · 传输 · 历史 · 信任 · 剪贴板 · 设置"),
         keyrow(theme, "p",            "弹配对 demo 模态"),
         keyrow(theme, "o",            "弹文件 offer demo 模态"),
         keyrow(theme, "?",            "打开 / 关闭本帮助"),

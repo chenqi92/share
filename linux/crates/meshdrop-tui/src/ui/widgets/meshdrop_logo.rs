@@ -61,7 +61,7 @@ pub fn hero(f: &mut Frame, area: Rect, theme: &Theme) {
     lines.push(Line::from(""));
     lines.push(wordmark(theme));
     lines.push(Line::from(Span::styled(
-        "An intranet drop · radar discovery · drag-to-send · E2E encryption",
+        "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)",
         Style::default().fg(theme.muted()),
     )));
     let p = Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center);

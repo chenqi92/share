@@ -29,6 +29,8 @@ pub fn load_or_generate(dir: &Path) -> Result<GatewayCert> {
 }
 
 fn load_existing(cert_path: &Path, key_path: &Path) -> Result<GatewayCert> {
+    // 既有 key.pem 也强制收紧到 0600（兼容早期版本写出的宽权限文件）。
+    set_key_permissions(key_path)?;
     let cert_pem = fs::read(cert_path)?;
     let key_pem = fs::read(key_path)?;
     let cert_chain = rustls_pemfile::certs(&mut BufReader::new(&cert_pem[..]))
@@ -59,6 +61,8 @@ fn generate(cert_path: &PathBuf, key_path: &PathBuf) -> Result<GatewayCert> {
     let key_pem = key_pair.serialize_pem();
     fs::write(cert_path, &cert_pem).context("write cert.pem")?;
     fs::write(key_path, &key_pem).context("write key.pem")?;
+    // 私钥仅本机可读：chmod 0600，防同机其他用户读取 Gateway TLS 私钥。
+    set_key_permissions(key_path)?;
     info!("generated self-signed gateway cert at {}", cert_path.display());
 
     let cert_chain = rustls_pemfile::certs(&mut BufReader::new(cert_pem.as_bytes()))
@@ -68,4 +72,18 @@ fn generate(cert_path: &PathBuf, key_path: &PathBuf) -> Result<GatewayCert> {
         .context("parse generated key")?
         .context("missing key")?;
     Ok(GatewayCert { cert_chain, key })
+}
+
+/// 把私钥文件权限收紧到 0600（仅 Unix；其它平台无操作）。
+#[cfg(unix)]
+fn set_key_permissions(key_path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let perms = fs::Permissions::from_mode(0o600);
+    fs::set_permissions(key_path, perms).context("chmod 0600 key.pem")?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_key_permissions(_key_path: &Path) -> Result<()> {
+    Ok(())
 }

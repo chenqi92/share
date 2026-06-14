@@ -65,9 +65,10 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     col.append(&m);
     col.set_hexpand(true);
     card.append(&col);
-    let chip_e2e = chip::chip("E2E · X25519", chip::Tone::Mute, true);
-    chip_e2e.set_valign(gtk::Align::Center);
-    card.append(&chip_e2e);
+    // 身份用 Ed25519 + SHA-256 指纹（非 X25519）；传输 v0.1 明文。不宣称 E2E。
+    let chip_id = chip::chip("Ed25519 · TOFU", chip::Tone::Mute, true);
+    chip_id.set_valign(gtk::Align::Center);
+    card.append(&chip_id);
     root.append(&card);
 
     root.append(&ascii_divider::divider("── VERIFY · 验证 ──"));

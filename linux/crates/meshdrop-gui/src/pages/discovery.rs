@@ -85,7 +85,9 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             .map(|(i, d)| ViewDevice::from_device(d, i)).collect(),
         None => mock::devices().iter().map(ViewDevice::from_mock).collect(),
     };
-    let r = radar::build(&initial_views, None);
+    // real 模式用本机真实 LAN IP 作为雷达中心标注；mock / screenshots 回退占位。
+    let self_ip = handle.and_then(|h| h.self_ip.borrow().clone());
+    let r = radar::build(&initial_views, None, self_ip);
     r.root.set_size_request(380, 380);
     left.append(&r.root);
     radar_div.set_text(&format!("── RADAR · 雷达 · {} PEERS ──", initial_views.len()));

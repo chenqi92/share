@@ -27,6 +27,23 @@ use uuid::Uuid;
 const CHUNK_SIZE: usize = 256 * 1024;
 const RESUME_PERSIST_INTERVAL: u64 = 4 * 1024 * 1024;
 
+/// 重放去重窗口：protocol/security.md §重放保护要求 TEXT / FILE_OFFER 带 UUID id，
+/// 接收方对 (peer_fp, message_id) 做 5 分钟窗口去重。
+const REPLAY_WINDOW: Duration = Duration::from_secs(5 * 60);
+
+/// 握手超时：连上后迟迟不进入 Ready / 文件态的连接，超过该时长即回收（防半开 DoS）。
+const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
+/// 空闲超时：已就绪连接长时间无任何帧即关闭（释放句柄；传输态不受此限）。
+const IDLE_TIMEOUT: Duration = Duration::from_secs(120);
+/// 并发连接上限：同时存在的 ConnCtx 超过该数时拒绝新入站连接（防句柄 / 内存耗尽）。
+const MAX_CONNECTIONS: usize = 256;
+
+/// 入站 fp 必须是 32 位小写 hex（= SHA-256 公钥前 16 字节）。校验失败即拒绝该连接，
+/// 避免恶意 fp 污染指纹显示与 trust.json 键。
+fn is_valid_fingerprint(fp: &str) -> bool {
+    fp.len() == 32 && fp.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+}
+
 // ─── 公开类型 ──────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
@@ -164,6 +181,7 @@ impl ShareEngine {
             auto_accept: auto_accept.clone(),
             resume_store: ResumeStore::new(),
             internal_tx,
+            seen_messages: HashMap::new(),
             _discovery: discovery,
         };
         tokio::spawn(run_main_loop(state, cmd_rx, internal_rx));
@@ -325,7 +343,25 @@ struct State {
     auto_accept: Arc<AtomicBool>,
     resume_store: ResumeStore,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
+    /// 重放去重：(peer_fp, message_id) → 首次见到的时刻。超 5 分钟窗口的条目惰性清除。
+    seen_messages: HashMap<(String, String), Instant>,
     _discovery: DiscoveryHandle,
+}
+
+impl State {
+    /// 5 分钟窗口去重。返回 true 表示这是重放 / 重复（应丢弃）；false 表示首次见到。
+    /// 顺带惰性清理过期条目，避免长会话无界增长。
+    fn is_replay(&mut self, peer_fp: &str, message_id: &str) -> bool {
+        let now = Instant::now();
+        self.seen_messages.retain(|_, ts| now.duration_since(*ts) < REPLAY_WINDOW);
+        let key = (peer_fp.to_string(), message_id.to_string());
+        if self.seen_messages.contains_key(&key) {
+            true
+        } else {
+            self.seen_messages.insert(key, now);
+            false
+        }
+    }
 }
 
 struct ConnCtx {
@@ -354,6 +390,11 @@ struct ConnCtx {
     last_sample: Option<Instant>,
     last_sample_bytes: u64,
     ema_bytes_per_sec: f64,
+
+    /// 连接建立时刻；用于握手超时（迟迟不发 HELLO 的半开连接会被回收）。
+    created_at: Instant,
+    /// 最近一次收到任何帧的时刻；用于空闲超时。
+    last_activity: Instant,
 }
 
 enum Role {
@@ -394,7 +435,10 @@ async fn run_main_loop(
         tokio::select! {
             Some(cmd) = user_rx.recv() => handle_user_cmd(&mut state, cmd).await,
             Some(cmd) = internal_rx.recv() => handle_internal_cmd(&mut state, cmd).await,
-            _ = tp_tick.tick() => sample_throughput(&mut state),
+            _ = tp_tick.tick() => {
+                sample_throughput(&mut state);
+                sweep_timeouts(&mut state).await;
+            }
             else => break,
         }
     }
@@ -423,6 +467,39 @@ fn push_bucket(buf: &mut Vec<f64>, v: f64) {
     if buf.len() > TP_BUCKETS {
         let excess = buf.len() - TP_BUCKETS;
         buf.drain(0..excess);
+    }
+}
+
+/// 周期回收超时连接：
+///
+/// - 握手未完成（仍处于 AwaitingHello / AwaitingPairApproval / AwaitingHelloAck）超过
+///   HANDSHAKE_TIMEOUT 的半开连接；
+/// - 已就绪但长时间无任何帧（非传输态）超过 IDLE_TIMEOUT 的连接。
+///
+/// 传输中（SendingFile / ReceivingFile）的连接不受空闲超时影响。
+async fn sweep_timeouts(state: &mut State) {
+    let now = Instant::now();
+    let mut to_close: Vec<Uuid> = Vec::new();
+    for (id, ctx) in state.contexts.iter() {
+        let handshaking = matches!(
+            ctx.state,
+            ConnState::AwaitingHello
+                | ConnState::AwaitingPairApproval(_)
+                | ConnState::AwaitingHelloAck
+                | ConnState::AwaitingFileAccept
+        );
+        if handshaking && now.duration_since(ctx.created_at) > HANDSHAKE_TIMEOUT {
+            to_close.push(*id);
+            continue;
+        }
+        let transferring = matches!(ctx.state, ConnState::SendingFile | ConnState::ReceivingFile);
+        if !transferring && now.duration_since(ctx.last_activity) > IDLE_TIMEOUT {
+            to_close.push(*id);
+        }
+    }
+    for id in to_close {
+        debug!("回收超时连接 ctx {}", id);
+        close_ctx(state, id, Some("timeout".into())).await;
     }
 }
 
@@ -496,6 +573,12 @@ async fn cancel_transfer(state: &mut State, history_id: Uuid) {
 async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
     match cmd {
         InternalCmd::Incoming(stream, addr) => {
+            // 连接上限：超过即直接丢弃新连接（drop stream 关闭），防半开 DoS 耗尽句柄。
+            if state.contexts.len() >= MAX_CONNECTIONS {
+                warn!("达到连接上限 {}，拒绝来自 {} 的新连接", MAX_CONNECTIONS, addr);
+                drop(stream);
+                return;
+            }
             let conn = Connection::from_stream(stream, addr);
             let ctx_id = Uuid::new_v4();
             spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
@@ -751,8 +834,11 @@ async fn on_ready(state: &mut State, ctx_id: Uuid) {
 }
 
 async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) {
-    let Some(ctx) = state.contexts.get(&ctx_id) else { return };
-    let ctx_state = ctx.state.clone();
+    let ctx_state = {
+        let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
+        ctx.last_activity = Instant::now();   // 任意入站帧都刷新活跃时间（含 PING）
+        ctx.state.clone()
+    };
 
     match (ctx_state, msg_type) {
         (ConnState::AwaitingHello, msg_type::HELLO) => server_recv_hello(state, ctx_id, body).await,
@@ -827,6 +913,12 @@ async fn server_recv_hello(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         Ok(h) => h, Err(_) => { close_ctx(state, ctx_id, None).await; return; }
     };
     if !hello.protocol_versions.contains(&1) { close_ctx(state, ctx_id, None).await; return; }
+    // 入站 fp 必须是 32 位小写 hex，否则拒绝（防污染指纹显示与 trust.json 键）。
+    if !is_valid_fingerprint(&hello.fp) {
+        warn!("拒绝非法 fp 的 HELLO: {}", hello.fp);
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
     let os = DeviceOS::parse(&hello.os).unwrap_or(DeviceOS::Linux);
     let peer = Device {
         id: hello.id, name: hello.name, os, model: hello.model,
@@ -1047,6 +1139,11 @@ async fn handle_received_text(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     };
     let peer = state.contexts.get(&ctx_id).and_then(|c| c.peer.clone());
     let Some(peer) = peer else { return };
+    // 5 分钟窗口去重：重放 / 重复 TEXT 不再入历史。
+    if state.is_replay(&peer.fingerprint, &text.id) {
+        debug!("丢弃重放 TEXT id={} from {}", text.id, peer.fingerprint);
+        return;
+    }
     state.history.insert(0, HistoryItem::new(peer, TransferDirection::Incoming,
         HistoryKind::Text(text.content), TransferStatus::Completed));
     let _ = state.history_tx.send(state.history.clone());
@@ -1081,6 +1178,29 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     let Ok(tid) = Uuid::parse_str(&offer.transfer_id) else { return };
     let peer = state.contexts.get(&ctx_id).and_then(|c| c.peer.clone());
     let Some(peer) = peer else { return };
+
+    // 5 分钟窗口去重：重放 / 重复 FILE_OFFER（transfer_id 即 message id）直接丢弃。
+    if state.is_replay(&peer.fingerprint, &offer.transfer_id) {
+        debug!("丢弃重放 FILE_OFFER transfer_id={} from {}", offer.transfer_id, peer.fingerprint);
+        return;
+    }
+
+    // 当前接收 ctx 为单文件流：仅处理 index 0，对多文件 offer 的其余 index 立即逐个
+    // 发 FILE_REJECT，避免发送端无限等待未被应答的文件。
+    if offer.files.len() > 1 {
+        if let Some(ctx) = state.contexts.get(&ctx_id) {
+            for extra in offer.files.iter().skip(1) {
+                let body = serde_json::to_vec(&FileRejectMessage {
+                    transfer_id: offer.transfer_id.clone(),
+                    index: extra.index,
+                    reason: "multi_file_unsupported".into(),
+                }).unwrap_or_default();
+                let _ = ctx.connection.send(msg_type::FILE_REJECT, body);
+            }
+        }
+        warn!("FILE_OFFER 含 {} 个文件，仅接收第一个，其余已拒绝", offer.files.len());
+    }
+
     let trusted = state.trust_store.is_trusted(&peer.fingerprint);
 
     if let Some(record) = valid_resume_record(state, &peer, &meta).await {
@@ -1523,6 +1643,7 @@ fn save_auto_accept(value: bool) -> std::io::Result<()> {
 
 impl ConnCtx {
     fn new_server(id: Uuid, connection: Connection) -> Self {
+        let now = Instant::now();
         Self {
             id, connection,
             role: Role::Server,
@@ -1532,9 +1653,11 @@ impl ConnCtx {
             file_size: 0, sent_bytes: 0, received_bytes: 0, last_persisted_bytes: 0,
             file_input: None, file_output: None,
             last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
+            created_at: now, last_activity: now,
         }
     }
     fn new_client(id: Uuid, connection: Connection, role: Role, state: ConnState) -> Self {
+        let now = Instant::now();
         Self {
             id, connection, role, state,
             peer: None, history_id: None, transfer_id: None, pending_offer_id: None,
@@ -1542,6 +1665,26 @@ impl ConnCtx {
             file_size: 0, sent_bytes: 0, received_bytes: 0, last_persisted_bytes: 0,
             file_input: None, file_output: None,
             last_sample: None, last_sample_bytes: 0, ema_bytes_per_sec: 0.0,
+            created_at: now, last_activity: now,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_valid_fingerprint;
+
+    #[test]
+    fn fingerprint_accepts_32_lowercase_hex() {
+        assert!(is_valid_fingerprint("00112233445566778899aabbccddeeff"));
+    }
+
+    #[test]
+    fn fingerprint_rejects_bad_length_case_and_chars() {
+        assert!(!is_valid_fingerprint(""));
+        assert!(!is_valid_fingerprint("00112233")); // 太短
+        assert!(!is_valid_fingerprint("00112233445566778899AABBCCDDEEFF")); // 大写
+        assert!(!is_valid_fingerprint("00112233445566778899aabbccddeegg")); // 非 hex
+        assert!(!is_valid_fingerprint("00112233445566778899aabbccddeeff0")); // 33 位
     }
 }

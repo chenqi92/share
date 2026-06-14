@@ -164,3 +164,95 @@ fn ping_vector_decodes() {
     assert_eq!(ty, msg_type::PING);
     assert_eq!(body, b"{}");
 }
+
+// ─── encode 回环 / 边界 / 负例（补 decode-only 之外的回归保护） ──────────
+
+#[test]
+fn encode_decode_roundtrip() {
+    // 任意 msg_type + body 编码后应能解回同样的 type/body，且 consumed 覆盖整帧。
+    for (ty, body) in [
+        (msg_type::TEXT, b"hello".as_slice()),
+        (msg_type::CLIPBOARD, b"{\"k\":\"v\"}".as_slice()),
+        (msg_type::HELLO, b"".as_slice()), // 空 body：length=1（仅 type 字节）
+        (msg_type::PONG, b"{}".as_slice()),
+    ] {
+        let frame = encode_frame(ty, body);
+        match decode_frame(&frame).expect("decode") {
+            DecodeResult::Decoded { msg_type: dty, body: dbody, consumed } => {
+                assert_eq!(dty, ty);
+                assert_eq!(dbody, body);
+                assert_eq!(consumed, frame.len());
+            }
+            DecodeResult::NeedMore => panic!("roundtrip should decode fully"),
+        }
+    }
+}
+
+#[test]
+fn decode_need_more_on_short_header_and_body() {
+    // 不足 4 字节的长度前缀 → NeedMore
+    assert!(matches!(decode_frame(&[0x00, 0x00, 0x05]), Ok(DecodeResult::NeedMore)));
+    // 长度声明 5，但 body 不足 → NeedMore
+    let mut buf = 5u32.to_be_bytes().to_vec();
+    buf.push(msg_type::TEXT); // 只有 type，还差 4 字节
+    assert!(matches!(decode_frame(&buf), Ok(DecodeResult::NeedMore)));
+}
+
+#[test]
+fn decode_rejects_zero_and_oversized_length() {
+    // length=0 非法（至少要含 1 字节 msg_type）
+    let zero = 0u32.to_be_bytes().to_vec();
+    assert!(decode_frame(&zero).is_err());
+    // length 超过 MAX_FRAME_LENGTH 非法
+    let too_big = ((MAX_FRAME_LENGTH as u32) + 1).to_be_bytes().to_vec();
+    assert!(decode_frame(&too_big).is_err());
+}
+
+#[test]
+fn decode_leaves_trailing_bytes_for_next_frame() {
+    // 一个完整帧后面跟着下一帧的部分字节：consumed 应只覆盖第一帧。
+    let first = encode_frame(msg_type::TEXT, b"a");
+    let mut buf = first.clone();
+    buf.extend_from_slice(&[0x00, 0x00]); // 下一帧的不完整前缀
+    match decode_frame(&buf).expect("decode") {
+        DecodeResult::Decoded { consumed, .. } => assert_eq!(consumed, first.len()),
+        DecodeResult::NeedMore => panic!("first frame is complete"),
+    }
+}
+
+#[test]
+fn clipboard_0x11_roundtrip() {
+    // 0x11 CLIPBOARD：编码 ClipboardMessage 后解回字段一致。
+    let msg = ClipboardMessage {
+        id: "11111111-1111-1111-1111-111111111111".into(),
+        content: "https://example.com".into(),
+        kind: "link".into(),
+        ts: 1_700_000_000,
+    };
+    let body = serde_json::to_vec(&msg).unwrap();
+    let frame = encode_frame(msg_type::CLIPBOARD, &body);
+    let (ty, dbody) = decoded(&frame);
+    assert_eq!(ty, msg_type::CLIPBOARD);
+    let back: ClipboardMessage = serde_json::from_slice(dbody).unwrap();
+    assert_eq!(back.content, "https://example.com");
+    assert_eq!(back.kind, "link");
+    assert_eq!(back.ts, 1_700_000_000);
+}
+
+#[test]
+fn hello_fp_is_32_lowercase_hex() {
+    // HELLO.fp 必须是 32 位小写 hex（SHA-256 公钥前 16 字节）。
+    let spec = load_spec("hello-minimal.json");
+    let bytes = from_hex(spec["frame_bytes_hex"].as_str().unwrap());
+    let (_, body) = decoded(&bytes);
+    let msg: HelloMessage = serde_json::from_slice(body).unwrap();
+    assert_eq!(msg.fp.len(), 32);
+    assert!(msg.fp.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')));
+}
+
+#[test]
+fn file_chunk_header_too_short_returns_none() {
+    // body 短于 FILE_CHUNK 头部（28 字节）→ decode_file_chunk 返回 None。
+    let short = vec![0u8; FILE_CHUNK_HEADER_SIZE - 1];
+    assert!(decode_file_chunk(&short).is_none());
+}

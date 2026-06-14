@@ -181,6 +181,7 @@ pub async fn accept(
 }
 
 fn extract_token(req: &Request) -> Option<String> {
+    // token 只走 Cookie / header，不接受 query string（防经 URL 泄漏 / 落日志）。
     if let Some(cookie) = req.header("Cookie") {
         for part in cookie.split(';') {
             let kv = part.trim();
@@ -189,12 +190,25 @@ fn extract_token(req: &Request) -> Option<String> {
             }
         }
     }
-    if let Some(idx) = req.path.find("token=") {
-        let rest = &req.path[idx + 6..];
-        let end = rest.find('&').unwrap_or(rest.len());
-        return Some(rest[..end].to_string());
+    if let Some(t) = req.header("x-meshdrop-token") {
+        if !t.is_empty() { return Some(t.to_string()); }
     }
     None
+}
+
+/// 把客户端给的 fileRef 解析成一个受限的可发送路径：
+/// 必须 canonicalize 成功、是普通文件，且位于 upload_dir 内；否则拒绝。
+fn resolve_upload_ref(file_ref: &str) -> Option<PathBuf> {
+    let upload_dir = std::fs::canonicalize(crate::gateway::http::upload_dir()).ok()?;
+    let canon = std::fs::canonicalize(PathBuf::from(file_ref)).ok()?;
+    if !canon.is_file() {
+        return None;
+    }
+    if canon.starts_with(&upload_dir) {
+        Some(canon)
+    } else {
+        None
+    }
 }
 
 fn compute_accept(key: &str) -> String {
@@ -254,12 +268,14 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
             if file_ref.is_empty() {
                 (false, Some("file_ref_invalid".into()), None)
             } else if let Some(peer) = find_peer(engine, peer_id) {
-                let path = PathBuf::from(file_ref);
-                if path.is_file() {
-                    engine.send_file(peer, path);
-                    (true, None, None)
-                } else {
-                    (false, Some("file_ref_invalid".into()), None)
+                // fileRef 只接受 /api/v1/upload 返回的 upload token（落在 upload_dir 内的路径）。
+                // canonicalize 后校验仍在 upload_dir 下，堵任意主机文件读取（如 /etc/passwd、ssh 私钥）。
+                match resolve_upload_ref(file_ref) {
+                    Some(path) => {
+                        engine.send_file(peer, path);
+                        (true, None, None)
+                    }
+                    None => (false, Some("file_ref_invalid".into()), None),
                 }
             } else {
                 (false, Some("peer_not_found".into()), None)

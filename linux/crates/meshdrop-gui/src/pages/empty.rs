@@ -17,9 +17,10 @@ pub fn build() -> gtk::Widget {
     title.set_halign(gtk::Align::Start);
     root.append(&title);
 
+    // 空态图标统一用几何 mono glyph，不用 emoji（DESIGN_SPEC §10）。
     root.append(&ascii_divider::divider("── EMPTY · 没有附近设备 ──"));
     root.append(&state_card(
-        "🛰",
+        "◎",
         "暂无附近设备",
         "正在扫描 _meshdrop._tcp · 同一 Wi-Fi 下的其他设备会在几秒内出现。",
         Some(("再扫一次", icon_btn::IconBtnTone::Accent)),
@@ -27,7 +28,7 @@ pub fn build() -> gtk::Widget {
 
     root.append(&ascii_divider::divider("── OFFLINE · 没连上局域网 ──"));
     root.append(&state_card(
-        "⚡",
+        "⌁",
         "没连上局域网",
         "MeshDrop 需要本机至少在一个有线 / 无线网络上。请检查网线是否拔出，或 Wi-Fi 是否已连接。",
         Some(("打开网络设置", icon_btn::IconBtnTone::Default)),

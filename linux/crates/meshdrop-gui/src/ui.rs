@@ -18,11 +18,12 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use uuid::Uuid;
 
+// 导航图标统一用几何 / mono glyph（与 TUI 的 dot/arrow/check 体系对齐），不用 emoji。
 const PAGES: &[(&str, &str, &str)] = &[
-    ("discovery", "附近 · Nearby",   "🛰"),
+    ("discovery", "附近 · Nearby",   "◎"),
     ("chat",      "对话 · Chat",     "✱"),
     ("transfers", "传输 · Transfers", "↕"),
-    ("clipboard", "剪贴板 · Clipboard", "📋"),
+    ("clipboard", "剪贴板 · Clipboard", "▤"),
     ("history",   "历史 · History",  "◫"),
     ("trust",     "已配对 · Trusted", "◉"),
     ("settings",  "设置 · Settings", "⚙"),
@@ -290,8 +291,12 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     search_pad.set_margin_start(12);
     search_pad.set_margin_end(12);
     let search = gtk::Entry::builder()
-        .placeholder_text("⌘K  搜索设备 / 文件 / 历史…")
+        .placeholder_text("搜索设备 / 文件 / 历史（即将支持）")
         .build();
+    // 侧栏全局搜索尚未接线（设备列表在 watch 回调里重建，过滤需重构数据流）：
+    // 先禁用，避免输入无任何反应的“假搜索框”。TUI 已有 `/` 搜索可用。
+    search.set_sensitive(false);
+    search.set_tooltip_text(Some("即将支持：用 TUI 的 / 可先行搜索设备"));
     search_pad.append(&search);
     root.append(&search_pad);
 
@@ -388,7 +393,8 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     me_col.append(&fp);
     me_col.set_hexpand(true);
     me_row.append(&me_col);
-    me_row.append(&chip::chip("E2E", chip::Tone::Lime, true));
+    // v0.1 LAN 传输为明文 TCP；不宣称 E2E。诚实标注当前阶段状态。
+    me_row.append(&chip::chip("LAN · 明文", chip::Tone::Outline, true));
     root.append(&me_row);
 
     Sidebar { root, nav_buttons }
@@ -419,7 +425,8 @@ fn build_statusbar(handle: Option<&Rc<AppHandle>>) -> Statusbar {
     let mdns_label = mk("_meshdrop._tcp · 0 peers");
     row.append(&mdns_label);
     row.append(&sep());
-    row.append(&mk("X25519 + ChaCha20-Poly1305"));
+    // 传输层现状：明文 TCP（v0.1）。身份用 Ed25519 + SHA-256 指纹做 TOFU 信任。
+    row.append(&mk("LAN · 明文 TCP · v0.1"));
     row.append(&sep());
 
     let gateway_text = match handle {

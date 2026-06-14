@@ -6,7 +6,39 @@ use crate::components::file_chip;
 use crate::mock::{ChatBody, ChatMsg, Dir};
 use adw::prelude::*;
 
+/// 借用型气泡内容。real 路径直接用 &str 构造，避免把每条历史 Box::leak 成 'static。
+pub enum BubbleBody<'a> {
+    Text(&'a str),
+    File { name: &'a str, size: &'a str, ext: &'a str },
+    Image { caption: &'a str },
+}
+
+pub struct BubbleView<'a> {
+    pub side: Dir,
+    pub time: &'a str,
+    pub body: BubbleBody<'a>,
+    pub delivered: bool,
+}
+
+impl<'a> BubbleView<'a> {
+    /// 从 mock::ChatMsg（'static 字段）借用，供截图 / mock 路径复用。
+    pub fn from_mock(msg: &'a ChatMsg) -> Self {
+        let body = match &msg.body {
+            ChatBody::Text(t) => BubbleBody::Text(t),
+            ChatBody::File { name, size, ext } => BubbleBody::File { name, size, ext },
+            ChatBody::Image { caption } => BubbleBody::Image { caption },
+        };
+        BubbleView { side: msg.side, time: msg.time, body, delivered: msg.delivered }
+    }
+}
+
+/// mock 路径入口（保持旧签名，内部转 BubbleView）。
 pub fn bubble(msg: &ChatMsg) -> gtk::Box {
+    bubble_view(&BubbleView::from_mock(msg))
+}
+
+/// 借用型渲染入口：real 路径用 &str 直接构造 BubbleView，无内存泄漏。
+pub fn bubble_view(msg: &BubbleView) -> gtk::Box {
     let outer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     let group = gtk::Box::new(gtk::Orientation::Vertical, 4);
     group.set_hexpand(false);
@@ -25,8 +57,8 @@ pub fn bubble(msg: &ChatMsg) -> gtk::Box {
     if let Some(w) = max_bubble_width(&msg.body) { body_box.set_size_request(w, -1); }
 
     match &msg.body {
-        ChatBody::Text(t) => {
-            let lb = gtk::Label::new(Some(t));
+        BubbleBody::Text(t) => {
+            let lb = gtk::Label::new(Some(*t));
             lb.set_wrap(true);
             lb.set_wrap_mode(gtk::pango::WrapMode::WordChar);
             lb.set_xalign(0.0);
@@ -34,13 +66,13 @@ pub fn bubble(msg: &ChatMsg) -> gtk::Box {
             lb.set_max_width_chars(36);
             body_box.append(&lb);
         }
-        ChatBody::File { name, size, ext } => {
+        BubbleBody::File { name, size, ext } => {
             body_box.append(&file_chip::chip(name, size, ext, None));
         }
-        ChatBody::Image { caption } => {
+        BubbleBody::Image { caption } => {
             let img = crate::components::photo::photo(220, 130, 180.0);
             body_box.append(&img);
-            let lb = gtk::Label::new(Some(caption));
+            let lb = gtk::Label::new(Some(*caption));
             lb.set_xalign(0.0);
             lb.set_wrap(true);
             body_box.append(&lb);
@@ -68,15 +100,15 @@ pub fn bubble(msg: &ChatMsg) -> gtk::Box {
     outer
 }
 
-fn max_bubble_width(body: &ChatBody) -> Option<i32> {
+fn max_bubble_width(body: &BubbleBody) -> Option<i32> {
     match body {
-        ChatBody::Text(s) => {
+        BubbleBody::Text(s) => {
             let len = s.chars().count();
             if len < 12 { Some(140) }
             else if len < 24 { Some(220) }
             else { Some(320) }
         }
-        ChatBody::File { .. } => Some(280),
-        ChatBody::Image { .. } => Some(240),
+        BubbleBody::File { .. } => Some(280),
+        BubbleBody::Image { .. } => Some(240),
     }
 }

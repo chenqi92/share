@@ -9,7 +9,7 @@ pub mod ws;
 
 use crate::ShareEngine;
 use anyhow::{Context, Result};
-use log::{info, warn};
+use log::{debug, info, warn};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -39,7 +39,12 @@ pub async fn start(engine: ShareEngine, port: u16) -> Result<GatewayHandle> {
     let cert_dir = config_dir()?;
     let bundle = cert::load_or_generate(&cert_dir).context("gateway cert")?;
 
-    let mut server_config = ServerConfig::builder()
+    // 浏览器面向的自签 Gateway 强制 TLS 1.3 ONLY（与 protocol/README TLS1.3 口径统一），
+    // 并把 cipher suite 收敛到 TLS 1.3 AEAD 白名单，杜绝向 TLS 1.2 / 弱套件降级。
+    let provider = tls13_only_provider();
+    let mut server_config = ServerConfig::builder_with_provider(Arc::new(provider))
+        .with_protocol_versions(&[&tokio_rustls::rustls::version::TLS13])
+        .context("rustls TLS1.3-only versions")?
         .with_no_client_auth()
         .with_single_cert(bundle.cert_chain, bundle.key)
         .context("rustls ServerConfig")?;
@@ -52,7 +57,8 @@ pub async fn start(engine: ShareEngine, port: u16) -> Result<GatewayHandle> {
     info!("Web Gateway listening on https://0.0.0.0:{}", actual_port);
 
     let gate = Arc::new(pairing::PairingGate::new());
-    info!("Web Gateway pairing code: {}", gate.current_code());
+    // 配对码是会话凭据，不写进常驻 info 日志（避免落盘泄漏）；UI 从 GatewayHandle 取。
+    debug!("Web Gateway pairing code generated");
 
     let gate_run = gate.clone();
     let task = tokio::spawn(async move {
@@ -89,4 +95,24 @@ fn config_dir() -> Result<PathBuf> {
     let dir = base.join("meshdrop");
     std::fs::create_dir_all(&dir).context("create config dir")?;
     Ok(dir)
+}
+
+/// 在 aws-lc-rs provider 基础上把 cipher suite 收敛到 TLS 1.3 AEAD 白名单
+/// （TLS_AES_256_GCM / TLS_AES_128_GCM / TLS_CHACHA20_POLY1305），剔除其余套件。
+fn tls13_only_provider() -> tokio_rustls::rustls::crypto::CryptoProvider {
+    use tokio_rustls::rustls::crypto::aws_lc_rs;
+    let allowed = [
+        aws_lc_rs::cipher_suite::TLS13_AES_256_GCM_SHA384,
+        aws_lc_rs::cipher_suite::TLS13_AES_128_GCM_SHA256,
+        aws_lc_rs::cipher_suite::TLS13_CHACHA20_POLY1305_SHA256,
+    ];
+    let base = aws_lc_rs::default_provider();
+    tokio_rustls::rustls::crypto::CryptoProvider {
+        cipher_suites: base
+            .cipher_suites
+            .into_iter()
+            .filter(|cs| allowed.contains(cs))
+            .collect(),
+        ..base
+    }
 }

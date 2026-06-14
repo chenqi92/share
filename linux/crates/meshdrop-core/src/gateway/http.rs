@@ -72,7 +72,9 @@ pub async fn handle(
         .collect();
     let r = Request { method: &method, path: &path, headers: hdrs };
 
-    debug!("gateway request {} {}", r.method, r.path);
+    // 日志只记 method + 路径前缀，剥掉 query string —— 早期版本曾支持 ?token= 兜底，
+    // 不能让 token 经 URL 落进日志。
+    debug!("gateway request {} {}", r.method, path_for_log(&path));
 
     // WebSocket upgrade
     if is_ws_upgrade(&r) && r.path == "/api/v1/control" {
@@ -148,6 +150,7 @@ fn is_authenticated(r: &Request, gate: &PairingGate) -> bool {
 }
 
 fn extract_token(r: &Request) -> Option<String> {
+    // token 只走 Cookie / header，绝不接受 query string —— 防止经 URL 泄漏 / 落日志。
     // 1. cookie meshdrop_session
     if let Some(cookie) = r.header("Cookie") {
         for part in cookie.split(';') {
@@ -161,13 +164,12 @@ fn extract_token(r: &Request) -> Option<String> {
     if let Some(t) = r.header("x-meshdrop-token") {
         if !t.is_empty() { return Some(t.to_string()); }
     }
-    // 3. query ?token=...
-    if let Some(idx) = r.path.find("token=") {
-        let rest = &r.path[idx + 6..];
-        let end = rest.find('&').unwrap_or(rest.len());
-        return Some(rest[..end].to_string());
-    }
     None
+}
+
+/// 去掉 query string 的路径，用于日志（避免历史上的 ?token= 落盘）。
+fn path_for_log(path: &str) -> &str {
+    path.split('?').next().unwrap_or(path)
 }
 
 async fn write_unauthorized(tls: &mut TlsStream<TcpStream>) -> Result<()> {
@@ -192,8 +194,10 @@ async fn handle_upload(
                 br#"{"ok":false,"error":"missing_boundary"}"#).await;
         }
     };
-    // 上限 4 GiB（与 protocol/transport.md 单文件上限对齐）
-    let body = read_body_with_limit(tls, r, already, 4 * 1024 * 1024 * 1024).await?;
+    // multipart 浏览器上传上限 512 MiB（companion-bridges 浏览器侧场景，不走设备直传的
+    // 4 GiB 单文件上限）。按 Content-Length 校验上限但不 with_capacity 预分配，避免 OOM。
+    const UPLOAD_LIMIT: usize = 512 * 1024 * 1024;
+    let body = read_body_with_limit(tls, r, already, UPLOAD_LIMIT).await?;
 
     let part = match find_first_file_part(&body, &boundary) {
         Some(p) => p,
@@ -211,12 +215,25 @@ async fn handle_upload(
             &[("Content-Type", "application/json")],
             br#"{"ok":false,"error":"io"}"#).await;
     }
-    let safe_name = if part.filename.is_empty() {
-        format!("upload-{}", Uuid::new_v4())
-    } else {
-        part.filename.clone()
-    };
+    // 只取文件名最后一段，剥掉任何路径成分（防 ../ 或绝对路径穿越）。
+    let safe_name = sanitize_filename(&part.filename);
     let target = dir.join(format!("{}-{}", Uuid::new_v4(), safe_name));
+    // canonicalize 校验：落盘目标必须仍在 upload_dir 内（防符号链接 / 残留穿越）。
+    let canon_dir = match tokio::fs::canonicalize(&dir).await {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("canonicalize uploads dir failed: {e}");
+            return write_response(tls, 500, "Internal Error",
+                &[("Content-Type", "application/json")],
+                br#"{"ok":false,"error":"io"}"#).await;
+        }
+    };
+    if target.parent().map(|p| p.to_path_buf()) != Some(canon_dir) {
+        warn!("upload target escapes uploads dir: {}", target.display());
+        return write_response(tls, 400, "Bad Request",
+            &[("Content-Type", "application/json")],
+            br#"{"ok":false,"error":"bad_filename"}"#).await;
+    }
     if let Err(e) = tokio::fs::write(&target, &part.body).await {
         warn!("write upload failed: {e}");
         return write_response(tls, 500, "Internal Error",
@@ -232,11 +249,28 @@ async fn handle_upload(
         body_resp.as_bytes()).await
 }
 
-fn upload_dir() -> PathBuf {
+pub(crate) fn upload_dir() -> PathBuf {
     let base = dirs::data_local_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("/tmp"));
     base.join("MeshDrop").join("uploads")
+}
+
+/// 把客户端给的 filename 收敛成一个安全的单段文件名：
+/// 取最后一段（按 `/` 与 `\` 切分），剔除控制字符，拒绝 `.`/`..`/空。
+fn sanitize_filename(raw: &str) -> String {
+    let last = raw
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or("")
+        .trim()
+        .trim_matches('\u{0}');
+    let cleaned: String = last.chars().filter(|c| !c.is_control()).collect();
+    if cleaned.is_empty() || cleaned == "." || cleaned == ".." {
+        format!("upload-{}", Uuid::new_v4())
+    } else {
+        cleaned
+    }
 }
 
 // ─── /api/v1/download/<historyId> ────────────────────────────────
@@ -405,7 +439,9 @@ async fn read_body_with_limit(
     if len > limit {
         anyhow::bail!("body too large: {len} > {limit}");
     }
-    let mut body = Vec::with_capacity(len);
+    // 不按 Content-Length 预分配（攻击者可声明巨大 len 触发 OOM）：
+    // 起始容量封顶 1 MiB，按需增长，读到真实 len 为止。
+    let mut body = Vec::with_capacity(len.min(1024 * 1024));
     body.extend_from_slice(already);
     while body.len() < len {
         let want = (len - body.len()).min(256 * 1024);
@@ -474,3 +510,31 @@ async fn write_response(
 
 #[allow(dead_code)]
 fn log_init_done() { info!("gateway http module ready"); }
+
+#[cfg(test)]
+mod tests {
+    use super::{sanitize_filename, path_for_log};
+
+    #[test]
+    fn sanitize_strips_path_components() {
+        // 路径穿越尝试只保留最后一段，不含目录成分。
+        assert_eq!(sanitize_filename("../../etc/passwd"), "passwd");
+        assert_eq!(sanitize_filename("/etc/shadow"), "shadow");
+        assert_eq!(sanitize_filename("..\\..\\windows\\system32\\cmd.exe"), "cmd.exe");
+        assert_eq!(sanitize_filename("report.pdf"), "report.pdf");
+    }
+
+    #[test]
+    fn sanitize_replaces_dot_dotdot_and_empty() {
+        assert!(sanitize_filename("..").starts_with("upload-"));
+        assert!(sanitize_filename(".").starts_with("upload-"));
+        assert!(sanitize_filename("").starts_with("upload-"));
+        assert!(sanitize_filename("/").starts_with("upload-"));
+    }
+
+    #[test]
+    fn path_for_log_drops_query() {
+        assert_eq!(path_for_log("/api/v1/download/x?token=secret"), "/api/v1/download/x");
+        assert_eq!(path_for_log("/api/v1/version"), "/api/v1/version");
+    }
+}

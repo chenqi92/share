@@ -25,11 +25,23 @@ struct TrustInner {
 
 impl TrustStore {
     pub fn new() -> Result<Self> {
-        let dir = dirs::data_local_dir()
-            .context("no XDG data dir")?
-            .join("meshdrop");
+        // 统一到 <XDG_DATA_HOME>/MeshDrop（与 identity 同目录），并迁移旧的小写
+        // meshdrop/trust.json，避免状态目录分裂导致清理 / 迁移遗漏。
+        let dir = crate::paths::state_dir().context("no XDG data dir")?;
         fs::create_dir_all(&dir).context("create trust dir")?;
         let path = dir.join("trust.json");
+
+        if !path.exists() {
+            if let Some(legacy) = crate::paths::legacy_state_dir() {
+                let legacy_path = legacy.join("trust.json");
+                if legacy_path.exists() {
+                    // rename 失败（跨设备等）则退化为复制，尽量不丢信任记录。
+                    if fs::rename(&legacy_path, &path).is_err() {
+                        let _ = fs::copy(&legacy_path, &path);
+                    }
+                }
+            }
+        }
 
         let records = if path.exists() {
             fs::read_to_string(&path).ok()

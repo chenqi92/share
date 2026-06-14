@@ -8,6 +8,7 @@
 //!
 //! `--screenshots <dir>` 模式跳过 engine 启动，纯 mock 渲染（PR 截图用）。
 
+mod color;
 mod components;
 mod dialogs;
 mod engine_bridge;

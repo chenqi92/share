@@ -108,17 +108,18 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard) {
             Constraint::Min(0),
         ])
         .split(area);
-    ascii_divider::render(f, rows[0], theme, "SECURITY · 加密");
+    ascii_divider::render(f, rows[0], theme, "SECURITY · 安全");
 
+    // v0.1 局域网传输为明文 TCP；身份用 Ed25519 + SHA-256 指纹做 TOFU。不宣称 E2E。
     let lines = vec![
         Line::from(""),
-        kv(theme, "encryption  ", "X25519 + ChaCha20-Poly1305", true),
+        kv(theme, "identity    ", "Ed25519 + SHA-256 fp", true),
         kv(theme, "fingerprint ", &me.fingerprint, true),
         kv(theme, "trust mode  ", "TOFU + manual revoke", false),
-        kv(theme, "ip          ", &me.ip, false),
+        kv(theme, "transport   ", "LAN plaintext (v0.1)", false),
         Line::from(vec![
             Span::raw("  "),
-            chip::chip(theme, "E2E", chip::Tone::Lime),
+            chip::chip(theme, "TLS 1.3 mTLS · PLANNED", chip::Tone::Outline),
             Span::raw("  "),
             chip::chip(theme, "LAN ONLY", chip::Tone::Outline),
         ]),

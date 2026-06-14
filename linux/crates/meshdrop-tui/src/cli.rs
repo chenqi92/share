@@ -24,8 +24,8 @@ use crate::engine_bridge;
 #[command(
     name = "meshdrop-tui",
     version,
-    about = "MeshDrop · 终端版（局域网 · 端到端加密 · 雷达发现）",
-    long_about = "MeshDrop CLI / TUI — Intranet drop · radar discovery · E2E encryption.\n\n\
+    about = "MeshDrop · 终端版（局域网 · 明文 TCP · v0.1 · 雷达发现）",
+    long_about = "MeshDrop CLI / TUI — Intranet drop · radar discovery · plaintext TCP (v0.1).\n\n\
     无参数进入全屏 TUI；带子命令进入 headless CLI（适合 SSH / 脚本 / 容器）。"
 )]
 pub struct Cli {
@@ -161,6 +161,8 @@ pub fn parse_demo(spec: &str) -> Option<crate::app::DemoScene> {
         "discovery" | "main" => scene.page = Some(Page::Discovery),
         "transfers" | "transfer" => scene.page = Some(Page::Transfers),
         "history" => scene.page = Some(Page::History),
+        "trust" => scene.page = Some(Page::Trust),
+        "clipboard" | "clip" => scene.page = Some(Page::Clipboard),
         "settings" | "set" => scene.page = Some(Page::Settings),
         "pairing" | "pair" => {
             scene.page = Some(Page::Discovery);

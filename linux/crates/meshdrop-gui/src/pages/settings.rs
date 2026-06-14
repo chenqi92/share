@@ -135,18 +135,27 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     root.append(&g1);
 
     // ── 安全
-    root.append(&ascii_divider::divider("── SECURITY · 安全 · E2E ──"));
+    root.append(&ascii_divider::divider("── SECURITY · 安全 ──"));
     let g2 = adw::PreferencesGroup::new();
+    // v0.1 LAN 传输为明文 TCP，尚未上 TLS / 应用层 E2E；文案如实标注，chip 用 PLANNED。
     let e1 = adw::ActionRow::builder()
-        .title("端到端加密 · X25519 + ChaCha20-Poly1305")
-        .subtitle("所有传输强制走 E2E；指纹由会话密钥推导")
+        .title("LAN 传输加密 · TLS 1.3 mTLS")
+        .subtitle("v0.1 局域网为明文 TCP（README 已声明的阶段取舍）；TLS 1.3 mTLS 规划中")
         .build();
-    e1.add_suffix(&chip::chip("ENFORCED", chip::Tone::Ink, true));
+    e1.add_suffix(&chip::chip("PLANNED", chip::Tone::Outline, true));
     g2.add(&e1);
 
+    // 身份 / 指纹用 Ed25519 + SHA-256（非 X25519/ChaCha20），这是已实现的能力。
+    let e_id = adw::ActionRow::builder()
+        .title("设备身份 · Ed25519 + SHA-256 指纹")
+        .subtitle("指纹 = SHA-256(Ed25519 公钥) 前 16 字节；用于 TOFU 信任与显示")
+        .build();
+    e_id.add_suffix(&chip::chip("ACTIVE", chip::Tone::Lime, true));
+    g2.add(&e_id);
+
     let e2 = adw::ActionRow::builder()
-        .title("私钥储存 · ~/.local/share/meshdrop/ed25519.bin")
-        .subtitle("骨架阶段裸文件；v1.0 切到 libsecret")
+        .title("私钥储存 · ~/.local/share/MeshDrop/ed25519.bin")
+        .subtitle("骨架阶段裸文件（权限 0600）；v1.0 切到 libsecret")
         .build();
     e2.add_suffix(&chip::chip("PLAIN", chip::Tone::Outline, true));
     g2.add(&e2);
@@ -235,6 +244,10 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         .build();
     let choose = gtk::Button::with_label("选择…");
     choose.set_valign(gtk::Align::Center);
+    // 下载目录热更新需 core 暴露 set_save_dir（当前按对端名固定派生），尚未支持：
+    // 先禁用控件并在副标题说明，避免点了无反应的“假按钮”。
+    choose.set_sensitive(false);
+    choose.set_tooltip_text(Some("即将支持：当前固定为 ~/Downloads/MeshDrop/<对方名>/"));
     b3.add_suffix(&choose);
     g3.add(&b3);
     root.append(&g3);
@@ -248,6 +261,22 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         .build();
     let drop = gtk::DropDown::from_strings(&["跟随系统 · Auto", "浅色 · Light", "深色 · Dark"]);
     drop.set_valign(gtk::Align::Center);
+    // 接 theme::set_scheme：从 widget 所属窗口拿到 adw::Application 再切换配色。
+    let drop_root = root.clone();
+    drop.connect_selected_notify(move |d| {
+        let mode = match d.selected() {
+            1 => crate::theme::ColorMode::Light,
+            2 => crate::theme::ColorMode::Dark,
+            _ => crate::theme::ColorMode::Auto,
+        };
+        if let Some(app) = drop_root.root()
+            .and_then(|r| r.downcast::<gtk::Window>().ok())
+            .and_then(|w| w.application())
+            .and_then(|a| a.downcast::<adw::Application>().ok())
+        {
+            crate::theme::set_scheme(&app, mode);
+        }
+    });
     t1.add_suffix(&drop);
     g4.add(&t1);
     root.append(&g4);

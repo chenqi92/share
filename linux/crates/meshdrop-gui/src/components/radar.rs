@@ -38,7 +38,8 @@ impl Radar {
     }
 }
 
-pub fn build(devices: &[ViewDevice], selected_initial: Option<usize>) -> Radar {
+/// `self_ip` 为本机真实 LAN IP（real 模式传入）；None 时（screenshots / mock）回退占位串。
+pub fn build(devices: &[ViewDevice], selected_initial: Option<usize>, self_ip: Option<String>) -> Radar {
     let area = gtk::DrawingArea::builder()
         .content_width(420)
         .content_height(420)
@@ -67,7 +68,7 @@ pub fn build(devices: &[ViewDevice], selected_initial: Option<usize>) -> Radar {
     fixed.set_halign(gtk::Align::Fill);
     fixed.set_valign(gtk::Align::Fill);
 
-    let center = center_card();
+    let center = center_card(self_ip.unwrap_or_else(|| "—".to_string()));
 
     for (i, d) in devices_rc.borrow().iter().enumerate() {
         let lbl_box = device_label_box(d);
@@ -95,21 +96,24 @@ pub fn build(devices: &[ViewDevice], selected_initial: Option<usize>) -> Radar {
     Radar { root: overlay, area, fixed, selected, devices: devices_rc }
 }
 
-fn center_card() -> gtk::Box {
+fn center_card(self_ip: String) -> gtk::Box {
+    use crate::color;
     let b = gtk::Box::new(gtk::Orientation::Vertical, 1);
     b.set_size_request(64, 64);
     b.add_css_class("meshdrop-radar-center");
     // 直接用 DrawingArea 绘制
     let area = gtk::DrawingArea::builder().content_width(64).content_height(64).build();
-    area.set_draw_func(|_, cr, w, h| {
+    area.set_draw_func(move |_, cr, w, h| {
         let (w, h) = (w as f64, h as f64);
-        cr.set_source_rgb(10.0/255.0, 10.0/255.0, 10.0/255.0);
+        let (ir, ig, ib) = color::INK_RGB;
+        cr.set_source_rgb(ir, ig, ib);
         cr.arc(w/2.0, h/2.0, w.min(h)/2.0 - 1.0, 0.0, std::f64::consts::TAU);
         cr.fill().ok();
-        cr.set_source_rgba(221.0/255.0, 249.0/255.0, 75.0/255.0, 0.95);
+        let (lr, lg, lb) = color::LIME_RGB;
+        cr.set_source_rgba(lr, lg, lb, 0.95);
         text::draw_centered(cr, w/2.0, h/2.0 - 7.0, "YOU", "Space Grotesk", 13.0, true);
         cr.set_source_rgba(0.95, 0.95, 0.9, 0.7);
-        text::draw_centered(cr, w/2.0, h/2.0 + 9.0, "192.168.1.42", "Geist Mono", 8.0, false);
+        text::draw_centered(cr, w/2.0, h/2.0 + 9.0, &self_ip, "Geist Mono", 8.0, false);
     });
     b.append(&area);
     b
@@ -178,8 +182,9 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
     let angle = (t / sweep_dur) * std::f64::consts::TAU;
     let span = 0.55;
     let grad = gtk::cairo::RadialGradient::new(cx, cy, 0.0, cx, cy, max_r);
-    grad.add_color_stop_rgba(0.0, 221.0/255.0, 249.0/255.0, 75.0/255.0, 0.35);
-    grad.add_color_stop_rgba(1.0, 221.0/255.0, 249.0/255.0, 75.0/255.0, 0.0);
+    let (lr, lg, lb) = crate::color::LIME_RGB;
+    grad.add_color_stop_rgba(0.0, lr, lg, lb, 0.35);
+    grad.add_color_stop_rgba(1.0, lr, lg, lb, 0.0);
     cr.set_source(&grad).ok();
     cr.move_to(cx, cy);
     cr.arc(cx, cy, max_r, angle - span, angle);
@@ -197,8 +202,9 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
         let halo_r = 14.0 + phase * 10.0;
 
         let is_selected = Some(i) == selected;
-        let (dot_r, dot_g, dot_b) = if is_selected { (1.0, 90.0/255.0, 44.0/255.0) }
-                                    else { (221.0/255.0, 249.0/255.0, 75.0/255.0) };
+        // 选中：flame（发送态语义色）；未选：lime（在线）。
+        let (dot_r, dot_g, dot_b) = if is_selected { crate::color::FLAME_RGB }
+                                    else { crate::color::LIME_RGB };
 
         cr.set_source_rgba(dot_r, dot_g, dot_b, 0.25 * (1.0 - phase * 0.5));
         cr.arc(x, y, halo_r, 0.0, std::f64::consts::TAU);
@@ -207,14 +213,16 @@ fn draw_radar(cr: &gtk::cairo::Context, w: f64, h: f64, t: f64,
         cr.set_source_rgb(dot_r, dot_g, dot_b);
         cr.arc(x, y, 7.0, 0.0, std::f64::consts::TAU);
         cr.fill().ok();
-        cr.set_source_rgb(10.0/255.0, 10.0/255.0, 10.0/255.0);
+        let (ir, ig, ib) = crate::color::INK_RGB;
+        cr.set_source_rgb(ir, ig, ib);
         cr.set_line_width(1.5);
         cr.arc(x, y, 7.0, 0.0, std::f64::consts::TAU);
         cr.stroke().ok();
 
         // selected：拉一条 flame 虚线到中心
         if is_selected {
-            cr.set_source_rgba(1.0, 90.0/255.0, 44.0/255.0, 0.55);
+            let (fr, fg, fb) = crate::color::FLAME_RGB;
+            cr.set_source_rgba(fr, fg, fb, 0.55);
             cr.set_line_width(1.2);
             cr.set_dash(&[4.0, 4.0], 0.0);
             cr.move_to(cx, cy);

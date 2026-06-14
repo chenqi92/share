@@ -57,7 +57,7 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     who.set_halign(gtk::Align::Start);
     col.append(&who);
     card.append(&col);
-    card.append(&chip::chip("E2E", chip::Tone::Lime, true));
+    card.append(&chip::chip("LAN · 明文", chip::Tone::Outline, true));
     root.append(&card);
 
     root.append(&ascii_divider::divider("── FILE · 文件 ──"));
@@ -79,6 +79,9 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     sp.set_hexpand(true);
     save_row.append(&sp);
     let change = gtk::Button::with_label("更改…");
+    // 接收落盘目录由 core 按对端名固定派生，暂不支持单次改路径：禁用并说明，避免假按钮。
+    change.set_sensitive(false);
+    change.set_tooltip_text(Some("即将支持：当前固定保存到 ~/Downloads/MeshDrop/<对方名>/"));
     save_row.append(&change);
     root.append(&save_row);
 

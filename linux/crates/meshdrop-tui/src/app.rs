@@ -151,6 +151,8 @@ impl App {
         let me = engine_bridge::self_card(&engine);
         let mut settings = Settings::default();
         settings.display_name = me.name.clone();
+        // 用 engine 持久化的真实开关初始化 Settings，避免 TUI 显示与实际不符。
+        settings.auto_accept_trusted = engine.auto_accept_from_trusted();
         let mut device_state = ListState::default();
         device_state.select(Some(0));
         let mut history_state = ListState::default();
@@ -191,12 +193,7 @@ impl App {
     pub fn apply_demo(&mut self, scene: DemoScene) {
         if let Some(p) = scene.page {
             self.page = p;
-            self.focus = match p {
-                Page::Discovery => Focus::Devices,
-                Page::Transfers => Focus::Transfers,
-                Page::History => Focus::History,
-                Page::Settings => Focus::Devices,
-            };
+            self.focus = focus_for_page(p);
         }
         if let Some(r) = scene.radar {
             self.settings.radar = r;
@@ -382,10 +379,33 @@ impl App {
             }
             ["set", kv] => match self.settings.apply(kv) {
                 SetResult::Ok { key, value } => {
-                    if key == "displayName" {
-                        self.me.name = value.clone();
+                    match key {
+                        "displayName" => {
+                            self.me.name = value.clone();
+                            // core 当前不支持热改广播名（mDNS 注册时固定），提示需重启。
+                            if self.engine.is_some() {
+                                self.status = format!("set {} = {} · 重启后对端可见", key, value);
+                            } else {
+                                self.status = format!("set {} = {}", key, value);
+                            }
+                        }
+                        "autoAccept" => {
+                            // 真正下发给 engine（与 GUI 开关同口径），不只是改内存 Settings。
+                            if let Some(engine) = &self.engine {
+                                engine.set_auto_accept(self.settings.auto_accept_trusted);
+                            }
+                            self.status = format!("set {} = {}", key, value);
+                        }
+                        "saveDir" => {
+                            // core 按对端名固定派生下载目录，暂不支持热改：提示仅本地记录。
+                            if self.engine.is_some() {
+                                self.status = format!("set {} = {} · 暂未下发（固定 ~/Downloads/MeshDrop/）", key, value);
+                            } else {
+                                self.status = format!("set {} = {}", key, value);
+                            }
+                        }
+                        _ => self.status = format!("set {} = {}", key, value),
                     }
-                    self.status = format!("set {} = {}", key, value);
                 }
                 SetResult::UnknownKey(k) => self.status = format!("未知设置项：{}", k),
                 SetResult::BadValue { key, value } => {
@@ -449,6 +469,16 @@ impl App {
                 })
             })
             .collect();
+    }
+}
+
+/// 每个页面的默认焦点列表。Trust / Clipboard 为只读视图，焦点沿用 Devices。
+fn focus_for_page(p: Page) -> Focus {
+    match p {
+        Page::Discovery => Focus::Devices,
+        Page::Transfers => Focus::Transfers,
+        Page::History => Focus::History,
+        Page::Trust | Page::Clipboard | Page::Settings => Focus::Devices,
     }
 }
 
@@ -621,12 +651,7 @@ fn apply(app: &mut App, action: Action) {
         }
         Action::SwitchPage(p) => {
             app.page = p;
-            app.focus = match p {
-                Page::Discovery => Focus::Devices,
-                Page::Transfers => Focus::Transfers,
-                Page::History => Focus::History,
-                Page::Settings => Focus::Devices,
-            };
+            app.focus = focus_for_page(p);
         }
         Action::EnterInputText => {
             if app.selected_device_id().is_some() {
@@ -958,7 +983,9 @@ fn render_tabs(f: &mut Frame, area: Rect, app: &App) {
         (Page::Discovery, "F1", "DISCOVERY · 发现"),
         (Page::Transfers, "F2", "TRANSFERS · 传输"),
         (Page::History,   "F3", "HISTORY · 历史"),
-        (Page::Settings,  "F4", "SETTINGS · 设置"),
+        (Page::Trust,     "F4", "TRUST · 信任"),
+        (Page::Clipboard, "F5", "CLIPBOARD · 剪贴板"),
+        (Page::Settings,  "F6", "SETTINGS · 设置"),
     ] {
         let active = page == app.page;
         let chip_text = format!("{} {}", key, label);
@@ -979,8 +1006,116 @@ fn render_main(f: &mut Frame, area: Rect, app: &mut App) {
         Page::Discovery => render_discovery(f, area, app),
         Page::Transfers => render_transfers(f, area, app),
         Page::History => render_history_page(f, area, app),
+        Page::Trust => render_trust_page(f, area, app),
+        Page::Clipboard => render_clipboard_page(f, area, app),
         Page::Settings => settings_page::render(f, area, &app.theme, &app.me, &app.settings),
     }
+}
+
+/// Trust 页：信任设备表（真 engine 模式从 trust_store 读取；mock 用占位提示）。
+fn render_trust_page(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(app.theme.line()))
+        .title(Line::from(vec![
+            Span::raw(" "),
+            Span::styled("TRUST", Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("  {}  已配对设备 ", app.theme.small_dot()), Style::default().fg(app.theme.muted())),
+            Span::styled("·  :revoke <fp> 撤销 ", Style::default().fg(app.theme.muted())),
+        ]));
+    f.render_widget(&block, area);
+    let inner = block.inner(area);
+
+    let records = app.engine.as_ref().map(|e| e.trust_store.snapshot()).unwrap_or_default();
+    let mut lines: Vec<Line> = Vec::new();
+    lines.push(Line::from(""));
+    if records.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "  还没有已信任的设备。首次连接弹出配对，按 t 确认即写入信任库。",
+            Style::default().fg(app.theme.muted()),
+        )));
+    } else {
+        lines.push(Line::from(vec![
+            Span::styled("  设备                指纹（前 4 组）              最近在线",
+                Style::default().fg(app.theme.muted()).add_modifier(Modifier::BOLD)),
+        ]));
+        for r in &records {
+            let fp = chunk_fp4(&r.fingerprint);
+            let seen = relative_ms(r.last_seen_ms);
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(format!("{:<18}", trunc(&r.name, 18)), Style::default().fg(app.theme.ink()).add_modifier(Modifier::BOLD)),
+                Span::raw(" "),
+                Span::styled(format!("{:<28}", fp), Style::default().fg(app.theme.lime_deep())),
+                Span::styled(seen, Style::default().fg(app.theme.muted())),
+            ]));
+        }
+    }
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+/// Clipboard 页：收件箱（对端推来的剪贴板条目）。
+fn render_clipboard_page(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(app.theme.line()))
+        .title(Line::from(vec![
+            Span::raw(" "),
+            Span::styled("CLIPBOARD", Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD)),
+            Span::styled(format!("  {}  剪贴板收件箱 ", app.theme.small_dot()), Style::default().fg(app.theme.muted())),
+        ]));
+    f.render_widget(&block, area);
+    let inner = block.inner(area);
+
+    let mut lines: Vec<Line> = Vec::new();
+    lines.push(Line::from(""));
+    if app.clip.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "  收件箱为空。对端在设备卡片上点「推送剪贴板」后，内容会出现在这里。",
+            Style::default().fg(app.theme.muted()),
+        )));
+    } else {
+        for c in app.clip.iter().take(inner.height.saturating_sub(1) as usize) {
+            let kind_label = format!("[{}]", c.kind.to_uppercase());
+            let body = c.body.replace('\n', " ↵ ");
+            let truncated: String = body.chars().take(60).collect();
+            lines.push(Line::from(vec![
+                Span::raw("  "),
+                Span::styled(format!("{:<6}", kind_label), Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD)),
+                Span::raw(" "),
+                Span::styled(c.who.clone(), Style::default().fg(app.theme.flame()).add_modifier(Modifier::BOLD)),
+                Span::raw("  "),
+                Span::styled(truncated, Style::default().fg(app.theme.ink())),
+                Span::styled(format!("  ·  {}", c.ago), Style::default().fg(app.theme.muted())),
+            ]));
+        }
+    }
+    f.render_widget(Paragraph::new(lines), inner);
+}
+
+fn chunk_fp4(hex: &str) -> String {
+    let up = hex.to_uppercase();
+    up.as_bytes().chunks(4).take(4)
+        .map(|c| std::str::from_utf8(c).unwrap_or("").to_string())
+        .collect::<Vec<_>>().join(" ")
+}
+
+fn relative_ms(unix_ms: i64) -> String {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64).unwrap_or(0);
+    let diff = (now - unix_ms).max(0) / 1000;
+    if diff < 60 { "刚刚".into() }
+    else if diff < 3600 { format!("{} 分钟前", diff / 60) }
+    else if diff < 86400 { format!("{} 小时前", diff / 3600) }
+    else { format!("{} 天前", diff / 86400) }
+}
+
+fn trunc(s: &str, max: usize) -> String {
+    if s.chars().count() <= max { s.to_string() }
+    else { s.chars().take(max.saturating_sub(1)).collect::<String>() + "…" }
 }
 
 fn render_discovery(f: &mut Frame, area: Rect, app: &mut App) {
@@ -1072,7 +1207,7 @@ fn render_info_panel(f: &mut Frame, area: Rect, app: &App) {
     meshdrop_logo::hero(f, rows[0], &app.theme);
 
     let sub = Paragraph::new(Line::from(Span::styled(
-        "雷达式发现 · 端对端加密 · 拖即发送 · 剪贴板同步 · 文字便签",
+        "雷达式发现 · TOFU 信任 · 拖即发送 · 剪贴板同步 · 文字便签",
         Style::default().fg(app.theme.muted()),
     )))
     .alignment(ratatui::layout::Alignment::Center);

@@ -65,6 +65,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             who: t.who.to_string(),
             device_name: t.device_name.to_string(),
             fingerprint: t.fingerprint.to_string(),
+            fingerprint_full: t.fingerprint.replace([' ', '·'], "").to_lowercase(),
             paired_at: t.paired_at.to_string(),
             last_seen: t.last_seen.to_string(),
         }).collect(),
@@ -154,9 +155,10 @@ fn trust_row(entry: &ViewTrustEntry, handle: Option<&Rc<AppHandle>>) -> gtk::Box
     btn.set_size_request(90, -1);
     if let Some(h) = handle {
         let h_c = h.clone();
-        let fp_raw = entry.fingerprint.replace([' ', '·'], "").to_lowercase();
+        // 撤销必须用完整 32 hex 指纹（trust store key），不能用展示态 take(16) 截断值。
+        let fp_full = entry.fingerprint_full.clone();
         btn.connect_clicked(move |_| {
-            h_c.engine.trust_store.revoke(&fp_raw);
+            h_c.engine.trust_store.revoke(&fp_full);
         });
     }
     row.append(&btn);

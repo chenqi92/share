@@ -140,7 +140,10 @@ fn history_status(s: &TransferStatus) -> mock::HistoryStatus {
 pub struct ViewTrustEntry {
     pub who: String,
     pub device_name: String,
+    /// 展示用：前 4 组、4 字符分隔大写（take(16)）。
     pub fingerprint: String,
+    /// 撤销用：完整 32 位小写 hex（trust store 的 key），不可截断。
+    pub fingerprint_full: String,
     pub paired_at: String,
     pub last_seen: String,
 }
@@ -151,6 +154,9 @@ impl ViewTrustEntry {
             who: r.name.clone(),
             device_name: r.name.clone(),
             fingerprint: short_fingerprint(&r.fingerprint),
+            fingerprint_full: r.fingerprint.clone(),
+            // TrustRecord 目前只持有 last_seen_ms（配对时刻 == 最近在线，二者同源），
+            // 真正的 paired_at 字段待 core 扩展；此处显示真实日期而非占位 D-{epoch}。
             paired_at: format_date(r.last_seen_ms / 1000),
             last_seen: format_relative(r.last_seen_ms / 1000),
         }
@@ -296,10 +302,25 @@ fn format_time(unix_ms: i64) -> String {
 }
 
 fn format_date(unix_secs: i64) -> String {
-    // 不引入 chrono：粗略给 "yyyy-mm-dd" 格式（仅看相对天数太麻烦，先给 Unix 日期段）
-    let days_since_epoch = unix_secs / 86400;
-    // 这里只显示 epoch 编号占位，UI 用得到详细日期时再换 chrono
-    format!("D-{}", days_since_epoch)
+    // 不引入 chrono：用 Howard Hinnant 的 civil-from-days 算法把 epoch 天数转 YYYY-MM-DD。
+    let days = unix_secs.div_euclid(86400);
+    let (y, m, d) = civil_from_days(days);
+    format!("{:04}-{:02}-{:02}", y, m, d)
+}
+
+/// days = 自 1970-01-01 起的天数（可负）。返回 (year, month, day)。
+/// 取自 Howard Hinnant 的 `civil_from_days`（公有领域算法）。
+fn civil_from_days(days: i64) -> (i64, u32, u32) {
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
+    let doe = z - era * 146_097; // [0, 146096]
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365; // [0, 399]
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100); // [0, 365]
+    let mp = (5 * doy + 2) / 153; // [0, 11]
+    let d = (doy - (153 * mp + 2) / 5 + 1) as u32; // [1, 31]
+    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32; // [1, 12]
+    (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
 fn format_relative(unix_secs: i64) -> String {

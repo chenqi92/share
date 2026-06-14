@@ -24,6 +24,8 @@ pub enum Page {
     Discovery,
     Transfers,
     History,
+    Trust,
+    Clipboard,
     Settings,
 }
 
@@ -111,7 +113,9 @@ fn translate_normal(key: KeyEvent) -> Action {
         KeyCode::F(1) => Action::SwitchPage(Page::Discovery),
         KeyCode::F(2) => Action::SwitchPage(Page::Transfers),
         KeyCode::F(3) => Action::SwitchPage(Page::History),
-        KeyCode::F(4) => Action::SwitchPage(Page::Settings),
+        KeyCode::F(4) => Action::SwitchPage(Page::Trust),
+        KeyCode::F(5) => Action::SwitchPage(Page::Clipboard),
+        KeyCode::F(6) => Action::SwitchPage(Page::Settings),
         KeyCode::Enter | KeyCode::Char('i') => Action::EnterInputText,
         KeyCode::Char(':') => Action::EnterCommand,
         KeyCode::Char('/') => Action::EnterSearch,

@@ -4,6 +4,7 @@
 
 pub mod device;
 pub mod identity;
+pub mod paths;
 pub mod txt;
 pub mod discovery;
 pub mod protocol;

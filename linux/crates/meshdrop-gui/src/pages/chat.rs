@@ -44,8 +44,11 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         .hexpand(true)
         .build();
     composer.append(&entry);
-    composer.append(&icon_btn::icon_btn("📎", "附件", icon_btn::IconBtnTone::Default));
-    composer.append(&icon_btn::icon_btn("📋", "粘贴剪贴板", icon_btn::IconBtnTone::Default));
+    // mono glyph 代替 emoji：⊕ 附件、▤ 粘贴剪贴板（与导航 / TUI glyph 体系一致）。
+    let attach_btn = icon_btn::icon_btn("⊕", "附件 · 选文件发送", icon_btn::IconBtnTone::Default);
+    let paste_btn = icon_btn::icon_btn("▤", "粘贴剪贴板到输入框", icon_btn::IconBtnTone::Default);
+    composer.append(&attach_btn);
+    composer.append(&paste_btn);
     let send_btn = icon_btn::icon_btn("发送", "发送（Enter）", icon_btn::IconBtnTone::Accent);
     composer.append(&send_btn);
     root.append(&composer);
@@ -97,6 +100,38 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             send_btn.connect_clicked(move |_| s());
             let s2 = send_cb.clone();
             entry.connect_activate(move |_| s2());
+
+            // 附件：FileDialog 选文件 → engine.send_file(当前目标设备)。
+            let h_attach = h.clone();
+            let target_attach = target_peer.clone();
+            attach_btn.connect_clicked(move |btn| {
+                let Some(peer) = target_attach.borrow().clone() else {
+                    log::warn!("chat: 没有可发送的目标设备");
+                    return;
+                };
+                let parent = btn.root().and_then(|r| r.downcast::<gtk::Window>().ok());
+                let dialog = gtk::FileDialog::builder().title("选择要发送的文件").build();
+                let h_pick = h_attach.clone();
+                dialog.open(parent.as_ref(), gtk::gio::Cancellable::NONE, move |res| {
+                    if let Ok(file) = res {
+                        if let Some(path) = file.path() {
+                            h_pick.send_file(peer.clone(), path);
+                        }
+                    }
+                });
+            });
+
+            // 粘贴剪贴板：读系统剪贴板文本填入 entry（不自动发送，交用户确认）。
+            let entry_paste = entry.clone();
+            paste_btn.connect_clicked(move |btn| {
+                let clipboard = btn.display().clipboard();
+                let entry_c = entry_paste.clone();
+                clipboard.read_text_async(gtk::gio::Cancellable::NONE, move |res| {
+                    if let Ok(Some(text)) = res {
+                        entry_c.set_text(text.as_str());
+                    }
+                });
+            });
         }
         None => render_mock(&head_holder, &flow, &div.label),
     }
@@ -135,7 +170,7 @@ fn render_real_header(holder: &gtk::Box, h: &Rc<AppHandle>, target: &Rc<RefCell<
             meta.add_css_class("meshdrop-meta");
             col.append(&meta);
             head.append(&col);
-            head.append(&chip::chip_with_dot("E2E · LAN", chip::Tone::Mute, "#A8C800"));
+            head.append(&chip::chip_with_dot("LAN · 明文", chip::Tone::Mute, crate::color::LIME_DEEP));
         }
         None => {
             let lb = gtk::Label::new(Some("没有可对话的设备"));
@@ -164,31 +199,29 @@ fn render_real_messages(flow: &gtk::Box, h: &Rc<AppHandle>, target: &Rc<RefCell<
 }
 
 fn item_bubble(it: &HistoryItem) -> gtk::Box {
+    use msg_bubble::{BubbleBody, BubbleView};
     let side = match it.direction {
         TransferDirection::Outgoing => mock::Dir::Out,
         TransferDirection::Incoming => mock::Dir::In,
     };
-    let body = match &it.kind {
-        HistoryKind::Text(t) => mock::ChatBody::Text(string_to_static(t)),
-        HistoryKind::File { name, size, .. } => mock::ChatBody::File {
-            name: string_to_static(name),
-            size: string_to_static(&meshdrop_core::history::format_bytes(*size)),
-            ext: string_to_static(name.rsplit_once('.').map(|(_, e)| e).unwrap_or("file")),
-        },
-    };
-    let msg = mock::ChatMsg {
-        side,
-        time: string_to_static(&it.created_at.hh_mm_ss()),
-        body,
-        delivered: true,
-    };
-    msg_bubble::bubble(&msg)
-}
-
-// `msg_bubble::bubble` 要 `&'static str` 字段；把 String 永久泄漏成静态串。
-// 数量上聊天历史不会无界增长（用户长会话时仍可接受），如有担心未来可换 Cow。
-fn string_to_static(s: &str) -> &'static str {
-    Box::leak(s.to_string().into_boxed_str())
+    // 这一帧所需的临时 String 在本函数内存活到 bubble_view 调用结束即可，无需 leak。
+    let time = it.created_at.hh_mm_ss();
+    match &it.kind {
+        HistoryKind::Text(t) => {
+            let view = BubbleView { side, time: &time, body: BubbleBody::Text(t), delivered: true };
+            msg_bubble::bubble_view(&view)
+        }
+        HistoryKind::File { name, size, .. } => {
+            let size_str = meshdrop_core::history::format_bytes(*size);
+            let ext = name.rsplit_once('.').map(|(_, e)| e).unwrap_or("file");
+            let view = BubbleView {
+                side, time: &time,
+                body: BubbleBody::File { name, size: &size_str, ext },
+                delivered: true,
+            };
+            msg_bubble::bubble_view(&view)
+        }
+    }
 }
 
 fn count_for_peer(h: &Rc<AppHandle>, peer: &Option<Device>) -> usize {
@@ -215,7 +248,7 @@ fn render_mock(head: &gtk::Box, flow: &gtk::Box, div_label: &gtk::Label) {
     meta.add_css_class("meshdrop-meta");
     col.append(&meta);
     row.append(&col);
-    row.append(&chip::chip_with_dot("E2E · TRUSTED", chip::Tone::Mute, "#A8C800"));
+    row.append(&chip::chip_with_dot("LAN · TRUSTED", chip::Tone::Mute, crate::color::LIME_DEEP));
     head.append(&row);
 
     for msg in mock::chat_with_mengxi() {
