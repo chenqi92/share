@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 import MeshDropKit
+import OSLog
+
+private let log = Logger(subsystem: "com.welape.meshdrop", category: "Gateway")
 
 /// macOS 上 Web Gateway 的启停 + 配对码管理 + 端口持久化。
 /// 包成 `ObservableObject` 直接给 SwiftUI 用。
@@ -34,6 +37,7 @@ final class GatewayService: ObservableObject {
             }
         } catch {
             isRunning = false
+            log.error("WebGateway 启动失败：\(error.localizedDescription, privacy: .public)")
         }
     }
 
