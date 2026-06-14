@@ -6,13 +6,22 @@ struct ChatListTab: View {
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
 
+    /// 去重 / 合并一律按 fingerprint（稳定身份），不按 id。
+    /// 原因：LAN 实时设备的 id = 对端运行时 Identity.id，而历史项落盘重建时 id 用 fp 兜底
+    /// （History.swift），同一台设备这两个 id 永不相等 —— 按 id 去重会让"在线那台"和
+    /// "历史里那台"并列成两行。先放 displayDevices（在线优先胜出），历史项补充离线设备。
+    private func mergeKey(_ device: MockDevice) -> String {
+        device.fingerprint.isEmpty ? device.id : device.fingerprint
+    }
+
     private var devices: [MockDevice] {
         var seen = Set<String>()
         var merged: [MockDevice] = []
 
         func append(_ device: MockDevice) {
-            guard !seen.contains(device.id) else { return }
-            seen.insert(device.id)
+            let key = mergeKey(device)
+            guard !seen.contains(key) else { return }
+            seen.insert(key)
             merged.append(device)
         }
 
@@ -29,7 +38,8 @@ struct ChatListTab: View {
     private var recents: [(device: MockDevice, lastMsg: String?, lastTime: String?, unread: Int)] {
         let history = engine.history
         return devices.map { d in
-            let related = history.first(where: { $0.peer.id == d.id })
+            let key = mergeKey(d)
+            let related = history.first(where: { $0.peer.fingerprint == key })
             return (d, ChatListTab.previewLine(related),
                     related.map { HistoryItem.timeFormatter.string(from: $0.createdAt) },
                     engine.unreadByPeer[d.id] ?? 0)

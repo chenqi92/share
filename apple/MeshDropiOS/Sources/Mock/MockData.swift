@@ -15,6 +15,10 @@ public enum MockDeviceKind: String, CaseIterable, Sendable {
 
 public struct MockDevice: Identifiable, Hashable, Sendable {
     public let id: String
+    /// 设备的密码学指纹（稳定身份锚点）。`id` 是对端 mDNS 广告里的运行时 Identity.id，
+    /// 历史项重建时却用 fp 兜底当 id（见 History.swift），两者命名空间不同 —— 所以
+    /// 列表去重 / 合并历史一律按 fingerprint，而非易变的 id。默认空串用于占位卡片。
+    public var fingerprint: String = ""
     public let name: String
     public let who: String           // 中文姓名
     public let kind: MockDeviceKind

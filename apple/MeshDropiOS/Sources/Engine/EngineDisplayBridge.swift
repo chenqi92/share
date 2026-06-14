@@ -14,6 +14,7 @@ extension Device {
         let bucket = Self.bucket(id)
         return MockDevice(
             id: id,
+            fingerprint: fingerprint,
             name: model ?? name,
             who: name,
             kind: Self.mapKind(os),
