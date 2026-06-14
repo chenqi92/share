@@ -58,7 +58,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
 
     let lines = vec![
         keyrow(theme, "j  k  ↑↓",     &t!("help.k_move")),
-        keyrow(theme, "Tab",          &t!("help.k_focus")),
+        keyrow(theme, "h  l",         &t!("help.k_focus")),
         keyrow(theme, "Enter  i",     &t!("help.k_input")),
         keyrow(theme, ":",            &t!("help.k_command")),
         keyrow(theme, "/",            &t!("help.k_filter")),
@@ -66,7 +66,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
         keyrow(theme, "d  c",         &t!("help.k_history")),
         keyrow(theme, "x",            &t!("help.k_cancel")),
         keyrow(theme, "R",            &t!("help.k_retry")),
-        keyrow(theme, "F1..F6",       &t!("help.k_pages")),
+        keyrow(theme, "1..6 Tab [ ]", &t!("help.k_pages")),
         keyrow(theme, "p",            &t!("help.k_demo_pairing")),
         keyrow(theme, "o",            &t!("help.k_demo_offer")),
         keyrow(theme, "?",            &t!("help.k_help")),

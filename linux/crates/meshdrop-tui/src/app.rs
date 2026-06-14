@@ -699,6 +699,14 @@ fn apply(app: &mut App, action: Action) {
             app.page = p;
             app.focus = focus_for_page(p);
         }
+        Action::NextPage => {
+            app.page = app.page.next();
+            app.focus = focus_for_page(app.page);
+        }
+        Action::PrevPage => {
+            app.page = app.page.prev();
+            app.focus = focus_for_page(app.page);
+        }
         Action::EnterInputText => {
             if app.selected_device_id().is_some() {
                 app.mode = Mode::InputText;

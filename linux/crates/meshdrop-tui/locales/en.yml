@@ -65,7 +65,7 @@ radar:
   subtitle: "Radar"
 
 input:
-  ready_hint: "↑↓ select  ·  Enter send text  ·  : command  ·  / search  ·  ? help  ·  q quit"
+  ready_hint: "↑↓ select  ·  Tab/1-6 pages  ·  Enter send text  ·  : command  ·  / search  ·  ? help  ·  q quit"
   text_title: " INPUT  ·  send to %{name}  ·  Enter send  ·  Esc cancel "
   command_title: " COMMAND  ·  :q quit  ·  :f <path> file  ·  :set k=v "
   search_title: " SEARCH  ·  filter devices  ·  Esc close "
@@ -91,7 +91,7 @@ help:
   tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
   keybindings_divider: "KEYBINDINGS · 按键"
   k_move: "Move up / down within the focused pane"
-  k_focus: "Switch focus (devices ↔ history)"
+  k_focus: "Switch focus (devices ↔ history ↔ transfers)"
   k_input: "Enter text input mode (send to selected device)"
   k_command: "Command mode (:f <path> · :set k=v · :q · :trust · :revoke)"
   k_filter: "Filter devices"
@@ -99,7 +99,7 @@ help:
   k_history: "Delete selected history / clear history"
   k_cancel: "Cancel selected in-progress transfer (Transfers focus only)"
   k_retry: "Retry selected failed send (Transfers focus only)"
-  k_pages: "Switch pages: Discovery · Transfers · History · Trust · Clipboard · Settings"
+  k_pages: "Switch pages (1-6 jump / Tab·] next / Shift-Tab·[ prev / F1-F6)"
   k_demo_pairing: "Show pairing demo modal"
   k_demo_offer: "Show file offer demo modal"
   k_help: "Open / close this help"

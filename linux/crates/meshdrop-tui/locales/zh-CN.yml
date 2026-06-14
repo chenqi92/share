@@ -76,7 +76,7 @@ radar:
 
 # ─── 底部输入条 ───
 input:
-  ready_hint: "↑↓ 选择  ·  Enter 发文本  ·  : 命令  ·  / 搜索  ·  ? 帮助  ·  q 退出"
+  ready_hint: "↑↓ 选择  ·  Tab/1-6 切页  ·  Enter 发文本  ·  : 命令  ·  / 搜索  ·  ? 帮助  ·  q 退出"
   text_title: " INPUT  ·  发送给 %{name}  ·  Enter 发  ·  Esc 取消 "
   command_title: " COMMAND  ·  :q 退出  ·  :f <path> 文件  ·  :set k=v "
   search_title: " SEARCH  ·  过滤设备  ·  Esc 关闭 "
@@ -104,7 +104,7 @@ help:
   tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
   keybindings_divider: "KEYBINDINGS · 按键"
   k_move: "在焦点区上下移动"
-  k_focus: "切换焦点（设备 ↔ 历史）"
+  k_focus: "切换焦点（设备 ↔ 历史 ↔ 传输）"
   k_input: "进入文本输入模式（发给选中设备）"
   k_command: "命令模式（:f <path> · :set k=v · :q · :trust · :revoke）"
   k_filter: "设备过滤"
@@ -112,7 +112,7 @@ help:
   k_history: "删除选中历史 / 清空历史"
   k_cancel: "取消选中进行中传输（仅 Transfers 焦点）"
   k_retry: "重发选中失败发送项（仅 Transfers 焦点）"
-  k_pages: "切换页：发现 · 传输 · 历史 · 信任 · 剪贴板 · 设置"
+  k_pages: "切换页（1-6 直达 / Tab·] 下一页 / Shift-Tab·[ 上一页 / F1-F6）"
   k_demo_pairing: "弹配对 demo 模态"
   k_demo_offer: "弹文件 offer demo 模态"
   k_help: "打开 / 关闭本帮助"
