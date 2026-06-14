@@ -13,6 +13,8 @@ struct MeTab: View {
         return engine.history.filter { cal.isDateInToday($0.createdAt) }.count
     }
     private var trustedCount: Int { engine.trusted.count }
+    /// 来自 Share Extension、还没选目标的待发项数量（点「稍后」后用于再次进入）。
+    private var pendingShareCount: Int { PendingShareQueue.shared.unresolvedItems().count }
 
     var body: some View {
         ZStack {
@@ -102,11 +104,18 @@ struct MeTab: View {
             actionTile("快速上手", "sparkles",
                        detail: "3 步介绍") { state.showOnboarding = true }
             actionTile("设置", "gearshape",
-                       detail: "可见性 / 加密") { state.showSettings = true }
+                       detail: "可见性 / 身份") { state.showSettings = true }
             actionTile("Share 预览", "square.and.arrow.up",
                        detail: "系统分享入口") { state.showShareExt = true }
             actionTile("实时活动", "clock.badge",
                        detail: "锁屏进度") { state.showLiveActivity = true }
+            if pendingShareCount > 0 {
+                actionTile("待发分享", "tray.and.arrow.up",
+                           detail: "\(pendingShareCount) 项待选目标") {
+                    state.pendingShares = PendingShareQueue.shared.unresolvedItems()
+                    state.showPendingShareResolver = true
+                }
+            }
         }
     }
 

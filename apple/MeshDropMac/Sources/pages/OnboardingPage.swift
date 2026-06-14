@@ -53,7 +53,7 @@ struct OnboardingPage: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         feature("●", "雷达式自动发现局域网内设备",  MeshDropColor.limeDeep)
-                        feature("●", "端到端加密 · X25519 + ChaCha20", MeshDropColor.flame)
+                        feature("●", "Ed25519 身份指纹 · 目视核对",   MeshDropColor.flame)
                         feature("●", "剪贴板跨设备同步 · 仅本人",     MeshDropColor.sky)
                         feature("●", "常驻菜单栏 · ⌥⇧S 一键发送",     MeshDropColor.ink)
                     }

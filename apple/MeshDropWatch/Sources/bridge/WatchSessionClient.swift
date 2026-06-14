@@ -100,22 +100,25 @@ final class WatchSessionClient: NSObject {
         }
     }
 
-    /// 传文件：metadata 里放 peerId + name + 命令 id。
-    /// iPhone 端按 metadata 决定路由到哪个 peer。
+    /// 传文件：metadata 里放 `ref`（裸 token）+ peerId + name。
+    /// iPhone 端 didReceive 按 `ref` 落盘到 Caches/com.welape.meshdrop.watchbridge/<ref>，
+    /// 待随后到达的 `send_file_ref` 命令（payload.fileRef 同 ref）凭 ref 取文件 + peerId 交 ShareEngine。
+    /// 见 companion-bridges.md §4.1。返回本次 transfer 用的 ref，供调用方发命令时复用。
     @discardableResult
-    func transferFile(at url: URL, peerId: String, name: String) throws -> WCSessionFileTransfer {
+    func transferFile(at url: URL, peerId: String, name: String) throws -> String {
         guard let session, session.activationState == .activated else {
             throw BridgeError.sessionUnsupported
         }
-        let cmdId = "cmd-" + UUID().uuidString.lowercased()
+        let ref = "ref-" + UUID().uuidString.lowercased()
         let metadata: [String: Any] = [
             "v": BridgeProtocol.version,
-            "id": cmdId,
+            "ref": ref,
             "type": BridgeCommandType.sendFileRef.rawValue,
             "peerId": peerId,
             "name": name,
         ]
-        return session.transferFile(url, metadata: metadata)
+        session.transferFile(url, metadata: metadata)
+        return ref
     }
 }
 

@@ -10,8 +10,8 @@ struct OnboardingSheet: View {
          "Discovery.", "同一 Wi-Fi 下，设备 1 秒内互相 ping 到。"),
         ("hand.draw", "拖即发送",
          "Drag to send.", "把文件 / 照片 / 文字直接拖到设备上即可发送。"),
-        ("lock.shield", "端到端加密",
-         "E2E encryption.", "X25519 + ChaCha20-Poly1305，不经过云端。"),
+        ("wifi", "只走局域网",
+         "LAN only.", "数据只在同一 Wi-Fi 内点对点传输，不经过云端。当前为明文（v0.1）。"),
     ]
 
     var body: some View {

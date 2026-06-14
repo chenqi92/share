@@ -1,6 +1,6 @@
 # MeshDropVision · visionOS 端 UI
 
-Vision Pro 上的 MeshDrop 空间 UI。本轮只做 UI（mock 数据驱动），未接 backend。
+Vision Pro 上的 MeshDrop 空间 UI。已接 MeshDropKit `ShareEngine`：`EngineAdapter` 把 live 设备 / 历史 / 传输进度投影到空间视图（见 [Sources/integration/EngineAdapter.swift](Sources/integration/EngineAdapter.swift)、[Sources/MeshDropVisionApp.swift](Sources/MeshDropVisionApp.swift)）。`MockData` 仅供 SwiftUI Preview / 离线截图。
 
 ## 构建
 
@@ -31,7 +31,7 @@ xcodebuild -project MeshDropVision.xcodeproj \
   build
 ```
 
-构建产物：`build/Debug-xrsimulator/MeshDrop.app`
+构建产物：`build/Debug-xrsimulator/MeshDrop.app`（`PRODUCT_NAME=MeshDrop`）
 
 ## 设计要点
 

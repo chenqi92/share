@@ -29,8 +29,12 @@ struct MeshDropWatchApp: App {
 
 /// 顶层 TabView：垂直翻页（Apple Watch 推荐模式，配合表冠）
 struct RootView: View {
-    let initialTab: Int
-    @State private var selection: Int = 0
+    @State private var selection: Int
+
+    init(initialTab: Int) {
+        // 初始 tab 只在视图首次构造时定一次，避免 onAppear 在视图重建时把用户弹回首屏。
+        _selection = State(initialValue: initialTab)
+    }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -43,13 +47,12 @@ struct RootView: View {
             TransferPage()
                 .tag(2)
                 .containerBackground(MD.dink, for: .tabView)
-            ComplicationView()
+            ComplicationPreviewView()
                 .tag(3)
                 .containerBackground(MD.dink, for: .tabView)
         }
         .tabViewStyle(.verticalPage)
         .preferredColorScheme(.dark)
-        .onAppear { selection = initialTab }
     }
 }
 

@@ -95,12 +95,37 @@ extension DeviceOS {
     }
 }
 
-/// 把 `engine.history` 中"进行中"那部分映射到 TransfersPage 的飞行任务模型。
+/// 把 `engine.history` 中"进行中"那部分（外加最近刚完成 / 失败的终态项）映射到
+/// TransfersPage 的飞行任务模型。终态项短暂保留，让用户看到"完成 / 失败"反馈而非任务凭空消失。
 enum LiveTransferMapper {
 
-    static func inFlight(from history: [HistoryItem], selfName: String) -> [MockData.InFlightTransfer] {
+    /// 终态项保留窗口：完成 / 失败后 N 秒内仍展示。
+    static let terminalRetention: TimeInterval = 6
+
+    static func inFlight(from history: [HistoryItem],
+                         selfName: String,
+                         now: Date = Date()) -> [MockData.InFlightTransfer] {
         history.compactMap { item -> MockData.InFlightTransfer? in
-            guard case .transferring(let done, let total) = item.status, total > 0 else { return nil }
+            // 进行中：始终展示；终态（完成 / 失败）：仅保留窗口内的。取消项不展示。
+            let state: MockData.InFlightTransfer.State
+            let progress: Double
+            switch item.status {
+            case .transferring(let done, let total):
+                guard total > 0 else { return nil }
+                state = .active
+                progress = Double(done) / Double(total)
+            case .completed:
+                guard now.timeIntervalSince(item.createdAt) <= terminalRetention else { return nil }
+                state = .completed
+                progress = 1.0
+            case .failed:
+                guard now.timeIntervalSince(item.createdAt) <= terminalRetention else { return nil }
+                state = .failed
+                progress = item.status.progressFraction
+            default:
+                return nil
+            }
+
             let name: String
             let ext: String
             let size: String
@@ -114,7 +139,6 @@ enum LiveTransferMapper {
                 ext = (fileName as NSString).pathExtension
                 size = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
             }
-            let progress = Double(done) / Double(total)
             let direction: MockData.InFlightTransfer.Direction =
                 item.direction == .outgoing ? .outgoing : .incoming
             let fromId = direction == .outgoing ? "me"        : item.peer.id
@@ -129,7 +153,8 @@ enum LiveTransferMapper {
                 progress: progress,
                 speed: "…",
                 eta: "…",
-                direction: direction
+                direction: direction,
+                state: state
             )
         }
     }

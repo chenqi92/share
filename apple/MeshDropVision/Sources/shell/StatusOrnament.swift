@@ -1,7 +1,7 @@
 import SwiftUI
 import MeshDropKit
 
-/// 主窗口顶部 ornament：身份 + 网络 + 指纹缩写 + E2E 标识 + scanning pill。
+/// 主窗口顶部 ornament：身份 + 网络 + 指纹缩写 + 传输状态标识 + scanning pill。
 struct StatusOrnament: View {
     @EnvironmentObject private var engine: ShareEngine
     @State private var confirmingReset: Bool = false
@@ -36,8 +36,8 @@ struct StatusOrnament: View {
                 Chip(text: "ERR · \(err.prefix(28))",
                      tone: .flame, mono: true, leadingDot: MD.flame)
             }
-            Chip(text: "E2E · CHACHA20", tone: .outline, mono: true)
-            Chip(text: "LAN ONLY", tone: .outline, mono: true)
+            Chip(text: "LAN · 明文", tone: .outline, mono: true)
+            Chip(text: "v0.1", tone: .outline, mono: true)
 
             Spacer().frame(width: 8)
 

@@ -312,7 +312,6 @@ struct DiscoverTab: View {
 
     private var statusBar: some View {
         HStack(spacing: 8) {
-            Chip("E2E", tone: .outline, mono: true, uppercased: true)
             Chip("LAN ONLY", tone: .outline, mono: true, uppercased: true)
             Chip(engine.isStarting ? "扫描中" : "可见",
                  tone: .lime,

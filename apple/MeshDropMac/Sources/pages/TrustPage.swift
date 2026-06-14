@@ -16,7 +16,7 @@ struct TrustPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
-                    Chip(text: "X25519 · E2E", tone: .lime, mono: true)
+                    Chip(text: "Ed25519 指纹", tone: .lime, mono: true)
                     Chip(text: "+ 配对新设备 ⌥⇧P", tone: .outline, mono: false)
                 }
                 Text("已与本机配对的设备会在此显示。指纹（fingerprint）应与对端目视核对一致才能信任。")
@@ -64,7 +64,7 @@ struct TrustPage: View {
     private var tableHeader: some View {
         HStack(spacing: 0) {
             cell("设备 · DEVICE", width: 240)
-            cell("指纹 · FINGERPRINT (X25519)", width: 280)
+            cell("指纹 · FINGERPRINT (Ed25519)", width: 280)
             cell("配对日期",                    width: 110)
             cell("最近在线",                    width: 110)
             cell("",                            width: 100)

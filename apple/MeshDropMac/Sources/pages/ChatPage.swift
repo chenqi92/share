@@ -56,7 +56,8 @@ struct ChatPage: View {
                         Text("\(dev.rtt)ms").font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
                     }
                     Text("·").foregroundStyle(MeshDropColor.textMuted)
-                    Text("E2E").meshTag().foregroundStyle(MeshDropColor.limeDeep)
+                    // v0.1 明文 LAN，不宣称 E2E。
+                    Text("LAN").meshTag().foregroundStyle(MeshDropColor.textMuted)
                 }
             }
             Spacer()

@@ -89,7 +89,7 @@ struct ReceiveCardScreen: View {
                             .foregroundStyle(MD.dpaper.opacity(0.55))
                     }
                     Spacer()
-                    Chip(text: "● E2E", tone: .lime, mono: true)
+                    Chip(text: "● LAN", tone: .lime, mono: true)
                 }
 
                 // 占位预览（协议 v1 不传 thumbnail）
@@ -122,7 +122,7 @@ struct ReceiveCardScreen: View {
                     Chip(text: ext.isEmpty ? "FILE" : ext, tone: .outline, mono: true)
                     Chip(text: offer.formattedSize, tone: .outline, mono: true)
                     Spacer()
-                    Text("已加密 · 待你接收")
+                    Text("已校验 · 待你接收")
                         .font(MDFont.micro)
                         .foregroundStyle(MD.dpaper.opacity(0.55))
                 }

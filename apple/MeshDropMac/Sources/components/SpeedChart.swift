@@ -23,16 +23,27 @@ struct SpeedChart: View {
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             GeometryReader { geo in
-                let maxV = max(CGFloat(bars.max() ?? 1), 1)
-                let barW = (geo.size.width - CGFloat(bars.count - 1) * 3) / CGFloat(bars.count)
-                HStack(alignment: .bottom, spacing: 3) {
-                    ForEach(Array(bars.enumerated()), id: \.offset) { _, v in
-                        Capsule()
-                            .fill(color)
-                            .frame(width: barW, height: max(2, geo.size.height * CGFloat(v) / maxV))
+                if bars.isEmpty {
+                    // 无实时采样时渲染空态基线，不回退到假数据。
+                    HStack {
+                        Text("暂无数据 · NO DATA")
+                            .font(MeshDropFont.mono(size: 10))
+                            .foregroundStyle(MeshDropColor.textMuted)
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+                } else {
+                    let maxV = max(CGFloat(bars.max() ?? 1), 1)
+                    let barW = (geo.size.width - CGFloat(bars.count - 1) * 3) / CGFloat(bars.count)
+                    HStack(alignment: .bottom, spacing: 3) {
+                        ForEach(Array(bars.enumerated()), id: \.offset) { _, v in
+                            Capsule()
+                                .fill(color)
+                                .frame(width: barW, height: max(2, geo.size.height * CGFloat(v) / maxV))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .bottomLeading)
                 }
-                .frame(maxWidth: .infinity, alignment: .bottomLeading)
             }
             .frame(height: 56)
         }

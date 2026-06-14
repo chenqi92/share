@@ -16,9 +16,10 @@ private let log = Logger(subsystem: "com.welape.meshdrop", category: "LiveActivi
 /// - 进度 / 速率变化 → `activity.update(...)`（节流 ≥0.5s）
 /// - 进入 `.completed` / `.failed` / `.canceled` → `activity.end(...)`
 ///
-/// 需要用户在 Xcode 配置（见文件 LiveActivityREADME 注释 / 返回说明）：
-/// - 主 app Info.plist 加 `NSSupportsLiveActivities = YES`
-/// - 新建 Widget Extension target，把 MeshDropTransferActivityAttributes 共享给它
+/// target / 配置现状（已落地于 MeshDropiOS/project.yml，无需手动建）：
+/// - 主 app Info.plist 已带 `NSSupportsLiveActivities = true`
+/// - MeshDropWidgets（Widget Extension）由 project.yml 定义、xcodegen 生成，
+///   与主 app 共享 MeshDropTransferActivityAttributes 类型
 ///
 /// ActivityKit 不可用（< iOS 16.1 或非 iOS）时，本类所有方法 no-op，不影响其它功能。
 @MainActor

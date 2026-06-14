@@ -53,6 +53,18 @@ public final class WebGateway: @unchecked Sendable {
     private var sessions: [String: Date] = [:]
     private var pairingCodeIssuedAt: Date = .distantPast
     private let lock = NSLock()
+
+    /// 配对码暴力破解防护：按来源 IP 记失败计数 + 锁定截止时间。
+    private struct PairAttempt {
+        var failures: Int = 0
+        var lockedUntil: Date = .distantPast
+    }
+    private var pairAttempts: [String: PairAttempt] = [:]
+    /// 连续失败这么多次后开始锁定。
+    private static let pairLockThreshold = 5
+    /// 锁定基准时长（指数退避：base * 2^(failures - threshold)，封顶 maxPairLock）。
+    private static let pairLockBase: TimeInterval = 30
+    private static let pairMaxPairLock: TimeInterval = 15 * 60
     /// 活跃 WS 连接：每个对应一对 (NWConnection, send 回调)。
     private var wsClients: [UUID: WSClient] = [:]
 
@@ -78,7 +90,10 @@ public final class WebGateway: @unchecked Sendable {
         let identity = try GatewayCertStore.loadOrCreate()
         let tlsOpts = NWProtocolTLS.Options()
         let secOpts = tlsOpts.securityProtocolOptions
+        // TLS 1.3 ONLY：min 与 max 都钉死在 1.3，拒绝任何 1.2- 降级
+        // （与 Windows/Linux gateway 口径统一，companion-bridges.md §4.3）。
         sec_protocol_options_set_min_tls_protocol_version(secOpts, .TLSv13)
+        sec_protocol_options_set_max_tls_protocol_version(secOpts, .TLSv13)
         if let secIdentity = sec_identity_create(identity) {
             sec_protocol_options_set_local_identity(secOpts, secIdentity)
         } else {
@@ -231,6 +246,18 @@ public final class WebGateway: @unchecked Sendable {
     // MARK: - /api/v1/pair
 
     private func handlePair(_ conn: NWConnection, request: HTTPRequest) {
+        let clientIP = Self.remoteIP(of: conn)
+
+        // 先查该 IP 是否处于锁定窗口内（暴力破解防护）。
+        if let retryAfter = pairLockoutRemaining(ip: clientIP) {
+            respond(conn, status: 429,
+                    body: Data(#"{"ok":false,"error":"too_many_attempts"}"#.utf8),
+                    contentType: "application/json",
+                    extraHeaders: ["Retry-After": String(Int(retryAfter.rounded(.up)))],
+                    close: true)
+            return
+        }
+
         let lenHeader = request.headers["content-length"] ?? "0"
         guard let len = Int(lenHeader), len > 0, len < 4096 else {
             respond(conn, status: 400,
@@ -240,11 +267,13 @@ public final class WebGateway: @unchecked Sendable {
         }
         readBody(conn, expected: len, accumulated: request.bodyTail) { [weak self] body in
             guard let self else { return }
-            let code = Self.extractPairCode(body: body)
+            let code = Self.extractPairCode(body: body).uppercased()
             self.lock.lock()
-            let ok = code.uppercased() == self.pairingCode
+            // 恒定时间比较：避免按比较位置泄露配对码的时序侧信道。
+            let ok = Self.constantTimeEquals(code, self.pairingCode)
             self.lock.unlock()
             if ok {
+                self.recordPairSuccess(ip: clientIP)
                 let token = Self.newSessionToken()
                 self.lock.lock()
                 self.sessions[token] = Date(timeIntervalSinceNow: self.config.sessionTTL)
@@ -257,12 +286,73 @@ public final class WebGateway: @unchecked Sendable {
                              extraHeaders: ["Set-Cookie": cookie],
                              close: true)
             } else {
+                self.recordPairFailure(ip: clientIP)
                 self.respond(conn, status: 401,
                              body: Data(#"{"ok":false,"error":"invalid_code"}"#.utf8),
                              contentType: "application/json",
                              close: true)
             }
         }
+    }
+
+    // MARK: - 配对码暴力破解防护
+
+    /// 返回该 IP 当前剩余的锁定秒数；未锁定返回 nil。顺便清理已过期条目。
+    private func pairLockoutRemaining(ip: String) -> TimeInterval? {
+        lock.lock(); defer { lock.unlock() }
+        guard let a = pairAttempts[ip] else { return nil }
+        let remaining = a.lockedUntil.timeIntervalSinceNow
+        return remaining > 0 ? remaining : nil
+    }
+
+    private func recordPairFailure(ip: String) {
+        lock.lock(); defer { lock.unlock() }
+        var a = pairAttempts[ip] ?? PairAttempt()
+        a.failures += 1
+        if a.failures >= Self.pairLockThreshold {
+            // 指数退避：30s, 60s, 120s … 封顶 15min。
+            let over = a.failures - Self.pairLockThreshold
+            let backoff = min(Self.pairLockBase * pow(2, Double(over)), Self.pairMaxPairLock)
+            a.lockedUntil = Date(timeIntervalSinceNow: backoff)
+        }
+        pairAttempts[ip] = a
+    }
+
+    private func recordPairSuccess(ip: String) {
+        lock.lock(); defer { lock.unlock() }
+        pairAttempts.removeValue(forKey: ip)
+    }
+
+    /// 从 NWConnection 取来源 IP（去端口）。取不到时用占位 key，仍能做全局限速兜底。
+    private static func remoteIP(of conn: NWConnection) -> String {
+        let endpoint = conn.currentPath?.remoteEndpoint ?? conn.endpoint
+        switch endpoint {
+        case .hostPort(let host, _):
+            switch host {
+            case .ipv4(let addr): return "\(addr)"
+            case .ipv6(let addr): return "\(addr)"
+            case .name(let name, _): return name
+            @unknown default: return String(describing: host)
+            }
+        default:
+            return "unknown"
+        }
+    }
+
+    /// 恒定时间字符串比较（按 UTF-8 字节）：长度不同也跑满较长一侧，避免提前返回泄露信息。
+    static func constantTimeEquals(_ lhs: String, _ rhs: String) -> Bool {
+        let a = Array(lhs.utf8)
+        let b = Array(rhs.utf8)
+        var diff = UInt8(a.count == b.count ? 0 : 1)
+        let n = max(a.count, b.count)
+        var i = 0
+        while i < n {
+            let x = i < a.count ? a[i] : 0
+            let y = i < b.count ? b[i] : 0
+            diff |= (x ^ y)
+            i += 1
+        }
+        return diff == 0
     }
 
     /// 兼容 `application/json {code:"..."}` 与 `application/x-www-form-urlencoded code=...`
@@ -567,10 +657,38 @@ public final class WebGateway: @unchecked Sendable {
             .appendingPathComponent("MeshDrop", isDirectory: true)
             .appendingPathComponent("uploads", isDirectory: true)
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        let safeName = part.filename.isEmpty ? "upload-\(UUID().uuidString)" : part.filename
+        // 文件名由客户端控制，绝不直接拼路径：剥到最后一段并剔除分隔符 / .. / 控制字符，
+        // 永远落盘到 uploads 目录下（UUID 前缀防重名 + 防覆盖）。
+        let safeName = Self.sanitizedUploadName(part.filename)
         let target = dir.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
+
+        // 纵深校验：canonicalize 后必须仍在 uploads 目录前缀内，否则拒绝写入。
+        let uploadsRoot = dir.standardizedFileURL.path
+        let standardized = target.standardizedFileURL.path
+        let rootWithSep = uploadsRoot.hasSuffix("/") ? uploadsRoot : uploadsRoot + "/"
+        guard standardized.hasPrefix(rootWithSep) else {
+            throw MultipartParser.ParseError.malformed
+        }
         try part.body.write(to: target)
         return target.path
+    }
+
+    /// 把客户端给的文件名安全化为单个路径段：
+    /// 取 last path component → 剥 `/` `\` 与 NUL/控制字符 → 去掉 `..`/纯点 → 空则给 UUID。
+    static func sanitizedUploadName(_ raw: String) -> String {
+        // 先把 `\` 视作分隔符（Windows 客户端可能用反斜杠），再取最后一段。
+        let unified = raw.replacingOccurrences(of: "\\", with: "/")
+        var name = (unified as NSString).lastPathComponent
+        // 剔除剩余的分隔符与控制字符（含 NUL、换行、制表）。
+        name = String(name.unicodeScalars.filter { scalar in
+            scalar != "/" && scalar != "\\" && !(scalar.value < 0x20) && scalar.value != 0x7F
+        })
+        name = name.trimmingCharacters(in: .whitespaces)
+        // `.` / `..` / 空 → 用随机名兜底，杜绝目录引用。
+        if name.isEmpty || name == "." || name == ".." {
+            return "upload-\(UUID().uuidString)"
+        }
+        return name
     }
 
     // MARK: - body 累积

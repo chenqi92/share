@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// 常驻菜单栏 dropdown · drop target + Nearby + 6 项快捷操作。
 struct MenuBarDropdown: View {
@@ -30,7 +31,8 @@ struct MenuBarDropdown: View {
             MeshDropLockup(size: 18)
             Spacer()
             Chip(text: "LAN", tone: .lime, mono: true)
-            Chip(text: "E2E", tone: .outline, mono: true)
+            // v0.1 明文传输，不宣称 E2E/加密。
+            Chip(text: "明文 · v0.1", tone: .outline, mono: true)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -96,33 +98,44 @@ struct MenuBarDropdown: View {
 
     private var actions: some View {
         VStack(spacing: 0) {
-            actionRow("快速发送 · Quick send",   "⌥⇧S", "paperplane")
-            actionRow("剪贴板历史",               "⌥⇧V", "doc.on.clipboard")
-            actionRow("配对新设备",               "⌥⇧P", "person.2.badge.key")
-            actionRow("打开 MeshDrop",            "⌥⇧O", "macwindow")
-            actionRow("设置…",                    "⌘,",  "gearshape")
-            actionRow("退出 MeshDrop",            "⌘Q",  "power")
+            actionRow("快速发送 · Quick send", "paperplane") { openMainWindow(tab: .discovery) }
+            actionRow("剪贴板历史", "doc.on.clipboard") { openMainWindow(tab: .clipboard) }
+            actionRow("配对新设备", "person.2.badge.key") { openMainWindow(tab: .pairing) }
+            actionRow("打开 MeshDrop", "macwindow") { openMainWindow(tab: nil) }
+            actionRow("设置…", "gearshape") { openMainWindow(tab: .settings) }
+            actionRow("退出 MeshDrop", "power") { NSApp.terminate(nil) }
         }
         .padding(.vertical, 6)
     }
 
+    /// 把主窗口带到前台，并可选地切换到指定 tab。
+    private func openMainWindow(tab: MainTab?) {
+        if let tab { state.tab = tab }
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.windows.first(where: { $0.canBecomeMain })?.makeKeyAndOrderFront(nil)
+    }
+
     @ViewBuilder
-    private func actionRow(_ text: String, _ shortcut: String, _ icon: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.system(size: 11))
-                .frame(width: 16)
-                .foregroundStyle(MeshDropColor.textSecondary)
-            Text(text)
-                .font(MeshDropFont.body(size: 12))
-                .foregroundStyle(MeshDropColor.textPrimary)
-            Spacer()
-            Text(shortcut)
-                .font(MeshDropFont.mono(size: 10))
-                .foregroundStyle(MeshDropColor.textMuted)
+    private func actionRow(_ text: String, _ icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .frame(width: 16)
+                    .foregroundStyle(MeshDropColor.textSecondary)
+                Text(text)
+                    .font(MeshDropFont.body(size: 12))
+                    .foregroundStyle(MeshDropColor.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.textMuted)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 6)
+        .buttonStyle(.plain)
     }
 
     private var footer: some View {

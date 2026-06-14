@@ -1,20 +1,17 @@
 //
 //  MeshDropWidgetBundle.swift
-//  MeshDropWidgets  (Widget Extension target — 需用户在 Xcode 手动新建)
+//  MeshDropWidgets  (Widget Extension target — 由 project.yml 定义、xcodegen 生成)
 //
 //  这是 iOS Widget Extension 的入口。包含：
 //  - 传输进度 Live Activity（ActivityConfiguration + 灵动岛）
 //
-//  ⚠️ 用户需在 Xcode 手动操作（命令行 swift build 不会编译此 target）：
-//  1. File ▸ New ▸ Target ▸ Widget Extension，命名 "MeshDropWidgets"
-//     - 勾选 "Include Live Activity"
-//  2. 把本目录下的 MeshDropWidgetBundle.swift / MeshDropLiveActivityWidget.swift 加入该 target
-//  3. 把 MeshDropKit 里的 LiveActivityAttributes.swift 同时加入该 target 的 membership
-//     （或让 widget target 依赖 MeshDropKit framework / 引用同一文件），保证两端是同一份
-//     MeshDropTransferActivityAttributes 类型。
-//  4. 主 app target 的 Info.plist 加 `NSSupportsLiveActivities = YES`
-//  5. 若 widget UI 用到 MeshDropColor / MeshDropFont，需把对应主题文件也加入 widget target
-//     的 membership，或在 widget 内自带一份简化配色（本文件已用系统色，避免强耦合）。
+//  target 配置现状（已落地，无需手动建）：
+//  - MeshDropWidgets target 在 MeshDropiOS/project.yml 定义，xcodegen 生成 .xcodeproj 时自动产出
+//  - target 依赖 MeshDropKit package，共享 MeshDropTransferActivityAttributes 类型
+//  - 主 app Info.plist 已带 NSSupportsLiveActivities = true（见 project.yml）
+//  - ActivityKit 已在主 app 侧 LiveActivityManager 接入（Activity.request/update/end）
+//  - widget 配色用自带的 BrandColor 调色板（见 MeshDropLiveActivityWidget.swift），
+//    与 MeshDropColor 等值，避免跨 target 引用 Theme/ 文件
 //
 
 import WidgetKit

@@ -73,11 +73,16 @@ public final class IncomingNotifier {
 
     private func post(title: String, body: String) {
         guard engine.notificationsEnabled else { return }
+        #if os(tvOS)
+        // tvOS 的 UNMutableNotificationContent 不支持 title/body/sound；接收端只在 app 内提示，不发系统通知。
+        _ = (title, body)
+        #else
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = String(body.prefix(140))
         content.sound = .default
         let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(req)
+        #endif
     }
 }

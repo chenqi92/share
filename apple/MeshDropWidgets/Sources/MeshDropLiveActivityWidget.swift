@@ -1,17 +1,27 @@
 //
 //  MeshDropLiveActivityWidget.swift
-//  MeshDropWidgets  (Widget Extension target — 需用户在 Xcode 手动新建)
+//  MeshDropWidgets  (Widget Extension target — 由 project.yml 定义、xcodegen 生成)
 //
 //  传输进度 Live Activity 的 UI：锁屏卡片 + 灵动岛（compact / minimal / expanded）。
 //  绑定 MeshDropKit 里共享的 MeshDropTransferActivityAttributes。
 //
-//  本文件用系统色（不依赖主 app 的 MeshDropColor / MeshDropFont），以便加入 widget target
-//  后能独立编译。如需贴近品牌色，把主题文件加入 widget target membership 后替换即可。
+//  配色用品牌 token（见下方 BrandColor）：发送=flame、接收=sky、完成=lime、失败=error。
+//  Widget target 的 source 与主 app 的 Theme/ 不重叠，故在此自带一份与
+//  MeshDropColor 等值的简化调色板，绝不使用系统苹果蓝。
 //
 
 import WidgetKit
 import SwiftUI
 import MeshDropKit
+
+/// Live Activity 专用品牌调色板。值与主 app 的 `MeshDropColor` 保持一致
+/// （ink/paper/lime/flame/sky/error），供 widget target 独立编译用。
+private enum BrandColor {
+    static let lime  = Color(red: 0xDD/255, green: 0xF9/255, blue: 0x4B/255)
+    static let flame = Color(red: 0xFF/255, green: 0x5A/255, blue: 0x2C/255)
+    static let sky   = Color(red: 0x4D/255, green: 0xB8/255, blue: 0xFF/255)
+    static let error = Color(red: 0xC4/255, green: 0x32/255, blue: 0x2B/255)
+}
 
 #if canImport(ActivityKit)
 import ActivityKit
@@ -92,9 +102,9 @@ struct MeshDropLiveActivityWidget: Widget {
 
     private func accent(_ ctx: ActivityViewContext<MeshDropTransferActivityAttributes>) -> Color {
         switch ctx.state.phase {
-        case .completed: return .green
-        case .failed:    return .red
-        case .transferring: return ctx.attributes.isOutgoing ? .orange : .blue
+        case .completed: return BrandColor.lime
+        case .failed:    return BrandColor.error
+        case .transferring: return ctx.attributes.isOutgoing ? BrandColor.flame : BrandColor.sky
         }
     }
 
@@ -133,9 +143,9 @@ private struct LockScreenView: View {
 
     private var accent: Color {
         switch context.state.phase {
-        case .completed: return .green
-        case .failed:    return .red
-        case .transferring: return context.attributes.isOutgoing ? .orange : .blue
+        case .completed: return BrandColor.lime
+        case .failed:    return BrandColor.error
+        case .transferring: return context.attributes.isOutgoing ? BrandColor.flame : BrandColor.sky
         }
     }
 

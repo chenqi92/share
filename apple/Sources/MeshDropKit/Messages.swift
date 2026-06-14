@@ -48,6 +48,9 @@ public struct FileMeta: Codable, Sendable {
     public var name: String
     public var size: UInt64
     public var sha256: String
+    // mime / preview_b64 是 Apple 端在 FILE_OFFER 上的可选扩展字段（规范 messages.md 未正式收录）。
+    // 互通安全：各端默认忽略未知键，不破坏解析。preview_b64 体积受 64 KiB 控制帧上限约束，
+    // 仅对图片生成 480px 缩略图。后续若推广需先写入 protocol/messages.md 并评估帧上限影响。
     public var mime: String?
     public var preview_b64: String?
 }

@@ -10,13 +10,13 @@ struct TransfersPage: View {
                 header
 
                 HStack(alignment: .top, spacing: 14) {
-                    SpeedChart(bars: state.uploadBars.isEmpty ? MockSpeed.uploadBars : state.uploadBars,
+                    SpeedChart(bars: displayBars(state.uploadBars, mock: { MockSpeed.uploadBars }),
                                color: MeshDropColor.flame,
                                title: "上行 · UP",
                                subtitle: Self.formatSpeed(state.currentUploadBps),
                                arrow: "↑")
                         .frame(maxWidth: .infinity)
-                    SpeedChart(bars: state.downloadBars.isEmpty ? MockSpeed.downloadBars : state.downloadBars,
+                    SpeedChart(bars: displayBars(state.downloadBars, mock: { MockSpeed.downloadBars }),
                                color: MeshDropColor.sky,
                                title: "下行 · DOWN",
                                subtitle: Self.formatSpeed(state.currentDownloadBps),
@@ -49,6 +49,17 @@ struct TransfersPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MeshDropColor.background)
+    }
+
+    /// 速度柱状数据源：优先用 engine 实时采样；为空时 release 渲染空态，
+    /// 仅 DEBUG（Preview / 离线截图）回退到 MockSpeed 假序列。
+    private func displayBars(_ live: [Int], mock: () -> [Int]) -> [Int] {
+        if !live.isEmpty { return live }
+        #if DEBUG
+        return mock()
+        #else
+        return []
+        #endif
     }
 
     /// 把 engineHistory 中的文件项投影成 MockTransfer，供 TransferRow 复用。
@@ -229,7 +240,7 @@ struct TransfersPage: View {
                     .foregroundStyle(MeshDropColor.textMuted)
             }
             GeometryReader { geo in
-                let bars = state.sessionBars.isEmpty ? MockSpeed.sessionBars : state.sessionBars
+                let bars = displayBars(state.sessionBars, mock: { MockSpeed.sessionBars })
                 let maxV = max(CGFloat(bars.max() ?? 1), 1)
                 let barW = max(2, (geo.size.width - CGFloat(max(bars.count - 1, 0)) * 2) / CGFloat(max(bars.count, 1)))
                 HStack(alignment: .bottom, spacing: 2) {

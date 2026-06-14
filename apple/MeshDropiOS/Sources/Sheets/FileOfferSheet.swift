@@ -44,7 +44,7 @@ struct FileOfferSheet: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
-                            Chip("E2E", tone: .lime, mono: true, uppercased: true)
+                            Chip("LAN", tone: .outline, mono: true, uppercased: true)
                         }
                     }
                 }

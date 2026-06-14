@@ -186,7 +186,7 @@ struct SettingsPage: View {
                 .font(.system(size: 22, weight: .bold, design: .monospaced))
                 .tracking(1.6)
                 .foregroundStyle(MeshDropColor.lime)
-            Text("加密用 · 不要在直播间念出来")
+            Text("身份校验用 · 当面比对")
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
                 .foregroundStyle(MeshDropColor.dpaperMute)
         }

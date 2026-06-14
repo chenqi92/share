@@ -13,6 +13,10 @@ struct NearbyPage: View {
     @State private var alertText: String = ""
     @State private var alertShown: Bool = false
     @State private var crownValue: Double = 0
+    /// 发送进行中：避免重复派发命令。
+    @State private var isSending: Bool = false
+    /// 待发文本的目标 peer（非 nil 时弹出文本输入 sheet）。
+    @State private var sendTarget: WatchDeviceVM? = nil
 
     private var devices: [WatchDeviceVM] {
         debugDevices ?? proxy.devices.map(WatchDeviceVM.init(bridge:))
@@ -84,19 +88,49 @@ struct NearbyPage: View {
             }
         }
         .alert(alertText, isPresented: $alertShown) { Button("好", role: .cancel) {} }
+        .sheet(item: $sendTarget) { target in
+            SendTextSheet(peerName: target.who) { text in
+                sendTarget = nil
+                send(text: text, to: target)
+            } onCancel: {
+                sendTarget = nil
+            }
+        }
     }
 
     private func handleTap(idx: Int, device d: WatchDeviceVM) {
         guard !isOffline else { return }
         focusIndex = idx
         if selectedIDs.isEmpty {
-            alertText = "已选 · \(d.who)"
+            // 单击未进入多选态：进发文本入口（watch 上发文本最自然，文件靠 iPhone）。
+            WKInterfaceDevice.current().play(.click)
+            sendTarget = d
         } else {
+            // 已有多选：单击切换该项选中状态。
             if selectedIDs.contains(d.id) { selectedIDs.remove(d.id) } else { selectedIDs.insert(d.id) }
-            alertText = "多选 · \(selectedIDs.count) 台"
+            WKInterfaceDevice.current().play(.click)
+            alertText = "多选 · \(selectedIDs.count) 台 · SELECTED"
+            alertShown = true
         }
-        WKInterfaceDevice.current().play(.click)
-        alertShown = true
+    }
+
+    /// 通过桥接把文本发给指定 peer，回调里反馈结果。
+    private func send(text: String, to d: WatchDeviceVM) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !isSending else { return }
+        Task { @MainActor in
+            isSending = true
+            defer { isSending = false }
+            do {
+                try await proxy.sendText(to: d.id, text: trimmed)
+                WKInterfaceDevice.current().play(.success)
+                alertText = "已发送 · SENT · \(d.who)"
+            } catch {
+                WKInterfaceDevice.current().play(.failure)
+                alertText = "发送失败 · \(proxy.lastError ?? error.localizedDescription)"
+            }
+            alertShown = true
+        }
     }
 
     private func handleLongPress(idx: Int, device d: WatchDeviceVM) {
@@ -202,7 +236,7 @@ struct NearbyPage: View {
             Text("↑")
                 .font(MDFont.mono(12, weight: .bold))
                 .foregroundColor(MD.lime)
-            Text("点击发送 · 长按多选")
+            Text("点击发文本 · 长按多选")
                 .font(MDFont.mono(10, weight: .medium))
                 .tracking(1.0)
                 .foregroundColor(MD.dim)
@@ -254,6 +288,62 @@ struct NearbyPage: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(isFocused ? MD.lime : MD.dline, lineWidth: isFocused ? 1.5 : 0.5)
         )
+    }
+}
+
+/// 发文本 sheet：watch 上用系统 TextField（点击进听写 / 涂写 / 表情）输入后发送。
+private struct SendTextSheet: View {
+    let peerName: String
+    let onSend: (String) -> Void
+    let onCancel: () -> Void
+
+    @State private var text: String = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 4) {
+                    Text("发给 · TO")
+                        .font(MDFont.mono(10, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundColor(MD.lime)
+                    Text(peerName)
+                        .font(MDFont.display(14, weight: .semibold))
+                        .foregroundColor(MD.dpaper)
+                        .lineLimit(1)
+                }
+
+                TextField("说点什么…", text: $text)
+                    .font(MDFont.body(14, weight: .regular))
+                    .foregroundColor(MD.dpaper)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(MD.dink2))
+
+                Button {
+                    onSend(text)
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("发送 · SEND")
+                            .font(MDFont.mono(12, weight: .bold))
+                            .tracking(1.2)
+                            .foregroundColor(MD.dink)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(text.trimmingCharacters(in: .whitespaces).isEmpty ? MD.dim : MD.lime))
+                }
+                .buttonStyle(.plain)
+                .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                Button("取消 · CANCEL", role: .cancel, action: onCancel)
+                    .font(MDFont.mono(10, weight: .medium))
+                    .foregroundColor(MD.muted)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .background(MD.dink.ignoresSafeArea())
     }
 }
 

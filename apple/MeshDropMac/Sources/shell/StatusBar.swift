@@ -30,7 +30,8 @@ struct StatusBar: View {
                     .onTapGesture { state.clearError() }
                 Divider().frame(height: 12)
             }
-            Text("E2E · X25519+ChaCha20")
+            // v0.1 LAN 传输为明文 TCP，未启用 TLS —— 状态条诚实标注，不宣称加密。
+            Text("LAN · 明文 · v0.1")
                 .meshTag()
                 .foregroundStyle(MeshDropColor.textSecondary)
             Divider().frame(height: 12)

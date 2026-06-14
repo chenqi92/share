@@ -6,7 +6,7 @@ set -euo pipefail
 
 PHONE=9264128B-FA3D-40EB-BDD7-5AB62831A239
 PAD=41074A56-CF9B-468E-A47B-A0F23EFF5001
-BUNDLE=com.welape.landrop
+BUNDLE=com.welape.meshdrop
 OUT="$(cd "$(dirname "$0")" && pwd)"
 
 snap() {

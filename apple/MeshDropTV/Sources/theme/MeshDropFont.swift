@@ -20,7 +20,7 @@ enum MeshDropFont {
     static func monoTag() -> Font   { .system(size: 14, weight: .bold,    design: .monospaced) }
 }
 
-/// 大写 mono tag 修饰器 —— 用于 ONLINE / E2E / LAN ONLY / READY 等状态字
+/// 大写 mono tag 修饰器 —— 用于 ONLINE / LAN ONLY / READY 等状态字
 extension View {
     func monoTag(_ color: Color = MeshDropColor.dpaperMute) -> some View {
         self

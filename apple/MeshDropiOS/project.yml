@@ -51,7 +51,7 @@ targets:
         ITSAppUsesNonExemptEncryption: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop
         PRODUCT_NAME: MeshDrop
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
@@ -93,7 +93,7 @@ targets:
               NSExtensionActivationSupportsAttachmentsWithMaxCount: 20
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop.share
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.share
         PRODUCT_NAME: MeshDropShareExtension
         PRODUCT_MODULE_NAME: MeshDropShareExtension
         GENERATE_INFOPLIST_FILE: NO
@@ -123,7 +123,7 @@ targets:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop.widgets
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.widgets
         PRODUCT_NAME: MeshDropWidgets
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic

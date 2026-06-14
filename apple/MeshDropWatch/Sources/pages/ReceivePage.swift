@@ -125,7 +125,7 @@ struct ReceivePage: View {
                 .tracking(1.4)
                 .foregroundColor(MD.lime)
             Spacer()
-            MonoTag(text: "E2E", tone: .ink)
+            MonoTag(text: "LAN", tone: .ink)
         }
     }
 

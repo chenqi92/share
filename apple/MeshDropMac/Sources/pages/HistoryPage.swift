@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HistoryPage: View {
     @EnvironmentObject var state: AppState
+    @State private var confirmingClear = false
 
     var body: some View {
         PageScroll {
@@ -16,6 +17,28 @@ struct HistoryPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
+                    if !state.engineHistory.isEmpty {
+                        Button { confirmingClear = true } label: {
+                            Text("清空 · Clear")
+                                .font(MeshDropFont.body(size: 12, weight: .semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(MeshDropColor.error.opacity(0.4), lineWidth: 1)
+                                )
+                                .foregroundStyle(MeshDropColor.error)
+                        }
+                        .buttonStyle(.plain)
+                        .confirmationDialog(
+                            "清空全部历史记录？此操作不可撤销。",
+                            isPresented: $confirmingClear,
+                            titleVisibility: .visible
+                        ) {
+                            Button("清空历史", role: .destructive) { state.clearHistory() }
+                            Button("取消", role: .cancel) {}
+                        }
+                    }
                     Chip(text: "\(state.engineHistory.count) ITEMS", tone: .outline, mono: true)
                 }
 
@@ -118,6 +141,13 @@ struct HistoryPage: View {
                 .fill(MeshDropColor.cardBg)
                 .shadow(color: MeshDropColor.ink06, radius: 2, x: 0, y: 1)
         )
+        .contextMenu {
+            Button(role: .destructive) {
+                state.removeHistoryItem(h.id)
+            } label: {
+                Label("删除这条记录", systemImage: "trash")
+            }
+        }
     }
 
 

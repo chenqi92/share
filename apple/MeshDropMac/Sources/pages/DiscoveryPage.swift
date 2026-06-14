@@ -21,8 +21,8 @@ struct DiscoveryPage: View {
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textMuted)
                         Spacer()
-                        Chip(text: "E2E · X25519", tone: .lime, mono: true)
-                        Chip(text: "LAN ONLY",    tone: .outline, mono: true)
+                        Chip(text: "LAN · 明文 · v0.1", tone: .outline, mono: true)
+                        Chip(text: "LAN ONLY",         tone: .outline, mono: true)
                     }
                     HStack(spacing: 6) {
                         Text("⟳")
@@ -66,10 +66,10 @@ struct DiscoveryPage: View {
                             Text("快速操作")
                                 .font(MeshDropFont.body(size: 11, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            quickAction(text: "复制至所有设备", shortcut: "⌥⇧V")
-                            quickAction(text: "发送文字便签",   shortcut: "⌥⇧N")
-                            quickAction(text: "广播文件",       shortcut: "⌥⇧S")
-                            quickAction(text: "配对新设备",     shortcut: "⌥⇧P")
+                            quickAction(text: "剪贴板同步") { state.tab = .clipboard }
+                            quickAction(text: "发送文字便签") { state.tab = .chat }
+                            quickAction(text: "查看传输") { state.tab = .transfers }
+                            quickAction(text: "配对新设备") { state.tab = .pairing }
                         }
                     }
                     .frame(width: 220)
@@ -190,28 +190,26 @@ struct DiscoveryPage: View {
     }
 
     @ViewBuilder
-    private func quickAction(text: String, shortcut: String) -> some View {
-        HStack {
-            Text(text)
-                .font(MeshDropFont.body(size: 12))
-                .foregroundStyle(MeshDropColor.textPrimary)
-            Spacer()
-            Text(shortcut)
-                .font(MeshDropFont.mono(size: 10))
-                .foregroundStyle(MeshDropColor.textMuted)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(MeshDropColor.divider, lineWidth: 0.5)
-                )
+    private func quickAction(text: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(text)
+                    .font(MeshDropFont.body(size: 12))
+                    .foregroundStyle(MeshDropColor.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(MeshDropColor.textMuted)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(MeshDropColor.cardBg)
+            )
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(MeshDropColor.cardBg)
-        )
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

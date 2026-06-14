@@ -51,30 +51,26 @@ final class WatchSessionController: NSObject, ObservableObject {
     // MARK: - 订阅 engine 状态变化 → 推 watch 事件
 
     private func subscribe(to engine: ShareEngine) {
-        // device 列表变化：发送 device_added / device_removed
-        var lastDevices: [String: WatchBridge.DeviceDTO] = [:]
+        // device 列表变化：发送 device_added / device_updated / device_removed
+        var lastDevices: [String: [String: Any]] = [:]
         engine.$devices
             .sink { [weak self] devices in
                 guard let self else { return }
-                let next = Dictionary(
-                    uniqueKeysWithValues: devices.map { ($0.id, WatchBridge.DeviceDTO(from: $0)) }
-                )
+                var next: [String: [String: Any]] = [:]
+                for d in devices { next[d.id] = Self.deviceDTO(from: d) }
                 // added / updated
                 for (id, dto) in next {
                     if let prev = lastDevices[id] {
-                        if prev != dto {
-                            self.push(event: .init(type: .deviceUpdated,
-                                                   payload: .init(device: dto)))
+                        if !Self.dictEqual(prev, dto) {
+                            self.sendEvent(type: .deviceUpdated, payload: dto)
                         }
                     } else {
-                        self.push(event: .init(type: .deviceAdded,
-                                               payload: .init(device: dto)))
+                        self.sendEvent(type: .deviceAdded, payload: dto)
                     }
                 }
                 // removed
                 for id in lastDevices.keys where next[id] == nil {
-                    self.push(event: .init(type: .deviceRemoved,
-                                           payload: .init(deviceId: id)))
+                    self.sendEvent(type: .deviceRemoved, payload: ["id": id])
                 }
                 lastDevices = next
             }
@@ -87,8 +83,7 @@ final class WatchSessionController: NSObject, ObservableObject {
                 guard let self else { return }
                 for req in reqs where !seenPairings.contains(req.id) {
                     seenPairings.insert(req.id)
-                    self.push(event: .init(type: .pairingPending,
-                                           payload: .init(pairing: .init(from: req))))
+                    self.sendEvent(type: .pairingPending, payload: Self.pairingDTO(from: req))
                 }
             }
             .store(in: &subs)
@@ -100,8 +95,7 @@ final class WatchSessionController: NSObject, ObservableObject {
                 guard let self else { return }
                 for offer in offers where !seenOffers.contains(offer.id) {
                     seenOffers.insert(offer.id)
-                    self.push(event: .init(type: .offerPending,
-                                           payload: .init(offer: .init(from: offer))))
+                    self.sendEvent(type: .offerPending, payload: Self.offerDTO(from: offer))
                 }
             }
             .store(in: &subs)
@@ -117,8 +111,7 @@ final class WatchSessionController: NSObject, ObservableObject {
                 for item in items {
                     if !seenHistory.contains(item.id) {
                         seenHistory.insert(item.id)
-                        self.push(event: .init(type: .historyAdded,
-                                               payload: .init(history: .init(from: item))))
+                        self.sendEvent(type: .historyAdded, payload: Self.historyDTO(from: item))
                     }
                     switch item.status {
                     case .transferring(let done, let total):
@@ -129,23 +122,24 @@ final class WatchSessionController: NSObject, ObservableObject {
                         lastProgressAt[item.id] = now
                         // watch 离线时不发节流事件
                         guard self.isWatchReachable() else { continue }
-                        self.push(event: .init(type: .transferProgress,
-                                               payload: .init(transferId: item.id.uuidString,
-                                                              bytesSent: done,
-                                                              totalBytes: total)))
+                        self.sendEvent(type: .transferProgress, payload: [
+                            "id": item.id.uuidString,
+                            "bytesSent": Int64(done),
+                            "totalBytes": Int64(total),
+                        ])
                     case .completed:
-                        self.push(event: .init(type: .transferDone,
-                                               payload: .init(transferId: item.id.uuidString,
-                                                              ok: true)))
+                        self.sendEvent(type: .transferDone, payload: [
+                            "id": item.id.uuidString, "ok": true,
+                        ])
                         // 入站完成的内容中转给 watch（文本内联 / 文件经 transferFile）。
                         if item.direction == .incoming, !forwardedInbox.contains(item.id) {
                             forwardedInbox.insert(item.id)
                             self.forwardIncomingToWatch(item)
                         }
                     case .failed(let msg):
-                        self.push(event: .init(type: .transferDone,
-                                               payload: .init(transferId: item.id.uuidString,
-                                                              ok: false, error: msg)))
+                        self.sendEvent(type: .transferDone, payload: [
+                            "id": item.id.uuidString, "ok": false, "error": msg,
+                        ])
                     default:
                         break
                     }
@@ -167,16 +161,18 @@ final class WatchSessionController: NSObject, ObservableObject {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
 
+        // inbox_text / inbox_file_ready 的 payload 仍把收件项放在 `inbox` 子键下
+        // （watch 端 ingestInbox 读 payload["inbox"]），与其它 FLAT 事件约定不同，这是有意保留。
         switch item.kind {
         case .text(let content):
-            let inbox = WatchBridge.InboxItemDTO(
-                id: item.id.uuidString,
-                peerName: item.peer.name,
-                kind: "text",
-                text: content,
-                receivedAt: Int64(item.createdAt.timeIntervalSince1970)
-            )
-            push(event: .init(type: .inboxText, payload: .init(inbox: inbox)))
+            let inbox: [String: Any] = [
+                "id": item.id.uuidString,
+                "peerName": item.peer.name,
+                "kind": "text",
+                "text": content,
+                "receivedAt": Int64(item.createdAt.timeIntervalSince1970),
+            ]
+            sendEvent(type: .inboxText, payload: ["inbox": inbox])
 
         case .file(let name, let size, let url):
             guard let fileURL = url, FileManager.default.fileExists(atPath: fileURL.path) else {
@@ -187,16 +183,16 @@ final class WatchSessionController: NSObject, ObservableObject {
             // watch 端展示「请在 iPhone 上查看」。
             let maxWatchFileBytes: UInt64 = 32 * 1024 * 1024
             let ref = item.id.uuidString
-            let inbox = WatchBridge.InboxItemDTO(
-                id: item.id.uuidString,
-                peerName: item.peer.name,
-                kind: "file",
-                fileName: name,
-                sizeBytes: size,
-                fileRef: size <= maxWatchFileBytes ? ref : nil,
-                receivedAt: Int64(item.createdAt.timeIntervalSince1970)
-            )
+            var inbox: [String: Any] = [
+                "id": item.id.uuidString,
+                "peerName": item.peer.name,
+                "kind": "file",
+                "fileName": name,
+                "sizeBytes": size,
+                "receivedAt": Int64(item.createdAt.timeIntervalSince1970),
+            ]
             if size <= maxWatchFileBytes {
+                inbox["fileRef"] = ref
                 let metadata: [String: Any] = [
                     "ref": ref,
                     "kind": "inbox_file",
@@ -206,7 +202,7 @@ final class WatchSessionController: NSObject, ObservableObject {
                 ]
                 session.transferFile(fileURL, metadata: metadata)
             }
-            push(event: .init(type: .inboxFileReady, payload: .init(inbox: inbox)))
+            sendEvent(type: .inboxFileReady, payload: ["inbox": inbox])
         }
     }
 
@@ -221,110 +217,214 @@ final class WatchSessionController: NSObject, ObservableObject {
         return Date().timeIntervalSince(lastReachableAt) < Self.offlineWindow
     }
 
-    // MARK: - 推事件 / 回执（统一封装错误日志）
+    // MARK: - 推事件（FLAT wire 信封，与 watch 端 BridgeEvent 对齐）
 
-    private func push(event: WatchBridge.Event) {
+    /// 直接拼 `{v,id,type,ts,payload}` 字典发送。payload 一律 FLAT（DTO 字段平铺到 payload 顶层，
+    /// 不再嵌 device/offer/pairing/history 子键），与 watch 端 `BridgeCodec.decode(_, fromPayload:)`
+    /// 的解码方式一致。`device_removed`/`transfer_done` 用 `id`（不是 deviceId/transferId）。
+    /// 例外：inbox_text / inbox_file_ready 的 payload 仍带 `inbox` 子键。
+    private func sendEvent(type: WatchBridge.EventType, payload: [String: Any]) {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated, session.isReachable else { return }
-        do {
-            let dict = try WatchBridge.encode(event)
-            session.sendMessage(dict, replyHandler: nil) { err in
-                log.debug("push event \(event.type.rawValue) 失败：\(err.localizedDescription)")
-            }
-        } catch {
-            log.error("encode event 失败：\(error.localizedDescription)")
+        let dict: [String: Any] = [
+            "v": WatchBridge.protocolVersion,
+            "id": UUID().uuidString,
+            "type": type.rawValue,
+            "ts": Int64(Date().timeIntervalSince1970),
+            "payload": payload,
+        ]
+        session.sendMessage(dict, replyHandler: nil) { err in
+            log.debug("push event \(type.rawValue) 失败：\(err.localizedDescription)")
         }
     }
 
     // MARK: - 命令路由（watch → phone）
 
-    fileprivate func handle(command: WatchBridge.Command) async -> WatchBridge.Response {
+    /// 命令处理。回执直接拼 `{v,id,ok,error?,result?}` 字典：result 里的 DTO 也走 FLAT 构造，
+    /// 与 watch 端 `ingestSnapshot` 的解码（`devices/history/pendingOffers/pendingPairings` →
+    /// BridgeDevice/BridgeHistoryItem/BridgeOffer/BridgePairing）对齐。
+    fileprivate func handle(command: WatchBridge.Command) async -> [String: Any] {
         guard let engine else {
-            return WatchBridge.Response(id: command.id, ok: false, error: "engine_not_ready")
+            return Self.ack(id: command.id, ok: false, error: "engine_not_ready")
         }
         switch command.type {
         case .listDevices:
-            return WatchBridge.Response(
-                id: command.id, ok: true,
-                result: .init(devices: engine.devices.map { .init(from: $0) })
-            )
+            return Self.ack(id: command.id, ok: true, result: [
+                "devices": engine.devices.map { Self.deviceDTO(from: $0) },
+            ])
 
         case .getState:
-            return WatchBridge.Response(
-                id: command.id, ok: true,
-                result: .init(
-                    devices: engine.devices.map { .init(from: $0) },
-                    history: engine.history.prefix(50).map { .init(from: $0) },
-                    pendingPairings: engine.pendingPairings.map { .init(from: $0) },
-                    pendingOffers: engine.pendingFileOffers.map { .init(from: $0) }
-                )
-            )
+            return Self.ack(id: command.id, ok: true, result: [
+                "devices": engine.devices.map { Self.deviceDTO(from: $0) },
+                "history": engine.history.prefix(50).map { Self.historyDTO(from: $0) },
+                "pendingPairings": engine.pendingPairings.map { Self.pairingDTO(from: $0) },
+                "pendingOffers": engine.pendingFileOffers.map { Self.offerDTO(from: $0) },
+            ])
 
         case .sendText:
             guard let pid = command.payload?.peerId,
                   let text = command.payload?.text,
                   let peer = engine.devices.first(where: { $0.id == pid }) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "peer_or_text_missing")
+                return Self.ack(id: command.id, ok: false, error: "peer_or_text_missing")
             }
             engine.sendText(to: peer, content: text)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .sendFileRef:
             guard let pid = command.payload?.peerId,
                   let ref = command.payload?.fileRef,
                   let peer = engine.devices.first(where: { $0.id == pid }) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "peer_or_fileref_missing")
+                return Self.ack(id: command.id, ok: false, error: "peer_or_fileref_missing")
             }
-            // watch 在 transferFile 时把文件写到 phone container 的 ref URL，这里按约定从
-            // `Library/Caches/com.welape.meshdrop.watchbridge/<ref>` 读取。
+            // watch 在 transferFile 时把文件写到 phone container 的 ref URL（metadata.ref = 裸 token），
+            // 这里按约定从 `Library/Caches/com.welape.meshdrop.watchbridge/<ref>` 读取。
             let url = Self.fileRefURL(for: ref)
             guard FileManager.default.fileExists(atPath: url.path) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "fileref_not_found")
+                return Self.ack(id: command.id, ok: false, error: "fileref_not_found")
             }
             engine.sendFile(to: peer, sourceURL: url)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .acceptOffer:
             guard let oid = command.payload?.offerId, let uuid = UUID(uuidString: oid) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "offerId_missing")
+                return Self.ack(id: command.id, ok: false, error: "offerId_missing")
             }
             engine.respondToFileOffer(uuid, accept: true)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .rejectOffer:
             guard let oid = command.payload?.offerId, let uuid = UUID(uuidString: oid) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "offerId_missing")
+                return Self.ack(id: command.id, ok: false, error: "offerId_missing")
             }
             engine.respondToFileOffer(uuid, accept: false)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .acceptPairing:
             guard let pid = command.payload?.pairingId, let uuid = UUID(uuidString: pid) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "pairingId_missing")
+                return Self.ack(id: command.id, ok: false, error: "pairingId_missing")
             }
             let trust = command.payload?.trust ?? false
             engine.respondToPairing(uuid, decision: trust ? .trust : .allowOnce)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .rejectPairing:
             guard let pid = command.payload?.pairingId, let uuid = UUID(uuidString: pid) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "pairingId_missing")
+                return Self.ack(id: command.id, ok: false, error: "pairingId_missing")
             }
             engine.respondToPairing(uuid, decision: .reject)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .clearHistory:
             engine.clearHistory()
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
 
         case .deleteHistoryItem:
             guard let iid = command.payload?.itemId, let uuid = UUID(uuidString: iid) else {
-                return WatchBridge.Response(id: command.id, ok: false, error: "itemId_missing")
+                return Self.ack(id: command.id, ok: false, error: "itemId_missing")
             }
             engine.removeHistoryItem(uuid)
-            return WatchBridge.Response(id: command.id, ok: true)
+            return Self.ack(id: command.id, ok: true)
         }
+    }
+
+    // MARK: - 回执 / FLAT DTO 构造（wire schema v=1）
+
+    /// 拼回执字典 `{v,id,ok,error?,result?}`（`id` 同请求）。
+    nonisolated static func ack(id: String, ok: Bool,
+                                error: String? = nil,
+                                result: [String: Any]? = nil) -> [String: Any] {
+        var dict: [String: Any] = [
+            "v": WatchBridge.protocolVersion,
+            "id": id,
+            "ok": ok,
+        ]
+        if let error { dict["error"] = error }
+        if let result { dict["result"] = result }
+        return dict
+    }
+
+    /// Device → FLAT dict（字段集对齐 watch 端 BridgeDevice）。
+    /// `ip` / `busy` phone 侧暂无真实来源，给默认值（""/false）。
+    nonisolated static func deviceDTO(from device: Device) -> [String: Any] {
+        [
+            "id": device.id,
+            "displayName": device.name,
+            "kind": WatchBridge.kindLabel(for: device.os),
+            "model": device.model ?? "",
+            "ip": "",
+            "rttMs": 0,
+            "online": true,
+            "trusted": false,
+            "busy": false,
+        ]
+    }
+
+    /// PairingRequest → FLAT dict（对齐 BridgePairing）。`code` phone 侧无对应概念，给 ""。
+    nonisolated static func pairingDTO(from req: PairingRequest) -> [String: Any] {
+        [
+            "id": req.id.uuidString,
+            "peerName": req.peer.name,
+            "code": "",
+            "fingerprint": req.peer.humanFingerprint,
+            "createdAt": Int64(req.receivedAt.timeIntervalSince1970),
+        ]
+    }
+
+    /// PendingFileOffer → FLAT dict（对齐 BridgeOffer，单文件包成一元 files[]）。
+    nonisolated static func offerDTO(from offer: PendingFileOffer) -> [String: Any] {
+        let file: [String: Any] = [
+            "name": offer.fileName,
+            "sizeBytes": Int64(offer.fileSize),
+            "mime": offer.mime ?? "application/octet-stream",
+        ]
+        return [
+            "id": offer.id.uuidString,
+            "peerId": offer.peer.id,
+            "peerName": offer.peer.name,
+            "kind": "file",
+            "files": [file],
+            "createdAt": Int64(offer.receivedAt.timeIntervalSince1970),
+        ]
+    }
+
+    /// HistoryItem → FLAT dict（对齐 BridgeHistoryItem，文件项用 files[]）。
+    nonisolated static func historyDTO(from item: HistoryItem) -> [String: Any] {
+        let direction = (item.direction == .outgoing) ? "sent" : "received"
+        let ok: Bool
+        if case .completed = item.status { ok = true } else { ok = false }
+        var dict: [String: Any] = [
+            "id": item.id.uuidString,
+            "direction": direction,
+            "peerName": item.peer.name,
+            "ok": ok,
+            "completedAt": Int64(item.createdAt.timeIntervalSince1970),
+        ]
+        switch item.kind {
+        case .text(let content):
+            dict["kind"] = "text"
+            dict["text"] = content
+        case .file(let name, let size, _):
+            var bytes: UInt64 = size
+            if case .transferring(let done, _) = item.status { bytes = done }
+            dict["kind"] = "file"
+            dict["files"] = [[
+                "name": name,
+                "sizeBytes": Int64(size),
+                "mime": "application/octet-stream",
+            ]]
+            dict["bytesTransferred"] = Int64(bytes)
+        }
+        return dict
+    }
+
+    /// 两个 wire dict 是否语义相等（用于 device added vs updated 去抖）。
+    nonisolated static func dictEqual(_ a: [String: Any], _ b: [String: Any]) -> Bool {
+        guard let da = try? JSONSerialization.data(withJSONObject: a, options: [.sortedKeys]),
+              let db = try? JSONSerialization.data(withJSONObject: b, options: [.sortedKeys]) else {
+            return false
+        }
+        return da == db
     }
 
     // MARK: - file ref 落盘约定
@@ -374,10 +474,7 @@ extension WatchSessionController: WCSessionDelegate {
         Task { @MainActor in
             do {
                 let cmd = try WatchBridge.decode(WatchBridge.Command.self, from: message)
-                let resp = await Self.shared.handle(command: cmd)
-                let dict = (try? WatchBridge.encode(resp)) ?? [
-                    "v": WatchBridge.protocolVersion, "id": cmd.id, "ok": false, "error": "encode_failed"
-                ]
+                let dict = await Self.shared.handle(command: cmd)
                 replyHandler(dict)
             } catch {
                 replyHandler([
@@ -396,9 +493,16 @@ extension WatchSessionController: WCSessionDelegate {
     }
 
     /// 大对象通道：watch 端用 transferFile 把文件传到 phone container 后会触发。
+    ///
+    /// 约定（companion-bridges.md §4.1）：watch 的 metadata 里带
+    /// `ref`（裸 token）/`type`/`peerId`/`name`。文件先按 ref 落盘到约定路径；
+    /// 若 metadata 已带 `type == send_file_ref` 且有 `peerId`，则直接路由发送
+    /// （watch 端 transferFile 后不再单发 send_file_ref 命令，故这里兜底直发）。
+    /// 若没带 peerId，则只落盘，等随后的 send_file_ref 命令凭同一 ref 取文件发送。
     nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
         let fm = FileManager.default
-        let ref = file.metadata?["ref"] as? String ?? UUID().uuidString
+        let metadata = file.metadata ?? [:]
+        let ref = metadata["ref"] as? String ?? UUID().uuidString
         let dst = WatchSessionController.fileRefURL(for: ref)
         do {
             if fm.fileExists(atPath: dst.path) {
@@ -408,6 +512,20 @@ extension WatchSessionController: WCSessionDelegate {
             log.info("watch 文件落盘 ref=\(ref)")
         } catch {
             log.error("watch 文件移动失败：\(error.localizedDescription)")
+            return
+        }
+
+        // watch 出站代发：metadata 已带 peerId 时直接路由（不等命令）。
+        if (metadata["type"] as? String) == WatchBridge.CommandType.sendFileRef.rawValue,
+           let peerId = metadata["peerId"] as? String {
+            Task { @MainActor in
+                guard let engine = Self.shared.engine,
+                      let peer = engine.devices.first(where: { $0.id == peerId }) else {
+                    log.error("watch 代发：peerId=\(peerId) 不在当前设备列表，已落盘等命令兜底")
+                    return
+                }
+                engine.sendFile(to: peer, sourceURL: dst)
+            }
         }
     }
 }

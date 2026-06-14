@@ -10,8 +10,8 @@ import UniformTypeIdentifiers
 /// 工作流：
 /// 1. 用户在任意 app 点"分享" → 选择 MeshDrop
 /// 2. 本扩展进程读 NSExtensionContext.inputItems 的 attachments
-/// 3. 文字 / URL 直接 PendingShareQueue.enqueueText；文件 loadFileRepresentation 后 copy 到
-///    App Group 容器再 enqueueFile
+/// 3. 文字 / URL 直接 PendingShareQueue.enqueueText；文件在 loadFileRepresentation 的
+///    completion closure 内、临时 URL 仍有效时同步 copy 到 App Group 容器 staging，再 enqueueFile
 /// 4. 主 app 启动时 PendingShareQueue.drain 把 pending 项一个个发出
 ///
 /// 当前实装将 peerID 暂存为占位 `"_pending_"`，主 app drain 时若找不到匹配 peer 就保留 —— 后续
@@ -82,12 +82,15 @@ final class ShareViewController: SLComposeServiceViewController {
                 return
             }
         }
-        // 文件 / 图片 / 视频 —— loadFileRepresentation 得到临时 URL，extension 进程结束就清理，
-        // PendingShareQueue.enqueueFile 内部已经 copy 到 App Group container 持久化。
+        // 文件 / 图片 / 视频 —— loadFileRepresentation 给的临时 URL 只在 completion closure
+        // 返回前有效，closure 一返回系统就清理。所以必须在 closure 内、URL 仍有效时就把字节
+        // 复制到 App Group container 的 staging 区，再把这个稳定的 staging URL 交给
+        // enqueueFile 落入待发队列。enqueueFile 用后即从 staging 删除，避免重复占用。
         for typeID in [UTType.fileURL.identifier, UTType.image.identifier, UTType.movie.identifier, UTType.data.identifier] {
             if provider.hasItemConformingToTypeIdentifier(typeID) {
-                if let url = await loadFile(provider, typeID: typeID) {
-                    _ = q.enqueueFile(peerID: peer, sourceURL: url)
+                if let staged = await stageFile(provider, typeID: typeID) {
+                    _ = q.enqueueFile(peerID: peer, sourceURL: staged)
+                    try? FileManager.default.removeItem(at: staged)
                     return
                 }
             }
@@ -102,7 +105,11 @@ final class ShareViewController: SLComposeServiceViewController {
         }
     }
 
-    private func loadFile(_ provider: NSItemProvider, typeID: String) async -> URL? {
+    /// 在 `loadFileRepresentation` 的 completion closure 内、临时 URL 仍有效时同步把字节
+    /// 复制到 App Group container 的 staging 区，返回稳定的 staging URL。
+    /// 关键：绝不把临时 URL 透传到 closure 之外再异步用 —— 那样 closure 一返回文件就被清理，
+    /// 会间歇性丢文件（设备越忙、文件越大越易复现）。
+    private func stageFile(_ provider: NSItemProvider, typeID: String) async -> URL? {
         await withCheckedContinuation { cont in
             _ = provider.loadFileRepresentation(forTypeIdentifier: typeID) { url, err in
                 if let err = err {
@@ -110,8 +117,35 @@ final class ShareViewController: SLComposeServiceViewController {
                     cont.resume(returning: nil)
                     return
                 }
-                cont.resume(returning: url)
+                guard let url else {
+                    cont.resume(returning: nil)
+                    return
+                }
+                // URL 此刻仍有效：同步 copy 到 staging，成功后才 resume 返回稳定路径。
+                let staged = self.stageURL(named: url.lastPathComponent)
+                let fm = FileManager.default
+                do {
+                    if fm.fileExists(atPath: staged.path) {
+                        try fm.removeItem(at: staged)
+                    }
+                    try fm.copyItem(at: url, to: staged)
+                    cont.resume(returning: staged)
+                } catch {
+                    self.log.error("staging 复制失败：\(error.localizedDescription)")
+                    cont.resume(returning: nil)
+                }
             }
         }
+    }
+
+    /// App Group container 内的 staging 子目录，用于在临时 URL 失效前先落盘字节。
+    private func stageURL(named name: String) -> URL {
+        let fm = FileManager.default
+        let base = PendingShareQueue.containerURL ?? fm.temporaryDirectory
+        let dir = base.appendingPathComponent("share-staging", isDirectory: true)
+        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        // 加 uuid 前缀，避免同名文件互相覆盖。
+        let safeName = name.isEmpty ? "file" : name
+        return dir.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
     }
 }

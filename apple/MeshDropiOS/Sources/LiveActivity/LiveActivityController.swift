@@ -1,12 +1,12 @@
 import SwiftUI
 import MeshDropKit
 
-/// Live Activity 预览 + 控制器骨架。
+/// Live Activity 的**页内预览组件**（不是 ActivityKit 控制器）。
 ///
-/// 真 ActivityKit + Widget Extension target 留待下一轮专门接入。本轮：
-/// - 预览视图从 mock 切到读取 `engine.history` 里最新的 `.transferring` 项；没有时显示占位。
-/// - 未来 ActivityKit target ready 时可以从同一份 publisher 直接读到活动传输，
-///   在 controller 里调 `Activity.request(...)` / `update(...)` / `end(...)`。
+/// 真 ActivityKit 接入在 `LiveActivityManager`，Widget Extension（MeshDropWidgets）由
+/// project.yml 定义、xcodegen 生成。本视图只在 app 内展示一份样式预览：
+/// - 读取 `engine.history` 里最新的 `.transferring` 文件项渲染锁屏卡片 / 灵动岛样例；没有时显示占位。
+/// - 与真 widget 的配色一致（发送 flame / 接收 sky / 完成 lime / 失败 error）。
 struct LiveActivityController: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme

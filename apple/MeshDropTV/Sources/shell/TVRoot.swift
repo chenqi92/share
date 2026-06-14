@@ -60,8 +60,8 @@ struct TVRoot: View {
                     titleAccentSuffix: offer.fileName
                 ) {
                     HStack(spacing: 10) {
-                        Chip(text: "● E2E", tone: .lime, mono: true, size: 14)
-                        Chip(text: "LAN", tone: .outline, mono: true, size: 14)
+                        Chip(text: "● LAN", tone: .lime, mono: true, size: 14)
+                        Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 14)
                     }
                 }
             } else {
@@ -108,7 +108,7 @@ struct TVRoot: View {
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "E2E · CHACHA20", tone: .outline, mono: true, size: 14)
+                    Chip(text: "ED25519 指纹", tone: .outline, mono: true, size: 14)
                     Chip(text: "\(engine.pendingPairings.count) 待审", tone: .outline, mono: true, size: 14)
                 }
             }
@@ -120,7 +120,7 @@ struct TVRoot: View {
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "E2E", tone: .outline, mono: true, size: 14)
+                    Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 14)
                     Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 14)
                 }
             }

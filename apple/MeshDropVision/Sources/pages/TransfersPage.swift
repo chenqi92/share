@@ -15,6 +15,11 @@ struct TransfersPage: View {
                                     selfName: engine.displayName)
     }
 
+    /// 真正进行中的条数（终态项不计入 ACTIVE 计数）。
+    private var activeCount: Int {
+        inFlight.filter { $0.state == .active }.count
+    }
+
     // 进行中传输的瞬时速率按方向汇总（来自 engine.transferMetrics 的真实 EMA）。
     private var outBps: UInt64 { bps(for: .outgoing) }
     private var inBps:  UInt64 { bps(for: .incoming) }
@@ -41,8 +46,8 @@ struct TransfersPage: View {
                         .zIndex(zIndex(for: dev))
                 }
 
-                // 真实飞行轨迹：根据 transfer.peer + direction 决定起终点
-                ForEach(inFlight) { tr in
+                // 真实飞行轨迹：仅进行中的画轨迹；终态项只在面板里给反馈，不再飞。
+                ForEach(inFlight.filter { $0.state == .active }) { tr in
                     if let trailEndpoints = endpoints(for: tr, selfPos: selfPos, canvas: canvas) {
                         FlyingPayload(
                             from: trailEndpoints.from,
@@ -106,8 +111,8 @@ struct TransfersPage: View {
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(MD.dpaper)
                     Spacer()
-                    Chip(text: "● \(inFlight.count) ACTIVE",
-                         tone: inFlight.isEmpty ? .outline : .flame, mono: true)
+                    Chip(text: "● \(activeCount) ACTIVE",
+                         tone: activeCount == 0 ? .outline : .flame, mono: true)
                 }
 
                 if inFlight.isEmpty {
@@ -145,7 +150,21 @@ struct TransfersPage: View {
     @ViewBuilder
     private func transferRow(_ tr: MockData.InFlightTransfer) -> some View {
         let isOut = (tr.direction == .outgoing)
-        let stateColor: Color = isOut ? MD.flame : MD.sky
+        // 终态优先决定颜色：完成 = lime，失败 = error；进行中按方向 flame / sky。
+        let stateColor: Color
+        switch tr.state {
+        case .completed: stateColor = MD.limeDeep
+        case .failed:    stateColor = MD.error
+        case .active:    stateColor = isOut ? MD.flame : MD.sky
+        }
+        let statusLabel: String
+        let statusTone: ChipTone
+        switch tr.state {
+        case .completed: statusLabel = "DONE";              statusTone = .lime
+        case .failed:    statusLabel = "FAILED";            statusTone = .flame
+        case .active:    statusLabel = isOut ? "SENDING" : "RECEIVING"
+                         statusTone = isOut ? .flame : .sky
+        }
         HStack(spacing: 14) {
             fileIcon(ext: tr.ext, accent: stateColor)
                 .frame(width: 38, height: 46)
@@ -174,12 +193,11 @@ struct TransfersPage: View {
                     Text(tr.size)
                         .font(MDFont.micro).mdMonoTracking()
                         .foregroundStyle(MD.dpaper.opacity(0.6))
-                    Text("\(Int(tr.progress * 100))%")
+                    Text(tr.state == .failed ? "失败 · FAILED" : "\(Int(tr.progress * 100))%")
                         .font(MDFont.microHi).mdMonoTracking()
                         .foregroundStyle(stateColor)
                     Spacer()
-                    Chip(text: isOut ? "SENDING" : "RECEIVING",
-                         tone: isOut ? .flame : .sky, mono: true)
+                    Chip(text: statusLabel, tone: statusTone, mono: true)
                 }
             }
         }

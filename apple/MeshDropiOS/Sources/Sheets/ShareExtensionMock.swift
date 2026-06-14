@@ -8,8 +8,6 @@ struct ShareExtensionMock: View {
     @Environment(\.colorScheme) private var scheme
     @State private var chosenDevice: String = "lily"
     @State private var includeNote: Bool = true
-    @State private var encrypted: Bool = true
-    @State private var expiry: String = "24 小时"
 
     var body: some View {
         ZStack {
@@ -120,28 +118,14 @@ struct ShareExtensionMock: View {
             .tint(MeshDropColor.lime)
             .padding(14)
             divider
-            Toggle(isOn: $encrypted) {
-                HStack {
-                    Image(systemName: "lock.shield").frame(width: 22)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("端对端加密").font(MeshDropFont.body(13.5, weight: .semibold))
-                        Text("默认开启").font(MeshDropFont.mono(10))
-                            .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
-                    }
-                }
-            }
-            .tint(MeshDropColor.lime)
-            .padding(14)
-            divider
             HStack {
-                Image(systemName: "clock").frame(width: 22)
+                Image(systemName: "wifi").frame(width: 22)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("过期时间").font(MeshDropFont.body(13.5, weight: .semibold))
-                    Text("超时未取消接收则自动撤回").font(MeshDropFont.mono(10))
+                    Text("只走局域网").font(MeshDropFont.body(13.5, weight: .semibold))
+                    Text("LAN · 明文 · v0.1").font(MeshDropFont.mono(10))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 }
                 Spacer()
-                Text(expiry).font(MeshDropFont.mono(11, weight: .medium))
             }
             .padding(14)
         }

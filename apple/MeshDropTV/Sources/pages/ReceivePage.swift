@@ -291,8 +291,8 @@ struct ReceivePage: View {
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .foregroundStyle(MeshDropColor.dpaperMute)
                 HStack(spacing: 8) {
-                    Chip(text: "● E2E", tone: .lime, mono: true, size: 13)
-                    Chip(text: "LAN", tone: .outline, mono: true, size: 13)
+                    Chip(text: "● LAN", tone: .lime, mono: true, size: 13)
+                    Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 13)
                 }
                 .padding(.top, 4)
             }

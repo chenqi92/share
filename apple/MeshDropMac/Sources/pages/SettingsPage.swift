@@ -5,12 +5,6 @@ struct SettingsPage: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var gateway: GatewayService
     @ObservedObject private var engine = ShareEngine.shared
-    @State private var visibleToAll = true
-    @State private var requireFingerprint = true
-    @State private var autoAcceptUntrusted = false
-    @State private var clipboardSync = true
-    @State private var startAtLogin = true
-    @State private var showInMenuBar = true
     @State private var keepHistoryDays = 30
     @State private var displayNameEdit = ""
     @State private var confirmingReset = false
@@ -46,8 +40,9 @@ struct SettingsPage: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    toggle("局域网可见 · Visible on LAN", on: $visibleToAll)
-                    toggle("仅显示已配对设备", on: .constant(false))
+                    // 尚未接 engine 持久化/生效逻辑，禁用并标注，避免给「已设置」错觉。
+                    disabledToggle("局域网可见 · Visible on LAN", on: true)
+                    disabledToggle("仅显示已配对设备", on: false)
                     field("设备类型", trailing:
                         Text("MAC · macOS")
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
@@ -56,16 +51,17 @@ struct SettingsPage: View {
                 }
 
                 section("安全 · Security") {
-                    field("指纹（X25519）", trailing:
+                    field("指纹（Ed25519）", trailing:
                         Text(state.localFingerprintFull)
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textSecondary)
                             .frame(width: 380, alignment: .trailing)
                             .multilineTextAlignment(.trailing)
                     )
-                    toggle("接收前必须验证对方指纹", on: $requireFingerprint)
-                    toggle("陌生设备首次配对要求确认", on: .constant(true))
-                    Button("查看 / 复制完整指纹 · QR 码…") {
+                    // 安全开关：engine 暂未提供持久化入口，禁用并标注，避免安全预期落空。
+                    disabledToggle("接收前必须验证对方指纹", on: true)
+                    disabledToggle("陌生设备首次配对要求确认", on: true)
+                    Button("复制完整指纹 · Copy fingerprint") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(state.localFingerprintFull, forType: .string)
                     }
@@ -108,16 +104,17 @@ struct SettingsPage: View {
 
                 section("接收 · Receive") {
                     toggle("已配对设备自动接受", on: $engine.autoAcceptFromTrusted)
-                    toggle("陌生设备自动接受（不建议）", on: $autoAcceptUntrusted)
+                    // 安全相关开关，engine 暂无对应能力 —— 禁用并标注，避免误以为已开启自动接受。
+                    disabledToggle("陌生设备自动接受（不建议）", on: false)
                     field("默认存放路径", trailing:
-                        Text("~/Downloads/MeshDrop/")
+                        Text("~/Documents/MeshDrop/")
                             .font(MeshDropFont.mono(size: 12))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
                 }
 
                 section("剪贴板 · Clipboard") {
-                    toggle("启用跨设备剪贴板同步", on: $clipboardSync)
+                    disabledToggle("启用跨设备剪贴板同步", on: true)
                     field("保留时间", trailing:
                         Text("24 小时 · 自动清理")
                             .font(MeshDropFont.mono(size: 12))
@@ -126,8 +123,8 @@ struct SettingsPage: View {
                 }
 
                 section("行为 · Behavior") {
-                    toggle("登录时启动", on: $startAtLogin)
-                    toggle("显示在菜单栏", on: $showInMenuBar)
+                    disabledToggle("登录时启动", on: true)
+                    disabledToggle("显示在菜单栏", on: true)
                     field("历史保留天数", trailing:
                         Text("\(keepHistoryDays) 天")
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
@@ -143,7 +140,7 @@ struct SettingsPage: View {
                             Text("Space Grotesk · Geist · Geist Mono")
                                 .font(MeshDropFont.mono(size: 11))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            Text("局域网分享 · E2E X25519+ChaCha20 · 仅 LAN")
+                            Text("局域网分享 · Ed25519 身份 · 明文 LAN · v0.1")
                                 .font(MeshDropFont.mono(size: 11))
                                 .foregroundStyle(MeshDropColor.textMuted)
                             Text("© 2026 MeshDrop · v 0.1.0")
@@ -201,6 +198,32 @@ struct SettingsPage: View {
                 .foregroundStyle(MeshDropColor.textPrimary)
             Spacer()
             MeshToggle(on: on)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    /// 尚未接入 engine 生效逻辑的开关：固定展示状态、禁用交互、标注「即将支持」，
+    /// 不让用户误以为切换有效果（尤其安全相关项）。
+    @ViewBuilder
+    private func disabledToggle(_ label: String, on: Bool) -> some View {
+        HStack {
+            Text(label)
+                .font(MeshDropFont.body(size: 12.5))
+                .foregroundStyle(MeshDropColor.textMuted)
+            Text("即将支持 · SOON")
+                .font(MeshDropFont.mono(size: 9, weight: .semibold))
+                .foregroundStyle(MeshDropColor.textMuted)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 1)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(MeshDropColor.divider, lineWidth: 0.5)
+                )
+            Spacer()
+            MeshToggle(on: .constant(on))
+                .opacity(0.4)
+                .allowsHitTesting(false)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

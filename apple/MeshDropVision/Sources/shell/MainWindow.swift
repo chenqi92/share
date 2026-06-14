@@ -187,7 +187,7 @@ struct MainWindow: View {
                 Text("HOLD · 上下文")
             }
             Spacer()
-            Text("E2E · LAN ONLY")
+            Text("LAN · 明文 · v0.1")
                 .font(MDFont.microHi).tracking(1.6).textCase(.uppercase)
                 .foregroundStyle(MD.limeDeep)
         }

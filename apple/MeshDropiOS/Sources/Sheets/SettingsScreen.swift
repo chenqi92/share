@@ -20,7 +20,7 @@ struct SettingsScreen: View {
                 VStack(alignment: .leading, spacing: 18) {
                     sectionHeader("可见性 · Visibility")
                     visibilityCard
-                    sectionHeader("安全 / 加密 · Security")
+                    sectionHeader("安全 / 身份 · Security")
                     securityCard
                     sectionHeader("行为 / 接收 · Behavior")
                     behaviorCard
@@ -71,9 +71,9 @@ struct SettingsScreen: View {
     private var securityCard: some View {
         VStack(spacing: 0) {
             HStack {
-                row(title: "端到端加密", detail: "X25519 + ChaCha20-Poly1305")
+                row(title: "传输安全", detail: "LAN · 明文 · v0.1")
                 Spacer()
-                Chip("E2E", tone: .lime, mono: true, uppercased: true)
+                Chip("PLAINTEXT", tone: .flame, mono: true, uppercased: true)
             }
             .padding(14)
             divider
@@ -161,7 +161,7 @@ struct SettingsScreen: View {
             .padding(14)
             divider
             HStack {
-                row(title: "Bundle id", detail: "com.welape.landrop")
+                row(title: "Bundle id", detail: "com.welape.meshdrop")
                 Spacer()
             }
             .padding(14)

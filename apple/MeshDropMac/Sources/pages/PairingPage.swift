@@ -19,24 +19,40 @@ struct PairingPage: View {
                 }
 
                 HStack(alignment: .top, spacing: 22) {
-                    // 左：QR 大码
+                    // 左：本机身份指纹（真实数据，供目视核对）。
+                    // 扫码配对（QR / 一次性配对码生成）尚未实现，不展示假占位 QR 与固定码。
                     VStack(spacing: 14) {
-                        Text("扫描 QR 或对比 6 字符代码")
+                        Text("本机指纹 · THIS DEVICE")
                             .meshTag()
                             .foregroundStyle(MeshDropColor.textMuted)
-                        QRPlaceholder()
-                            .frame(width: 260, height: 260)
-                        Text("FX-3KQ7")
-                            .font(MeshDropFont.display(size: 38, weight: .bold))
-                            .tracking(4)
+                        VStack(spacing: 10) {
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 56, weight: .light))
+                                .foregroundStyle(MeshDropColor.textMuted)
+                            Text("扫码配对开发中")
+                                .font(MeshDropFont.body(size: 12, weight: .semibold))
+                                .foregroundStyle(MeshDropColor.textSecondary)
+                            Text("当前请用下方指纹与对端目视核对")
+                                .font(MeshDropFont.body(size: 11))
+                                .foregroundStyle(MeshDropColor.textMuted)
+                        }
+                        .frame(width: 260, height: 200)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(MeshDropColor.cardBg2)
+                        )
+                        Text(state.localFingerprintFull)
+                            .font(MeshDropFont.mono(size: 13, weight: .semibold))
+                            .tracking(1)
                             .foregroundStyle(MeshDropColor.ink)
-                            .padding(.horizontal, 22)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 18)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(MeshDropColor.lime)
                             )
-                        Text("两端的代码必须**完全一致**才能配对")
+                        Text("两端指纹必须**完全一致**才能配对")
                             .font(MeshDropFont.body(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
                     }
@@ -52,8 +68,8 @@ struct PairingPage: View {
                         Text("三步完成")
                             .meshTag()
                             .foregroundStyle(MeshDropColor.textMuted)
-                        step(1, "在对端 MeshDrop → 设置 → 配对新设备 → 扫描 QR / 输入代码")
-                        step(2, "对比两端的 X25519 指纹（4 字符 × 8 组）目视一致")
+                        step(1, "在对端 MeshDrop → 设置 → 配对新设备 → 对比指纹")
+                        step(2, "对比两端的 Ed25519 指纹（4 字符 × 8 组）目视一致")
                         step(3, "双方点 \"允许并记住\"，从此自动信任")
 
                         AsciiDivider(text: state.enginePairing == nil ? "待审 · PENDING · 0" : "待审 · PENDING · 1")
@@ -165,50 +181,5 @@ struct PairingPage: View {
                 .foregroundStyle(MeshDropColor.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-/// QR 占位 — mock 块图 7×7 + finder pattern
-struct QRPlaceholder: View {
-    var body: some View {
-        Canvas { ctx, sz in
-            let n = 25
-            let cell = sz.width / CGFloat(n)
-            ctx.fill(Path(CGRect(origin: .zero, size: sz)), with: .color(.white))
-            // 伪随机方块（hash-based 让每次渲染稳定）
-            for x in 0..<n {
-                for y in 0..<n {
-                    let h = (x * 73856093) ^ (y * 19349663)
-                    if (h & 0xF) > 7 {
-                        ctx.fill(Path(CGRect(x: CGFloat(x) * cell, y: CGFloat(y) * cell,
-                                             width: cell - 0.5, height: cell - 0.5)),
-                                 with: .color(MeshDropColor.ink))
-                    }
-                }
-            }
-            // 3 个 finder pattern
-            for (cx, cy) in [(0, 0), (n - 7, 0), (0, n - 7)] {
-                ctx.fill(Path(CGRect(x: CGFloat(cx) * cell, y: CGFloat(cy) * cell,
-                                     width: 7 * cell, height: 7 * cell)),
-                         with: .color(.white))
-                ctx.fill(Path(CGRect(x: CGFloat(cx) * cell, y: CGFloat(cy) * cell,
-                                     width: 7 * cell, height: 7 * cell)),
-                         with: .color(MeshDropColor.ink))
-                ctx.fill(Path(CGRect(x: CGFloat(cx + 1) * cell, y: CGFloat(cy + 1) * cell,
-                                     width: 5 * cell, height: 5 * cell)),
-                         with: .color(.white))
-                ctx.fill(Path(CGRect(x: CGFloat(cx + 2) * cell, y: CGFloat(cy + 2) * cell,
-                                     width: 3 * cell, height: 3 * cell)),
-                         with: .color(MeshDropColor.ink))
-            }
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.white)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(MeshDropColor.divider, lineWidth: 1)
-        )
     }
 }

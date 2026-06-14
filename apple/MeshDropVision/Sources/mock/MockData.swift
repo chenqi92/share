@@ -159,7 +159,10 @@ enum MockData {
         let speed: String
         let eta: String
         let direction: Direction
+        /// 传输态：进行中 / 刚完成 / 失败。终态项短暂保留以给用户反馈。
+        var state: State = .active
         enum Direction { case outgoing, incoming }
+        enum State { case active, completed, failed }
     }
     static let inFlight: [InFlightTransfer] = [
         InFlightTransfer(id: "t1", name: "iOS-mocks-final.zip",

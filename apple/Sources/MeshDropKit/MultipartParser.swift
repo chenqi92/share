@@ -91,7 +91,9 @@ public enum MultipartParser {
             if !filename.isEmpty {
                 return FilePart(
                     name: name,
-                    filename: filename,
+                    // 防御：客户端文件名只保留最后一段、剔除路径分隔符与控制字符，
+                    // 杜绝后续拼路径时的目录穿越（最终落盘仍由 WebGateway 二次校验）。
+                    filename: Self.sanitizeFilename(filename),
                     contentType: contentType,
                     body: Data(partBody)
                 )
@@ -106,6 +108,20 @@ public enum MultipartParser {
             }
         }
         throw ParseError.malformed
+    }
+
+    /// 把 multipart 文件名收敛为单个安全路径段：统一 `\`→`/`、取末段、剔除分隔符与控制字符、
+    /// 去掉 `.`/`..`/空。返回 nil-safe 的非空名（空时给随机名）。
+    static func sanitizeFilename(_ raw: String) -> String {
+        let unified = raw.replacingOccurrences(of: "\\", with: "/")
+        var name = (unified as NSString).lastPathComponent
+        name = String(name.unicodeScalars.filter { scalar in
+            scalar != "/" && scalar != "\\" && !(scalar.value < 0x20) && scalar.value != 0x7F
+        }).trimmingCharacters(in: .whitespaces)
+        if name.isEmpty || name == "." || name == ".." {
+            return "upload-\(UUID().uuidString)"
+        }
+        return name
     }
 
     private static func extractAttr(_ line: String, key: String) -> String? {

@@ -75,7 +75,28 @@ public final class ShareEngine: ObservableObject {
     private let resumeStore = ResumeStore()
     private var devicesTask: Task<Void, Never>?
     private var throughputTask: Task<Void, Never>?
+    private var heartbeatTask: Task<Void, Never>?
     private var contexts: [UUID: ConnectionContext] = [:]
+
+    /// 重放去重（security.md §重放）：记录最近见过的 `(peer_fp, message_id)` → 首见时刻，
+    /// 5 分钟窗口内重复命中即丢弃。TEXT / CLIPBOARD / FILE_OFFER 用 message id 去重。
+    private var seenMessages: [String: Date] = [:]
+    /// transfer_id → 持有它的连接 ctx.id，保证同一 transfer_id 不被跨连接复用。
+    private var transferOwners: [UUID: UUID] = [:]
+    /// 重放窗口：5 分钟（security.md）。
+    private static let replayWindow: TimeInterval = 5 * 60
+
+    /// 握手超时：纯机器协商态（awaitingHello/awaitingHelloAck）应在秒级完成，
+    /// 超过这么久仍没推进即判死回收，防半开连接堆积。
+    private static let handshakeTimeout: TimeInterval = 30
+    /// 决策超时：awaitingPairApproval / awaitingFileAccept 等待的是**人**点「信任」/「接收」，
+    /// 不能用 30s 机器握手超时硬切（用户常隔几十秒才看到弹窗）。给一个宽松窗口兜底回收僵尸连接。
+    private static let decisionTimeout: TimeInterval = 5 * 60
+    /// 心跳：每 30s 给 .ready/.receivingFile/.sendingFile 的连接发 PING；连续丢 3 次 PONG 关连接。
+    private static let heartbeatInterval: TimeInterval = 30
+    private static let maxMissedPongs = 3
+    /// FILE_CHUNK 单帧 data 硬上限 4 MiB（messages.md），超限视为协议错误关连接。
+    private static let maxChunkBytes = 4 * 1024 * 1024
 
     /// 吞吐环形缓冲保留的秒数（柱状图横轴长度）。
     private static let throughputBuckets = 32
@@ -196,6 +217,14 @@ public final class ShareEngine: ObservableObject {
                     self.sampleThroughput()
                 }
             }
+            // 每秒巡检：握手超时回收 + 周期性 PING + 丢 PONG 判死。
+            heartbeatTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard let self else { return }
+                    await self.tickConnectionHealth()
+                }
+            }
             // 即使 LAN 上暂时一台都没有也算启动完成；3 秒后清掉 isStarting
             Task { [weak self] in
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -215,6 +244,10 @@ public final class ShareEngine: ObservableObject {
         devicesTask = nil
         throughputTask?.cancel()
         throughputTask = nil
+        heartbeatTask?.cancel()
+        heartbeatTask = nil
+        seenMessages.removeAll()
+        transferOwners.removeAll()
         sessionThroughput = SessionThroughput()
         devices = []
         isStarting = false
@@ -587,6 +620,9 @@ public final class ShareEngine: ObservableObject {
 
     private func handleMessage(type: UInt8, body: Data, contextID: UUID) async {
         guard let ctx = contexts[contextID] else { return }
+        // 任何入站帧都刷新心跳活性，清掉丢 PONG 计数。
+        ctx.lastInboundAt = Date()
+        ctx.missedPongs = 0
 
         switch (ctx.state, type) {
         case (.awaitingHello, MessageType.hello):
@@ -717,6 +753,9 @@ public final class ShareEngine: ObservableObject {
         guard case .client(let target, let payload) = ctx.role else {
             await closeContext(id: contextID, error: nil); return
         }
+        // v0.1 明文阶段：fp 仅与 TXT 广告里的 fingerprint 比对，未绑定任何公钥/证书，
+        // 因此只防误连、不抗主动 MITM（攻击者可伪造 fp）。v1.0 接 TLS 后须改为「从证书公钥导出
+        // fp 再比对 TXT/HELLO」。UI 对指纹核对的安全承诺措辞需与此保守现状一致。
         guard ack.fp == target.fingerprint else {
             log.info("server fp mismatch; closing")
             await closeContext(id: contextID, error: nil); return
@@ -829,15 +868,19 @@ public final class ShareEngine: ObservableObject {
             if ctx.state.isClosed { return }
             let remaining = fileSize - ctx.sentBytes
             let toRead = Int(min(UInt64(chunkSize), remaining))
-            let data = handle.readData(ofLength: toRead)
-            if data.isEmpty { break }
+            let offset = ctx.sentBytes
 
-            let header = FileChunkHeader(
-                transferID: transferID,
-                index: 0,
-                offset: ctx.sentBytes
-            )
-            let body = FileChunkHeader.encode(header, data: data)
+            // 磁盘读取 + FILE_CHUNK 编码移出 MainActor（detached），避免大文件传输周期性卡 UI 线程。
+            // MainActor 只保留进度 / 状态更新。
+            let body: Data? = await Task.detached(priority: .userInitiated) {
+                let data = handle.readData(ofLength: toRead)
+                if data.isEmpty { return nil }
+                let header = FileChunkHeader(transferID: transferID, index: 0, offset: offset)
+                return FileChunkHeader.encode(header, data: data)
+            }.value
+            guard let body, body.count > FileChunkHeader.size else { break }
+            let dataCount = body.count - FileChunkHeader.size
+
             do {
                 try await ctx.connection.send(type: MessageType.fileChunk, body: body)
             } catch {
@@ -845,7 +888,7 @@ public final class ShareEngine: ObservableObject {
                 await closeContext(id: contextID, error: error)
                 return
             }
-            ctx.sentBytes += UInt64(data.count)
+            ctx.sentBytes += UInt64(dataCount)
             recordProgress(ctx: ctx, currentBytes: ctx.sentBytes, totalBytes: fileSize)
             if let hid = ctx.historyID {
                 updateHistoryStatus(hid, status: .transferring(bytesDone: ctx.sentBytes, bytesTotal: fileSize))
@@ -862,6 +905,11 @@ public final class ShareEngine: ObservableObject {
         guard let ctx = contexts[contextID],
               let peer = ctx.peer,
               let text = try? MessageCodec.decode(TextMessage.self, from: body) else { return }
+        // 重放去重：同一 (peer, message id) 5 分钟内重复出现即丢弃（security.md §重放）。
+        guard registerSeenMessage(peerFingerprint: peer.fingerprint, messageID: text.id) else {
+            log.info("drop replayed TEXT id=\(text.id, privacy: .public)")
+            return
+        }
         let item = HistoryItem(
             peer: peer,
             direction: .incoming,
@@ -877,6 +925,10 @@ public final class ShareEngine: ObservableObject {
               let peer = ctx.peer,
               let msg = try? MessageCodec.decode(ClipboardMessage.self, from: body),
               !msg.content.isEmpty else { return }
+        guard registerSeenMessage(peerFingerprint: peer.fingerprint, messageID: msg.id) else {
+            log.info("drop replayed CLIPBOARD id=\(msg.id, privacy: .public)")
+            return
+        }
         let entry = ClipboardEntry(
             peerName: peer.name,
             content: msg.content,
@@ -894,6 +946,31 @@ public final class ShareEngine: ObservableObject {
               let offer = try? MessageCodec.decode(FileOfferMessage.self, from: body),
               let first = offer.files.first,
               let transferUUID = UUID(uuidString: offer.transfer_id) else { return }
+
+        // 重放去重 + transfer 归属：同一 transfer_id 5 分钟内重复 / 跨连接复用即丢弃。
+        guard registerSeenMessage(peerFingerprint: peer.fingerprint, messageID: offer.transfer_id),
+              claimTransfer(transferUUID, ctxID: contextID) else {
+            log.info("drop replayed/duplicate FILE_OFFER transfer_id=\(offer.transfer_id, privacy: .public)")
+            return
+        }
+
+        // 多文件 offer：本实现一条连接只接收 index 0；对其余 index 显式发 FILE_REJECT(unsupported)，
+        // 避免发送端无限等待这些 index 的 ACCEPT/REJECT（协议互通要求逐个应答）。
+        if offer.files.count > 1 {
+            let extraIndices = offer.files.map(\.index).filter { $0 != first.index }
+            Task {
+                for idx in extraIndices {
+                    let body = try? MessageCodec.encode(FileRejectMessage(
+                        transfer_id: offer.transfer_id,
+                        index: idx,
+                        reason: "unsupported_multifile"
+                    ))
+                    if let body {
+                        try? await ctx.connection.send(type: MessageType.fileReject, body: body)
+                    }
+                }
+            }
+        }
 
         // 先查 ResumeStore 是否有匹配的中断进度。匹配键 = (peerFingerprint, sha256)。
         // 命中且本地半成品文件仍在、大小一致、未完成 → 自动接受并发 resume_offset > 0；
@@ -1005,7 +1082,29 @@ public final class ShareEngine: ObservableObject {
     private func handleReceivedChunk(body: Data, contextID: UUID) async {
         guard let ctx = contexts[contextID],
               let handle = ctx.fileHandle,
-              let (_, payload) = FileChunkHeader.decode(body) else { return }
+              let (header, payload) = FileChunkHeader.decode(body) else { return }
+
+        // 单帧 data 硬上限 4 MiB（messages.md）：超限视为协议错误关连接。
+        if payload.count > Self.maxChunkBytes {
+            log.error("FILE_CHUNK over 4MiB (\(payload.count)); closing")
+            if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed("协议错误：分块过大")) }
+            await closeContext(id: contextID, error: nil)
+            return
+        }
+
+        // offset 校验（messages.md）：正常顺序写时 header.offset 应 == 已收字节；
+        // 不等说明乱序 / 重复 / resume 起点不一致 → seek 到 header.offset 再写，避免错位累积。
+        if header.offset != ctx.receivedBytes {
+            do {
+                try handle.seek(toOffset: header.offset)
+                ctx.receivedBytes = header.offset
+                log.info("FILE_CHUNK out-of-order: seek to offset=\(header.offset)")
+            } catch {
+                if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed(error.localizedDescription)) }
+                await closeContext(id: contextID, error: error)
+                return
+            }
+        }
 
         do {
             try handle.write(contentsOf: payload)
@@ -1080,6 +1179,8 @@ public final class ShareEngine: ObservableObject {
 
     private func closeContext(id: UUID, error: Error?) async {
         guard let ctx = contexts.removeValue(forKey: id) else { return }
+        // 释放本连接占用的 transfer_id 归属，允许后续合法连接复用该 id。
+        transferOwners = transferOwners.filter { $0.value != id }
         if case .awaitingPairApproval(let req) = ctx.state {
             pendingPairings.removeAll { $0.id == req.id }
         }
@@ -1194,6 +1295,75 @@ public final class ShareEngine: ObservableObject {
     private func refreshTrusted() async {
         let snap = await trustStore.snapshot()
         await MainActor.run { self.trusted = snap }
+    }
+
+    // MARK: - 重放去重 / transfer 归属
+
+    /// 5 分钟窗口去重：首次见到 (peerFP, messageID) 返回 true 并记录；窗口内重复返回 false。
+    /// 顺带清理过期条目，避免无限增长。
+    private func registerSeenMessage(peerFingerprint: String, messageID: String) -> Bool {
+        let now = Date()
+        // 清理过期
+        seenMessages = seenMessages.filter { now.timeIntervalSince($0.value) < Self.replayWindow }
+        let key = "\(peerFingerprint)|\(messageID)"
+        if let first = seenMessages[key], now.timeIntervalSince(first) < Self.replayWindow {
+            return false
+        }
+        seenMessages[key] = now
+        return true
+    }
+
+    /// 校验 transfer_id 未被别的连接占用；首次见即登记到本 ctx。返回 false 表示跨连接复用，应拒绝。
+    private func claimTransfer(_ transferID: UUID, ctxID: UUID) -> Bool {
+        if let owner = transferOwners[transferID], owner != ctxID {
+            return false
+        }
+        transferOwners[transferID] = ctxID
+        return true
+    }
+
+    // MARK: - 连接健康巡检（握手超时 + 心跳）
+
+    private func tickConnectionHealth() async {
+        let now = Date()
+        var toClose: [UUID] = []
+        var toPing: [UUID] = []
+
+        for (id, ctx) in contexts {
+            switch ctx.state {
+            // 纯机器协商态：秒级应完成，超 handshakeTimeout 即回收
+            case .awaitingHello, .awaitingHelloAck:
+                if now.timeIntervalSince(ctx.createdAt) > Self.handshakeTimeout {
+                    toClose.append(id)
+                }
+            // 人为决策态（等用户点信任/接收）：给宽松窗口，仅兜底回收长期无人理会的僵尸连接
+            case .awaitingPairApproval, .awaitingFileAccept:
+                if now.timeIntervalSince(ctx.createdAt) > Self.decisionTimeout {
+                    toClose.append(id)
+                }
+            // 业务态：超过一个心跳周期没收到任何帧就 PING；连续丢 PONG 判死
+            case .ready, .receivingFile, .sendingFile:
+                if now.timeIntervalSince(ctx.lastInboundAt) > Self.heartbeatInterval {
+                    if ctx.missedPongs >= Self.maxMissedPongs {
+                        toClose.append(id)
+                    } else {
+                        ctx.missedPongs += 1
+                        toPing.append(id)
+                    }
+                }
+            case .closed:
+                break
+            }
+        }
+
+        for id in toPing {
+            guard let ctx = contexts[id] else { continue }
+            try? await ctx.connection.send(type: MessageType.ping, body: Data("{}".utf8))
+        }
+        for id in toClose {
+            log.info("connection health: closing ctx \(id.uuidString) (handshake timeout / missed pongs)")
+            await closeContext(id: id, error: nil)
+        }
     }
 
     // MARK: - SHA256 + 路径辅助
@@ -1346,6 +1516,12 @@ final class ConnectionContext {
     let role: Role
     var state: State
     var peer: Device?
+
+    /// ctx 创建时刻：握手超时判定基准。
+    let createdAt: Date = Date()
+    /// 心跳：自上次收到对端任意帧的时刻；连续丢 PONG 计数。
+    var lastInboundAt: Date = Date()
+    var missedPongs: Int = 0
 
     // 关联的历史记录与传输
     var historyID: UUID?

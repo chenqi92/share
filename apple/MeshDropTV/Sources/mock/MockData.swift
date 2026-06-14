@@ -2,7 +2,7 @@ import SwiftUI
 
 /// 直接搬 COMMON §9 的 mock 数据到 Swift。tvOS 端只接收，所以本机就是这台电视。
 enum DeviceKind: String {
-    case mac, ios, ipad, android, win, tv
+    case mac, ios, ipad, android, win, linux, tv
 }
 
 struct MeshDevice: Identifiable, Hashable {

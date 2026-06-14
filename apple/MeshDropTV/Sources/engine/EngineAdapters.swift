@@ -32,7 +32,7 @@ enum EngineAdapters {
         case .macos:   return .mac
         case .android: return .android
         case .windows: return .win
-        case .linux:   return .mac        // 没有 linux kind，临时落 mac
+        case .linux:   return .linux
         }
     }
 

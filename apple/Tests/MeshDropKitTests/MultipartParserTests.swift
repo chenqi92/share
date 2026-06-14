@@ -58,4 +58,29 @@ final class MultipartParserTests: XCTestCase {
         let body = Data("not-a-multipart".utf8)
         XCTAssertThrowsError(try MultipartParser.firstFilePart(body: body, boundary: "X"))
     }
+
+    func testSanitizeFilenameStripsTraversal() {
+        // 目录穿越尝试只保留最后一段，剥掉分隔符与 ..
+        XCTAssertEqual(MultipartParser.sanitizeFilename("../../etc/passwd"), "passwd")
+        XCTAssertEqual(MultipartParser.sanitizeFilename("..\\..\\windows\\hosts"), "hosts")
+        XCTAssertEqual(MultipartParser.sanitizeFilename("/abs/path/file.bin"), "file.bin")
+        XCTAssertEqual(MultipartParser.sanitizeFilename("plain.txt"), "plain.txt")
+        // 纯 .. / . / 空 → 随机名兜底
+        XCTAssertTrue(MultipartParser.sanitizeFilename("..").hasPrefix("upload-"))
+        XCTAssertTrue(MultipartParser.sanitizeFilename("").hasPrefix("upload-"))
+    }
+
+    func testParsedFilenameIsSanitized() throws {
+        let boundary = "X"
+        let body = [
+            "--X\r\n",
+            "Content-Disposition: form-data; name=\"file\"; filename=\"../../evil.sh\"\r\n",
+            "Content-Type: application/octet-stream\r\n",
+            "\r\n",
+            "payload",
+            "\r\n--X--\r\n",
+        ].joined()
+        let part = try MultipartParser.firstFilePart(body: Data(body.utf8), boundary: boundary)
+        XCTAssertEqual(part.filename, "evil.sh")
+    }
 }
