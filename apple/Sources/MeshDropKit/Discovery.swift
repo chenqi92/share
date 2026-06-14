@@ -50,10 +50,17 @@ public final class Discovery: @unchecked Sendable {
         self.continuation = continuation
 
         // 让 NWListener 自分配端口。
-        // 不启用 peer-to-peer（AWDL）：本工具走同网段基础 Wi-Fi 发现；在 macOS 沙盒下启用 P2P
-        // 会让 Bonjour 只广告 link-local IPv6、不广告可路由 IPv4，对端能发现却连不上。
+        // includePeerToPeer 必须按平台区分，不能一刀切：
+        // - macOS：关。沙盒下启用 P2P（AWDL）会让 Bonjour 只广告 link-local IPv6、不广告可路由
+        //   IPv4，对端能发现却连不上；关掉后走同网段基础 Wi-Fi 的可路由 IPv4 广告。
+        // - iOS（及其它非 macOS）：开。iOS 上若关掉 P2P，基础 Wi-Fi 上的 Bonjour 广告会被一并抑制，
+        //   导致本机对同网段任何设备（包括 Mac）都不可见；开启后才能在同网段被发现。
         let params = NWParameters.tcp
+        #if os(macOS)
         params.includePeerToPeer = false
+        #else
+        params.includePeerToPeer = true
+        #endif
         self.listener = try NWListener(using: params)
     }
 
@@ -154,7 +161,13 @@ public final class Discovery: @unchecked Sendable {
             domain: nil
         )
         let params = NWParameters()
+        // 与 listener 保持一致按平台区分：macOS 关 P2P（避免只浏览到 link-local IPv6 的连不上端点），
+        // iOS（及其它非 macOS）开 P2P，否则同网段对端的 Bonjour 广告浏览不到。
+        #if os(macOS)
         params.includePeerToPeer = false
+        #else
+        params.includePeerToPeer = true
+        #endif
         let browser = NWBrowser(for: descriptor, using: params)
         self.browser = browser
 
