@@ -126,7 +126,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let lines = match handle {
         Some(h) => vec![
             format!("$ meshdrop --version"),
-            format!("  meshdrop 0.2.0 · build 20260524"),
+            format!("  meshdrop {}", env!("CARGO_PKG_VERSION")),
             String::new(),
             format!("$ self.id"),
             format!("  {}", h.engine.identity.id),
@@ -137,7 +137,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         ],
         None => vec![
             "$ meshdrop --version".to_string(),
-            "  meshdrop 0.2.0 · build 20260524".to_string(),
+            format!("  meshdrop {}", env!("CARGO_PKG_VERSION")),
             String::new(),
             "$ avahi-browse -rt _meshdrop._tcp".to_string(),
             "  (mock 数据, 用 --screenshots 渲染)".to_string(),
