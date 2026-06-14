@@ -45,7 +45,7 @@ data class OnboardStep(val tag: String, val title: String, val body: String)
 private val Steps = listOf(
     OnboardStep("STEP 1 · DISCOVERY", "雷达式发现", "本机会自动注册到局域网，扫描同 Wi-Fi 下的其他 MeshDrop 设备。雷达图实时显示 RTT 和方位。"),
     OnboardStep("STEP 2 · DRAG-TO-SEND", "拖即发送", "把文件拖到设备 row 上，或长按选多台。也支持 Android 原生 Share Intent。"),
-    OnboardStep("STEP 3 · E2E", "端到端加密", "X25519 握手 + ChaCha20-Poly1305，配对后双方信任互相指纹。首次连接会弹 6 字符确认。"),
+    OnboardStep("STEP 3 · PAIRING", "配对与指纹信任", "身份为 Ed25519 长期密钥，指纹是公钥的 SHA-256 前缀。首次连接弹 6 字符确认（TOFU），配对后双方互信指纹。v0.1 局域网传输为明文 TCP，加密待后续版本。"),
     OnboardStep("STEP 4 · SHORTCUTS", "通知 / 后台 / 系统分享", "大文件用 Foreground Service 保活，incoming 弹 heads-up 通知，三键操作。"),
 )
 

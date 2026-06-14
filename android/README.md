@@ -1,6 +1,6 @@
 # Android
 
-Jetpack Compose + Material 3 + Kotlin 2.1 + AGP 8.7。最低 SDK 26 (Android 8)，
+Jetpack Compose + Material 3 + Kotlin 2.3.21 + AGP 8.7。最低 SDK 26 (Android 8)，
 目标 SDK 35 (Android 15)。
 
 ```
@@ -36,7 +36,7 @@ cd android
 
 ## 当前覆盖
 
-- ✅ Identity（Ed25519，SharedPreferences 存储，TODO 切到 EncryptedSharedPreferences）
+- ✅ Identity（Ed25519，EncryptedSharedPreferences 存储，AndroidKeyStore 派生主密钥）
 - ✅ mDNS 发现（NsdManager + 协程封装）
 - ✅ TCP framing / HELLO / HELLO_ACK / TOFU pairing
 - ✅ TEXT / CLIPBOARD / FILE offer/chunk/complete/cancel
@@ -45,13 +45,12 @@ cd android
 - ✅ Wear OS DataLayer bridge
 - ✅ Compose UI（Material 3 + 动态色 / Material You）
 - ✅ Android 13+ NEARBY_WIFI_DEVICES 运行时权限
-- ✅ 截图测试使用 Paparazzi `2.0.0-alpha02`
+- ✅ 截图测试使用 Paparazzi `2.0.0-alpha05`
 - ⚠️ UI 层仍复用 `mock/MockData.kt` 里的 DTO / preview sample；运行时入口已优先走 ShareEngine
 
 ## TODO
 
-- [ ] EncryptedSharedPreferences 替换 SharedPreferences
-- [ ] TLS 1.3 双向证书校验 / 应用层端到端加密
+- [ ] TLS 1.3 双向证书校验 / 应用层端到端加密（v0.1 LAN 传输仍为明文 TCP）
 - [ ] 切到 `NsdManager.registerServiceInfoCallback`（API 33+ 替代已废弃的
       `resolveService`）
 - [ ] 把 UI DTO 从 `Mock*` 命名迁到 `Display*`，降低误读

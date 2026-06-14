@@ -102,7 +102,7 @@ fun PairingSheetContent(
                     ),
                 )
                 Spacer(Modifier.weight(1f))
-                MeshChip(text = "E2E", tone = ChipTone.LIME, mono = true)
+                MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
             }
             Text(
                 "对方在 ${model.receivedAt} 请求与你配对",

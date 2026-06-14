@@ -128,7 +128,7 @@ fun ChatDetailScreen(
                     )
                 }
             }
-            MeshChip(text = "E2E", tone = ChipTone.LIME, mono = true)
+            MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
             MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = "更多", bordered = true, sizeDp = 36.dp)
         }
 

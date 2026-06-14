@@ -93,5 +93,8 @@ dependencies {
     // Wear OS companion bridge：phone 端通过 DataLayer 接收 wear 命令、推事件。
     implementation(libs.play.services.wearable)
 
+    // 身份私钥落盘加密：EncryptedSharedPreferences（AndroidKeyStore 派生主密钥）。
+    implementation(libs.androidx.security.crypto)
+
     testImplementation(libs.junit)
 }

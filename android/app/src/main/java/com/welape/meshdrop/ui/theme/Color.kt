@@ -24,6 +24,7 @@ val Dpaper  = Color(0xFFE8E3D6)
 val Dpaper60 = Color(0x99E8E3D6)
 val Dpaper45 = Color(0x73E8E3D6)
 val DlineSt = Color(0x1AFFFFFF)
+val DincomingBubble = Color(0x12FFFFFF) // incoming 气泡：白色 ~7% 半透明（§6）
 
 // ─── 三色语义 accent ─────────────────────────────────────────
 val Lime       = Color(0xFFDDF94B)

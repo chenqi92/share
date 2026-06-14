@@ -6,7 +6,9 @@ import android.util.Base64
  * mDNS TXT 记录的编解码。字段见 [discovery.md](../../../../../../../protocol/discovery.md)。
  */
 object TXTRecord {
-    const val SERVICE_TYPE = "_meshdrop._tcp."
+    // NsdManager 注册/浏览要求无尾点的 "_meshdrop._tcp"，域名 .local. 由系统自动补。
+    // 与 Apple/Windows/Linux 各端统一，避免跨端浏览匹配失败。
+    const val SERVICE_TYPE = "_meshdrop._tcp"
 
     fun encode(
         identity: Identity,

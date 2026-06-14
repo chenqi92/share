@@ -63,11 +63,18 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 fun MeScreen(
     onOpenPairing: () -> Unit = {},
     onOpenOnboarding: () -> Unit = {},
+    onOpenHistory: () -> Unit = {},
     engine: ShareEngine? = null,
 ) {
     val mesh = MeshTheme.colors
     val context = LocalContext.current
     var showResetDialog by remember { mutableStateOf(false) }
+
+    // 真实身份优先；引擎缺席（纯 preview）时回落 mock 文案。
+    val fingerprintGroups = engine?.identity?.fingerprint?.let { groupFingerprint(it) }
+        ?: MockMeData.fingerprintGroups
+    val selfName = engine?.displayName ?: MockMeData.name
+    val selfSubtitle = engine?.let { "${it.identity.id.take(8)} · FP 见下" } ?: "${MockMeData.os} · ${MockMeData.ip}"
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -91,14 +98,14 @@ fun MeScreen(
                 Spacer(Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        MockMeData.name,
+                        selfName,
                         style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 20.sp, color = mesh.textPrimary,
                         ),
                     )
                     Text(
-                        "${MockMeData.os} · ${MockMeData.ip}",
+                        selfSubtitle,
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W500,
                             fontSize = 11.sp, color = mesh.textTertiary,
@@ -108,7 +115,16 @@ fun MeScreen(
                 MeshChip(text = MockMeData.visibility, tone = ChipTone.LIME, mono = true)
             }
             Spacer(Modifier.height(14.dp))
-            FingerprintRow(MockMeData.fingerprintGroups)
+            FingerprintRow(fingerprintGroups)
+        }
+
+        AsciiDivider(label = "记录 · LIBRARY")
+        SettingsCard {
+            ChevronRow(
+                title = "传输历史 · History",
+                subtitle = "已收发的文本 / 文件 · 本机存储",
+                onClick = onOpenHistory,
+            )
         }
 
         AsciiDivider(label = "可见性 · VISIBILITY")
@@ -130,11 +146,11 @@ fun MeScreen(
             }
         }
 
-        AsciiDivider(label = "安全 · SECURITY · E2E")
+        AsciiDivider(label = "安全 · SECURITY")
         SettingsCard {
             ChevronRow(title = "已配对设备", subtitle = "${MockTrustList.size} 台 · 可单独撤销")
             DividerThin()
-            ChevronRow(title = "我的指纹", subtitle = "ZX8K · L72M · 9FQ3 · 7HD2")
+            ChevronRow(title = "我的指纹 · Fingerprint", subtitle = fingerprintGroups.joinToString(" · "))
             DividerThin()
             ChevronRow(title = "扫码 / 6 字符配对", subtitle = "向新设备发起", onClick = onOpenPairing)
             DividerThin()
@@ -224,7 +240,7 @@ fun MeScreen(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "An intranet drop · radar discovery · drag-to-send · E2E encryption",
+                "局域网直传 · 雷达发现 · 拖即发送 · LAN · 明文 · v0.1",
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 12.sp, color = mesh.textSecondary,
@@ -235,6 +251,10 @@ fun MeScreen(
         Spacer(Modifier.height(80.dp))
     }
 }
+
+/** 32 位 hex 指纹 → 4 字符分组、大写（设计宪法：指纹 4 字符分组大写）。 */
+private fun groupFingerprint(fp: String): List<String> =
+    fp.uppercase().chunked(4)
 
 @Composable
 private fun FingerprintRow(groups: List<String>) {

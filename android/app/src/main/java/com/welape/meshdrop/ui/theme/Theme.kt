@@ -92,7 +92,7 @@ private val Dark = MeshColors(
     danger = ErrorRed,
     outgoingBubble = Lime,      // 暗色 outgoing 气泡是 lime
     outgoingText = Ink,
-    incomingBubble = Dink3,
+    incomingBubble = DincomingBubble, // §6：白色 ~7% 半透明叠加，而非不透明实色
     incomingText = Dpaper,
     isDark = true,
 )

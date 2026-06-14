@@ -3,6 +3,8 @@ package com.welape.meshdrop.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Base64
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.MessageDigest
@@ -16,8 +18,8 @@ import java.util.UUID
 /**
  * 设备身份。Ed25519 长期密钥 + UUID。
  *
- * v0.1 骨架：私钥写到 SharedPreferences（Base64）。v1.0 切到
- * EncryptedSharedPreferences（AndroidKeyStore 派生密钥），见
+ * 私钥落盘走 EncryptedSharedPreferences：主密钥由 AndroidKeyStore（AES256-GCM）派生，
+ * 条目以 AES256-SIV(key)/AES256-GCM(value) 加密，见
  * [security.md](../../../../../../../protocol/security.md)。
  */
 data class Identity(
@@ -27,13 +29,36 @@ data class Identity(
 )
 
 object IdentityStore {
-    private const val PREFS = "meshdrop.identity"
+    // 加密库（新）；明文库（旧）仅用于一次性迁移后清空。
+    private const val PREFS = "meshdrop.identity.secure"
+    private const val LEGACY_PREFS = "meshdrop.identity"
     private const val KEY_ID = "id"
     private const val KEY_PRIVATE = "private"
     private const val KEY_PUBLIC = "public"
 
+    /**
+     * EncryptedSharedPreferences。主密钥放在 AndroidKeyStore，进程外无法读取明文私钥。
+     * 初始化失败（极少数 KeyStore 异常机型）兜底回普通 prefs，保证身份仍可用。
+     */
+    private fun securePrefs(context: Context): SharedPreferences = try {
+        val masterKey = MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+        )
+    } catch (_: Exception) {
+        // KeyStore 异常机型兜底：用独立文件名，避免与加密库 PREFS 在同名文件下混写明/密文。
+        context.getSharedPreferences("$PREFS.fallback", Context.MODE_PRIVATE)
+    }
+
     fun loadOrCreate(context: Context): Identity {
-        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val prefs = securePrefs(context)
+        migrateLegacyPlaintext(context, prefs)
         val id = prefs.getString(KEY_ID, null)
         val privB64 = prefs.getString(KEY_PRIVATE, null)
         val pubB64 = prefs.getString(KEY_PUBLIC, null)
@@ -46,7 +71,24 @@ object IdentityStore {
     }
 
     fun reset(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+        securePrefs(context).edit().clear().apply()
+        // 旧明文库若残留也一并清掉。
+        context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+
+    /** 把历史版本写在明文 SharedPreferences 里的私钥搬进加密库，搬完即清空明文库。 */
+    private fun migrateLegacyPlaintext(context: Context, securePrefs: SharedPreferences) {
+        if (securePrefs.contains(KEY_PRIVATE)) return
+        val legacy = context.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+        val id = legacy.getString(KEY_ID, null) ?: return
+        val priv = legacy.getString(KEY_PRIVATE, null) ?: return
+        val pub = legacy.getString(KEY_PUBLIC, null) ?: return
+        securePrefs.edit()
+            .putString(KEY_ID, id)
+            .putString(KEY_PRIVATE, priv)
+            .putString(KEY_PUBLIC, pub)
+            .apply()
+        legacy.edit().clear().apply()
     }
 
     private fun create(prefs: SharedPreferences): Identity {

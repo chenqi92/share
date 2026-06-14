@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.History
@@ -68,6 +69,7 @@ import com.welape.meshdrop.ui.theme.MeshTheme
 fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val mesh = MeshTheme.colors
     var inChatDetail by remember { mutableStateOf(false) }
+    var inHistory by remember { mutableStateOf(false) }
 
     val realDevicesRaw = engine?.devices?.collectAsState()?.value
     val realHistoryRaw = engine?.history?.collectAsState()?.value
@@ -171,11 +173,16 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     }
                     MeshTab.TRANSFER -> TransferScreen(engine = engine)
                     MeshTab.CLIPBOARD -> ClipboardScreen(engine = engine)
-                    MeshTab.ME -> MeScreen(
-                        onOpenPairing = { state.sheet = MeshSheet.PAIRING },
-                        onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
-                        engine = engine,
-                    )
+                    MeshTab.ME -> if (inHistory) {
+                        HistoryPane(items = historyUi, onBack = { inHistory = false })
+                    } else {
+                        MeScreen(
+                            onOpenPairing = { state.sheet = MeshSheet.PAIRING },
+                            onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
+                            onOpenHistory = { inHistory = true },
+                            engine = engine,
+                        )
+                    }
                 }
 
                 // FAB
@@ -206,6 +213,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
             BottomNavBar(state = state, chatUnread = chatUnread, activeTransfers = activeTransfers, onPickTab = {
                 state.tab = it
                 inChatDetail = false
+                inHistory = false
             })
         }
 
@@ -255,6 +263,36 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     }
 }
 
+/** 历史页：带返回头的 [HistoryScreen] 包装，从「我」页进入，使 §4 必备的历史页在真实导航中可达。 */
+@Composable
+private fun HistoryPane(
+    items: List<com.welape.meshdrop.mock.MockHistoryItem>,
+    onBack: () -> Unit,
+) {
+    val mesh = MeshTheme.colors
+    Column(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(mesh.canvas)
+                .padding(start = 12.dp, end = 20.dp, top = 12.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MeshIconBtn(
+                icon = Icons.Outlined.ArrowBack,
+                contentDescription = "返回 · Back",
+                bordered = true,
+                sizeDp = 36.dp,
+                onClick = onBack,
+            )
+            Spacer(Modifier.weight(1f))
+        }
+        Box(modifier = Modifier.weight(1f)) {
+            HistoryScreen(items = items)
+        }
+    }
+}
+
 @Composable
 fun BottomNavBar(
     state: MeshAppState,
@@ -272,10 +310,10 @@ fun BottomNavBar(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         val tabs = listOf(
-            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "发送"),
-            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
-            Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
+            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近 · Nearby"),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "消息 · Chat"),
+            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输 · Transfer"),
+            Triple(MeshTab.ME, Icons.Outlined.Person, "我 · Me"),
         )
         tabs.forEach { (tab, icon, label) ->
             NavTabItem(

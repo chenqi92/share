@@ -75,7 +75,7 @@ fun ChatListScreen(
                     ),
                 )
                 Text(
-                    text = "${previews.size} 个会话 · 端到端加密",
+                    text = "${previews.size} 个会话 · LAN · 明文 · v0.1",
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = mesh.textTertiary,

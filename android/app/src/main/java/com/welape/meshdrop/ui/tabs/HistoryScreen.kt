@@ -63,7 +63,7 @@ fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
                 ),
             )
             Text(
-                text = "${items.size} 条最近 · 端到端加密 · 本机存储",
+                text = "${items.size} 条最近 · LAN · 明文 · 本机存储",
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,

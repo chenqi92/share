@@ -52,6 +52,7 @@ import com.welape.meshdrop.mock.MockChatPreviews
 import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDeviceById
 import com.welape.meshdrop.mock.MockDevices
+import com.welape.meshdrop.mock.MockHistory
 import com.welape.meshdrop.mock.MockMeData
 import com.welape.meshdrop.transport.ShareEngine
 import com.welape.meshdrop.ui.components.AsciiDivider
@@ -97,12 +98,17 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
         ?: if (engine == null) MockDevices else emptyList()
     val chatPreviewsUi: List<MockChatPreview> = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
+    val historyUi = realHistoryRaw?.map { it.toUiHistoryItem() }
+        ?: if (engine == null) MockHistory else emptyList()
     fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
         ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice()
 
     var pendingDraft by remember { mutableStateOf("") }
     var promptedPairingId by remember { mutableStateOf<String?>(null) }
     var promptedOfferId by remember { mutableStateOf<String?>(null) }
+    var inHistory by remember { mutableStateOf(false) }
+    // 离开「我」页时退出历史子页，下次回到「我」从设置页起步。
+    LaunchedEffect(state.tab) { if (state.tab != MeshTab.ME) inHistory = false }
 
     LaunchedEffect(
         pendingPairings.firstOrNull()?.id,
@@ -140,7 +146,14 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                 .background(mesh.surface)
                 .padding(top = 16.dp),
         ) {
-            MiddlePanel(state, previews = chatPreviewsUi, devices = devicesUi)
+            MiddlePanel(
+                state,
+                previews = chatPreviewsUi,
+                devices = devicesUi,
+                selfName = engine?.displayName ?: MockMeData.name,
+                selfSubtitle = engine?.let { "${it.identity.id.take(8)} · LAN" }
+                    ?: "${MockMeData.os} · ${MockMeData.ip}",
+            )
         }
         Box(
             Modifier
@@ -176,11 +189,16 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                 }
                 MeshTab.TRANSFER -> TransferScreen(engine = engine)
                 MeshTab.CLIPBOARD -> ClipboardScreen(engine = engine)
-                MeshTab.ME -> MeScreen(
-                    onOpenPairing = { state.sheet = MeshSheet.PAIRING },
-                    onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
-                    engine = engine,
-                )
+                MeshTab.ME -> if (inHistory) {
+                    HistoryScreen(items = historyUi)
+                } else {
+                    MeScreen(
+                        onOpenPairing = { state.sheet = MeshSheet.PAIRING },
+                        onOpenOnboarding = { state.sheet = MeshSheet.ONBOARDING },
+                        onOpenHistory = { inHistory = true },
+                        engine = engine,
+                    )
+                }
             }
         }
 
@@ -244,7 +262,7 @@ private fun NavRail(state: MeshAppState) {
         Spacer(Modifier.height(18.dp))
         val items = listOf(
             Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "发送"),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "消息"),
             Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
             Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
         )
@@ -268,7 +286,7 @@ private fun NavRail(state: MeshAppState) {
             Icon(imageVector = Icons.Outlined.Add, contentDescription = "发送", tint = Ink, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(8.dp))
-        MonoLabel("E2E")
+        MonoLabel("LAN")
     }
 }
 
@@ -303,6 +321,8 @@ private fun MiddlePanel(
     state: MeshAppState,
     previews: List<MockChatPreview> = MockChatPreviews,
     devices: List<MockDevice> = MockDevices,
+    selfName: String = MockMeData.name,
+    selfSubtitle: String = "${MockMeData.os} · ${MockMeData.ip}",
 ) {
     val mesh = MeshTheme.colors
     val byId = devices.associateBy { it.id }
@@ -332,8 +352,8 @@ private fun MiddlePanel(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(MockMeData.name, style = TextStyle(fontFamily = Geist, fontWeight = FontWeight.W700, fontSize = 13.sp, color = mesh.textPrimary))
-                Text("${MockMeData.os} · ${MockMeData.ip}", style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = mesh.textTertiary))
+                Text(selfName, style = TextStyle(fontFamily = Geist, fontWeight = FontWeight.W700, fontSize = 13.sp, color = mesh.textPrimary))
+                Text(selfSubtitle, style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = mesh.textTertiary))
             }
         }
 

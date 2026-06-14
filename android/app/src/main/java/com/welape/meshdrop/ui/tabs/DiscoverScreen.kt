@@ -295,8 +295,6 @@ private fun StatusStrip(visibility: String, peers: Int) {
             ),
         )
         Spacer(Modifier.weight(1f))
-        MeshChip(text = "E2E", tone = ChipTone.LIME, mono = true)
-        Spacer(Modifier.width(6.dp))
         MeshChip(text = "LAN ONLY", tone = ChipTone.OUTLINE, mono = true)
     }
 }

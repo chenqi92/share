@@ -57,6 +57,12 @@ import java.util.concurrent.ConcurrentHashMap
 private const val TAG = "ShareEngine"
 private const val CHUNK_SIZE = 256 * 1024
 
+/** FILE_CHUNK data 段硬上限，见 transport.md。超出即视为违规并断连。 */
+private const val MAX_CHUNK_DATA = 4 * 1024 * 1024
+
+/** TEXT / FILE_OFFER 去重窗口：同一 (peer_fp, message_id) 在该时间内重复出现即丢弃。 */
+private const val REPLAY_WINDOW_MS = 5L * 60 * 1000
+
 /** 接收 chunk 时每写满这么多字节就把进度刷一次 ResumeStore。4 MiB ≈ 16 个 256 KiB chunk。 */
 private const val RESUME_PERSIST_INTERVAL: Long = 4L * 1024 * 1024
 
@@ -134,6 +140,23 @@ class ShareEngine(private val context: Context) {
     }
 
     private val contexts = ConcurrentHashMap<UUID, ConnectionContext>()
+
+    /**
+     * 重放去重：key = "<peer_fp>:<message_id>"，value = 首次接收时间戳。
+     * 命中且仍在 5 分钟窗口内 → 丢弃。每次记录时顺带清理过期项，避免无界增长。
+     */
+    private val seenMessageIds = ConcurrentHashMap<String, Long>()
+
+    /** 返回 true 表示这是窗口内的重复消息，应丢弃。 */
+    private fun isReplay(peerFingerprint: String, messageId: String): Boolean {
+        val now = System.currentTimeMillis()
+        // 顺手清理过期项。
+        seenMessageIds.entries.removeAll { now - it.value > REPLAY_WINDOW_MS }
+        val key = "$peerFingerprint:$messageId"
+        val prev = seenMessageIds.putIfAbsent(key, now)
+        return prev != null && now - prev <= REPLAY_WINDOW_MS
+    }
+
     private var listener: ServerSocket? = null
     private var acceptJob: Job? = null
     private var devicesJob: Job? = null
@@ -712,6 +735,11 @@ class ShareEngine(private val context: Context) {
     private fun handleReceivedText(ctx: ConnectionContext, body: ByteArray) {
         val peer = ctx.peer ?: return
         val text = runCatching { MessageCodec.decode<TextMessage>(body) }.getOrNull() ?: return
+        // 重放保护：同一 (peer, text.id) 5 分钟内重复 → 丢弃，避免重复入库 / 重复角标。
+        if (isReplay(peer.fingerprint, text.id)) {
+            Log.i(TAG, "drop replayed TEXT id=${text.id}")
+            return
+        }
         insertHistory(
             HistoryItem(
                 peer = peer,
@@ -740,6 +768,11 @@ class ShareEngine(private val context: Context) {
         val offer = runCatching { MessageCodec.decode<FileOfferMessage>(body) }.getOrNull() ?: return
         val first = offer.files.firstOrNull() ?: return
         val tid = runCatching { UUID.fromString(offer.transfer_id) }.getOrNull() ?: return
+        // 重放保护：同一 (peer, transfer_id) 5 分钟内重复 → 丢弃，避免重复弹接收审批。
+        if (isReplay(peer.fingerprint, offer.transfer_id)) {
+            Log.i(TAG, "drop replayed FILE_OFFER transfer_id=${offer.transfer_id}")
+            return
+        }
 
         // 命中 ResumeStore 且半成品仍在 → 自动接受，发 resume_offset > 0；否则走正常审批。
         val resume = resumeStore.find(peer.fingerprint, first.sha256)
@@ -819,6 +852,29 @@ class ShareEngine(private val context: Context) {
     private suspend fun handleReceivedChunk(ctx: ConnectionContext, body: ByteArray) {
         val (_, data) = FileChunkHeader.decode(body) ?: return
         val output = ctx.output ?: return
+        // 硬上限：单个 chunk data 段超过 4 MiB 视为违规，发 FILE_CANCEL(oversize) 并断连，
+        // 避免恶意端用超规 chunk 触发大块一次性分配（transport.md）。
+        if (data.size > MAX_CHUNK_DATA) {
+            Log.w(TAG, "oversize chunk ${data.size} > $MAX_CHUNK_DATA, aborting")
+            val tid = ctx.transferId
+            if (tid != null) {
+                try {
+                    val cancel = MessageCodec.encode(
+                        FileCancelMessage(transfer_id = tid.toString(), index = null, reason = "oversize")
+                    )
+                    ctx.connection.send(MessageType.FILE_CANCEL, cancel)
+                } catch (_: Exception) {}
+            }
+            try { ctx.output?.close() } catch (_: Exception) {}
+            ctx.output = null
+            ctx.savedFile?.delete()
+            val peer = ctx.peer
+            val expected = ctx.expectedSha256
+            if (peer != null && expected != null) resumeStore.clear(peer.fingerprint, expected)
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("chunk 超过 4 MiB 上限")) }
+            closeContext(ctx.id, null)
+            return
+        }
         try {
             output.write(data)
         } catch (e: Exception) {
