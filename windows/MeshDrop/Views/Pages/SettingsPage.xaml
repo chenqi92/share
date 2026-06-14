@@ -57,12 +57,13 @@
                                          CornerRadius="6"
                                          FontFamily="{StaticResource MdBodyFontFamily}"/>
                             </StackPanel>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.Visible, Mode=TwoWay}"
-                                          Header="对 LAN 可见"
+                            <!-- 可见性与空闲隐藏尚未接 mDNS 广告开关，禁用并标注。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.Visible, Mode=TwoWay}" IsEnabled="False"
+                                          Header="对 LAN 可见 · 即将支持"
                                           OffContent="OFF · 仅自己看到"
                                           OnContent="ON · LAN 内全部"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.HideAfterIdle, Mode=TwoWay}"
-                                          Header="空闲 10 分钟后自动隐藏"
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.HideAfterIdle, Mode=TwoWay}" IsEnabled="False"
+                                          Header="空闲 10 分钟后自动隐藏 · 即将支持"
                                           OffContent="OFF"
                                           OnContent="ON"/>
                         </StackPanel>
@@ -79,7 +80,7 @@
                         <TextBlock Text="安全 · SECURITY"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="X25519 + ChaCha20-Poly1305 端到端"
+                        <TextBlock Text="Ed25519 身份 · SHA-256 指纹 · LAN 明文 v0.1"
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    FontSize="10"
                                    Opacity="0.55"
@@ -102,13 +103,17 @@
                                                Foreground="{ThemeResource MdLimeBrush}"/>
                                 </Border>
                             </StackPanel>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.E2eRequired, Mode=TwoWay}"
-                                          Header="强制要求 E2E（建议）"
-                                          OnContent="ON · 协议层硬性要求"
-                                          OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.RequireFingerprintConfirm, Mode=TwoWay}"
-                                          Header="首次配对需双方确认指纹"
-                                          OnContent="ON"
+                            <!-- 诚实状态：v0.1 LAN 为明文 TCP（README 阶段取舍），不谎称 E2E。 -->
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="传输安全 · TRANSPORT" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock Text="LAN · 明文 TCP · v0.1。身份与配对由 Ed25519 + SHA-256 指纹保护。"
+                                           FontFamily="{StaticResource MdMonoFontFamily}"
+                                           FontSize="10" Opacity="0.6" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <!-- TOFU 首次配对始终需双向确认指纹，不可关闭 → 锁定 ON 的只读状态。 -->
+                            <ToggleSwitch IsOn="True" IsEnabled="False"
+                                          Header="首次配对需确认指纹 · TOFU"
+                                          OnContent="ON · 始终启用"
                                           OffContent="OFF"/>
                             <Button x:Name="ResetIdentityButton"
                                     Content="重置身份…"
@@ -144,36 +149,40 @@
                             Padding="16">
                         <StackPanel Spacing="14">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="接收文件夹" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock Text="接收文件夹 · 按对端分子目录" FontWeight="SemiBold" FontSize="12"/>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0" Text="{x:Bind ViewModel.ReceiveDir, Mode=TwoWay}"
+                                    <!-- 当前固定保存到 Documents/MeshDrop/<对端>，仅展示路径。自定义目录即将支持。 -->
+                                    <TextBox Grid.Column="0" Text="{x:Bind ViewModel.ReceiveDir, Mode=OneWay}"
+                                             IsReadOnly="True"
                                              Background="{ThemeResource MdPaperBrush}"
                                              BorderBrush="{ThemeResource MdLineBrush}"
                                              CornerRadius="6"
                                              FontFamily="{StaticResource MdMonoFontFamily}"/>
-                                    <Button Grid.Column="1" Style="{StaticResource MdOutlineButtonStyle}">
+                                    <Button Grid.Column="1" Style="{StaticResource MdOutlineButtonStyle}" IsEnabled="False">
                                         <TextBlock Text="浏览…"/>
                                     </Button>
                                 </Grid>
                             </StackPanel>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAccept, Mode=TwoWay}"
-                                          Header="自动接收任何文件"
-                                          OnContent="ON · 不再弹窗" OffContent="OFF · 每次确认"/>
+                            <!-- 已接线：自动接收来自已配对设备的文件（engine.AutoAcceptFromTrusted）。 -->
                             <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAcceptTrusted, Mode=TwoWay}"
                                           Header="自动接收已配对设备"
+                                          OnContent="ON · 已配对设备不再弹窗" OffContent="OFF · 每次确认"/>
+                            <!-- 以下为尚未接线的占位项，禁用并标注，避免给出虚假预期。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAccept, Mode=TwoWay}" IsEnabled="False"
+                                          Header="自动接收任何文件 · 即将支持"
+                                          OnContent="ON" OffContent="OFF · 每次确认"/>
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.RingOnIncoming, Mode=TwoWay}" IsEnabled="False"
+                                          Header="接收时发声 · 即将支持"
                                           OnContent="ON" OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.RingOnIncoming, Mode=TwoWay}"
-                                          Header="接收时发声 · Toast 声"
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}" IsEnabled="False"
+                                          Header="开机自启动到托盘 · 即将支持"
                                           OnContent="ON" OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}"
-                                          Header="开机自启动到托盘"
-                                          OnContent="ON" OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayBadge, Mode=TwoWay}"
-                                          Header="任务栏图标显示活跃数"
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayBadge, Mode=TwoWay}" IsEnabled="False"
+                                          Header="任务栏图标显示活跃数 · 即将支持"
                                           OnContent="ON" OffContent="OFF"/>
                         </StackPanel>
                     </Border>

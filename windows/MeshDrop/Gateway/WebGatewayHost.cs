@@ -34,11 +34,22 @@ public sealed class WebGatewayHost
 {
     public const ushort DefaultPort = 7384;
 
+    /// <summary>未鉴权请求体上限（仅 /api/v1/pair 这类 pre-auth 路由用）。
+    /// 限制 Content-Length 防止匿名客户端发超大 body 撑爆内存（DoS）。</summary>
+    private const int MaxPreAuthBodyBytes = 8 * 1024;
+
+    /// <summary>配对码爆破防护：单 IP 连续失败 5 次锁定 5 分钟。</summary>
+    private const int PairMaxFailures = 5;
+    private static readonly TimeSpan PairLockout = TimeSpan.FromMinutes(5);
+
     private readonly ShareEngine _engine;
     private readonly GatewayCommands _commands;
     private readonly PairingCodeStore _pairingStore = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _sessions = new();
-    private readonly ConcurrentBag<WebSocket> _wsClients = new();
+    // 死连接必须真正移除（fix #79）：ConcurrentBag 无 Remove，会单调泄漏。
+    private readonly ConcurrentDictionary<Guid, WebSocket> _wsClients = new();
+    // per-IP 配对失败计数（fix #93）：(失败次数, 锁定截止时刻)。
+    private readonly ConcurrentDictionary<string, (int fails, DateTimeOffset until)> _pairFailures = new();
     private readonly ushort _port;
 
     private TcpListener? _listener;
@@ -95,11 +106,12 @@ public sealed class WebGatewayHost
         try { _listener?.Stop(); } catch { }
         _listener = null;
         IsRunning = false;
-        foreach (var ws in _wsClients)
+        foreach (var ws in _wsClients.Values)
         {
             try { ws.Abort(); } catch { }
             try { ws.Dispose(); } catch { }
         }
+        _wsClients.Clear();
     }
 
     private async Task AcceptLoopAsync(CancellationToken ct)
@@ -121,15 +133,20 @@ public sealed class WebGatewayHost
         try
         {
             ssl = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false);
+            // TLS 1.3 ONLY（protocol/security.md + README 声明）：不允许降级到 1.2。
             await ssl.AuthenticateAsServerAsync(_cert!, clientCertificateRequired: false,
-                                                System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+                                                System.Security.Authentication.SslProtocols.Tls13,
                                                 checkCertificateRevocation: false);
 
-            var (method, path, headers, body) = await ReadRequestAsync(ssl, ct);
-            if (method is null) return;
+            var (method, path, headers, reader) = await ReadHeadersAsync(ssl, ct);
+            if (method is null || reader is null) return;
 
             var sessionId = ExtractSessionToken(path, headers);
             var isAuth = !string.IsNullOrEmpty(sessionId) && IsSessionValid(sessionId);
+
+            // 已声明的 body 长度（用于按鉴权状态分级限流，pre-auth 严格上限防 DoS）。
+            var declaredLen = 0;
+            if (headers.TryGetValue("Content-Length", out var clStr)) int.TryParse(clStr, out declaredLen);
 
             // 路由
             if (method == "GET" && path == "/")
@@ -140,9 +157,24 @@ public sealed class WebGatewayHost
             // 与 Linux / Apple gateway 对齐：/api/v1/pair 是规范名；/api/v1/auth 是旧别名
             if (method == "POST" && (path == "/api/v1/pair" || path == "/api/v1/auth"))
             {
+                var clientIp = RemoteIp(tcp);
+                // 爆破锁定：失败过多的 IP 暂时拒绝，连读 body 都不读。
+                if (IsPairLockedOut(clientIp))
+                {
+                    await WriteJsonAsync(ssl, 429, "{\"ok\":false,\"error\":\"too_many_attempts\"}", ct);
+                    return;
+                }
+                // pre-auth：拒绝超大 body，避免匿名 OOM。
+                if (declaredLen > MaxPreAuthBodyBytes)
+                {
+                    await WriteJsonAsync(ssl, 413, "{\"ok\":false,\"error\":\"payload_too_large\"}", ct);
+                    return;
+                }
+                var body = await reader.ReadBytesAsync(declaredLen, ct);
                 var code = ExtractAuthCode(body);
                 if (_pairingStore.Verify(code))
                 {
+                    ResetPairFailures(clientIp);
                     var sid = NewSessionId();
                     _sessions[sid] = DateTimeOffset.UtcNow.AddHours(24);
                     // body 含 token：web 客户端把它存 localStorage 再以 ?token= / x-meshdrop-token 用；
@@ -158,6 +190,7 @@ public sealed class WebGatewayHost
                 }
                 else
                 {
+                    RecordPairFailure(clientIp);
                     await WriteJsonAsync(ssl, 401, "{\"ok\":false,\"error\":\"invalid_code\"}", ct);
                 }
                 return;
@@ -176,8 +209,8 @@ public sealed class WebGatewayHost
             }
             if (method == "POST" && path == "/api/v1/upload")
             {
-                // v0.1 占位：直接把 body 当文件流写到 LocalAppData/uploads/<guid>，返回 fileRef
-                var tokenPath = await SaveUploadAsync(body);
+                // 流式落盘到 LocalAppData/uploads/<guid>，不把整个 body 读进内存（避免大文件 OOM）。
+                var tokenPath = await SaveUploadAsync(reader, declaredLen, ct);
                 var escapedToken = tokenPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
                 await WriteJsonAsync(ssl, 200,
                     $"{{\"ok\":true,\"token\":\"{escapedToken}\",\"uploadToken\":\"{escapedToken}\"}}", ct);
@@ -292,7 +325,8 @@ public sealed class WebGatewayHost
         await ssl.FlushAsync(ct);
 
         var ws = WebSocket.CreateFromStream(ssl, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.FromSeconds(30));
-        _wsClients.Add(ws);
+        var wsId = Guid.NewGuid();
+        _wsClients[wsId] = ws;
 
         // 初始 push 全状态快照
         try
@@ -329,6 +363,8 @@ public sealed class WebGatewayHost
         catch { }
         finally
         {
+            // 断开时真正从集合移除（fix #79），避免死连接累积。
+            _wsClients.TryRemove(wsId, out _);
             try { ws.Dispose(); } catch { }
         }
     }
@@ -342,14 +378,18 @@ public sealed class WebGatewayHost
     private void OnEngineEvent(EngineEvent ev)
     {
         var json = GatewayCommands.EncodeEvent(ev);
-        var dead = new List<WebSocket>();
-        foreach (var ws in _wsClients)
+        var bytes = Encoding.UTF8.GetBytes(json);
+        foreach (var kv in _wsClients)
         {
-            if (ws.State != WebSocketState.Open) { dead.Add(ws); continue; }
-            try { _ = ws.SendAsync(Encoding.UTF8.GetBytes(json), WebSocketMessageType.Text, true, CancellationToken.None); }
-            catch { dead.Add(ws); }
+            var ws = kv.Value;
+            if (ws.State != WebSocketState.Open)
+            {
+                _wsClients.TryRemove(kv.Key, out _);
+                continue;
+            }
+            try { _ = ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
+            catch { _wsClients.TryRemove(kv.Key, out _); }
         }
-        // 清理 dead — ConcurrentBag 没有 Remove，跳过；下次 Send 自然 skip
     }
 
     private static string ComputeWsAccept(string key)
@@ -367,14 +407,18 @@ public sealed class WebGatewayHost
 
     // ─── HTTP/1.1 极简实现 ─────────────────────────────────────────────
 
-    private static async Task<(string? method, string path, Dictionary<string, string> headers, byte[] body)>
-        ReadRequestAsync(Stream s, CancellationToken ct)
+    /// <summary>
+    /// 只读起始行 + headers，返回 reader 供按需读 body（让调用方按鉴权状态决定限额，
+    /// 避免在读 body 前就把未鉴权大 body 全收进内存）。
+    /// </summary>
+    private static async Task<(string? method, string path, Dictionary<string, string> headers, ByteLineReader? reader)>
+        ReadHeadersAsync(Stream s, CancellationToken ct)
     {
         var reader = new ByteLineReader(s);
         var startLine = await reader.ReadLineAsync(ct);
-        if (startLine is null) return (null, "", new(), Array.Empty<byte>());
+        if (startLine is null) return (null, "", new(), null);
         var parts = startLine.Split(' ', 3);
-        if (parts.Length < 2) return (null, "", new(), Array.Empty<byte>());
+        if (parts.Length < 2) return (null, "", new(), null);
         var method = parts[0];
         var path = parts[1];
 
@@ -382,17 +426,13 @@ public sealed class WebGatewayHost
         while (true)
         {
             var line = await reader.ReadLineAsync(ct);
-            if (line is null) return (null, "", new(), Array.Empty<byte>());
+            if (line is null) return (null, "", new(), null);
             if (line.Length == 0) break;
             var idx = line.IndexOf(':');
             if (idx <= 0) continue;
             headers[line.Substring(0, idx).Trim()] = line.Substring(idx + 1).Trim();
         }
-
-        var bodyLen = 0;
-        if (headers.TryGetValue("Content-Length", out var clStr)) int.TryParse(clStr, out bodyLen);
-        var body = bodyLen > 0 ? await reader.ReadBytesAsync(bodyLen, ct) : Array.Empty<byte>();
-        return (method, path, headers, body);
+        return (method, path, headers, reader);
     }
 
     private static async Task WriteResponseAsync(Stream s, int status, string reason,
@@ -469,6 +509,43 @@ public sealed class WebGatewayHost
         return Convert.ToBase64String(buf).Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
 
+    // ─── 配对码爆破防护（per-IP）────────────────────────────────────────
+
+    private static string RemoteIp(TcpClient tcp)
+    {
+        try
+        {
+            if (tcp.Client.RemoteEndPoint is IPEndPoint ep) return ep.Address.ToString();
+        }
+        catch { }
+        return "unknown";
+    }
+
+    private bool IsPairLockedOut(string ip)
+    {
+        if (!_pairFailures.TryGetValue(ip, out var rec)) return false;
+        if (rec.fails < PairMaxFailures) return false;
+        if (rec.until > DateTimeOffset.UtcNow) return true;
+        // 锁定窗口已过：清零，给一次新的机会。
+        _pairFailures.TryRemove(ip, out _);
+        return false;
+    }
+
+    private void RecordPairFailure(string ip)
+    {
+        _pairFailures.AddOrUpdate(ip,
+            _ => (1, DateTimeOffset.UtcNow.Add(PairLockout)),
+            (_, old) =>
+            {
+                var fails = old.fails + 1;
+                // 达阈值时刷新锁定截止时刻，形成持续退避。
+                var until = fails >= PairMaxFailures ? DateTimeOffset.UtcNow.Add(PairLockout) : old.until;
+                return (fails, until);
+            });
+    }
+
+    private void ResetPairFailures(string ip) => _pairFailures.TryRemove(ip, out _);
+
     private static string ExtractAuthCode(byte[] body)
     {
         // 兼容 application/x-www-form-urlencoded 和 application/json
@@ -496,14 +573,15 @@ public sealed class WebGatewayHost
 
     // ─── upload / fallback ────────────────────────────────────────────
 
-    private static async Task<string> SaveUploadAsync(byte[] body)
+    private static async Task<string> SaveUploadAsync(ByteLineReader reader, int contentLength, CancellationToken ct)
     {
         var dir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MeshDrop", "uploads");
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, Guid.NewGuid().ToString("N"));
-        await File.WriteAllBytesAsync(path, body);
+        await using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+        await reader.CopyBodyToAsync(fs, contentLength, ct);
         return path;
     }
 
@@ -607,6 +685,7 @@ function connect() {
 
         public async Task<byte[]> ReadBytesAsync(int total, CancellationToken ct)
         {
+            if (total <= 0) return Array.Empty<byte>();
             var data = new byte[total];
             var read = 0;
             while (read < total)
@@ -616,6 +695,21 @@ function connect() {
                 read += n;
             }
             return read == total ? data : data.AsSpan(0, read).ToArray();
+        }
+
+        /// <summary>把声明长度的 body 分块拷到目标流，不在内存里整段缓存。</summary>
+        public async Task CopyBodyToAsync(Stream dest, int contentLength, CancellationToken ct)
+        {
+            var remaining = contentLength;
+            var buf = new byte[64 * 1024];
+            while (remaining > 0)
+            {
+                var toRead = Math.Min(buf.Length, remaining);
+                var n = await _s.ReadAsync(buf, 0, toRead, ct);
+                if (n <= 0) break;
+                await dest.WriteAsync(buf, 0, n, ct);
+                remaining -= n;
+            }
         }
     }
 }

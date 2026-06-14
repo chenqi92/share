@@ -10,18 +10,17 @@
 
     <StackPanel Spacing="14" MinWidth="480">
         <StackPanel Orientation="Horizontal" Spacing="10">
-            <ctrl:AvatarControl Size="42" Initials="LL" ColorHex="#FFB4A1"/>
+            <ctrl:AvatarControl Size="42" Initials="·" ColorHex="#DDF94B"/>
             <StackPanel VerticalAlignment="Center" Spacing="-1">
                 <TextBlock Text="新设备请求配对"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="SemiBold"
                            FontSize="18"/>
-                <TextBlock Text="李莉 · Lily's MacBook · macOS 15.3 · 192.168.1.31"
+                <TextBlock x:Name="PeerLine"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="10"
                            Opacity="0.6"/>
             </StackPanel>
-            <ctrl:ChipControl Text="8s ago" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
         </StackPanel>
 
         <ctrl:AsciiDivider Label="── COMPARE FINGERPRINT · 对方屏幕显示同一串 ──"/>
@@ -29,20 +28,13 @@
         <Border CornerRadius="10"
                 Background="{ThemeResource MdTerminalBrush}"
                 Padding="14,12,14,12">
-            <StackPanel Spacing="6">
-                <TextBlock Text="ZX8K · L72M · 9FQ3 · 7HD2"
-                           FontFamily="{StaticResource MdMonoFontFamily}"
-                           FontSize="22"
-                           FontWeight="Bold"
-                           Foreground="{ThemeResource MdLimeBrush}"
-                           HorizontalAlignment="Center"/>
-                <TextBlock Text="M1P6 · QA8N · KZ9R · X3WF"
-                           FontFamily="{StaticResource MdMonoFontFamily}"
-                           FontSize="22"
-                           FontWeight="Bold"
-                           Foreground="{ThemeResource MdLimeBrush}"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
+            <TextBlock x:Name="FingerprintText"
+                       FontFamily="{StaticResource MdMonoFontFamily}"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="{ThemeResource MdLimeBrush}"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"/>
         </Border>
 
         <StackPanel Spacing="6">
@@ -76,13 +68,13 @@
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-            <Button Style="{StaticResource MdOutlineButtonStyle}">
+            <Button Style="{StaticResource MdOutlineButtonStyle}" Click="OnReject">
                 <TextBlock Text="× 拒绝"/>
             </Button>
-            <Button Style="{StaticResource MdOutlineButtonStyle}">
+            <Button Style="{StaticResource MdOutlineButtonStyle}" Click="OnAllowOnce">
                 <TextBlock Text="允许一次"/>
             </Button>
-            <Button Style="{StaticResource MdAccentButtonStyle}">
+            <Button Style="{StaticResource MdAccentButtonStyle}" Click="OnTrust">
                 <TextBlock Text="✓ 允许并记住"/>
             </Button>
         </StackPanel>

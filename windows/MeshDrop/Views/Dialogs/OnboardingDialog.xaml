@@ -42,7 +42,7 @@
                        FontWeight="Bold"
                        FontSize="24"
                        Foreground="{ThemeResource MdLimeDeepBrush}"/>
-            <TextBlock Text="An intranet drop · radar discovery · drag-to-send · E2E encryption"
+            <TextBlock Text="An intranet drop · radar discovery · drag-to-send · LAN direct"
                        FontFamily="{StaticResource MdMonoFontFamily}"
                        FontSize="11"
                        Opacity="0.6"/>
@@ -77,10 +77,10 @@
             </Border>
             <Border Grid.Column="2" CornerRadius="10" Background="{ThemeResource MdPaper2Brush}" Padding="12,10,12,10">
                 <StackPanel Spacing="6">
-                    <TextBlock Text="03 · E2E" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                    <TextBlock Text="03 · 直连" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
                     <TextBlock Text="不经过任何云端"
                                FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text="X25519 + ChaCha20-Poly1305"
+                    <TextBlock Text="LAN 直连 · Ed25519 身份指纹"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10" Opacity="0.6"/>
                 </StackPanel>

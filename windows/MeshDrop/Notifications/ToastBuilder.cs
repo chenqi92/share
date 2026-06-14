@@ -38,6 +38,32 @@ public static class ToastBuilder
         return builder.Content;
     }
 
+    /// <summary>
+    /// TOFU 待审配对 toast：含 允许并记住 / 允许一次 / 拒绝 三按钮。pairingId 回传给
+    /// ShareEngine.RespondToPairing。指纹给用户在 Toast 上直接核对。
+    /// </summary>
+    public static ToastContent BuildPairingPending(
+        string peer,
+        string deviceSubtitle,
+        string fingerprint,
+        string pairingId)
+    {
+        var builder = new ToastContentBuilder()
+            .AddText($"{peer} 请求配对")
+            .AddText(deviceSubtitle)
+            .AddText($"指纹 · {fingerprint}")
+            .AddAttributionText("meshdrop · 请与对方屏幕核对指纹");
+
+        builder.AddButton(new ToastButton("允许并记住", $"action=pair_trust&pairing={pairingId}")
+            .SetBackgroundActivation());
+        builder.AddButton(new ToastButton("允许一次", $"action=pair_once&pairing={pairingId}")
+            .SetBackgroundActivation());
+        builder.AddButton(new ToastButton("拒绝", $"action=pair_reject&pairing={pairingId}")
+            .SetBackgroundActivation());
+
+        return builder.Content;
+    }
+
     /// <summary>incoming 文本 toast：含 复制 / 回复 / 查看 三按钮。</summary>
     public static ToastContent BuildIncomingText(string peer, string text, string time)
     {

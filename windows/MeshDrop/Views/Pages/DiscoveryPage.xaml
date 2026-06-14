@@ -74,7 +74,7 @@
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
                         <ctrl:ChipControl Text="LIVE" Tone="Lime" Mono="True"/>
-                        <ctrl:ChipControl Text="E2E" Tone="Outline" Mono="True"/>
+                        <ctrl:ChipControl Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True"/>
                         <ctrl:ChipControl Text="LAN ONLY" Tone="Outline" Mono="True"/>
                     </StackPanel>
 
@@ -233,8 +233,8 @@
                                         <ColumnDefinition Width="44"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="e2e"    Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="✓ verified"             Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="0" Text="id"     Style="{StaticResource MdTerminalLabelStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="✓ fingerprint verified"  Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>

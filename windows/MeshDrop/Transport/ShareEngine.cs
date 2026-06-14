@@ -44,6 +44,12 @@ public sealed partial class ShareEngine : ObservableObject
     private readonly MdnsDiscovery _discovery;
     private readonly ConcurrentDictionary<Guid, ConnectionContext> _contexts = new();
 
+    // 协议不变量（security.md §重放）：TEXT / FILE_OFFER 带 UUID id，接收侧按
+    // (peerFp, messageId) 做 5 分钟窗口去重，命中即丢弃，避免断连重发 / 恶意重放
+    // 导致同一消息重复入库或重复弹 offer。仅在 UI 线程访问。
+    private static readonly TimeSpan ReplayWindow = TimeSpan.FromMinutes(5);
+    private readonly Dictionary<string, DateTime> _seenMessages = new(StringComparer.Ordinal);
+
     private TcpListener? _listener;
     private CancellationTokenSource? _cts;
     private ushort _listenPort;
@@ -377,6 +383,17 @@ public sealed partial class ShareEngine : ObservableObject
                 _ = SendAckAndReadyAsync(ctx, req.Peer);
                 break;
         }
+    }
+
+    /// <summary>
+    /// 撤销已信任设备（TrustPage「撤销信任」按钮 / Settings）。fingerprint 为 32 位
+    /// 小写 hex（指纹不变量）。撤销后下次该设备连接需重新走 TOFU 双向确认。
+    /// </summary>
+    public void RevokeTrust(string fingerprint)
+    {
+        if (string.IsNullOrEmpty(fingerprint)) return;
+        _trustStore.Revoke(fingerprint);
+        RefreshTrusted();
     }
 
     public void RespondToFileOffer(Guid offerId, bool accept)
@@ -801,6 +818,28 @@ public sealed partial class ShareEngine : ObservableObject
 
     // ─── 接收 ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// 5 分钟窗口重放去重（security.md §重放）。返回 true 表示该 (peerFp, id) 是新消息
+    /// 应处理；false 表示窗口内重复，调用方应丢弃。顺带惰性清理过期条目。
+    /// 仅在 UI 线程调用（与 History 同线程），故 _seenMessages 无需加锁。
+    /// </summary>
+    private bool RegisterMessageId(string peerFp, string messageId)
+    {
+        if (string.IsNullOrEmpty(messageId)) return true; // 无 id 不去重，按原行为放行
+        var now = DateTime.UtcNow;
+        if (_seenMessages.Count > 0)
+        {
+            var stale = _seenMessages.Where(kv => now - kv.Value > ReplayWindow)
+                                     .Select(kv => kv.Key).ToList();
+            foreach (var k in stale) _seenMessages.Remove(k);
+        }
+        var key = peerFp + " " + messageId;
+        if (_seenMessages.TryGetValue(key, out var seenAt) && now - seenAt <= ReplayWindow)
+            return false;
+        _seenMessages[key] = now;
+        return true;
+    }
+
     private void HandleReceivedText(ConnectionContext ctx, byte[] body)
     {
         if (ctx.Peer is null) return;
@@ -809,8 +848,10 @@ public sealed partial class ShareEngine : ObservableObject
         if (text is null) return;
         var peer = ctx.Peer!;
         var content = text.Content;
+        var msgId = text.Id;
         _ui.TryEnqueue(() =>
         {
+            if (!RegisterMessageId(peer.Fingerprint, msgId)) return; // 5min 窗口重放丢弃
             var item = HistoryItem.Create(peer, TransferDirection.Incoming,
                 new HistoryKind.Text(content), new TransferStatus.Completed());
             History.Insert(0, item);
@@ -847,8 +888,12 @@ public sealed partial class ShareEngine : ObservableObject
         var first = offer.Files[0];
         var peer = ctx.Peer!;
         var trusted = _trustStore.IsTrusted(ctx.Peer.Fingerprint);
+        var offerId = offer.TransferId; // 用 transfer_id 作 FILE_OFFER 的去重 message id
         _ui.TryEnqueue(() =>
         {
+            // 5min 窗口重放丢弃：同一 offer 被重放不再重复弹窗 / 重复入库
+            if (!RegisterMessageId(peer.Fingerprint, offerId)) return;
+
             var resume = FindValidResumeRecord(peer, first);
             if (resume is not null && StartAutoResumeReceive(ctx, peer, tid, first, resume))
                 return;
@@ -1104,9 +1149,21 @@ public sealed partial class ShareEngine : ObservableObject
         var terminal = status is TransferStatus.Completed
             or TransferStatus.Failed
             or TransferStatus.Canceled;
-        if (terminal && TransferMetrics.Remove(id))
+        if (terminal)
         {
-            TransferMetricsChanged?.Invoke(id, null);
+            if (TransferMetrics.Remove(id))
+                TransferMetricsChanged?.Invoke(id, null);
+
+            // 跨端桥接：进入 terminal 时推 transfer_done（companion-bridges.md §2），
+            // Web 客户端据此把进度条收尾 / 标失败。
+            var ok = status is TransferStatus.Completed;
+            var error = status switch
+            {
+                TransferStatus.Failed f => f.Reason,
+                TransferStatus.Canceled => "canceled",
+                _ => null,
+            };
+            RaiseEvent(new EngineEvent.TransferDone(id, ok, error));
         }
     }
 
@@ -1143,6 +1200,10 @@ public sealed partial class ShareEngine : ObservableObject
         var m = new TransferMetrics(bps, eta);
         TransferMetrics[hid] = m;
         TransferMetricsChanged?.Invoke(hid, m);
+
+        // 跨端桥接：把实时进度推给 Web 客户端（companion-bridges.md §2 transfer_progress），
+        // 否则连到 Windows Gateway 的浏览器只能轮询 get_state、进度条不动。节流同 100ms。
+        RaiseEvent(new EngineEvent.TransferProgress(hid, currentBytes, totalBytes, (long)bps));
     }
 
     private void RefreshTrusted()

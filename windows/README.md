@@ -68,8 +68,9 @@ dotnet run --project MeshDrop -c Debug -p:Platform=x64
 - ✅ 12 个共享控件（Radar sweep + pulse、MsgBubble、FileChip、TransferRow、DashTile…）
 - ✅ Send / Pairing / FileOffer / Onboarding 4 个对话框
 - ✅ 系统托盘 + Tray Flyout (mini live transfer + Nearby)
-- ✅ Toast 构造器（接收 / 拒绝 / 查看 三按钮）
-- ✅ UI 已通过 `EngineProjection` 接 ShareEngine；`MockData.cs` 只保留 DTO / preview sample
+- ✅ Toast 构造器（文件 接收 / 拒绝 / 查看；TOFU 配对 允许并记住 / 允许一次 / 拒绝）
+- ✅ UI 主路径已通过 `EngineProjection` 接 ShareEngine；`MockData.cs` 只保留 DTO / preview sample
+- ✅ Chat composer（发送文本 / 选文件 / 拖拽发送）、Trust 页 TOFU 待审审批与撤销信任、配对对话框均已接线
 
 ## 协议层状态
 
@@ -79,4 +80,6 @@ Discovery/MdnsDiscovery；Transport/ShareEngine、Connection；WebGatewayHost。
 当前限制：
 - Windows WinUI 项目必须在 Windows + .NET 8 / Windows App SDK 环境构建；macOS 上无法验证。
 - 文件断点续传已接入 `FILE_ACCEPT.resume_offset`：接收侧持久化半成品进度，重发同一文件时自动从已落盘 offset 续传。
-- 部分 Settings toggles 仍是 UI 偏好占位，未全部映射到 ShareEngine。
+- LAN 传输为明文 TCP（v0.1 阶段取舍）；身份与配对由 Ed25519 + SHA-256 指纹保护，不提供端到端加密。Web Gateway 自签证书为 TLS 1.3 only。
+- TEXT / FILE_OFFER 接收侧已做 5 分钟窗口重放去重。
+- Settings 中尚未映射到引擎的开关（可见性、自启、自定义接收目录等）已显式禁用并标注「即将支持」，不再静默无效。

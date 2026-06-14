@@ -31,7 +31,7 @@
                            FontSize="10"
                            Opacity="0.6"/>
             </StackPanel>
-            <ctrl:ChipControl Grid.Column="2" Text="E2E" Tone="Lime" Mono="True" VerticalAlignment="Center"/>
+            <ctrl:ChipControl Grid.Column="2" Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
         </Grid>
 
         <ctrl:AsciiDivider Label="── KIND · 类型 ──"/>
@@ -65,7 +65,7 @@
                 Padding="10,8,10,8">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="✓" Foreground="{ThemeResource MdLimeDeepBrush}" FontWeight="Bold"/>
-                <TextBlock Text="该消息将经 X25519 + ChaCha20-Poly1305 端到端加密后直连 192.168.1.31"
+                <TextBlock Text="该消息将经 LAN 明文 TCP 直连 192.168.1.31（v0.1）· 身份由 Ed25519 指纹核对"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="10"
                            Opacity="0.75"/>

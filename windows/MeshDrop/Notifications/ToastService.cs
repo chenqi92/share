@@ -50,6 +50,13 @@ public static class ToastService
         {
             switch (ev)
             {
+                case EngineEvent.PairingPending p:
+                    Show(ToastBuilder.BuildPairingPending(
+                        p.Pairing.Peer.Name,
+                        $"{p.Pairing.Peer.Os} · {p.Pairing.Peer.Host ?? "—"}",
+                        p.Pairing.Peer.HumanFingerprint,
+                        p.Pairing.Id.ToString()));
+                    break;
                 case EngineEvent.OfferPending o:
                     Show(ToastBuilder.BuildIncomingFile(
                         o.Offer.Peer.Name, o.Offer.FileName,
@@ -87,6 +94,15 @@ public static class ToastService
                     break;
                 case "reject" when a.TryGetValue("offer", out var rid) && Guid.TryParse(rid, out var rejectId):
                     RunOnUi(() => _engine?.RespondToFileOffer(rejectId, false));
+                    break;
+                case "pair_trust" when a.TryGetValue("pairing", out var ptid) && Guid.TryParse(ptid, out var pTrustId):
+                    RunOnUi(() => _engine?.RespondToPairing(pTrustId, PairingDecision.Trust));
+                    break;
+                case "pair_once" when a.TryGetValue("pairing", out var poid) && Guid.TryParse(poid, out var pOnceId):
+                    RunOnUi(() => _engine?.RespondToPairing(pOnceId, PairingDecision.AllowOnce));
+                    break;
+                case "pair_reject" when a.TryGetValue("pairing", out var prid) && Guid.TryParse(prid, out var pRejectId):
+                    RunOnUi(() => _engine?.RespondToPairing(pRejectId, PairingDecision.Reject));
                     break;
                 case "open":
                 case "copy":

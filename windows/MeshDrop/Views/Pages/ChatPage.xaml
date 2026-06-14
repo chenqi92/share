@@ -6,7 +6,11 @@
     xmlns:ctrl="using:MeshDrop.Views.Controls"
     xmlns:mock="using:MeshDrop.Mock">
 
-    <Grid Background="{ThemeResource MdPaperBrush}">
+    <Grid Background="{ThemeResource MdPaperBrush}"
+          AllowDrop="True"
+          DragOver="OnDragOver"
+          DragLeave="OnDragLeave"
+          Drop="OnDrop">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -37,8 +41,7 @@
                                Opacity="0.6"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <ctrl:ChipControl Text="E2E" Tone="Lime" Mono="True"/>
-                    <ctrl:ChipControl Text="TRUSTED" Tone="Outline" Mono="True"/>
+                    <ctrl:ChipControl Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -102,19 +105,23 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Style="{StaticResource MdOutlineButtonStyle}">
-                    <TextBlock Text="+ 文件 / 图片 / 文字便签"
+                <Button Grid.Column="0" Style="{StaticResource MdOutlineButtonStyle}"
+                        Command="{x:Bind ViewModel.PickAndSendFileCommand}">
+                    <TextBlock Text="+ 文件 · Add file"
                                FontFamily="{StaticResource MdBodyFontFamily}"/>
                 </Button>
                 <TextBox Grid.Column="1"
-                         PlaceholderText="说点什么…  / 文件夹 即整目录 ZIP 后发送"
+                         Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         KeyDown="OnComposerKeyDown"
+                         PlaceholderText="说点什么… · Type a message"
                          AcceptsReturn="False"
                          Background="Transparent"
                          BorderThickness="0"
                          FontFamily="{StaticResource MdBodyFontFamily}"
                          FontSize="14"
                          VerticalContentAlignment="Center"/>
-                <Button Grid.Column="2" Style="{StaticResource MdAccentButtonStyle}">
+                <Button Grid.Column="2" Style="{StaticResource MdAccentButtonStyle}"
+                        Command="{x:Bind ViewModel.SendTextCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="发送"/>
                         <TextBlock Text="→"/>

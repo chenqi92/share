@@ -53,6 +53,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         _displayName = _engine.DisplayName;
         _autoAcceptTrusted = _engine.AutoAcceptFromTrusted;
+        _webGatewayEnabled = GatewayProbe.IsRunning;
         _receiveDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MeshDrop");
 
@@ -78,11 +79,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         WebGatewayUrl = GatewayProbe.Url ?? "—";
         WebGatewayPairingCode = GatewayProbe.PairingCode ?? "—";
+        // 反映外部启停（如别处关掉网关），避免开关显示与实际监听状态不符。
+        if (WebGatewayEnabled != GatewayProbe.IsRunning) SetProperty(ref _webGatewayEnabled, GatewayProbe.IsRunning, nameof(WebGatewayEnabled));
     }
 
     partial void OnDisplayNameChanged(string value) => _engine.SetDisplayName(value);
 
     partial void OnAutoAcceptTrustedChanged(bool value) => _engine.AutoAcceptFromTrusted = value;
+
+    /// <summary>真正启停对外监听端口（fix #42）：关掉后浏览器无法再连，端口释放。</summary>
+    partial void OnWebGatewayEnabledChanged(bool value) => _ = GatewayProbe.SetEnabledAsync(value);
 
     /// <summary>
     /// 重置身份（security.md §设备身份）。删除 LocalAppData/MeshDrop 下的 ID + 密钥；

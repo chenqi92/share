@@ -44,7 +44,10 @@ internal sealed class PairingCodeStore
     {
         if (string.IsNullOrEmpty(input)) return false;
         if (IsExpired(_current)) _current = Rotate();
-        return string.Equals(input.Trim().ToUpperInvariant(), _current.Code, StringComparison.Ordinal);
+        // 恒定时间比较，避免按字符提前返回泄漏匹配前缀长度（计时侧信道）。
+        var a = Encoding.UTF8.GetBytes(input.Trim().ToUpperInvariant());
+        var b = Encoding.UTF8.GetBytes(_current.Code);
+        return System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b);
     }
 
     private CodeRecord? Load()
@@ -66,11 +69,18 @@ internal sealed class PairingCodeStore
     private static string GenerateCode()
     {
         // 排除易混淆字符 (0/O, 1/I/L)
-        const string alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-        Span<byte> buf = stackalloc byte[6];
-        System.Security.Cryptography.RandomNumberGenerator.Fill(buf);
+        const string alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30 个字符
+        // 拒绝采样消除取模偏差：256 不是 30 的整数倍，直接 b % 30 会让前 16 个字符
+        // 出现概率略高。丢弃 >= floor(256/30)*30 = 240 的字节，保证均匀。
+        const int limit = 256 - (256 % 30); // = 240
         var sb = new StringBuilder(6);
-        foreach (var b in buf) sb.Append(alphabet[b % alphabet.Length]);
+        Span<byte> one = stackalloc byte[1];
+        while (sb.Length < 6)
+        {
+            System.Security.Cryptography.RandomNumberGenerator.Fill(one);
+            if (one[0] >= limit) continue; // 落在偏差区间，重抽
+            sb.Append(alphabet[one[0] % alphabet.Length]);
+        }
         return sb.ToString();
     }
 
