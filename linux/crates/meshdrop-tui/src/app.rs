@@ -332,6 +332,26 @@ impl App {
             }
             _ => {}
         }
+        self.surface_pending_modal();
+    }
+
+    /// 把待处理的信任请求 / 文件 offer 顶到前台。
+    /// 优先级：Help > Pairing > FileOffer > 其余。只要当前不在更高/同级模态里，
+    /// 即便正在输入文本 / 命令 / 搜索，也立刻弹出——否则对端来连时本地完全没有提示，
+    /// 用户既看不到也无从批准（曾导致「Mac 发过来 Linux 端毫无反应」）。
+    fn surface_pending_modal(&mut self) {
+        let interruptible = matches!(
+            self.mode,
+            Mode::Normal | Mode::InputText | Mode::Command | Mode::Search
+        );
+        if !interruptible {
+            return;
+        }
+        if self.pending_pairing.is_some() {
+            self.mode = Mode::Pairing;
+        } else if self.pending_offer.is_some() {
+            self.mode = Mode::FileOffer;
+        }
     }
 
     fn run_command(&mut self, cmd: &str) {
@@ -659,16 +679,12 @@ fn apply_engine_update(app: &mut App, update: EngineUpdate) {
         EngineUpdate::Pairings { core, display } => {
             app.core_pairings = core;
             app.pending_pairing = display.into_iter().next();
-            if app.pending_pairing.is_some() && app.mode == Mode::Normal {
-                app.mode = Mode::Pairing;
-            }
+            app.surface_pending_modal();
         }
         EngineUpdate::Offers { core, display } => {
             app.core_offers = core;
             app.pending_offer = display.into_iter().next();
-            if app.pending_offer.is_some() && app.mode == Mode::Normal {
-                app.mode = Mode::FileOffer;
-            }
+            app.surface_pending_modal();
         }
         EngineUpdate::TransferMetricsChanged(metrics) => {
             app.transfer_metrics = metrics;
@@ -774,6 +790,7 @@ fn apply(app: &mut App, action: Action) {
                 _ => {}
             }
             app.mode = Mode::Normal;
+            app.surface_pending_modal();
         }
         Action::Accept => {
             if let Some(engine) = &app.engine {
@@ -1431,5 +1448,50 @@ fn render_bottom(f: &mut Frame, area: Rect, app: &App) {
             &app.status,
             &t!("input.ready_hint"),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 正在输入文本时对端来配对：必须立刻顶出 Pairing 模态，而不是被静默吞掉。
+    #[test]
+    fn pairing_surfaces_over_input_text() {
+        let mut app = App::new_demo();
+        app.mode = Mode::InputText;
+        app.input = "半句话".into();
+        app.pending_pairing = Some(mock::pending_pairing());
+        app.surface_pending_modal();
+        assert_eq!(app.mode, Mode::Pairing);
+    }
+
+    /// Help 模态优先级最高，配对到达时不打断帮助页。
+    #[test]
+    fn pairing_does_not_interrupt_help() {
+        let mut app = App::new_demo();
+        app.mode = Mode::Help;
+        app.pending_pairing = Some(mock::pending_pairing());
+        app.surface_pending_modal();
+        assert_eq!(app.mode, Mode::Help);
+    }
+
+    /// 关闭 Help 回到 Normal 后，仍挂着的配对应被重新顶出。
+    #[test]
+    fn pairing_resurfaces_after_help_closes() {
+        let mut app = App::new_demo();
+        app.mode = Mode::Help;
+        app.pending_pairing = Some(mock::pending_pairing());
+        apply(&mut app, Action::Cancel); // Esc 关 Help
+        assert_eq!(app.mode, Mode::Pairing);
+    }
+
+    /// 无任何待处理项时，surface 不应改变当前模式。
+    #[test]
+    fn surface_is_noop_when_nothing_pending() {
+        let mut app = App::new_demo();
+        app.mode = Mode::InputText;
+        app.surface_pending_modal();
+        assert_eq!(app.mode, Mode::InputText);
     }
 }
