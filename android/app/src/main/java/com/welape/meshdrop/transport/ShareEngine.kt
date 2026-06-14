@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import com.welape.meshdrop.R
 import com.welape.meshdrop.data.ClipboardEntry
 import com.welape.meshdrop.data.Device
 import com.welape.meshdrop.data.DeviceOS
@@ -200,7 +201,7 @@ class ShareEngine(private val context: Context) {
                 _isStarting.value = false
             } catch (e: Exception) {
                 Log.e(TAG, "start failed", e)
-                _lastError.value = e.message ?: "启动失败"
+                _lastError.value = e.message ?: context.getString(R.string.engine_start_failed)
                 _isStarting.value = false
             }
         }
@@ -248,7 +249,7 @@ class ShareEngine(private val context: Context) {
         insertHistory(item)
 
         val ctx = ConnectionContext(
-            connection = newOutgoingConnection(device) ?: return failHistory(item.id, "无可用 IP"),
+            connection = newOutgoingConnection(device) ?: return failHistory(item.id, context.getString(R.string.engine_no_ip)),
             role = ConnectionContext.Role.Client(device, ConnectionContext.Payload.Text(content)),
             state = ConnectionContext.State.AwaitingHelloAck,
         ).apply { historyId = item.id }
@@ -298,10 +299,10 @@ class ShareEngine(private val context: Context) {
             val sha = try {
                 computeSha256(sourceUri)
             } catch (e: Exception) {
-                failHistory(historyId, "无法读取文件: ${e.message}"); return@launch
+                failHistory(historyId, context.getString(R.string.engine_read_file_failed, e.message ?: "")); return@launch
             }
             val conn = newOutgoingConnection(device)
-                ?: return@launch failHistory(historyId, "无可用 IP")
+                ?: return@launch failHistory(historyId, context.getString(R.string.engine_no_ip))
             val ctx = ConnectionContext(
                 connection = conn,
                 role = ConnectionContext.Role.Client(device, ConnectionContext.Payload.File(sourceUri, fileSize, sha, fileName)),
@@ -492,7 +493,7 @@ class ShareEngine(private val context: Context) {
 
             state is ConnectionContext.State.AwaitingFileAccept && type == MessageType.FILE_REJECT -> {
                 val reason = runCatching { MessageCodec.decode<FileRejectMessage>(body).reason }.getOrDefault("rejected")
-                ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("对方拒收: $reason")) }
+                ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_peer_rejected, reason))) }
                 closeContext(ctxId, null)
             }
 
@@ -871,7 +872,7 @@ class ShareEngine(private val context: Context) {
             val peer = ctx.peer
             val expected = ctx.expectedSha256
             if (peer != null && expected != null) resumeStore.clear(peer.fingerprint, expected)
-            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("chunk 超过 4 MiB 上限")) }
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_chunk_too_large))) }
             closeContext(ctx.id, null)
             return
         }
@@ -920,7 +921,7 @@ class ShareEngine(private val context: Context) {
             if (saved != null && expected != null) {
                 val actual = try { computeSha256OfFile(saved) } catch (_: Exception) { "" }
                 if (actual != expected) {
-                    ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("校验失败")) }
+                    ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_checksum_failed))) }
                     saved.delete()
                     ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
                     closeContext(ctx.id, null); return
@@ -979,11 +980,11 @@ class ShareEngine(private val context: Context) {
                     )
                 )
             }
-            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("连接中断 · 等待续传")) }
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_conn_lost_resumable))) }
         } else if (state is ConnectionContext.State.SendingFile &&
                    ctx.sentBytes < ctx.fileSize) {
             // 发送态意外断开 — UI 标失败，用户可从历史重发。
-            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed("连接中断")) }
+            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_conn_lost))) }
         }
 
         try { ctx.input?.close() } catch (_: Exception) {}

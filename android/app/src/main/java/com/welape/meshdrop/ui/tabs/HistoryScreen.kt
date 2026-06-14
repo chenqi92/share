@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,14 +58,14 @@ fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
         Spacer(Modifier.height(20.dp))
         Column {
             Text(
-                text = "记录 · Library",
+                text = stringResource(R.string.history_title),
                 style = TextStyle(
                     fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                     fontSize = 28.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
                 ),
             )
             Text(
-                text = "${items.size} 条最近 · LAN · 明文 · 本机存储",
+                text = stringResource(R.string.history_subtitle, items.size),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,
@@ -75,13 +77,13 @@ fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
 
         // 类型 chips
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            MeshChip(text = "全部", tone = ChipTone.INK)
-            MeshChip(text = "图片", tone = ChipTone.OUTLINE)
-            MeshChip(text = "文件", tone = ChipTone.OUTLINE)
-            MeshChip(text = "文字", tone = ChipTone.OUTLINE)
+            MeshChip(text = stringResource(R.string.history_filter_all), tone = ChipTone.INK)
+            MeshChip(text = stringResource(R.string.history_filter_image), tone = ChipTone.OUTLINE)
+            MeshChip(text = stringResource(R.string.history_filter_file), tone = ChipTone.OUTLINE)
+            MeshChip(text = stringResource(R.string.history_filter_text), tone = ChipTone.OUTLINE)
         }
 
-        AsciiDivider(label = "今天 · TODAY · ${items.size} 件")
+        AsciiDivider(label = stringResource(R.string.history_section_today, items.size))
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items.forEach { item -> HistoryRow(item) }
@@ -159,11 +161,11 @@ private fun HistoryRow(item: MockHistoryItem) {
                     Photo(sizeDp = 64.dp, hueDeg = 198, corner = 10.dp)
                     Column(modifier = Modifier.padding(start = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            "${k.count} 张照片",
+                            stringResource(R.string.history_photo_count, k.count),
                             style = TextStyle(fontFamily = Geist, fontWeight = FontWeight.W600, fontSize = 12.sp, color = mesh.textPrimary),
                         )
                         Text(
-                            "已保存到 · MeshDrop/孟茜/",
+                            stringResource(R.string.history_saved_to),
                             style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = mesh.textTertiary),
                         )
                     }

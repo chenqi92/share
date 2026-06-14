@@ -27,10 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.ui.MeshAppState
@@ -70,17 +72,17 @@ fun DevicePickerSheet(
                     .padding(PaddingValues(horizontal = 16.dp, vertical = 14.dp)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MeshIconBtn(icon = Icons.Outlined.Close, contentDescription = "取消", bordered = true, sizeDp = 36.dp, onClick = onClose)
+                MeshIconBtn(icon = Icons.Outlined.Close, contentDescription = stringResource(R.string.picker_cancel), bordered = true, sizeDp = 36.dp, onClick = onClose)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "取消", style = TextStyle(
+                    stringResource(R.string.picker_cancel), style = TextStyle(
                         fontFamily = Geist, fontWeight = FontWeight.W600,
                         fontSize = 15.sp, color = mesh.textPrimary,
                     ),
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    "已选 ${selected.size} 台",
+                    stringResource(R.string.picker_selected_count, selected.size),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W700,
                         fontSize = 11.sp, color = mesh.textSecondary, letterSpacing = 1.2.sp,
@@ -92,7 +94,7 @@ fun DevicePickerSheet(
                 modifier = Modifier.padding(horizontal = 20.dp),
             ) {
                 Text(
-                    "发送到多台设备",
+                    stringResource(R.string.picker_title),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 26.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
@@ -100,7 +102,7 @@ fun DevicePickerSheet(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    "已选附件 · 3 张图片 · 12.4 MB",
+                    stringResource(R.string.picker_attachment_summary),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = mesh.textTertiary,
@@ -114,7 +116,7 @@ fun DevicePickerSheet(
                     Photo(sizeDp = 88.dp, hueDeg = 320)
                 }
 
-                AsciiDivider(label = "附近 · NEARBY · ${devices.size}")
+                AsciiDivider(label = stringResource(R.string.discovery_section_nearby, devices.size))
 
                 // 3 列 grid
                 val rows = devices.chunked(3)
@@ -153,14 +155,14 @@ fun DevicePickerSheet(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "发送给 ${selected.size} 台",
+                    stringResource(R.string.picker_send_to_count, selected.size),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 16.sp, color = Paper,
                     ),
                 )
                 Text(
-                    selectedDevices.joinToString(" · ") { it.who }.ifEmpty { "未选" },
+                    selectedDevices.joinToString(" · ") { it.who }.ifEmpty { stringResource(R.string.picker_none_selected) },
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = Color(0xCCE8E3D6),
@@ -179,7 +181,7 @@ fun DevicePickerSheet(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "发送", style = TextStyle(
+                        stringResource(R.string.common_send), style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 14.sp, color = Ink,
                         ),

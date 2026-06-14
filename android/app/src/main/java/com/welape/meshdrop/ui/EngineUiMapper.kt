@@ -34,7 +34,10 @@ import kotlin.math.abs
 
 private val avatarPalette = listOf(AvatarPeach, AvatarMint, AvatarLilac, AvatarSun, AvatarSky)
 
-fun Device.toUiDevice(index: Int = 0): MockDevice {
+/**
+ * Device → UI 形态。fallbackName 由调用方从资源取出（默认值仅用于 Preview/无 Context 场景）。
+ */
+fun Device.toUiDevice(index: Int = 0, fallbackName: String = "Unnamed"): MockDevice {
     val totalCount = 5
     val angle = (index * (360 / totalCount.coerceAtLeast(1))) + 35
     val dist = 0.35f + ((index % 4) * 0.13f)
@@ -43,7 +46,7 @@ fun Device.toUiDevice(index: Int = 0): MockDevice {
     return MockDevice(
         id = id,
         name = name.ifBlank { model ?: id.take(8) },
-        who = name.ifBlank { "未命名" },
+        who = name.ifBlank { fallbackName },
         kind = os.toKind(),
         dist = dist.coerceIn(0.2f, 0.95f),
         angleDeg = angle % 360,

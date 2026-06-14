@@ -22,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.welape.meshdrop.PendingShare
+import com.welape.meshdrop.R
 import com.welape.meshdrop.ShareApplication
 import com.welape.meshdrop.transport.ShareEngine
 
@@ -59,8 +61,8 @@ fun PendingShareOverlay(engine: ShareEngine) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     text = when (current) {
-                        is PendingShare.Text -> "把这段文字发给…"
-                        is PendingShare.Files -> "把这 ${current.uris.size} 个文件发给…"
+                        is PendingShare.Text -> stringResource(R.string.share_send_text_to)
+                        is PendingShare.Files -> stringResource(R.string.share_send_files_to, current.uris.size)
                     },
                     style = MaterialTheme.typography.titleMedium,
                 )

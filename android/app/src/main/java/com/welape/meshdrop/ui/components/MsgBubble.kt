@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -105,9 +107,9 @@ fun MsgBubble(
             )
             if (isOut) {
                 val (label, color) = when (msg.state) {
-                    MsgState.DELIVERED -> "· 已送达" to LimeDeep
-                    MsgState.SENT -> "· 发送中" to mesh.flame
-                    MsgState.FAILED -> "· 失败" to mesh.danger
+                    MsgState.DELIVERED -> stringResource(R.string.chat_msg_delivered) to LimeDeep
+                    MsgState.SENT -> stringResource(R.string.chat_msg_sent) to mesh.flame
+                    MsgState.FAILED -> stringResource(R.string.chat_msg_failed) to mesh.danger
                 }
                 Text(
                     text = label,

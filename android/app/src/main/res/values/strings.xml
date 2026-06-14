@@ -1,4 +1,273 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- app_name 在两份 values 里保持一致，不随语言切换 -->
     <string name="app_name">MeshDrop</string>
+
+    <!-- ========== common：跨屏复用的通用词 ========== -->
+    <string name="common.cancel">取消</string>
+    <string name="common.close">关闭</string>
+    <string name="common.send">发送</string>
+    <string name="common.search">搜索</string>
+    <string name="common.more">更多</string>
+    <string name="common.back">返回</string>
+    <string name="common.settings">设置</string>
+    <string name="common.attach">附加</string>
+    <string name="common.file">文件</string>
+    <string name="common.copy">复制</string>
+    <string name="common.unnamed">未命名</string>
+    <!-- 传输行操作按钮：mono 全大写胶囊，与周围 OPEN/RETRY 视觉一致，故保留英文短词 -->
+    <string name="common.retry">RETRY</string>
+    <string name="common.open">OPEN</string>
+
+    <!-- ========== 底部导航 / 侧边栏 ========== -->
+    <!-- zh-CN 走双语并排（设计上 tab 文案恒为「中文 · English」），en 走纯英文 -->
+    <string name="nav.discovery">附近 · Nearby</string>
+    <string name="nav.chat">消息 · Chat</string>
+    <string name="nav.transfer">传输 · Transfer</string>
+    <string name="nav.me">我 · Me</string>
+    <!-- 平板侧边栏只用单词 -->
+    <string name="nav.discovery_short">附近</string>
+    <string name="nav.chat_short">消息</string>
+    <string name="nav.transfer_short">传输</string>
+    <string name="nav.me_short">我</string>
+
+    <!-- ========== Discovery（附近） ========== -->
+    <string name="discovery.hero_title">附近的</string>
+    <string name="discovery.device_count">%1$d 台设备</string>
+    <string name="discovery.scanning">扫描中 · scanning LAN…</string>
+    <string name="discovery.lan_peers">LAN-only · %1$d peers</string>
+    <string name="discovery.radar_hint_empty">↑ 附近没有 MeshDrop 设备</string>
+    <string name="discovery.radar_hint_longpress">↑ 长按设备开始发送</string>
+    <string name="discovery.section_nearby">附近 · NEARBY · %1$d</string>
+    <string name="discovery.empty_title">附近没有 MeshDrop 设备</string>
+    <string name="discovery.empty_subtitle">让朋友也打开试试 · invite a friend to open</string>
+    <string name="discovery.error_title">网络出错</string>
+
+    <!-- ========== Chat list（消息） ========== -->
+    <string name="chat.title">聊天 · Chats</string>
+    <string name="chat.subtitle">%1$d 个会话 · LAN · 明文 · v0.1</string>
+    <string name="chat.section_today">今天 · TODAY · %1$d</string>
+    <string name="chat.empty">还没有会话 · No conversations yet</string>
+    <string name="chat.badge_file">FILE  </string>
+
+    <!-- ========== Chat detail ========== -->
+    <string name="chat.detail.section_today">今天 · 14:00 · TODAY</string>
+    <string name="chat.composer.placeholder">发条消息给 %1$s...</string>
+    <string name="chat.drop.label">DROP TO SEND</string>
+    <string name="chat.drop.summary">放手即发 · 3 个文件 · 12.4 MB</string>
+    <!-- 消息气泡状态 -->
+    <string name="chat.msg.delivered">· 已送达</string>
+    <string name="chat.msg.sent">· 发送中</string>
+    <string name="chat.msg.failed">· 失败</string>
+
+    <!-- ========== Transfer（传输） ========== -->
+    <string name="transfer.title">传输 · Transfers</string>
+    <string name="transfer.subtitle">%1$d 活跃 · %2$d 完成 · %3$d 排队</string>
+    <string name="transfer.session_label">本会话 · SESSION</string>
+    <string name="transfer.session_transferred">%1$s transferred</string>
+    <string name="transfer.metric_up">上行 ↑</string>
+    <string name="transfer.metric_down">下行 ↓</string>
+    <string name="transfer.metric_active">活跃任务</string>
+    <string name="transfer.section_in_progress">进行中 · IN PROGRESS · %1$d</string>
+    <string name="transfer.section_completed">已完成 · COMPLETED · 今天 · %1$d</string>
+    <string name="transfer.section_queued">排队中 · QUEUED · %1$d</string>
+    <string name="transfer.section_failed">失败 · FAILED · %1$d</string>
+    <string name="transfer.canceled">已取消</string>
+    <string name="transfer.cancel_cd">取消传输</string>
+    <!-- 传输行状态（双语并排，设计上保留中英对照） -->
+    <string name="transfer.state.sending">发送中 · SENDING</string>
+    <string name="transfer.state.receiving">接收中 · RECEIVING</string>
+    <string name="transfer.state.done">已完成 · DONE</string>
+    <string name="transfer.state.queued">排队中 · QUEUED</string>
+    <string name="transfer.state.failed">失败 · FAILED</string>
+    <string name="transfer.state.failed_reason">失败 · %1$s</string>
+    <!-- 我 / 对端方向标签 -->
+    <string name="transfer.me">我</string>
+    <!-- 预计剩余时间：紧贴 mono 时间值，保留 ETA 前缀与同行 speed 风格统一 -->
+    <string name="transfer.eta">ETA %1$s</string>
+
+    <!-- ========== History / Library（记录） ========== -->
+    <string name="history.title">记录 · Library</string>
+    <string name="history.subtitle">%1$d 条最近 · LAN · 明文 · 本机存储</string>
+    <string name="history.filter_all">全部</string>
+    <string name="history.filter_image">图片</string>
+    <string name="history.filter_file">文件</string>
+    <string name="history.filter_text">文字</string>
+    <string name="history.section_today">今天 · TODAY · %1$d 件</string>
+    <string name="history.photo_count">%1$d 张照片</string>
+    <string name="history.saved_to">已保存到 · MeshDrop/孟茜/</string>
+
+    <!-- ========== Clipboard（剪贴板） ========== -->
+    <string name="clipboard.title">剪贴板 · Clipboard</string>
+    <string name="clipboard.subtitle">显式推送 · 由你点一下才发，不是后台同步</string>
+    <string name="clipboard.push_to">推送到</string>
+    <string name="clipboard.no_device">无在线设备</string>
+    <string name="clipboard.read_clipboard">读取剪贴板</string>
+    <string name="clipboard.input_placeholder">粘贴或输入要推送的内容…</string>
+    <string name="clipboard.push">↑ 推送</string>
+    <string name="clipboard.empty">还没有收到剪贴板</string>
+    <string name="clipboard.section_received">收到的剪贴板 · %1$d</string>
+
+    <!-- ========== Me（我 / 设置） ========== -->
+    <string name="me.self_initials">我</string>
+    <!-- 自卡右上角可见性徽标（LIME mono chip），始终展示，与 EngineUiMapper 无关 -->
+    <string name="me.visibility_chip">可见</string>
+    <string name="me.fp_below">%1$s · FP 见下</string>
+    <string name="me.section_library">记录 · LIBRARY</string>
+    <string name="me.history_title">传输历史 · History</string>
+    <string name="me.history_subtitle">已收发的文本 / 文件 · 本机存储</string>
+    <string name="me.section_visibility">可见性 · VISIBILITY</string>
+    <string name="me.visible_in_nearby">在 Nearby 中显示我</string>
+    <string name="me.visible_in_nearby_sub">其他设备能看到本机</string>
+    <string name="me.allow_stranger_pairing">允许陌生设备发起配对</string>
+    <string name="me.allow_stranger_pairing_sub">首次会弹出 6 字符代码确认</string>
+    <string name="me.vibrate_on_receive">接收时震动</string>
+    <string name="me.vibrate_on_receive_sub">incoming · vibrate</string>
+    <string name="me.auto_accept">已配对设备自动接收</string>
+    <string name="me.auto_accept_sub">来自已信任设备的文件自动接受</string>
+    <string name="me.section_security">安全 · SECURITY</string>
+    <string name="me.paired_devices">已配对设备</string>
+    <string name="me.paired_devices_sub">%1$d 台 · 可单独撤销</string>
+    <string name="me.my_fingerprint">我的指纹 · Fingerprint</string>
+    <string name="me.scan_pair">扫码 / 6 字符配对</string>
+    <string name="me.scan_pair_sub">向新设备发起</string>
+    <string name="me.reset_identity">重置身份…</string>
+    <string name="me.reset_identity_sub">删除当前 ID 与 Ed25519 密钥；对端需重新配对</string>
+    <string name="me.reset_dialog_title">重置身份</string>
+    <string name="me.reset_dialog_body">将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后请重启 MeshDrop 让新身份生效。</string>
+    <string name="me.reset_confirm">重置</string>
+    <string name="me.reset_toast">已重置 · 请重启 MeshDrop</string>
+    <string name="me.section_trust">信任管理 · TRUST MANAGER</string>
+    <string name="me.trust_col_device">DEVICE</string>
+    <string name="me.trust_col_fingerprint">FINGERPRINT</string>
+    <string name="me.trust_col_action">ACTION</string>
+    <string name="me.trust_revoke">撤销</string>
+    <string name="me.section_about">关于 · ABOUT</string>
+    <string name="me.about_version">meshdrop · v0.1.0</string>
+    <string name="me.about_fonts">Space Grotesk · Geist · Geist Mono</string>
+    <string name="me.about_tagline">局域网直传 · 雷达发现 · 拖即发送 · LAN · 明文 · v0.1</string>
+
+    <!-- ========== Onboarding ========== -->
+    <string name="onboarding.step1_tag">STEP 1 · DISCOVERY</string>
+    <string name="onboarding.step1_title">雷达式发现</string>
+    <string name="onboarding.step1_body">本机会自动注册到局域网，扫描同 Wi-Fi 下的其他 MeshDrop 设备。雷达图实时显示 RTT 和方位。</string>
+    <string name="onboarding.step2_tag">STEP 2 · DRAG-TO-SEND</string>
+    <string name="onboarding.step2_title">拖即发送</string>
+    <string name="onboarding.step2_body">把文件拖到设备 row 上，或长按选多台。也支持 Android 原生 Share Intent。</string>
+    <string name="onboarding.step3_tag">STEP 3 · PAIRING</string>
+    <string name="onboarding.step3_title">配对与指纹信任</string>
+    <string name="onboarding.step3_body">身份为 Ed25519 长期密钥，指纹是公钥的 SHA-256 前缀。首次连接弹 6 字符确认（TOFU），配对后双方互信指纹。v0.1 局域网传输为明文 TCP，加密待后续版本。</string>
+    <string name="onboarding.step4_tag">STEP 4 · SHORTCUTS</string>
+    <string name="onboarding.step4_title">通知 / 后台 / 系统分享</string>
+    <string name="onboarding.step4_body">大文件用 Foreground Service 保活，incoming 弹 heads-up 通知，三键操作。</string>
+    <string name="onboarding.skip">跳过</string>
+    <string name="onboarding.prev">上一步</string>
+    <string name="onboarding.start">开始使用 →</string>
+    <string name="onboarding.next">下一步 →</string>
+
+    <!-- ========== Pairing sheet ========== -->
+    <string name="pairing.title">配对 · Pairing</string>
+    <string name="pairing.empty">暂无配对请求</string>
+    <string name="pairing.requested_at">对方在 %1$s 请求与你配对</string>
+    <string name="pairing.pin_label">6 字符代码 · PIN</string>
+    <string name="pairing.requested_by">REQUESTED BY</string>
+    <string name="pairing.section_fingerprint">指纹 · FINGERPRINT (SHA-256/16)</string>
+    <string name="pairing.section_choices">操作 · CHOICES</string>
+    <string name="pairing.deny">拒绝</string>
+    <string name="pairing.deny_sub">DENY</string>
+    <string name="pairing.allow_once">允许一次</string>
+    <string name="pairing.allow_once_sub">ALLOW ONCE</string>
+    <string name="pairing.trust">信任</string>
+    <string name="pairing.trust_sub">TRUST FOREVER</string>
+    <string name="pairing.close">关闭</string>
+    <string name="pairing.close_sub">CLOSE</string>
+
+    <!-- ========== File offer sheet ========== -->
+    <string name="offer.title">收到文件 · Incoming</string>
+    <string name="offer.empty">暂无待接收文件</string>
+    <string name="offer.sent_a_file">%1$s · %2$s 发送了一个文件</string>
+    <string name="offer.fp_match">FP MATCH</string>
+    <string name="offer.note_label">文字便签 · NOTE</string>
+    <string name="offer.section_actions">操作 · ACTIONS</string>
+    <string name="offer.deny">拒绝</string>
+    <string name="offer.deny_sub">DENY</string>
+    <string name="offer.accept">接收</string>
+    <string name="offer.accept_sub">ACCEPT</string>
+    <string name="offer.to_photos">保存到相册</string>
+    <string name="offer.to_photos_sub">TO PHOTOS</string>
+    <string name="offer.close">关闭</string>
+    <string name="offer.close_sub">CLOSE</string>
+
+    <!-- ========== Send bottom sheet ========== -->
+    <string name="send.title">发送 · Send</string>
+    <string name="send.subtitle">选一种内容，再选目标设备</string>
+    <string name="send.section_kind">内容类型 · KIND</string>
+    <string name="send.kind_image">图片</string>
+    <string name="send.kind_image_sub">相册 / 截屏</string>
+    <string name="send.kind_multi">多图</string>
+    <string name="send.kind_multi_sub">批量发送</string>
+    <string name="send.kind_file">文件</string>
+    <string name="send.kind_file_sub">本机存储</string>
+    <string name="send.kind_note">文字便签</string>
+    <string name="send.kind_note_sub">粘贴 / 写一段</string>
+    <string name="send.section_note">文字便签 · NOTE</string>
+    <string name="send.note_placeholder">写一段，回车选目标设备…</string>
+    <string name="send.pick_target">选择目标设备 →</string>
+    <string name="send.pick_target_with_note">选择目标设备发送 →</string>
+
+    <!-- ========== Device picker sheet ========== -->
+    <string name="picker.cancel">取消</string>
+    <string name="picker.selected_count">已选 %1$d 台</string>
+    <string name="picker.title">发送到多台设备</string>
+    <string name="picker.attachment_summary">已选附件 · 3 张图片 · 12.4 MB</string>
+    <string name="picker.send_to_count">发送给 %1$d 台</string>
+    <string name="picker.none_selected">未选</string>
+
+    <!-- ========== 平板布局专属 ========== -->
+    <string name="tablet.section_conversations">会话 · CONVERSATIONS · %1$d</string>
+
+    <!-- ========== Pending share overlay（系统分享落点） ========== -->
+    <string name="share.send_text_to">把这段文字发给…</string>
+    <string name="share.send_files_to">把这 %1$d 个文件发给…</string>
+
+    <!-- ========== 通知：入站文件 / 配对 ========== -->
+    <string name="notif.channel_incoming_name">收到文件 · Incoming</string>
+    <string name="notif.channel_incoming_desc">其他设备发来的文件 / 配对请求</string>
+    <string name="notif.unknown_device">未知设备</string>
+    <string name="notif.offer_title">%1$s 发来文件</string>
+    <string name="notif.offer_text">%1$s · %2$s</string>
+    <string name="notif.offer_bigtext">%1$s · MeshDrop\n%2$s · %3$s</string>
+    <string name="notif.accept">接收</string>
+    <string name="notif.reject">拒绝</string>
+    <string name="notif.pairing_title">%1$s 请求配对</string>
+    <string name="notif.pairing_text">允许后即可互相收发</string>
+    <string name="notif.pairing_bigtext">%1$s (%2$s) 请求与本机配对</string>
+    <string name="notif.allow_once">允许一次</string>
+
+    <!-- ========== 通知：后台传输前台 Service ========== -->
+    <string name="notif.channel_transfer_name">后台传输</string>
+    <string name="notif.channel_transfer_desc">传输进行中保持后台运行</string>
+    <string name="notif.transfer_default_title">MeshDrop · 后台传输</string>
+    <string name="notif.transfer_default_text">正在保活以完成传输…</string>
+    <string name="notif.transfer_verb_both">传输中</string>
+    <string name="notif.transfer_verb_send">发送中</string>
+    <string name="notif.transfer_verb_receive">接收中</string>
+    <string name="notif.transfer_title_single">MeshDrop · %1$s</string>
+    <string name="notif.transfer_title_multi">MeshDrop · %1$s（%2$d 个文件）</string>
+    <string name="notif.transfer_progress">%1$d%%%2$s</string>
+
+    <!-- ========== 引擎错误 / 传输失败原因（展示在传输行 / 错误条） ========== -->
+    <string name="engine.start_failed">启动失败</string>
+    <string name="engine.no_ip">无可用 IP</string>
+    <string name="engine.read_file_failed">无法读取文件: %1$s</string>
+    <string name="engine.peer_rejected">对方拒收: %1$s</string>
+    <string name="engine.chunk_too_large">chunk 超过 4 MiB 上限</string>
+    <string name="engine.checksum_failed">校验失败</string>
+    <string name="engine.conn_lost_resumable">连接中断 · 等待续传</string>
+    <string name="engine.conn_lost">连接中断</string>
+
+    <!-- ========== Heads-up 通知 mock（PR 截图占位，仅 action 文案复用） ========== -->
+    <string name="headsup.accept">接收</string>
+    <string name="headsup.reject">拒绝</string>
+    <string name="headsup.to_photos">保存到相册</string>
 </resources>

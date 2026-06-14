@@ -24,6 +24,8 @@ import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,9 +78,9 @@ fun DiscoverScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             MeshDropWordmark(fontSize = 22.sp)
             Spacer(Modifier.weight(1f))
-            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = "搜索", bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search), bordered = true, sizeDp = 36.dp)
             Spacer(Modifier.width(8.dp))
-            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = "更多", bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.common_more), bordered = true, sizeDp = 36.dp)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -87,13 +89,13 @@ fun DiscoverScreen(
         if (lastError != null) ErrorSnack(lastError, onDismissError)
 
         // 状态条
-        StatusStrip(visibility = MockMeData.visibility, peers = devices.size)
+        StatusStrip(visibility = stringResource(R.string.me_visibility_chip), peers = devices.size)
 
         Spacer(Modifier.height(18.dp))
 
         // Hero 标题
         Text(
-            text = "附近的",
+            text = stringResource(R.string.discovery_hero_title),
             style = TextStyle(
                 fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                 fontSize = 26.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
@@ -103,7 +105,7 @@ fun DiscoverScreen(
         // 渐变数字（flame -> lime）
         val gradient = Brush.horizontalGradient(listOf(Flame, LimeDeep, Lime))
         Text(
-            text = "${devices.size} 台设备",
+            text = stringResource(R.string.discovery_device_count, devices.size),
             style = TextStyle(
                 fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                 fontSize = 38.sp, letterSpacing = (-0.6).sp,
@@ -111,7 +113,7 @@ fun DiscoverScreen(
             ),
         )
         Text(
-            text = if (isStarting) "扫描中 · scanning LAN…" else "LAN-only · ${devices.size} peers",
+            text = if (isStarting) stringResource(R.string.discovery_scanning) else stringResource(R.string.discovery_lan_peers, devices.size),
             style = TextStyle(
                 fontFamily = GeistMono, fontWeight = FontWeight.W500,
                 fontSize = 11.sp, color = mesh.textTertiary, letterSpacing = 0.4.sp,
@@ -140,7 +142,7 @@ fun DiscoverScreen(
         Spacer(Modifier.height(10.dp))
 
         Text(
-            text = if (devices.isEmpty() && !isStarting) "↑ 附近没有 MeshDrop 设备" else "↑ 长按设备开始发送",
+            text = if (devices.isEmpty() && !isStarting) stringResource(R.string.discovery_radar_hint_empty) else stringResource(R.string.discovery_radar_hint_longpress),
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
             style = TextStyle(
@@ -151,7 +153,7 @@ fun DiscoverScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        AsciiDivider(label = "附近 · NEARBY · ${devices.size}")
+        AsciiDivider(label = stringResource(R.string.discovery_section_nearby, devices.size))
 
         if (devices.isEmpty() && !isStarting) {
             EmptyNearbyCard()
@@ -190,7 +192,7 @@ private fun ScanningBanner() {
                 .background(LimeDeep),
         )
         Text(
-            text = "扫描中 · scanning LAN…",
+            text = stringResource(R.string.discovery_scanning),
             style = TextStyle(
                 fontFamily = GeistMono, fontWeight = FontWeight.W700,
                 fontSize = 11.sp, color = mesh.textPrimary, letterSpacing = 1.0.sp,
@@ -214,7 +216,7 @@ private fun ErrorSnack(message: String, onDismiss: () -> Unit) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "网络出错",
+                text = stringResource(R.string.discovery_error_title),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W700,
                     fontSize = 11.sp, color = ErrorRed, letterSpacing = 1.0.sp,
@@ -228,7 +230,7 @@ private fun ErrorSnack(message: String, onDismiss: () -> Unit) {
                 ),
             )
         }
-        MeshIconBtn(icon = Icons.Outlined.Close, contentDescription = "关闭", sizeDp = 28.dp, onClick = onDismiss)
+        MeshIconBtn(icon = Icons.Outlined.Close, contentDescription = stringResource(R.string.common_close), sizeDp = 28.dp, onClick = onDismiss)
     }
     Spacer(Modifier.height(10.dp))
 }
@@ -247,7 +249,7 @@ private fun EmptyNearbyCard() {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "附近没有 MeshDrop 设备",
+                text = stringResource(R.string.discovery_empty_title),
                 style = TextStyle(
                     fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                     fontSize = 16.sp, color = mesh.textPrimary,
@@ -255,7 +257,7 @@ private fun EmptyNearbyCard() {
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "让朋友也打开试试 · invite a friend to open",
+                text = stringResource(R.string.discovery_empty_subtitle),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,

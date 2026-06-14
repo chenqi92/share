@@ -26,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.core.content.FileProvider
 import java.io.File
 import androidx.compose.ui.Alignment
@@ -82,7 +84,10 @@ fun TransferScreen(engine: ShareEngine? = null) {
     val history by engine.history.collectAsState()
     val metrics by engine.transferMetrics.collectAsState()
     val throughput by engine.sessionThroughput.collectAsState()
-    val transfers = history.mapNotNull { it.toDisplayTransfer(metrics[it.id]) }
+    // 方向标签「我」与取消原因文案要随 locale 切换，从资源取值后透传给纯函数映射。
+    val meLabel = stringResource(R.string.transfer_me)
+    val canceledLabel = stringResource(R.string.transfer_canceled)
+    val transfers = history.mapNotNull { it.toDisplayTransfer(metrics[it.id], meLabel, canceledLabel) }
 
     // 会话汇总：所有文件历史 size 之和；瞬时速率分方向求和。
     val sessionTotal = history.sumOf {
@@ -124,10 +129,12 @@ private fun TransferScreenContent(
     downBars: List<Int> = emptyList(),
 ) {
     val mesh = MeshTheme.colors
+    val meLabel = stringResource(R.string.transfer_me)
     val inProgress = transfers.filter { it.state == TransferState.SENDING || it.state == TransferState.RECEIVING }
     val completed = transfers.filter { it.state == TransferState.DONE }
     val queued = transfers.filter { it.state == TransferState.QUEUED }
-    val failed = transfers.filter { it.state == TransferState.FAILED && it.from == "我" }
+    // 仅显示「本机发起」的失败项可重试；from 标签由 toDisplayTransfer 用同一资源串填充。
+    val failed = transfers.filter { it.state == TransferState.FAILED && it.from == meLabel }
 
     Column(
         modifier = Modifier
@@ -140,14 +147,14 @@ private fun TransferScreenContent(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(
-                    text = "传输 · Transfers",
+                    text = stringResource(R.string.transfer_title),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 28.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
                     ),
                 )
                 Text(
-                    text = "${inProgress.size} 活跃 · ${completed.size} 完成 · ${queued.size} 排队",
+                    text = stringResource(R.string.transfer_subtitle, inProgress.size, completed.size, queued.size),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = mesh.textTertiary,
@@ -155,7 +162,7 @@ private fun TransferScreenContent(
                 )
             }
             Spacer(Modifier.weight(1f))
-            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = "更多", bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.common_more), bordered = true, sizeDp = 36.dp)
         }
 
         Spacer(Modifier.height(16.dp))
@@ -170,7 +177,7 @@ private fun TransferScreenContent(
                 .padding(PaddingValues(horizontal = 18.dp, vertical = 18.dp)),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MonoLabel("本会话 · SESSION")
+                MonoLabel(stringResource(R.string.transfer_session_label))
                 Spacer(Modifier.weight(1f))
                 MeshChip(text = "LIVE", tone = ChipTone.LIME, mono = true)
             }
@@ -188,7 +195,7 @@ private fun TransferScreenContent(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "$sessionUnit transferred",
+                    text = stringResource(R.string.transfer_session_transferred, sessionUnit),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 14.sp, color = mesh.textTertiary,
@@ -207,21 +214,21 @@ private fun TransferScreenContent(
             Spacer(Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                MetricStat(label = "上行 ↑", value = formatBps(currentUploadBps), color = Flame)
-                MetricStat(label = "下行 ↓", value = formatBps(currentDownloadBps), color = Sky)
-                MetricStat(label = "活跃任务", value = "${inProgress.size}", color = LimeDeep)
+                MetricStat(label = stringResource(R.string.transfer_metric_up), value = formatBps(currentUploadBps), color = Flame)
+                MetricStat(label = stringResource(R.string.transfer_metric_down), value = formatBps(currentDownloadBps), color = Sky)
+                MetricStat(label = stringResource(R.string.transfer_metric_active), value = "${inProgress.size}", color = LimeDeep)
             }
         }
 
         Spacer(Modifier.height(8.dp))
-        AsciiDivider(label = "进行中 · IN PROGRESS · ${inProgress.size}")
+        AsciiDivider(label = stringResource(R.string.transfer_section_in_progress, inProgress.size))
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             inProgress.forEach { TransferRow(item = it, onCancel = { onCancel(it) }) }
         }
 
         Spacer(Modifier.height(4.dp))
-        AsciiDivider(label = "已完成 · COMPLETED · 今天 · ${completed.size}")
+        AsciiDivider(label = stringResource(R.string.transfer_section_completed, completed.size))
 
         val context = LocalContext.current
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -235,7 +242,7 @@ private fun TransferScreenContent(
 
         if (queued.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
-            AsciiDivider(label = "排队中 · QUEUED · ${queued.size}")
+            AsciiDivider(label = stringResource(R.string.transfer_section_queued, queued.size))
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 queued.forEach { TransferRow(item = it) }
             }
@@ -243,7 +250,7 @@ private fun TransferScreenContent(
 
         if (failed.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
-            AsciiDivider(label = "失败 · FAILED · ${failed.size}")
+            AsciiDivider(label = stringResource(R.string.transfer_section_failed, failed.size))
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 failed.forEach { TransferRow(item = it, onRetry = { onRetry(it) }) }
             }
@@ -253,8 +260,15 @@ private fun TransferScreenContent(
     }
 }
 
-/** HistoryItem → MockTransfer：仅文件项参与传输面板；text 历史返回 null。 */
-private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): MockTransfer? {
+/**
+ * HistoryItem → MockTransfer：仅文件项参与传输面板；text 历史返回 null。
+ * meLabel/canceledLabel 由调用方从资源取出后传入，避免在纯函数里依赖 Context。
+ */
+private fun HistoryItem.toDisplayTransfer(
+    metrics: TransferMetrics? = null,
+    meLabel: String,
+    canceledLabel: String,
+): MockTransfer? {
     val file = kind as? HistoryKind.File ?: return null
     val sizeLabel = humanSize(file.size)
     val ext = file.name.substringAfterLast('.', "bin").lowercase()
@@ -268,8 +282,8 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
         is TransferStatus.Failed, TransferStatus.Canceled -> 0 to TransferState.FAILED
     }
     val peerLabel = peer.name.ifBlank { peer.model ?: peer.id.take(8) }
-    val from = if (direction == TransferDirection.OUTGOING) "我" else peerLabel
-    val to = if (direction == TransferDirection.OUTGOING) peerLabel else "我"
+    val from = if (direction == TransferDirection.OUTGOING) meLabel else peerLabel
+    val to = if (direction == TransferDirection.OUTGOING) peerLabel else meLabel
     val active = state == TransferState.SENDING || state == TransferState.RECEIVING
     val speed = if (active && metrics != null && metrics.bytesPerSec > 1.0) formatSpeed(metrics.bytesPerSec) else null
     val eta = if (active) metrics?.etaSeconds?.let(::formatEta) else null
@@ -278,7 +292,7 @@ private fun HistoryItem.toDisplayTransfer(metrics: TransferMetrics? = null): Moc
     } else null
     val failReason = when (val s = status) {
         is TransferStatus.Failed -> s.reason
-        TransferStatus.Canceled -> "已取消"
+        TransferStatus.Canceled -> canceledLabel
         else -> null
     }
     return MockTransfer(

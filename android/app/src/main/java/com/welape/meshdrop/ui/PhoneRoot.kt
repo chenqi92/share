@@ -37,10 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.mock.MockChatPreviews
 import com.welape.meshdrop.mock.MockDevices
 import com.welape.meshdrop.mock.MockHistory
@@ -78,14 +80,15 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
     val lastError = engine?.lastError?.collectAsState()?.value
 
-    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i) }
+    val unnamedFallback = stringResource(R.string.common_unnamed)
+    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i, unnamedFallback) }
         ?: if (engine == null) MockDevices else emptyList()
     val historyUi = realHistoryRaw?.map { it.toUiHistoryItem() }
         ?: if (engine == null) MockHistory else emptyList()
     val chatPreviewsUi = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
     fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
-        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice()
+        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
 
     // 角标：聊天 = 未读入站文本数，传输 = 进行中任务数（真实数据，引擎缺席时为 0）
     val chatUnread = (engine?.unreadByPeer?.collectAsState()?.value ?: emptyMap()).values.sum()
@@ -201,7 +204,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                         ) {
                             MeshIconBtn(
                                 icon = Icons.Outlined.Add,
-                                contentDescription = "发送",
+                                contentDescription = stringResource(R.string.common_send),
                                 sizeDp = 64.dp,
                                 accent = true,
                                 onClick = { state.sheet = MeshSheet.SEND },
@@ -280,7 +283,7 @@ private fun HistoryPane(
         ) {
             MeshIconBtn(
                 icon = Icons.Outlined.ArrowBack,
-                contentDescription = "返回 · Back",
+                contentDescription = stringResource(R.string.common_back),
                 bordered = true,
                 sizeDp = 36.dp,
                 onClick = onBack,
@@ -310,10 +313,10 @@ fun BottomNavBar(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         val tabs = listOf(
-            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近 · Nearby"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "消息 · Chat"),
-            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输 · Transfer"),
-            Triple(MeshTab.ME, Icons.Outlined.Person, "我 · Me"),
+            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, stringResource(R.string.nav_discovery)),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, stringResource(R.string.nav_chat)),
+            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, stringResource(R.string.nav_transfer)),
+            Triple(MeshTab.ME, Icons.Outlined.Person, stringResource(R.string.nav_me)),
         )
         tabs.forEach { (tab, icon, label) ->
             NavTabItem(

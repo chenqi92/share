@@ -27,10 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.data.PairingDecision
 import com.welape.meshdrop.data.PendingPairing
 import com.welape.meshdrop.mock.MockPendingPairingItem
@@ -90,12 +92,12 @@ fun PairingSheetContent(
             .padding(PaddingValues(horizontal = 22.dp, vertical = 24.dp)),
     ) {
         if (model == null) {
-            EmptyPending("暂无配对请求", onClose)
+            EmptyPending(stringResource(R.string.pairing_empty), onClose)
             return@Column
         }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "配对 · Pairing",
+                    stringResource(R.string.pairing_title),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 22.sp, color = mesh.textPrimary, letterSpacing = (-0.4).sp,
@@ -105,7 +107,7 @@ fun PairingSheetContent(
                 MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
             }
             Text(
-                "对方在 ${model.receivedAt} 请求与你配对",
+                stringResource(R.string.pairing_requested_at, model.receivedAt),
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 13.sp, color = mesh.textSecondary,
@@ -119,7 +121,7 @@ fun PairingSheetContent(
                 FakeQr(sizeDp = 132)
                 Spacer(Modifier.width(18.dp))
                 Column {
-                    MonoLabel("6 字符代码 · PIN")
+                    MonoLabel(stringResource(R.string.pairing_pin_label))
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = model.pinCode,
@@ -129,7 +131,7 @@ fun PairingSheetContent(
                         ),
                     )
                     Spacer(Modifier.height(8.dp))
-                    MonoLabel("REQUESTED BY")
+                    MonoLabel(stringResource(R.string.pairing_requested_by))
                     Text(
                         text = "${model.peer} · ${model.deviceName}",
                         style = TextStyle(
@@ -140,7 +142,7 @@ fun PairingSheetContent(
                 }
             }
 
-            AsciiDivider(label = "指纹 · FINGERPRINT (SHA-256/16)")
+            AsciiDivider(label = stringResource(R.string.pairing_section_fingerprint))
 
             // 指纹分组（4-4 8 组，两行）
             Column {
@@ -157,12 +159,12 @@ fun PairingSheetContent(
                 }
             }
 
-            AsciiDivider(label = "操作 · CHOICES")
+            AsciiDivider(label = stringResource(R.string.pairing_section_choices))
 
             // 三个按钮
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 BigActionButton(
-                    label = "拒绝", subtitle = "DENY",
+                    label = stringResource(R.string.pairing_deny), subtitle = stringResource(R.string.pairing_deny_sub),
                     bg = mesh.surface, fg = mesh.textPrimary,
                     border = mesh.outline, modifier = Modifier.weight(1f),
                     onClick = {
@@ -171,7 +173,7 @@ fun PairingSheetContent(
                     },
                 )
                 BigActionButton(
-                    label = "允许一次", subtitle = "ALLOW ONCE",
+                    label = stringResource(R.string.pairing_allow_once), subtitle = stringResource(R.string.pairing_allow_once_sub),
                     bg = mesh.card, fg = mesh.textPrimary,
                     border = mesh.textPrimary, modifier = Modifier.weight(1f),
                     onClick = {
@@ -180,7 +182,7 @@ fun PairingSheetContent(
                     },
                 )
                 BigActionButton(
-                    label = "信任", subtitle = "TRUST FOREVER",
+                    label = stringResource(R.string.pairing_trust), subtitle = stringResource(R.string.pairing_trust_sub),
                     bg = Lime, fg = Ink, border = Color.Transparent,
                     modifier = Modifier.weight(1f),
                     onClick = {
@@ -205,7 +207,7 @@ private fun EmptyPending(message: String, onClose: () -> Unit) {
             ),
         )
         BigActionButton(
-            label = "关闭", subtitle = "CLOSE",
+            label = stringResource(R.string.pairing_close), subtitle = stringResource(R.string.pairing_close_sub),
             bg = mesh.surface, fg = mesh.textPrimary, border = mesh.outline,
             onClick = onClose,
         )

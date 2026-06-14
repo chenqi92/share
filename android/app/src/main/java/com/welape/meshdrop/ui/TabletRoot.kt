@@ -37,10 +37,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -94,14 +96,15 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
     val isStarting = engine?.isStarting?.collectAsState()?.value ?: false
     val lastError = engine?.lastError?.collectAsState()?.value
 
-    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i) }
+    val unnamedFallback = stringResource(R.string.common_unnamed)
+    val devicesUi = realDevicesRaw?.mapIndexed { i, d -> d.toUiDevice(i, unnamedFallback) }
         ?: if (engine == null) MockDevices else emptyList()
     val chatPreviewsUi: List<MockChatPreview> = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
     val historyUi = realHistoryRaw?.map { it.toUiHistoryItem() }
         ?: if (engine == null) MockHistory else emptyList()
     fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
-        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice()
+        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
 
     var pendingDraft by remember { mutableStateOf("") }
     var promptedPairingId by remember { mutableStateOf<String?>(null) }
@@ -261,10 +264,10 @@ private fun NavRail(state: MeshAppState) {
         MeshDropMark(size = 30.dp)
         Spacer(Modifier.height(18.dp))
         val items = listOf(
-            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, "附近"),
-            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, "消息"),
-            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, "传输"),
-            Triple(MeshTab.ME, Icons.Outlined.Person, "我"),
+            Triple(MeshTab.DISCOVER, Icons.Outlined.Radar, stringResource(R.string.nav_discovery_short)),
+            Triple(MeshTab.CHAT, Icons.Outlined.ChatBubbleOutline, stringResource(R.string.nav_chat_short)),
+            Triple(MeshTab.TRANSFER, Icons.Outlined.SwapVert, stringResource(R.string.nav_transfer_short)),
+            Triple(MeshTab.ME, Icons.Outlined.Person, stringResource(R.string.nav_me_short)),
         )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items.forEach { (tab, icon, label) ->
@@ -283,7 +286,7 @@ private fun NavRail(state: MeshAppState) {
                 .clickable { state.sheet = MeshSheet.SEND },
             contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = Icons.Outlined.Add, contentDescription = "发送", tint = Ink, modifier = Modifier.size(28.dp))
+            Icon(imageVector = Icons.Outlined.Add, contentDescription = stringResource(R.string.common_send), tint = Ink, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(8.dp))
         MonoLabel("LAN")
@@ -333,7 +336,7 @@ private fun MiddlePanel(
         ) {
             MeshDropLockup(markSize = 22.dp, fontSize = 18.sp)
             Spacer(Modifier.weight(1f))
-            Icon(Icons.Outlined.Settings, contentDescription = "设置", tint = mesh.textTertiary, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.common_settings), tint = mesh.textTertiary, modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.height(8.dp))
         // 自卡
@@ -347,7 +350,7 @@ private fun MiddlePanel(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(contentAlignment = Alignment.BottomEnd) {
-                MeshAvatar(initials = "我", color = com.welape.meshdrop.ui.theme.AvatarMint, sizeDp = 32, ringColor = Lime)
+                MeshAvatar(initials = stringResource(R.string.me_self_initials), color = com.welape.meshdrop.ui.theme.AvatarMint, sizeDp = 32, ringColor = Lime)
                 Box(Modifier.size(10.dp)) { OnlineDot(sizeDp = 9) }
             }
             Spacer(Modifier.width(10.dp))
@@ -357,7 +360,7 @@ private fun MiddlePanel(
             }
         }
 
-        AsciiDivider(label = "会话 · CONVERSATIONS · ${previews.size}")
+        AsciiDivider(label = stringResource(R.string.tablet_section_conversations, previews.size))
 
         Column(
             modifier = Modifier

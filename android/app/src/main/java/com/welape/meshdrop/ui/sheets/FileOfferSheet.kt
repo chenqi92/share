@@ -24,10 +24,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.data.PendingFileOffer
 import com.welape.meshdrop.mock.MockPendingOfferItem
 import com.welape.meshdrop.ui.components.AsciiDivider
@@ -87,12 +89,12 @@ fun FileOfferSheetContent(
             .padding(PaddingValues(horizontal = 22.dp, vertical = 24.dp)),
     ) {
         if (model == null) {
-            EmptyOffer("暂无待接收文件", onClose)
+            EmptyOffer(stringResource(R.string.offer_empty), onClose)
             return@Column
         }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "收到文件 · Incoming",
+                    stringResource(R.string.offer_title),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 22.sp, color = mesh.textPrimary, letterSpacing = (-0.4).sp,
@@ -102,7 +104,7 @@ fun FileOfferSheetContent(
                 MeshChip(text = model.receivedAt.uppercase(), tone = ChipTone.LIME, mono = true)
             }
             Text(
-                "${model.peer} · ${model.deviceName} 发送了一个文件",
+                stringResource(R.string.offer_sent_a_file, model.peer, model.deviceName),
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 13.sp, color = mesh.textSecondary,
@@ -139,7 +141,7 @@ fun FileOfferSheetContent(
                             ),
                         )
                     }
-                    MeshChip(text = "FP MATCH", tone = ChipTone.LIME, mono = true)
+                    MeshChip(text = stringResource(R.string.offer_fp_match), tone = ChipTone.LIME, mono = true)
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -164,7 +166,7 @@ fun FileOfferSheetContent(
                 }
                 Spacer(Modifier.height(12.dp))
                 // 文字便签
-                MonoLabel("文字便签 · NOTE")
+                MonoLabel(stringResource(R.string.offer_note_label))
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "“${model.note}”",
@@ -175,12 +177,12 @@ fun FileOfferSheetContent(
                 )
             }
 
-            AsciiDivider(label = "操作 · ACTIONS")
+            AsciiDivider(label = stringResource(R.string.offer_section_actions))
 
             // 三按钮：拒绝 / 接收 / 接收并打开
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 ActionBtn(
-                    label = "拒绝", subtitle = "DENY",
+                    label = stringResource(R.string.offer_deny), subtitle = stringResource(R.string.offer_deny_sub),
                     bg = mesh.surface, fg = mesh.danger, border = mesh.outline,
                     modifier = Modifier.weight(1f), onClick = {
                         onRespond(false)
@@ -188,7 +190,7 @@ fun FileOfferSheetContent(
                     },
                 )
                 ActionBtn(
-                    label = "接收", subtitle = "ACCEPT",
+                    label = stringResource(R.string.offer_accept), subtitle = stringResource(R.string.offer_accept_sub),
                     bg = mesh.card, fg = mesh.textPrimary, border = mesh.textPrimary,
                     modifier = Modifier.weight(1f), onClick = {
                         onRespond(true)
@@ -196,7 +198,7 @@ fun FileOfferSheetContent(
                     },
                 )
                 ActionBtn(
-                    label = "保存到相册", subtitle = "TO PHOTOS",
+                    label = stringResource(R.string.offer_to_photos), subtitle = stringResource(R.string.offer_to_photos_sub),
                     bg = Lime, fg = Ink, border = Color.Transparent,
                     modifier = Modifier.weight(1f), onClick = {
                         onRespond(true)
@@ -220,7 +222,7 @@ private fun EmptyOffer(message: String, onClose: () -> Unit) {
             ),
         )
         ActionBtn(
-            label = "关闭", subtitle = "CLOSE",
+            label = stringResource(R.string.offer_close), subtitle = stringResource(R.string.offer_close_sub),
             bg = mesh.surface, fg = mesh.textPrimary, border = mesh.outline,
             onClick = onClose,
         )

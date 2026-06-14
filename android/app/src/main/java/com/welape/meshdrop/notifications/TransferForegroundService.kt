@@ -38,8 +38,8 @@ class TransferForegroundService : Service() {
         }
 
         ensureChannel(this)
-        val title = intent?.getStringExtra(EXTRA_TITLE) ?: "MeshDrop · 后台传输"
-        val text = intent?.getStringExtra(EXTRA_TEXT) ?: "正在保活以完成传输…"
+        val title = intent?.getStringExtra(EXTRA_TITLE) ?: getString(R.string.notif_transfer_default_title)
+        val text = intent?.getStringExtra(EXTRA_TEXT) ?: getString(R.string.notif_transfer_default_text)
         val progress = intent?.getIntExtra(EXTRA_PROGRESS, -1) ?: -1
         val indeterminate = intent?.getBooleanExtra(EXTRA_INDETERMINATE, true) ?: true
 
@@ -150,10 +150,10 @@ class TransferForegroundService : Service() {
             if (nm.getNotificationChannel(CHANNEL_ID) != null) return
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "后台传输",
+                context.getString(R.string.notif_channel_transfer_name),
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "传输进行中保持后台运行"
+                description = context.getString(R.string.notif_channel_transfer_desc)
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)

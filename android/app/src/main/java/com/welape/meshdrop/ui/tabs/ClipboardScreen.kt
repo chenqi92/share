@@ -37,6 +37,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -83,14 +85,14 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
         Spacer(Modifier.height(20.dp))
         Column {
             Text(
-                text = "剪贴板 · Clipboard",
+                text = stringResource(R.string.clipboard_title),
                 style = TextStyle(
                     fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                     fontSize = 28.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
                 ),
             )
             Text(
-                text = "显式推送 · 由你点一下才发，不是后台同步",
+                text = stringResource(R.string.clipboard_subtitle),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,
@@ -111,14 +113,14 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "推送到",
+                    text = stringResource(R.string.clipboard_push_to),
                     style = TextStyle(fontFamily = GeistMono, fontSize = 11.sp, color = mesh.textTertiary),
                 )
                 Spacer(Modifier.width(8.dp))
                 Box {
                     TextButton(onClick = { if (devices.isNotEmpty()) menuOpen = true }) {
                         Text(
-                            text = target?.name ?: "无在线设备",
+                            text = target?.name ?: stringResource(R.string.clipboard_no_device),
                             style = TextStyle(fontFamily = GeistMono, fontWeight = FontWeight.W600, fontSize = 12.sp, color = mesh.textPrimary),
                         )
                         Icon(Icons.Outlined.ArrowDropDown, contentDescription = null, tint = mesh.textSecondary)
@@ -136,10 +138,10 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
                 TextButton(onClick = {
                     clipboard.getText()?.text?.let { if (it.isNotEmpty()) draft = it }
                 }) {
-                    Icon(Icons.Outlined.ContentPaste, contentDescription = "读取剪贴板", tint = Sky, modifier = Modifier.height(16.dp))
+                    Icon(Icons.Outlined.ContentPaste, contentDescription = stringResource(R.string.clipboard_read_clipboard), tint = Sky, modifier = Modifier.height(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = "读取剪贴板",
+                        text = stringResource(R.string.clipboard_read_clipboard),
                         style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = Sky),
                     )
                 }
@@ -148,7 +150,7 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                placeholder = { Text("粘贴或输入要推送的内容…") },
+                placeholder = { Text(stringResource(R.string.clipboard_input_placeholder)) },
                 modifier = Modifier.fillMaxWidth().height(110.dp),
             )
 
@@ -171,7 +173,7 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
                         .padding(horizontal = 18.dp, vertical = 9.dp),
                 ) {
                     Text(
-                        text = "↑ 推送",
+                        text = stringResource(R.string.clipboard_push),
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W700, fontSize = 11.sp,
                             color = if (canPush) mesh.canvas else mesh.textTertiary,
@@ -185,12 +187,12 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
         if (inbox.isEmpty()) {
             Spacer(Modifier.height(28.dp))
             Text(
-                text = "还没有收到剪贴板",
+                text = stringResource(R.string.clipboard_empty),
                 style = TextStyle(fontFamily = GeistMono, fontSize = 12.sp, color = mesh.textTertiary),
                 modifier = Modifier.fillMaxWidth(),
             )
         } else {
-            AsciiDivider(label = "收到的剪贴板 · ${inbox.size}")
+            AsciiDivider(label = stringResource(R.string.clipboard_section_received, inbox.size))
             inbox.forEach { entry ->
                 ClipboardCard(entry = entry, onCopy = { clipboard.setText(AnnotatedString(entry.content)) })
                 Spacer(Modifier.height(10.dp))
@@ -236,9 +238,9 @@ private fun ClipboardCard(entry: ClipboardEntry, onCopy: () -> Unit) {
         Spacer(Modifier.height(6.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = onCopy) {
-                Icon(Icons.Outlined.ContentCopy, contentDescription = "复制", tint = mesh.textTertiary, modifier = Modifier.height(15.dp))
+                Icon(Icons.Outlined.ContentCopy, contentDescription = stringResource(R.string.common_copy), tint = mesh.textTertiary, modifier = Modifier.height(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text(text = "复制", style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = mesh.textTertiary))
+                Text(text = stringResource(R.string.common_copy), style = TextStyle(fontFamily = GeistMono, fontSize = 10.sp, color = mesh.textTertiary))
             }
         }
     }

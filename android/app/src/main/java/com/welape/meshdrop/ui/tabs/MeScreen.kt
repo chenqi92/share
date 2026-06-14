@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -74,7 +76,7 @@ fun MeScreen(
     val fingerprintGroups = engine?.identity?.fingerprint?.let { groupFingerprint(it) }
         ?: MockMeData.fingerprintGroups
     val selfName = engine?.displayName ?: MockMeData.name
-    val selfSubtitle = engine?.let { "${it.identity.id.take(8)} · FP 见下" } ?: "${MockMeData.os} · ${MockMeData.ip}"
+    val selfSubtitle = engine?.let { stringResource(R.string.me_fp_below, it.identity.id.take(8)) } ?: "${MockMeData.os} · ${MockMeData.ip}"
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -94,7 +96,7 @@ fun MeScreen(
                 .padding(PaddingValues(horizontal = 18.dp, vertical = 18.dp)),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                MeshAvatar(initials = "我", color = AvatarMint, sizeDp = 56, ringColor = Lime)
+                MeshAvatar(initials = stringResource(R.string.me_self_initials), color = AvatarMint, sizeDp = 56, ringColor = Lime)
                 Spacer(Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -112,51 +114,51 @@ fun MeScreen(
                         ),
                     )
                 }
-                MeshChip(text = MockMeData.visibility, tone = ChipTone.LIME, mono = true)
+                MeshChip(text = stringResource(R.string.me_visibility_chip), tone = ChipTone.LIME, mono = true)
             }
             Spacer(Modifier.height(14.dp))
             FingerprintRow(fingerprintGroups)
         }
 
-        AsciiDivider(label = "记录 · LIBRARY")
+        AsciiDivider(label = stringResource(R.string.me_section_library))
         SettingsCard {
             ChevronRow(
-                title = "传输历史 · History",
-                subtitle = "已收发的文本 / 文件 · 本机存储",
+                title = stringResource(R.string.me_history_title),
+                subtitle = stringResource(R.string.me_history_subtitle),
                 onClick = onOpenHistory,
             )
         }
 
-        AsciiDivider(label = "可见性 · VISIBILITY")
+        AsciiDivider(label = stringResource(R.string.me_section_visibility))
         SettingsCard {
-            SwitchRow(title = "在 Nearby 中显示我", subtitle = "其他设备能看到本机", initial = true)
+            SwitchRow(title = stringResource(R.string.me_visible_in_nearby), subtitle = stringResource(R.string.me_visible_in_nearby_sub), initial = true)
             DividerThin()
-            SwitchRow(title = "允许陌生设备发起配对", subtitle = "首次会弹出 6 字符代码确认", initial = true)
+            SwitchRow(title = stringResource(R.string.me_allow_stranger_pairing), subtitle = stringResource(R.string.me_allow_stranger_pairing_sub), initial = true)
             DividerThin()
-            SwitchRow(title = "接收时震动", subtitle = "incoming · vibrate", initial = false)
+            SwitchRow(title = stringResource(R.string.me_vibrate_on_receive), subtitle = stringResource(R.string.me_vibrate_on_receive_sub), initial = false)
             if (engine != null) {
                 DividerThin()
                 val autoAccept = engine.autoAcceptFromTrusted.collectAsState().value
                 SwitchRow(
-                    title = "已配对设备自动接收",
-                    subtitle = "来自已信任设备的文件自动接受",
+                    title = stringResource(R.string.me_auto_accept),
+                    subtitle = stringResource(R.string.me_auto_accept_sub),
                     checked = autoAccept,
                     onChange = { engine.setAutoAcceptFromTrusted(it) },
                 )
             }
         }
 
-        AsciiDivider(label = "安全 · SECURITY")
+        AsciiDivider(label = stringResource(R.string.me_section_security))
         SettingsCard {
-            ChevronRow(title = "已配对设备", subtitle = "${MockTrustList.size} 台 · 可单独撤销")
+            ChevronRow(title = stringResource(R.string.me_paired_devices), subtitle = stringResource(R.string.me_paired_devices_sub, MockTrustList.size))
             DividerThin()
-            ChevronRow(title = "我的指纹 · Fingerprint", subtitle = fingerprintGroups.joinToString(" · "))
+            ChevronRow(title = stringResource(R.string.me_my_fingerprint), subtitle = fingerprintGroups.joinToString(" · "))
             DividerThin()
-            ChevronRow(title = "扫码 / 6 字符配对", subtitle = "向新设备发起", onClick = onOpenPairing)
+            ChevronRow(title = stringResource(R.string.me_scan_pair), subtitle = stringResource(R.string.me_scan_pair_sub), onClick = onOpenPairing)
             DividerThin()
             ChevronRow(
-                title = "重置身份…",
-                subtitle = "删除当前 ID 与 Ed25519 密钥；对端需重新配对",
+                title = stringResource(R.string.me_reset_identity),
+                subtitle = stringResource(R.string.me_reset_identity_sub),
                 onClick = { showResetDialog = true },
             )
         }
@@ -164,26 +166,24 @@ fun MeScreen(
         if (showResetDialog) {
             AlertDialog(
                 onDismissRequest = { showResetDialog = false },
-                title = { Text("重置身份") },
+                title = { Text(stringResource(R.string.me_reset_dialog_title)) },
                 text = {
-                    Text(
-                        "将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后请重启 MeshDrop 让新身份生效。",
-                    )
+                    Text(stringResource(R.string.me_reset_dialog_body))
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         IdentityStore.reset(context)
-                        Toast.makeText(context, "已重置 · 请重启 MeshDrop", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, context.getString(R.string.me_reset_toast), Toast.LENGTH_LONG).show()
                         showResetDialog = false
-                    }) { Text("重置") }
+                    }) { Text(stringResource(R.string.me_reset_confirm)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showResetDialog = false }) { Text("取消") }
+                    TextButton(onClick = { showResetDialog = false }) { Text(stringResource(R.string.common_cancel)) }
                 },
             )
         }
 
-        AsciiDivider(label = "信任管理 · TRUST MANAGER")
+        AsciiDivider(label = stringResource(R.string.me_section_trust))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -196,11 +196,11 @@ fun MeScreen(
                 modifier = Modifier.padding(PaddingValues(horizontal = 14.dp, vertical = 12.dp)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MonoLabel("DEVICE")
+                MonoLabel(stringResource(R.string.me_trust_col_device))
                 Spacer(Modifier.weight(1f))
-                MonoLabel("FINGERPRINT")
+                MonoLabel(stringResource(R.string.me_trust_col_fingerprint))
                 Spacer(Modifier.width(56.dp))
-                MonoLabel("ACTION")
+                MonoLabel(stringResource(R.string.me_trust_col_action))
             }
             DividerThin()
             MockTrustList.forEachIndexed { idx, rec ->
@@ -209,7 +209,7 @@ fun MeScreen(
             }
         }
 
-        AsciiDivider(label = "关于 · ABOUT")
+        AsciiDivider(label = stringResource(R.string.me_section_about))
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -223,14 +223,14 @@ fun MeScreen(
                 MeshDropMark(size = 28.dp)
                 Column {
                     Text(
-                        "meshdrop · v0.1.0",
+                        stringResource(R.string.me_about_version),
                         style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 16.sp, color = mesh.textPrimary,
                         ),
                     )
                     Text(
-                        "Space Grotesk · Geist · Geist Mono",
+                        stringResource(R.string.me_about_fonts),
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W500,
                             fontSize = 10.sp, color = mesh.textTertiary, letterSpacing = 0.6.sp,
@@ -240,7 +240,7 @@ fun MeScreen(
             }
             Spacer(Modifier.height(8.dp))
             Text(
-                "局域网直传 · 雷达发现 · 拖即发送 · LAN · 明文 · v0.1",
+                stringResource(R.string.me_about_tagline),
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W400,
                     fontSize = 12.sp, color = mesh.textSecondary,
@@ -446,7 +446,7 @@ private fun TrustRow(rec: MockTrustRecord) {
                 .clickable { /* mock revoke */ },
         ) {
             Text(
-                "撤销",
+                stringResource(R.string.me_trust_revoke),
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W600,
                     fontSize = 11.sp, color = mesh.danger,

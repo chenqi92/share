@@ -21,10 +21,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.ui.components.FileGlyph
 import com.welape.meshdrop.ui.components.MeshDropMark
 import com.welape.meshdrop.ui.components.MonoLabel
@@ -188,9 +190,9 @@ private fun NotifCard(expanded: Boolean) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         ) {
-            NotifAction(label = "接收", primary = true, modifier = Modifier.weight(1f))
-            NotifAction(label = "拒绝", primary = false, modifier = Modifier.weight(1f))
-            NotifAction(label = "保存到相册", primary = false, modifier = Modifier.weight(1.4f))
+            NotifAction(label = stringResource(R.string.headsup_accept), primary = true, modifier = Modifier.weight(1f))
+            NotifAction(label = stringResource(R.string.headsup_reject), primary = false, modifier = Modifier.weight(1f))
+            NotifAction(label = stringResource(R.string.headsup_to_photos), primary = false, modifier = Modifier.weight(1.4f))
         }
     }
 }

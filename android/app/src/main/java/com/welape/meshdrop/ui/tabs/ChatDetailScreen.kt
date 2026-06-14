@@ -40,6 +40,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +100,7 @@ fun ChatDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (onBack != null) {
-                MeshIconBtn(icon = Icons.Outlined.ArrowBack, contentDescription = "返回", bordered = true, sizeDp = 36.dp, onClick = onBack)
+                MeshIconBtn(icon = Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back), bordered = true, sizeDp = 36.dp, onClick = onBack)
             }
             MeshAvatar(initials = displayDevice.initials, color = displayDevice.color, sizeDp = 36)
             Column(modifier = Modifier.weight(1f)) {
@@ -129,7 +131,7 @@ fun ChatDetailScreen(
                 }
             }
             MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
-            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = "更多", bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.common_more), bordered = true, sizeDp = 36.dp)
         }
 
         Box(modifier = Modifier.weight(1f)) {
@@ -140,7 +142,7 @@ fun ChatDetailScreen(
                 contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                item { AsciiDivider(label = "今天 · 14:00 · TODAY") }
+                item { AsciiDivider(label = stringResource(R.string.chat_detail_section_today)) }
                 items(displayMessages, key = { it.id }) { msg ->
                     MsgBubble(msg = msg)
                 }
@@ -157,7 +159,7 @@ fun ChatDetailScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            MeshIconBtn(icon = Icons.Outlined.Add, contentDescription = "附加", accent = true, sizeDp = 40.dp, onClick = onAttachFile)
+            MeshIconBtn(icon = Icons.Outlined.Add, contentDescription = stringResource(R.string.common_attach), accent = true, sizeDp = 40.dp, onClick = onAttachFile)
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -185,7 +187,7 @@ fun ChatDetailScreen(
                     decorationBox = { innerTextField ->
                         if (draft.isBlank()) {
                             Text(
-                                text = "发条消息给 ${displayDevice.who}...",
+                                text = stringResource(R.string.chat_composer_placeholder, displayDevice.who),
                                 style = TextStyle(
                                     fontFamily = Geist, fontWeight = FontWeight.W400,
                                     fontSize = 13.sp, color = mesh.textTertiary,
@@ -196,8 +198,8 @@ fun ChatDetailScreen(
                     },
                 )
             }
-            MeshIconBtn(icon = Icons.Outlined.AttachFile, contentDescription = "文件", bordered = true, sizeDp = 40.dp, onClick = onAttachFile)
-            MeshIconBtn(icon = Icons.Outlined.Send, contentDescription = "发送", accent = true, sizeDp = 40.dp, onClick = { sendDraft() })
+            MeshIconBtn(icon = Icons.Outlined.AttachFile, contentDescription = stringResource(R.string.common_file), bordered = true, sizeDp = 40.dp, onClick = onAttachFile)
+            MeshIconBtn(icon = Icons.Outlined.Send, contentDescription = stringResource(R.string.common_send), accent = true, sizeDp = 40.dp, onClick = { sendDraft() })
         }
     }
 }
@@ -218,10 +220,10 @@ private fun DropOverlay(peerName: String) {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            MonoLabel(label = "DROP TO SEND")
+            MonoLabel(label = stringResource(R.string.chat_drop_label))
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "放手即发 · 3 个文件 · 12.4 MB",
+                text = stringResource(R.string.chat_drop_summary),
                 style = TextStyle(
                     fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                     fontSize = 18.sp, color = Ink,

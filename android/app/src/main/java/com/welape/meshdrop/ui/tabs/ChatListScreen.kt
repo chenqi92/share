@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,14 +70,14 @@ fun ChatListScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column {
                 Text(
-                    text = "聊天 · Chats",
+                    text = stringResource(R.string.chat_title),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 28.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
                     ),
                 )
                 Text(
-                    text = "${previews.size} 个会话 · LAN · 明文 · v0.1",
+                    text = stringResource(R.string.chat_subtitle, previews.size),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W500,
                         fontSize = 11.sp, color = mesh.textTertiary,
@@ -83,16 +85,16 @@ fun ChatListScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
-            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = "搜索", bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search), bordered = true, sizeDp = 36.dp)
         }
 
         Spacer(Modifier.height(8.dp))
-        AsciiDivider(label = "今天 · TODAY · ${previews.size}")
+        AsciiDivider(label = stringResource(R.string.chat_section_today, previews.size))
 
         if (previews.isEmpty()) {
             Spacer(Modifier.height(20.dp))
             Text(
-                text = "还没有会话 · No conversations yet",
+                text = stringResource(R.string.chat_empty),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 12.sp, color = mesh.textTertiary,
@@ -167,7 +169,7 @@ private fun ChatListRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isFile) {
                     Text(
-                        text = "FILE  ",
+                        text = stringResource(R.string.chat_badge_file),
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W700,
                             fontSize = 10.sp, letterSpacing = 1.4.sp, color = mesh.flame,

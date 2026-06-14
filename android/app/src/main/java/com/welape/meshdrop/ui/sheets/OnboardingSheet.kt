@@ -27,10 +27,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.ui.components.MeshDropLockup
 import com.welape.meshdrop.ui.components.MonoLabel
 import com.welape.meshdrop.ui.theme.Geist
@@ -42,11 +44,29 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 
 data class OnboardStep(val tag: String, val title: String, val body: String)
 
-private val Steps = listOf(
-    OnboardStep("STEP 1 · DISCOVERY", "雷达式发现", "本机会自动注册到局域网，扫描同 Wi-Fi 下的其他 MeshDrop 设备。雷达图实时显示 RTT 和方位。"),
-    OnboardStep("STEP 2 · DRAG-TO-SEND", "拖即发送", "把文件拖到设备 row 上，或长按选多台。也支持 Android 原生 Share Intent。"),
-    OnboardStep("STEP 3 · PAIRING", "配对与指纹信任", "身份为 Ed25519 长期密钥，指纹是公钥的 SHA-256 前缀。首次连接弹 6 字符确认（TOFU），配对后双方互信指纹。v0.1 局域网传输为明文 TCP，加密待后续版本。"),
-    OnboardStep("STEP 4 · SHORTCUTS", "通知 / 后台 / 系统分享", "大文件用 Foreground Service 保活，incoming 弹 heads-up 通知，三键操作。"),
+/** 步骤文案随 locale 切换，故在 @Composable 内用 stringResource 构造，而非 top-level 常量。 */
+@Composable
+private fun rememberOnboardSteps(): List<OnboardStep> = listOf(
+    OnboardStep(
+        stringResource(R.string.onboarding_step1_tag),
+        stringResource(R.string.onboarding_step1_title),
+        stringResource(R.string.onboarding_step1_body),
+    ),
+    OnboardStep(
+        stringResource(R.string.onboarding_step2_tag),
+        stringResource(R.string.onboarding_step2_title),
+        stringResource(R.string.onboarding_step2_body),
+    ),
+    OnboardStep(
+        stringResource(R.string.onboarding_step3_tag),
+        stringResource(R.string.onboarding_step3_title),
+        stringResource(R.string.onboarding_step3_body),
+    ),
+    OnboardStep(
+        stringResource(R.string.onboarding_step4_tag),
+        stringResource(R.string.onboarding_step4_title),
+        stringResource(R.string.onboarding_step4_body),
+    ),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,8 +87,9 @@ fun OnboardingSheet(onClose: () -> Unit) {
 @Composable
 fun OnboardingSheetContent(onClose: () -> Unit = {}) {
     val mesh = MeshTheme.colors
+    val steps = rememberOnboardSteps()
     var idx by remember { mutableStateOf(0) }
-    val step = Steps[idx]
+    val step = steps[idx]
     Column(
         modifier = Modifier
             .background(mesh.card)
@@ -100,7 +121,7 @@ fun OnboardingSheetContent(onClose: () -> Unit = {}) {
 
             // 进度点
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Steps.forEachIndexed { i, _ ->
+                steps.forEachIndexed { i, _ ->
                     val active = i == idx
                     Box(
                         Modifier
@@ -128,7 +149,7 @@ fun OnboardingSheetContent(onClose: () -> Unit = {}) {
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (idx == 0) "跳过" else "上一步",
+                        if (idx == 0) stringResource(R.string.onboarding_skip) else stringResource(R.string.onboarding_prev),
                         style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 14.sp, color = mesh.textPrimary,
@@ -141,13 +162,13 @@ fun OnboardingSheetContent(onClose: () -> Unit = {}) {
                         .clip(RoundedCornerShape(14.dp))
                         .background(Lime)
                         .clickable {
-                            if (idx < Steps.lastIndex) idx++ else onClose()
+                            if (idx < steps.lastIndex) idx++ else onClose()
                         }
                         .padding(PaddingValues(vertical = 14.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        if (idx == Steps.lastIndex) "开始使用 →" else "下一步 →",
+                        if (idx == steps.lastIndex) stringResource(R.string.onboarding_start) else stringResource(R.string.onboarding_next),
                         style = TextStyle(
                             fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                             fontSize = 14.sp, color = Ink,

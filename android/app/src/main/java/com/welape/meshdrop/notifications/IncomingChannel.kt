@@ -39,10 +39,10 @@ object IncomingChannel {
         if (nm.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "收到文件 · Incoming",
+            context.getString(R.string.notif_channel_incoming_name),
             NotificationManager.IMPORTANCE_HIGH,
         ).apply {
-            description = "其他设备发来的文件 / 配对请求"
+            description = context.getString(R.string.notif_channel_incoming_desc)
             enableVibration(true)
         }
         nm.createNotificationChannel(channel)
@@ -52,7 +52,7 @@ object IncomingChannel {
     fun showFileOffer(context: Context, offer: PendingFileOffer) {
         ensure(context)
         val notifId = notifIdFor(offer.id)
-        val peer = offer.peer.name.ifEmpty { offer.peer.model ?: "未知设备" }
+        val peer = offer.peer.name.ifEmpty { offer.peer.model ?: context.getString(R.string.notif_unknown_device) }
 
         val accept = actionIntent(
             context, IncomingActionReceiver.ACTION_OFFER_ACCEPT, offer.id, notifId,
@@ -61,13 +61,17 @@ object IncomingChannel {
             context, IncomingActionReceiver.ACTION_OFFER_DECLINE, offer.id, notifId,
         )
 
-        val builder = baseBuilder(context, "$peer 发来文件", "${offer.fileName} · ${offer.formattedSize}")
+        val builder = baseBuilder(
+            context,
+            context.getString(R.string.notif_offer_title, peer),
+            context.getString(R.string.notif_offer_text, offer.fileName, offer.formattedSize),
+        )
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("$peer · MeshDrop\n${offer.fileName} · ${offer.formattedSize}"),
+                    .bigText(context.getString(R.string.notif_offer_bigtext, peer, offer.fileName, offer.formattedSize)),
             )
-            .addAction(0, "接收", accept)
-            .addAction(0, "拒绝", decline)
+            .addAction(0, context.getString(R.string.notif_accept), accept)
+            .addAction(0, context.getString(R.string.notif_reject), decline)
 
         notify(context, notifId, builder)
     }
@@ -76,7 +80,7 @@ object IncomingChannel {
     fun showPairing(context: Context, pairing: PendingPairing) {
         ensure(context)
         val notifId = notifIdFor(pairing.id)
-        val peer = pairing.peer.name.ifEmpty { pairing.peer.model ?: "未知设备" }
+        val peer = pairing.peer.name.ifEmpty { pairing.peer.model ?: context.getString(R.string.notif_unknown_device) }
 
         val accept = actionIntent(
             context, IncomingActionReceiver.ACTION_PAIR_ACCEPT, pairing.id, notifId,
@@ -85,13 +89,17 @@ object IncomingChannel {
             context, IncomingActionReceiver.ACTION_PAIR_DECLINE, pairing.id, notifId,
         )
 
-        val builder = baseBuilder(context, "$peer 请求配对", "允许后即可互相收发")
+        val builder = baseBuilder(
+            context,
+            context.getString(R.string.notif_pairing_title, peer),
+            context.getString(R.string.notif_pairing_text),
+        )
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("$peer (${pairing.peer.model ?: "?"}) 请求与本机配对"),
+                    .bigText(context.getString(R.string.notif_pairing_bigtext, peer, pairing.peer.model ?: "?")),
             )
-            .addAction(0, "允许一次", accept)
-            .addAction(0, "拒绝", decline)
+            .addAction(0, context.getString(R.string.notif_allow_once), accept)
+            .addAction(0, context.getString(R.string.notif_reject), decline)
 
         notify(context, notifId, builder)
     }

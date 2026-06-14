@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- app_name stays identical across locales, not localized -->
+    <string name="app_name">MeshDrop</string>
+
+    <!-- ========== common: shared words across screens ========== -->
+    <string name="common.cancel">Cancel</string>
+    <string name="common.close">Close</string>
+    <string name="common.send">Send</string>
+    <string name="common.search">Search</string>
+    <string name="common.more">More</string>
+    <string name="common.back">Back</string>
+    <string name="common.settings">Settings</string>
+    <string name="common.attach">Attach</string>
+    <string name="common.file">File</string>
+    <string name="common.copy">Copy</string>
+    <string name="common.unnamed">Unnamed</string>
+    <string name="common.retry">RETRY</string>
+    <string name="common.open">OPEN</string>
+
+    <!-- ========== bottom nav / side rail ========== -->
+    <string name="nav.discovery">Nearby</string>
+    <string name="nav.chat">Chat</string>
+    <string name="nav.transfer">Transfer</string>
+    <string name="nav.me">Me</string>
+    <string name="nav.discovery_short">Nearby</string>
+    <string name="nav.chat_short">Chat</string>
+    <string name="nav.transfer_short">Transfer</string>
+    <string name="nav.me_short">Me</string>
+
+    <!-- ========== Discovery ========== -->
+    <string name="discovery.hero_title">Nearby</string>
+    <string name="discovery.device_count">%1$d devices</string>
+    <string name="discovery.scanning">Scanning · scanning LAN…</string>
+    <string name="discovery.lan_peers">LAN-only · %1$d peers</string>
+    <string name="discovery.radar_hint_empty">↑ No MeshDrop devices nearby</string>
+    <string name="discovery.radar_hint_longpress">↑ Long-press a device to send</string>
+    <string name="discovery.section_nearby">NEARBY · %1$d</string>
+    <string name="discovery.empty_title">No MeshDrop devices nearby</string>
+    <string name="discovery.empty_subtitle">Invite a friend to open MeshDrop too</string>
+    <string name="discovery.error_title">Network error</string>
+
+    <!-- ========== Chat list ========== -->
+    <string name="chat.title">Chats</string>
+    <string name="chat.subtitle">%1$d conversations · LAN · plaintext · v0.1</string>
+    <string name="chat.section_today">TODAY · %1$d</string>
+    <string name="chat.empty">No conversations yet</string>
+    <string name="chat.badge_file">FILE  </string>
+
+    <!-- ========== Chat detail ========== -->
+    <string name="chat.detail.section_today">TODAY · 14:00</string>
+    <string name="chat.composer.placeholder">Message %1$s...</string>
+    <string name="chat.drop.label">DROP TO SEND</string>
+    <string name="chat.drop.summary">Drop to send · 3 files · 12.4 MB</string>
+    <string name="chat.msg.delivered">· Delivered</string>
+    <string name="chat.msg.sent">· Sending</string>
+    <string name="chat.msg.failed">· Failed</string>
+
+    <!-- ========== Transfer ========== -->
+    <string name="transfer.title">Transfers</string>
+    <string name="transfer.subtitle">%1$d active · %2$d done · %3$d queued</string>
+    <string name="transfer.session_label">SESSION</string>
+    <string name="transfer.session_transferred">%1$s transferred</string>
+    <string name="transfer.metric_up">Up ↑</string>
+    <string name="transfer.metric_down">Down ↓</string>
+    <string name="transfer.metric_active">Active</string>
+    <string name="transfer.section_in_progress">IN PROGRESS · %1$d</string>
+    <string name="transfer.section_completed">COMPLETED · TODAY · %1$d</string>
+    <string name="transfer.section_queued">QUEUED · %1$d</string>
+    <string name="transfer.section_failed">FAILED · %1$d</string>
+    <string name="transfer.canceled">Canceled</string>
+    <string name="transfer.cancel_cd">Cancel transfer</string>
+    <string name="transfer.state.sending">SENDING</string>
+    <string name="transfer.state.receiving">RECEIVING</string>
+    <string name="transfer.state.done">DONE</string>
+    <string name="transfer.state.queued">QUEUED</string>
+    <string name="transfer.state.failed">FAILED</string>
+    <string name="transfer.state.failed_reason">Failed · %1$s</string>
+    <string name="transfer.me">Me</string>
+    <string name="transfer.eta">ETA %1$s</string>
+
+    <!-- ========== History / Library ========== -->
+    <string name="history.title">Library</string>
+    <string name="history.subtitle">%1$d recent · LAN · plaintext · on-device</string>
+    <string name="history.filter_all">All</string>
+    <string name="history.filter_image">Images</string>
+    <string name="history.filter_file">Files</string>
+    <string name="history.filter_text">Text</string>
+    <string name="history.section_today">TODAY · %1$d items</string>
+    <string name="history.photo_count">%1$d photos</string>
+    <string name="history.saved_to">Saved to · MeshDrop/Mengxi/</string>
+
+    <!-- ========== Clipboard ========== -->
+    <string name="clipboard.title">Clipboard</string>
+    <string name="clipboard.subtitle">Explicit push · sent only when you tap, not background sync</string>
+    <string name="clipboard.push_to">Push to</string>
+    <string name="clipboard.no_device">No device online</string>
+    <string name="clipboard.read_clipboard">Read clipboard</string>
+    <string name="clipboard.input_placeholder">Paste or type what to push…</string>
+    <string name="clipboard.push">↑ Push</string>
+    <string name="clipboard.empty">No clipboard received yet</string>
+    <string name="clipboard.section_received">Received clipboard · %1$d</string>
+
+    <!-- ========== Me / Settings ========== -->
+    <string name="me.self_initials">Me</string>
+    <string name="me.visibility_chip">VISIBLE</string>
+    <string name="me.fp_below">%1$s · FP below</string>
+    <string name="me.section_library">LIBRARY</string>
+    <string name="me.history_title">Transfer history · History</string>
+    <string name="me.history_subtitle">Text / files sent and received · on-device</string>
+    <string name="me.section_visibility">VISIBILITY</string>
+    <string name="me.visible_in_nearby">Show me in Nearby</string>
+    <string name="me.visible_in_nearby_sub">Other devices can see this device</string>
+    <string name="me.allow_stranger_pairing">Allow unknown devices to pair</string>
+    <string name="me.allow_stranger_pairing_sub">First time shows a 6-character code to confirm</string>
+    <string name="me.vibrate_on_receive">Vibrate on receive</string>
+    <string name="me.vibrate_on_receive_sub">incoming · vibrate</string>
+    <string name="me.auto_accept">Auto-accept from paired devices</string>
+    <string name="me.auto_accept_sub">Files from trusted devices are accepted automatically</string>
+    <string name="me.section_security">SECURITY</string>
+    <string name="me.paired_devices">Paired devices</string>
+    <string name="me.paired_devices_sub">%1$d devices · revoke individually</string>
+    <string name="me.my_fingerprint">My fingerprint · Fingerprint</string>
+    <string name="me.scan_pair">Scan / 6-character pairing</string>
+    <string name="me.scan_pair_sub">Start with a new device</string>
+    <string name="me.reset_identity">Reset identity…</string>
+    <string name="me.reset_identity_sub">Deletes current ID and Ed25519 keys; peers must re-pair</string>
+    <string name="me.reset_dialog_title">Reset identity</string>
+    <string name="me.reset_dialog_body">This deletes the current ID and Ed25519 private key. All paired peers will treat this device as new and need to re-pair. Restart MeshDrop after resetting for the new identity to take effect.</string>
+    <string name="me.reset_confirm">Reset</string>
+    <string name="me.reset_toast">Reset · please restart MeshDrop</string>
+    <string name="me.section_trust">TRUST MANAGER</string>
+    <string name="me.trust_col_device">DEVICE</string>
+    <string name="me.trust_col_fingerprint">FINGERPRINT</string>
+    <string name="me.trust_col_action">ACTION</string>
+    <string name="me.trust_revoke">Revoke</string>
+    <string name="me.section_about">ABOUT</string>
+    <string name="me.about_version">meshdrop · v0.1.0</string>
+    <string name="me.about_fonts">Space Grotesk · Geist · Geist Mono</string>
+    <string name="me.about_tagline">Direct LAN transfer · radar discovery · drag to send · LAN · plaintext · v0.1</string>
+
+    <!-- ========== Onboarding ========== -->
+    <string name="onboarding.step1_tag">STEP 1 · DISCOVERY</string>
+    <string name="onboarding.step1_title">Radar discovery</string>
+    <string name="onboarding.step1_body">This device registers on the local network and scans for other MeshDrop devices on the same Wi-Fi. The radar shows RTT and bearing in real time.</string>
+    <string name="onboarding.step2_tag">STEP 2 · DRAG-TO-SEND</string>
+    <string name="onboarding.step2_title">Drag to send</string>
+    <string name="onboarding.step2_body">Drag a file onto a device row, or long-press to pick several. The native Android Share Intent is supported too.</string>
+    <string name="onboarding.step3_tag">STEP 3 · PAIRING</string>
+    <string name="onboarding.step3_title">Pairing and fingerprint trust</string>
+    <string name="onboarding.step3_body">Identity is a long-lived Ed25519 key; the fingerprint is the SHA-256 prefix of the public key. The first connection prompts a 6-character confirmation (TOFU); after pairing both sides trust each other\'s fingerprint. In v0.1 LAN transfer is plaintext TCP; encryption comes in a later version.</string>
+    <string name="onboarding.step4_tag">STEP 4 · SHORTCUTS</string>
+    <string name="onboarding.step4_title">Notifications / background / system share</string>
+    <string name="onboarding.step4_body">Large files stay alive via a Foreground Service, incoming items raise a heads-up notification with three quick actions.</string>
+    <string name="onboarding.skip">Skip</string>
+    <string name="onboarding.prev">Back</string>
+    <string name="onboarding.start">Get started →</string>
+    <string name="onboarding.next">Next →</string>
+
+    <!-- ========== Pairing sheet ========== -->
+    <string name="pairing.title">Pairing</string>
+    <string name="pairing.empty">No pairing requests</string>
+    <string name="pairing.requested_at">Requested to pair with you %1$s</string>
+    <string name="pairing.pin_label">6-character code · PIN</string>
+    <string name="pairing.requested_by">REQUESTED BY</string>
+    <string name="pairing.section_fingerprint">FINGERPRINT (SHA-256/16)</string>
+    <string name="pairing.section_choices">CHOICES</string>
+    <string name="pairing.deny">Deny</string>
+    <string name="pairing.deny_sub">DENY</string>
+    <string name="pairing.allow_once">Allow once</string>
+    <string name="pairing.allow_once_sub">ALLOW ONCE</string>
+    <string name="pairing.trust">Trust</string>
+    <string name="pairing.trust_sub">TRUST FOREVER</string>
+    <string name="pairing.close">Close</string>
+    <string name="pairing.close_sub">CLOSE</string>
+
+    <!-- ========== File offer sheet ========== -->
+    <string name="offer.title">Incoming</string>
+    <string name="offer.empty">No files waiting</string>
+    <string name="offer.sent_a_file">%1$s · %2$s sent a file</string>
+    <string name="offer.fp_match">FP MATCH</string>
+    <string name="offer.note_label">NOTE</string>
+    <string name="offer.section_actions">ACTIONS</string>
+    <string name="offer.deny">Deny</string>
+    <string name="offer.deny_sub">DENY</string>
+    <string name="offer.accept">Accept</string>
+    <string name="offer.accept_sub">ACCEPT</string>
+    <string name="offer.to_photos">Save to Photos</string>
+    <string name="offer.to_photos_sub">TO PHOTOS</string>
+    <string name="offer.close">Close</string>
+    <string name="offer.close_sub">CLOSE</string>
+
+    <!-- ========== Send bottom sheet ========== -->
+    <string name="send.title">Send</string>
+    <string name="send.subtitle">Pick a content type, then choose target devices</string>
+    <string name="send.section_kind">KIND</string>
+    <string name="send.kind_image">Image</string>
+    <string name="send.kind_image_sub">Gallery / screenshot</string>
+    <string name="send.kind_multi">Multiple</string>
+    <string name="send.kind_multi_sub">Batch send</string>
+    <string name="send.kind_file">File</string>
+    <string name="send.kind_file_sub">On-device storage</string>
+    <string name="send.kind_note">Text note</string>
+    <string name="send.kind_note_sub">Paste / write a note</string>
+    <string name="send.section_note">NOTE</string>
+    <string name="send.note_placeholder">Write a note, press Enter to pick targets…</string>
+    <string name="send.pick_target">Pick target devices →</string>
+    <string name="send.pick_target_with_note">Pick targets and send →</string>
+
+    <!-- ========== Device picker sheet ========== -->
+    <string name="picker.cancel">Cancel</string>
+    <string name="picker.selected_count">%1$d selected</string>
+    <string name="picker.title">Send to multiple devices</string>
+    <string name="picker.attachment_summary">Selected · 3 images · 12.4 MB</string>
+    <string name="picker.send_to_count">Send to %1$d</string>
+    <string name="picker.none_selected">None</string>
+
+    <!-- ========== Tablet layout only ========== -->
+    <string name="tablet.section_conversations">CONVERSATIONS · %1$d</string>
+
+    <!-- ========== Pending share overlay ========== -->
+    <string name="share.send_text_to">Send this text to…</string>
+    <string name="share.send_files_to">Send these %1$d files to…</string>
+
+    <!-- ========== Notifications: incoming file / pairing ========== -->
+    <string name="notif.channel_incoming_name">Incoming</string>
+    <string name="notif.channel_incoming_desc">Files / pairing requests from other devices</string>
+    <string name="notif.unknown_device">Unknown device</string>
+    <string name="notif.offer_title">%1$s sent a file</string>
+    <string name="notif.offer_text">%1$s · %2$s</string>
+    <string name="notif.offer_bigtext">%1$s · MeshDrop\n%2$s · %3$s</string>
+    <string name="notif.accept">Accept</string>
+    <string name="notif.reject">Reject</string>
+    <string name="notif.pairing_title">%1$s wants to pair</string>
+    <string name="notif.pairing_text">Allow to send and receive both ways</string>
+    <string name="notif.pairing_bigtext">%1$s (%2$s) wants to pair with this device</string>
+    <string name="notif.allow_once">Allow once</string>
+
+    <!-- ========== Notifications: background transfer foreground service ========== -->
+    <string name="notif.channel_transfer_name">Background transfer</string>
+    <string name="notif.channel_transfer_desc">Keeps running in the background while transferring</string>
+    <string name="notif.transfer_default_title">MeshDrop · background transfer</string>
+    <string name="notif.transfer_default_text">Staying alive to finish the transfer…</string>
+    <string name="notif.transfer_verb_both">Transferring</string>
+    <string name="notif.transfer_verb_send">Sending</string>
+    <string name="notif.transfer_verb_receive">Receiving</string>
+    <string name="notif.transfer_title_single">MeshDrop · %1$s</string>
+    <string name="notif.transfer_title_multi">MeshDrop · %1$s (%2$d files)</string>
+    <string name="notif.transfer_progress">%1$d%%%2$s</string>
+
+    <!-- ========== Engine errors / transfer failure reasons ========== -->
+    <string name="engine.start_failed">Failed to start</string>
+    <string name="engine.no_ip">No usable IP</string>
+    <string name="engine.read_file_failed">Cannot read file: %1$s</string>
+    <string name="engine.peer_rejected">Rejected by peer: %1$s</string>
+    <string name="engine.chunk_too_large">Chunk exceeds the 4 MiB limit</string>
+    <string name="engine.checksum_failed">Checksum failed</string>
+    <string name="engine.conn_lost_resumable">Connection lost · waiting to resume</string>
+    <string name="engine.conn_lost">Connection lost</string>
+
+    <!-- ========== Heads-up notification mock ========== -->
+    <string name="headsup.accept">Accept</string>
+    <string name="headsup.reject">Reject</string>
+    <string name="headsup.to_photos">Save to Photos</string>
+</resources>

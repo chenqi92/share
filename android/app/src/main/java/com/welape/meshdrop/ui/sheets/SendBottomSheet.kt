@@ -36,10 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.R
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.theme.Geist
 import com.welape.meshdrop.ui.theme.GeistMono
@@ -70,34 +72,34 @@ fun SendBottomSheet(
                 .padding(PaddingValues(horizontal = 22.dp, vertical = 12.dp)),
         ) {
             Text(
-                "发送 · Send",
+                stringResource(R.string.send_title),
                 style = TextStyle(
                     fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                     fontSize = 22.sp, color = mesh.textPrimary, letterSpacing = (-0.4).sp,
                 ),
             )
             Text(
-                "选一种内容，再选目标设备",
+                stringResource(R.string.send_subtitle),
                 style = TextStyle(
                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                     fontSize = 11.sp, color = mesh.textTertiary,
                 ),
             )
 
-            AsciiDivider(label = "内容类型 · KIND")
+            AsciiDivider(label = stringResource(R.string.send_section_kind))
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Image, label = "图片", subtitle = "相册 / 截屏", onClick = onPickDevices)
-                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.PhotoLibrary, label = "多图", subtitle = "批量发送", onClick = onPickDevices)
+                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Image, label = stringResource(R.string.send_kind_image), subtitle = stringResource(R.string.send_kind_image_sub), onClick = onPickDevices)
+                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.PhotoLibrary, label = stringResource(R.string.send_kind_multi), subtitle = stringResource(R.string.send_kind_multi_sub), onClick = onPickDevices)
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.AttachFile, label = "文件", subtitle = "本机存储", onClick = onPickDevices)
-                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Notes, label = "文字便签", subtitle = "粘贴 / 写一段", onClick = onPickDevices, accent = true)
+                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.AttachFile, label = stringResource(R.string.send_kind_file), subtitle = stringResource(R.string.send_kind_file_sub), onClick = onPickDevices)
+                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Notes, label = stringResource(R.string.send_kind_note), subtitle = stringResource(R.string.send_kind_note_sub), onClick = onPickDevices, accent = true)
             }
 
             Spacer(Modifier.height(14.dp))
-            AsciiDivider(label = "文字便签 · NOTE")
+            AsciiDivider(label = stringResource(R.string.send_section_note))
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -117,7 +119,7 @@ fun SendBottomSheet(
                     decorationBox = { inner ->
                         if (draft.isEmpty()) {
                             Text(
-                                "写一段，回车选目标设备…",
+                                stringResource(R.string.send_note_placeholder),
                                 style = TextStyle(
                                     fontFamily = GeistMono, fontWeight = FontWeight.W500,
                                     fontSize = 12.sp, color = mesh.textTertiary,
@@ -143,7 +145,7 @@ fun SendBottomSheet(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    if (draft.isBlank()) "选择目标设备 →" else "选择目标设备发送 →",
+                    if (draft.isBlank()) stringResource(R.string.send_pick_target) else stringResource(R.string.send_pick_target_with_note),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 16.sp, color = Ink,

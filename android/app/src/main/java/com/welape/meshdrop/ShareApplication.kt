@@ -159,18 +159,18 @@ class ShareApplication : Application() {
         val anyOut = active.any { it.direction == TransferDirection.OUTGOING }
         val anyIn = active.any { it.direction == TransferDirection.INCOMING }
         val verb = when {
-            anyOut && anyIn -> "传输中"
-            anyOut -> "发送中"
-            else -> "接收中"
+            anyOut && anyIn -> getString(R.string.notif_transfer_verb_both)
+            anyOut -> getString(R.string.notif_transfer_verb_send)
+            else -> getString(R.string.notif_transfer_verb_receive)
         }
 
         val title = if (active.size == 1) {
-            "MeshDrop · $verb"
+            getString(R.string.notif_transfer_title_single, verb)
         } else {
-            "MeshDrop · $verb（${active.size} 个文件）"
+            getString(R.string.notif_transfer_title_multi, verb, active.size)
         }
         val speed = if (bytesPerSec > 1.0) " · ${formatSpeed(bytesPerSec)}" else ""
-        val text = if (progress >= 0) "$progress%$speed" else "正在保活以完成传输…"
+        val text = if (progress >= 0) getString(R.string.notif_transfer_progress, progress, speed) else getString(R.string.notif_transfer_default_text)
 
         return TransferSummary(title, text, progress, indeterminate)
     }

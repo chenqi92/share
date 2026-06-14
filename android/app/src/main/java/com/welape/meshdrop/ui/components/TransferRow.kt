@@ -26,6 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.R
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,12 +54,13 @@ fun TransferRow(
 ) {
     val mesh = MeshTheme.colors
     val (stateLabel, stateColor, stateGlyph) = when (item.state) {
-        TransferState.SENDING -> Triple("发送中 · SENDING", mesh.flame, "↑")
-        TransferState.RECEIVING -> Triple("接收中 · RECEIVING", mesh.sky, "↓")
-        TransferState.DONE -> Triple("已完成 · DONE", LimeDeep, "✓")
-        TransferState.QUEUED -> Triple("排队中 · QUEUED", mesh.textTertiary, "·")
+        TransferState.SENDING -> Triple(stringResource(R.string.transfer_state_sending), mesh.flame, "↑")
+        TransferState.RECEIVING -> Triple(stringResource(R.string.transfer_state_receiving), mesh.sky, "↓")
+        TransferState.DONE -> Triple(stringResource(R.string.transfer_state_done), LimeDeep, "✓")
+        TransferState.QUEUED -> Triple(stringResource(R.string.transfer_state_queued), mesh.textTertiary, "·")
         TransferState.FAILED -> Triple(
-            item.failReason?.let { "失败 · $it" } ?: "失败 · FAILED",
+            item.failReason?.let { stringResource(R.string.transfer_state_failed_reason, it) }
+                ?: stringResource(R.string.transfer_state_failed),
             mesh.danger, "×",
         )
     }
@@ -131,7 +134,7 @@ fun TransferRow(
                     }
                     item.eta?.let {
                         Text(
-                            text = "ETA $it",
+                            text = stringResource(R.string.transfer_eta, it),
                             style = TextStyle(
                                 fontFamily = GeistMono, fontWeight = FontWeight.W500,
                                 fontSize = 11.sp, color = mesh.textTertiary,
@@ -146,7 +149,7 @@ fun TransferRow(
                 Box(Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Filled.Cancel,
-                    contentDescription = "取消传输",
+                    contentDescription = stringResource(R.string.transfer_cancel_cd),
                     tint = mesh.flame,
                     modifier = Modifier
                         .size(20.dp)
@@ -171,7 +174,7 @@ fun TransferRow(
                         modifier = Modifier.size(11.dp),
                     )
                     Text(
-                        text = "RETRY",
+                        text = stringResource(R.string.common_retry),
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W700,
                             fontSize = 10.sp, letterSpacing = 1.0.sp, color = mesh.flame,
@@ -197,7 +200,7 @@ fun TransferRow(
                         modifier = Modifier.size(11.dp),
                     )
                     Text(
-                        text = "OPEN",
+                        text = stringResource(R.string.common_open),
                         style = TextStyle(
                             fontFamily = GeistMono, fontWeight = FontWeight.W700,
                             fontSize = 10.sp, letterSpacing = 1.0.sp, color = LimeDeep,
