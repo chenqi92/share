@@ -61,41 +61,46 @@ struct SettingsPage: View {
                     // 安全开关：engine 暂未提供持久化入口，禁用并标注，避免安全预期落空。
                     disabledToggle(String(localized: "settings.security.verifyBeforeReceive"), on: true)
                     disabledToggle(String(localized: "settings.security.confirmStranger"), on: true)
-                    Button("settings.security.copyFingerprint") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(state.localFingerprintFull, forType: .string)
-                    }
-                    .buttonStyle(.plain)
-                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.limeDeep)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(MeshDropColor.divider, lineWidth: 1)
-                    )
-                    Button("settings.security.resetIdentity") {
-                        confirmingReset = true
-                    }
-                    .buttonStyle(.plain)
-                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                    .foregroundStyle(MeshDropColor.flame)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(MeshDropColor.flame.opacity(0.4), lineWidth: 1)
-                    )
-                    .confirmationDialog(
-                        "settings.security.resetIdentity.confirm.title",
-                        isPresented: $confirmingReset,
-                        titleVisibility: .visible
-                    ) {
-                        Button("settings.security.resetIdentity.confirm.button", role: .destructive) {
-                            ShareEngine.shared.resetIdentity()
+                    HStack(spacing: 10) {
+                        Button("settings.security.copyFingerprint") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.setString(state.localFingerprintFull, forType: .string)
                         }
-                        Button("common.cancel", role: .cancel) {}
+                        .buttonStyle(.plain)
+                        .font(MeshDropFont.body(size: 12, weight: .semibold))
+                        .foregroundStyle(MeshDropColor.limeDeep)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(MeshDropColor.divider, lineWidth: 1)
+                        )
+                        Button("settings.security.resetIdentity") {
+                            confirmingReset = true
+                        }
+                        .buttonStyle(.plain)
+                        .font(MeshDropFont.body(size: 12, weight: .semibold))
+                        .foregroundStyle(MeshDropColor.flame)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(MeshDropColor.flame.opacity(0.4), lineWidth: 1)
+                        )
+                        .confirmationDialog(
+                            "settings.security.resetIdentity.confirm.title",
+                            isPresented: $confirmingReset,
+                            titleVisibility: .visible
+                        ) {
+                            Button("settings.security.resetIdentity.confirm.button", role: .destructive) {
+                                ShareEngine.shared.resetIdentity()
+                            }
+                            Button("common.cancel", role: .cancel) {}
+                        }
+                        Spacer(minLength: 0)
                     }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
                 }
 
                 section(String(localized: "settings.section.webGateway")) {
@@ -166,7 +171,7 @@ struct SettingsPage: View {
             Text(title)
                 .meshTag()
                 .foregroundStyle(MeshDropColor.textMuted)
-            VStack(spacing: 1) {
+            VStack(alignment: .leading, spacing: 1) {
                 content()
             }
             .padding(2)
@@ -179,7 +184,7 @@ struct SettingsPage: View {
 
     @ViewBuilder
     private func field<T: View>(_ label: String, trailing: T) -> some View {
-        HStack {
+        HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(MeshDropFont.body(size: 12.5))
                 .foregroundStyle(MeshDropColor.textPrimary)

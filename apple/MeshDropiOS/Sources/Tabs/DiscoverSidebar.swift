@@ -6,6 +6,9 @@ struct DiscoverSidebar: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+    // 选中态填充与次文字色复用全局 token，保证与 DeviceCard / macOS Sidebar 一致
+    @Environment(\.meshLimeWash) private var limeWash
+    @Environment(\.meshMuted) private var muted
     @Binding var section: PadRoot.PadSection
 
     private var devices: [MockDevice] { engine.displayDevices }
@@ -92,25 +95,29 @@ struct DiscoverSidebar: View {
 
     @ViewBuilder
     private func sectionRow(_ label: String, _ symbol: String, _ target: PadRoot.PadSection) -> some View {
+        let selected = section == target
+        // 主文字色（选中用），随外观切换
+        let textPrimary = scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink
         Button { section = target } label: {
             HStack(spacing: 10) {
-                Image(systemName: symbol).font(.system(size: 13, weight: .semibold))
-                Text(label).font(MeshDropFont.body(13.5, weight: .semibold))
+                // 字重也参与选中区分：选中加粗、未选中常规（对齐 macOS Sidebar.navItem）
+                Image(systemName: symbol).font(.system(size: 13, weight: selected ? .semibold : .regular))
+                Text(label).font(MeshDropFont.body(13.5, weight: selected ? .semibold : .regular))
                 Spacer()
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
-            .foregroundStyle(section == target
-                             ? MeshDropColor.ink
-                             : (scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink))
+            // 选中=主文字色，未选中=次文字色
+            .foregroundStyle(selected ? textPrimary : muted)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(section == target
-                          ? MeshDropColor.lime
-                          : (scheme == .dark ? MeshDropColor.dink2 : MeshDropColor.card))
+                    // 选中=lime@32%/16% wash，未选中=透明（不再全填卡片底）
+                    .fill(selected ? limeWash : Color.clear)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
+                    // 选中=1px lime 描边，未选中=透明（去掉常驻 hairline）
+                    .strokeBorder(selected ? MeshDropColor.lime : Color.clear,
+                                  lineWidth: selected ? 1 : 0)
             )
         }
         .buttonStyle(.plain)

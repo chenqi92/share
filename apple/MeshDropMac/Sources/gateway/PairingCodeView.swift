@@ -100,10 +100,6 @@ struct PairingCodeView: View {
             }
             .padding(.top, 10)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(MeshDropColor.cardBg2)
-        )
         .onAppear { portText = "\(gateway.port)" }
     }
 }

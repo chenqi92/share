@@ -147,7 +147,7 @@ struct Sidebar: View {
                 .frame(width: 16)
             Text(title)
                 .font(MeshDropFont.body(size: 12.5, weight: active ? .semibold : .regular))
-                .foregroundStyle(active ? MeshDropColor.textPrimary : MeshDropColor.textPrimary)
+                .foregroundStyle(active ? MeshDropColor.textPrimary : MeshDropColor.textSecondary)
             Spacer()
             if let badge {
                 Text(badge)
@@ -165,7 +165,11 @@ struct Sidebar: View {
         .padding(.vertical, 7)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(active ? MeshDropColor.limeFill : .clear)
+                .fill(active ? MeshDropColor.limeFillSelected : .clear)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(active ? MeshDropColor.lime : .clear, lineWidth: 1)
+                )
                 .padding(.horizontal, 8)
         )
         .contentShape(Rectangle())
