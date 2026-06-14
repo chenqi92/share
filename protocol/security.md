@@ -73,9 +73,15 @@ TLS 完成 → 应用层握手（HELLO）依然进行，但 `fp` 字段必须等
 ## 重放与时序
 
 - TEXT、FILE_OFFER 都带 `id` / `transfer_id`（UUID v4），接收方做 5 分钟窗口
-  去重。
+  去重：以 `(peer_fp, message_id) → 收到时刻` 维护一个 5 分钟 TTL 集合，命中
+  即丢弃，避免断连重发 / 恶意重放导致同一消息重复入库或重复弹窗。
 - 不允许从一条连接 fork 出多条文件传输用同一 `transfer_id`；接收方记录
   `transfer_id → 连接 id` 的映射，跨连接 ID 必须不同。
+
+  **v0.1 实现状态（TODO）**：上述两项去重 / 映射在 v0.1 各端尚未落地——
+  当前接收侧不丢弃重复的 `id` / `transfer_id`，也未维护 `transfer_id → 连接 id`
+  全局映射（仅在单连接内校验 `FILE_ACCEPT` 的 `transfer_id` 是否匹配）。本项
+  为协议不变量，留待后续按上述规则补齐；在补齐前断连重发可能产生重复消息。
 
 ## 隐私
 
