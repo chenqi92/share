@@ -23,10 +23,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.MoreHoriz
-import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -100,7 +100,7 @@ fun ChatDetailScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (onBack != null) {
-                MeshIconBtn(icon = Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back), bordered = true, sizeDp = 36.dp, onClick = onBack)
+                MeshIconBtn(icon = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back), bordered = true, sizeDp = 36.dp, onClick = onBack)
             }
             MeshAvatar(initials = displayDevice.initials, color = displayDevice.color, sizeDp = 36)
             Column(modifier = Modifier.weight(1f)) {
@@ -199,7 +199,7 @@ fun ChatDetailScreen(
                 )
             }
             MeshIconBtn(icon = Icons.Outlined.AttachFile, contentDescription = stringResource(R.string.common_file), bordered = true, sizeDp = 40.dp, onClick = onAttachFile)
-            MeshIconBtn(icon = Icons.Outlined.Send, contentDescription = stringResource(R.string.common_send), accent = true, sizeDp = 40.dp, onClick = { sendDraft() })
+            MeshIconBtn(icon = Icons.AutoMirrored.Outlined.Send, contentDescription = stringResource(R.string.common_send), accent = true, sizeDp = 40.dp, onClick = { sendDraft() })
         }
     }
 }

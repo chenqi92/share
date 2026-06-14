@@ -39,7 +39,9 @@ object TXTRecord {
         val osStr = s("os") ?: return null
         val os = DeviceOS.parse(osStr) ?: return null
         val fp = s("fp")?.takeIf { it.length == 32 } ?: return null
-        val port = s("port")?.toIntOrNull() ?: return null
+        // 端口必须在合法范围；越界（如恶意广播 99999 / -1）直接丢弃该设备，
+        // 避免后续 InetSocketAddress(host, port) 在主线程抛 IllegalArgumentException 崩溃。
+        val port = s("port")?.toIntOrNull()?.takeIf { it in 1..65535 } ?: return null
         return Device(
             id = id,
             name = name,

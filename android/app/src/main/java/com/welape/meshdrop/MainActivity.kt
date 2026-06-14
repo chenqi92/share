@@ -1,6 +1,7 @@
 package com.welape.meshdrop
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -14,6 +15,11 @@ import androidx.core.content.IntentCompat
 import com.welape.meshdrop.ui.MeshDropApp
 import com.welape.meshdrop.ui.theme.MeshDropTheme
 
+// 本 Activity 是纯 Compose 的 ComponentActivity，不含任何 Fragment；
+// registerForActivityResult 走 activity（1.9.3）的 Activity Result API，与 fragment 版本无关。
+// lint 的 InvalidFragmentVersionForActivityResult 针对的是传递引入的旧 fragment(1.1.0)，
+// 对无 Fragment 的本类是误报，故在此抑制。
+@SuppressLint("InvalidFragmentVersionForActivityResult")
 class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(

@@ -61,6 +61,9 @@ private const val CHUNK_SIZE = 256 * 1024
 /** FILE_CHUNK data 段硬上限，见 transport.md。超出即视为违规并断连。 */
 private const val MAX_CHUNK_DATA = 4 * 1024 * 1024
 
+/** 单次 FILE_OFFER 文件数上限（transport.md：≤ 1024）。超出即关连接，防海量 index 放大。 */
+private const val MAX_OFFER_FILES = 1024
+
 /** TEXT / FILE_OFFER 去重窗口：同一 (peer_fp, message_id) 在该时间内重复出现即丢弃。 */
 private const val REPLAY_WINDOW_MS = 5L * 60 * 1000
 
@@ -345,7 +348,13 @@ class ShareEngine(private val context: Context) {
 
     private fun newOutgoingConnection(device: Device): Connection? {
         val host = device.host ?: return null
-        return Connection.forOutgoing(host, device.port)
+        // defense-in-depth：建连构造（InetSocketAddress）对越界端口等会抛异常，
+        // 这里兜底转 null，由调用方按"无法建连"处理，绝不让异常逃到主线程。
+        return try {
+            Connection.forOutgoing(host, device.port)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
     }
 
     // MARK: - 决定
@@ -409,6 +418,8 @@ class ShareEngine(private val context: Context) {
 
                 val body = MessageCodec.encode(FileAcceptMessage(offer.id.toString(), 0, 0))
                 ctx.connection.send(MessageType.FILE_ACCEPT, body)
+                // 零字节文件不会产生任何 FILE_CHUNK：立即完成，避免发送方与接收方互等死锁。
+                if (offer.fileSize == 0L) finishReceive(ctx)
             } catch (e: Exception) {
                 Log.e(TAG, "accept file failed", e)
                 closeContext(ctx.id, e)
@@ -792,12 +803,31 @@ class ShareEngine(private val context: Context) {
     private suspend fun handleReceivedFileOffer(ctx: ConnectionContext, body: ByteArray) {
         val peer = ctx.peer ?: return
         val offer = runCatching { MessageCodec.decode<FileOfferMessage>(body) }.getOrNull() ?: return
+        // 文件数上限：超过 spec 上限直接关连接，避免海量 index 触发放大的 FILE_REJECT 与内存压力。
+        if (offer.files.size > MAX_OFFER_FILES) {
+            Log.w(TAG, "FILE_OFFER files ${offer.files.size} over cap $MAX_OFFER_FILES, closing")
+            closeContext(ctx.id, null); return
+        }
         val first = offer.files.firstOrNull() ?: return
         val tid = runCatching { UUID.fromString(offer.transfer_id) }.getOrNull() ?: return
         // 重放保护：同一 (peer, transfer_id) 5 分钟内重复 → 丢弃，避免重复弹接收审批。
         if (isReplay(peer.fingerprint, offer.transfer_id)) {
             Log.i(TAG, "drop replayed FILE_OFFER transfer_id=${offer.transfer_id}")
             return
+        }
+
+        // 当前为单文件接收：对多文件 offer 的其余 index 逐个回 FILE_REJECT，避免静默丢弃
+        // 导致发送端无限等待未被应答的文件（messages.md：每个 index 都应有 ACCEPT/REJECT）。
+        if (offer.files.size > 1) {
+            for (extra in offer.files.drop(1)) {
+                try {
+                    val rej = MessageCodec.encode(
+                        FileRejectMessage(offer.transfer_id, extra.index, "multi_file_unsupported")
+                    )
+                    ctx.connection.send(MessageType.FILE_REJECT, rej)
+                } catch (_: Exception) {}
+            }
+            Log.w(TAG, "FILE_OFFER 含 ${offer.files.size} 个文件，仅接收第一个，其余已拒绝")
         }
 
         // 命中 ResumeStore 且半成品仍在 → 自动接受，发 resume_offset > 0；否则走正常审批。
@@ -813,7 +843,7 @@ class ShareEngine(private val context: Context) {
 
         val pending = PendingFileOffer(
             id = tid, peer = peer,
-            fileName = first.name, fileSize = first.size, sha256 = first.sha256,
+            fileName = sanitizeReceivedName(first.name), fileSize = first.size, sha256 = first.sha256,
         )
         ctx.pendingOfferId = pending.id
         _pendingFileOffers.value = _pendingFileOffers.value + pending
@@ -938,33 +968,38 @@ class ShareEngine(private val context: Context) {
         }
 
         if (ctx.receivedBytes >= ctx.fileSize) {
-            try { output.close() } catch (_: Exception) {}
-            ctx.output = null
-            // 校验
-            val saved = ctx.savedFile
-            val expected = ctx.expectedSha256
-            if (saved != null && expected != null) {
-                val actual = try { computeSha256OfFile(saved) } catch (_: Exception) { "" }
-                if (actual != expected) {
-                    ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_checksum_failed))) }
-                    saved.delete()
-                    ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
-                    closeContext(ctx.id, null); return
-                }
-                // 完成 → 清掉 ResumeStore 中对应记录
-                ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
-            }
-            try {
-                val tid = ctx.transferId
-                if (tid != null) {
-                    val complete = FileCompleteMessage(tid.toString(), 0)
-                    ctx.connection.send(MessageType.FILE_COMPLETE, MessageCodec.encode(complete))
-                }
-            } catch (_: Exception) {}
-            ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Completed) }
-            delay(150)
-            closeContext(ctx.id, null)
+            finishReceive(ctx)
         }
+    }
+
+    /** 接收完成（含零字节文件）：关 output、校验 SHA、发 FILE_COMPLETE、标完成、关连接。 */
+    private suspend fun finishReceive(ctx: ConnectionContext) {
+        try { ctx.output?.close() } catch (_: Exception) {}
+        ctx.output = null
+        // 校验
+        val saved = ctx.savedFile
+        val expected = ctx.expectedSha256
+        if (saved != null && expected != null) {
+            val actual = try { computeSha256OfFile(saved) } catch (_: Exception) { "" }
+            if (actual != expected) {
+                ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Failed(context.getString(R.string.engine_checksum_failed))) }
+                saved.delete()
+                ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
+                closeContext(ctx.id, null); return
+            }
+            // 完成 → 清掉 ResumeStore 中对应记录
+            ctx.peer?.let { resumeStore.clear(it.fingerprint, expected) }
+        }
+        try {
+            val tid = ctx.transferId
+            if (tid != null) {
+                val complete = FileCompleteMessage(tid.toString(), 0)
+                ctx.connection.send(MessageType.FILE_COMPLETE, MessageCodec.encode(complete))
+            }
+        } catch (_: Exception) {}
+        ctx.historyId?.let { updateHistoryStatus(it, TransferStatus.Completed) }
+        delay(150)
+        closeContext(ctx.id, null)
     }
 
     // MARK: - 关闭与辅助
@@ -1123,17 +1158,31 @@ class ShareEngine(private val context: Context) {
     // 保存路径
     private fun defaultSaveDir(peer: Device): File {
         val base = context.getExternalFilesDir(null) ?: context.filesDir
-        val name = peer.name.ifEmpty { peer.id }
+        // 对端可控的 name 作目录分量也可能含 .. / 分隔符 → 净化，防保存目录整体逃逸。
+        val name = sanitizeReceivedName(peer.name.ifEmpty { peer.id })
         val dir = File(File(base, "MeshDrop"), name)
         dir.mkdirs()
         return dir
     }
 
+    /**
+     * 把对端可控的文件名收敛成安全的单段文件名：取最后一段（按 / 与 \ 切分），剔除控制字符，
+     * 拒绝 . / .. / 空（回退 file-<uuid>）。messages.md:84 要求 name 不含路径分隔符；此处兜底
+     * 防止 .. / 绝对路径把接收文件写到下载目录之外（路径穿越）。
+     */
+    private fun sanitizeReceivedName(raw: String): String {
+        val last = raw.substringAfterLast('/').substringAfterLast('\\').trim().trim(' ')
+        val cleaned = last.filter { !it.isISOControl() }
+        return if (cleaned.isEmpty() || cleaned == "." || cleaned == "..") "file-${UUID.randomUUID()}" else cleaned
+    }
+
     private fun uniqueFile(dir: File, fileName: String): File {
-        var candidate = File(dir, fileName)
+        // defense-in-depth：即便上游已净化，落盘汇聚点再兜底一次，确保只在 dir 内创建。
+        val safe = sanitizeReceivedName(fileName)
+        var candidate = File(dir, safe)
         if (!candidate.exists()) return candidate
-        val base = fileName.substringBeforeLast('.')
-        val ext = fileName.substringAfterLast('.', "")
+        val base = safe.substringBeforeLast('.')
+        val ext = safe.substringAfterLast('.', "")
         var n = 1
         while (true) {
             val name = if (ext.isEmpty()) "$base ($n)" else "$base ($n).$ext"

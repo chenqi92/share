@@ -12,9 +12,9 @@
 | 平台    | 当前实现 | 目标实现 |
 | ------- | -------- | -------- |
 | iOS / macOS | Keychain（accessible: `afterFirstUnlock`） | 同当前 |
-| Android | SharedPreferences | EncryptedSharedPreferences（AndroidKeyStore 派生密钥） |
+| Android | EncryptedSharedPreferences（AndroidKeyStore 派生主密钥；旧明文库自动迁移并清空） | 同当前 |
 | Windows | DPAPI (`ProtectedData.Protect`)，文件落 LocalAppData | 同当前 |
-| Linux   | 文件存储 | libsecret（`org.freedesktop.secrets`）+ 文件回退 |
+| Linux   | 文件存储（`0o600`，仅当前用户可读，**静置未加密**） | libsecret（`org.freedesktop.secrets`）+ 文件回退 |
 
 设备 `id`（UUID）和 Ed25519 密钥一起生成，跨重启稳定；用户在设置中可以"重置
 身份"重新生成（会导致所有对端把本机视为新设备需重新配对）。
@@ -43,6 +43,13 @@
 ## 加密（v1.0 强制；v0.1 骨架可选）
 
 v0.1 骨架阶段允许 **明文 TCP**，仅在同局域网内试运行；v1.0 起 **强制 TLS 1.3**：
+
+> **⚠️ v0.1 安全现状（勿当作"安全传输已完成"宣传）**
+> 在明文阶段，HELLO/TXT 里的 `fp` **未绑定任何密钥或证书**，接收端只能拿它和
+> 广告里声明的 `fp` 做字符串比对。这意味着指纹校验**只能防误连**（连错设备），
+> **不抗主动 MITM**：同网段攻击者可伪造 TXT 与 HELLO 里的 `fp`。真正的公钥钉死
+> 要等 v1.0 接 TLS、从证书公钥导出 `fp` 后才成立（见下文「证书校验」）。在此之前，
+> 所有端的 UI 指纹核对文案、README、商店描述都不得暗示"端到端加密 / 抗窃听"。
 
 ### 证书
 

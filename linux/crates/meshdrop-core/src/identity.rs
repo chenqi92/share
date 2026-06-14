@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 /// 设备身份。Ed25519 长期密钥 + UUID。
 ///
-/// v0.1 骨架：私钥裸落 `~/.local/share/MeshDrop/ed25519.bin`。
-/// v1.0 要切到 libsecret (org.freedesktop.secrets)。
+/// v0.1 骨架：私钥落 `~/.local/share/MeshDrop/ed25519.bin`，权限 `0o600`（仅当前
+/// 用户可读）但**静置未加密**；v1.0 要切到 libsecret (org.freedesktop.secrets)。
 pub struct Identity {
     pub id: String,                    // 32 hex
     pub signing_key: SigningKey,

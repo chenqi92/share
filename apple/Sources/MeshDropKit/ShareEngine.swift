@@ -1201,6 +1201,16 @@ public final class ShareEngine: ObservableObject {
             return
         }
 
+        // 越界校验（messages.md）：offset 及 offset+payload 不得超过声明的文件大小，否则视为
+        // 协议错误关连接——防止 seek 到任意 u64 制造稀疏文件 / 耗尽磁盘，或写入超出声明大小。
+        // 先判 offset > fileSize，确保随后的 fileSize - offset 不会在 UInt64 上下溢 trap。
+        if header.offset > ctx.fileSize || UInt64(payload.count) > ctx.fileSize - header.offset {
+            log.error("FILE_CHUNK out of bounds: offset=\(header.offset) len=\(payload.count) size=\(ctx.fileSize); closing")
+            if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed(L10n.failChunkTooLarge)) }
+            await closeContext(id: contextID, error: nil)
+            return
+        }
+
         // offset 校验（messages.md）：正常顺序写时 header.offset 应 == 已收字节；
         // 不等说明乱序 / 重复 / resume 起点不一致 → seek 到 header.offset 再写，避免错位累积。
         if header.offset != ctx.receivedBytes {
@@ -1489,23 +1499,39 @@ public final class ShareEngine: ObservableObject {
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
+    /// 把对端可控的字符串收敛成安全的单段路径名：取最后一段（按 / 与 \ 切分），剔除控制字符，
+    /// 拒绝 . / .. / 空（回退 file-<uuid>）。messages.md:84 要求 name 不含路径分隔符；此处兜底防止
+    /// FILE_OFFER 的 name 或对端显示名含 .. / 绝对路径把文件写到目标目录之外（路径穿越）。
+    nonisolated static func sanitizedPathComponent(_ raw: String) -> String {
+        let last = raw.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? ""
+        let cleaned = String(last.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+            .trimmingCharacters(in: .whitespaces)
+        if cleaned.isEmpty || cleaned == "." || cleaned == ".." {
+            return "file-\(UUID().uuidString.lowercased())"
+        }
+        return cleaned
+    }
+
     nonisolated static func defaultSaveDir(for peer: Device) -> URL {
         let fm = FileManager.default
         let documents = (try? fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
             ?? fm.temporaryDirectory
+        // 对端可控的 name 作目录分量也可能含 .. / 分隔符 → 净化，防保存目录整体逃逸。
         let dir = documents
             .appendingPathComponent("MeshDrop", isDirectory: true)
-            .appendingPathComponent(peer.name.isEmpty ? peer.id : peer.name, isDirectory: true)
+            .appendingPathComponent(sanitizedPathComponent(peer.name.isEmpty ? peer.id : peer.name), isDirectory: true)
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 
     nonisolated static func uniqueFileURL(in dir: URL, fileName: String) -> URL {
         let fm = FileManager.default
-        var candidate = dir.appendingPathComponent(fileName)
+        // defense-in-depth：对端可控的文件名先净化，确保只在 dir 内创建（防 .. / 绝对路径穿越）。
+        let safe = sanitizedPathComponent(fileName)
+        var candidate = dir.appendingPathComponent(safe)
         if !fm.fileExists(atPath: candidate.path) { return candidate }
-        let base = (fileName as NSString).deletingPathExtension
-        let ext = (fileName as NSString).pathExtension
+        let base = (safe as NSString).deletingPathExtension
+        let ext = (safe as NSString).pathExtension
         var n = 1
         while true {
             let name = ext.isEmpty ? "\(base) (\(n))" : "\(base) (\(n)).\(ext)"

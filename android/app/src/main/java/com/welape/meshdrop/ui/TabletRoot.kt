@@ -185,7 +185,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                         messages = realHistoryRaw?.toChatMessages(id),
                         useMockFallback = engine == null,
                         onSendText = { text ->
-                            realDevicesRaw?.firstOrNull { it.id == id }?.let { engine?.sendText(it, text) }
+                            realDevicesRaw?.firstOrNull { it.id == id }?.let { engine.sendText(it, text) }
                         },
                         onAttachFile = { state.sheet = MeshSheet.SEND },
                     )

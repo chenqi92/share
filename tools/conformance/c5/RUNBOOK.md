@@ -6,18 +6,15 @@
 
 ## ⚠️ 跑测前必读
 
-代码 spot check 已经发现 android 端 `PairingSheet` 在
-[android/app/src/main/java/com/welape/meshdrop/ui/sheets/PairingSheet.kt](../../../android/app/src/main/java/com/welape/meshdrop/ui/sheets/PairingSheet.kt:124)
-仍然 100% mock 驱动（三按钮全 `onClose`）。**接收端**配对决策走得通（Mac
-PairingPage + AppState 已接 engine），但**发送端**的 android 在被对端反向连接、
-或 android 自身作为 receiver 时，UI 上无法响应配对。
+android 端 `PairingSheet` 的三按钮已接真实引擎：
+[PhoneRoot.kt](../../../android/app/src/main/java/com/welape/meshdrop/ui/PhoneRoot.kt:253)
+把 `onDecision` 接到 `engine.respondToPairing(id, decision)`，
+`useMockFallback = engine == null` 只在无引擎的预览/截图态才回退 mock。
+因此 android 作为**接收方**收到反向 HELLO 时也能在 UI 上拒绝 / 允许一次 / 允许并记住。
 
-C5 的设备方向是 **android（发送方）→ mac（接收方）**，配对卡在 mac 端弹出，
-理论上**应当**能完整跑通；android 侧的 UI 漏接对 C5 不构成阻塞，但**仍是
-backend(android) bug**，要在 PR 描述里指出并开 issue。
-
-如果跑测时发现 android 端因「自己也收到 mac 的反向 HELLO 弹卡，但 sheet 不能
-响应」而卡死，记入 RESULT.md 偏离段，并在 PR 里开 issue。
+C5 的设备方向是 **android（发送方）→ mac（接收方）**，配对卡在 mac 端弹出；
+android 侧此前"配对 sheet 全 mock"的阻塞已修复。若跑测仍发现配对决策未生效，
+记入 RESULT.md 偏离段并在 PR 里开 issue。
 
 ## 前置环境
 

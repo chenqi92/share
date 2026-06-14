@@ -26,7 +26,8 @@ class TrustStore(context: Context) {
 
     fun touch(fingerprint: String) {
         val cur = prefs.getString(fingerprint, null) ?: return
-        val name = cur.substringBefore("|")
+        // 时间戳总是最后一段，按最后一个 '|' 切，名字含 '|' 也不会被截断。
+        val name = cur.substringBeforeLast("|")
         prefs.edit()
             .putString(fingerprint, "$name|${System.currentTimeMillis()}")
             .apply()
@@ -38,8 +39,10 @@ class TrustStore(context: Context) {
 
     fun snapshot(): List<TrustRecord> = prefs.all.mapNotNull { (fp, value) ->
         val s = value as? String ?: return@mapNotNull null
-        val parts = s.split("|", limit = 2)
-        TrustRecord(fp, parts[0], parts.getOrNull(1)?.toLongOrNull() ?: 0L)
+        // 按最后一个 '|' 切：时间戳总是最后一段，名字含 '|' 不会被截断、时间戳也能正确解析。
+        val idx = s.lastIndexOf('|')
+        if (idx < 0) TrustRecord(fp, s, 0L)
+        else TrustRecord(fp, s.substring(0, idx), s.substring(idx + 1).toLongOrNull() ?: 0L)
     }.sortedByDescending { it.lastSeen }
 
     companion object {

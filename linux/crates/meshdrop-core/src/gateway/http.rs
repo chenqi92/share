@@ -402,7 +402,7 @@ fn find_first_file_part(body: &[u8], boundary: &str) -> Option<FilePart> {
                         if let Some(end) = rest.find('"') {
                             filename = rest[..end].to_string();
                         }
-                    } else if let Some(end) = rest.find(|c: char| c == ';' || c == ' ') {
+                    } else if let Some(end) = rest.find([';', ' ']) {
                         filename = rest[..end].to_string();
                     } else {
                         filename = rest.to_string();

@@ -120,7 +120,13 @@ class MdnsDiscovery(
         val attrs = resolved.attributes.mapValues { it.value }
         val device = TXTRecord.decode(attrs) ?: return
         if (device.id == identity.id) return
-        val withHost = device.copy(host = resolved.host?.hostAddress)
+        val hostAddress = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            resolved.hostAddresses.firstOrNull()?.hostAddress
+        } else {
+            @Suppress("DEPRECATION")
+            resolved.host?.hostAddress
+        }
+        val withHost = device.copy(host = hostAddress)
         deviceMap[device.id] = withHost
         _devices.value = deviceMap.values.sortedBy { it.name }
     }

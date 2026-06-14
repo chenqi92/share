@@ -130,7 +130,7 @@ internal data class TransferDone(
 internal data class DeviceRemoved(val id: String)
 
 @Serializable
-internal data class Pairing(
+data class Pairing(
     val id: String,
     val peerName: String,
     val code: String,

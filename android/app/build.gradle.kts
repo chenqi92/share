@@ -27,8 +27,11 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        resourceConfigurations += listOf("zh-rCN", "en")
         vectorDrawables.useSupportLibrary = true
+    }
+
+    androidResources {
+        localeFilters += listOf("zh-rCN", "en")
     }
 
     signingConfigs {

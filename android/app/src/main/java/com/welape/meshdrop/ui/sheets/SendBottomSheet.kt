@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Notes
+import androidx.compose.material.icons.automirrored.outlined.Notes
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,7 +95,7 @@ fun SendBottomSheet(
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                 QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.AttachFile, label = stringResource(R.string.send_kind_file), subtitle = stringResource(R.string.send_kind_file_sub), onClick = onPickDevices)
-                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.Outlined.Notes, label = stringResource(R.string.send_kind_note), subtitle = stringResource(R.string.send_kind_note_sub), onClick = onPickDevices, accent = true)
+                QuickActionTile(modifier = Modifier.weight(1f), icon = Icons.AutoMirrored.Outlined.Notes, label = stringResource(R.string.send_kind_note), subtitle = stringResource(R.string.send_kind_note_sub), onClick = onPickDevices, accent = true)
             }
 
             Spacer(Modifier.height(14.dp))

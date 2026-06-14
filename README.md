@@ -26,6 +26,10 @@
 传输允许明文 TCP；Web Gateway 自身使用 TLS 1.3 自签证书。端到端应用层加密在 v1.0
 强制。
 
+> **安全现状（v0.1）**：LAN 传输为明文，TOFU 指纹**只防误连、不抗主动 MITM**
+> （`fp` 尚未与密钥/证书绑定，详见 [protocol/security.md](protocol/security.md)）。
+> 不要把当前版本宣传为"端到端加密 / 安全传输"。
+
 ## 目录布局
 
 ```
@@ -65,11 +69,11 @@ share/
 平台原生功能：
 - ✅ Apple 端身份私钥 → Keychain (`kSecAttrAccessibleAfterFirstUnlock`)
 - ✅ Windows 身份私钥 → DPAPI
+- ✅ Android 身份私钥 → EncryptedSharedPreferences（AndroidKeyStore 派生主密钥）
 - ✅ Android Share Target / iOS Share Extension（App Group 队列）
 - ✅ Wear OS / Apple Watch companion bridge
 - ✅ Settings 重置身份功能
-- ⚠️ Android 身份当前仍是 SharedPreferences，后续切 EncryptedSharedPreferences
-- ⚠️ Linux 身份当前是文件存储，后续切 libsecret
+- ⚠️ Linux 身份当前是文件存储（`0o600`，静置未加密），后续切 libsecret
 
 Web Gateway（companion-bridges.md §4.3）：
 - ✅ macOS / Windows / Linux GUI 都有 TLS 1.3 自签证书 + WebSocket 控制通道
@@ -98,4 +102,4 @@ WinUI 构建只会在检测到 `dotnet` 且运行在 Windows 时执行。
 - 文件夹批量传输（recursive offer）
 - 剪贴板分享协议 type
 - 推送通知唤醒接收端
-- Android / Linux 身份存储升级（EncryptedSharedPreferences / libsecret）
+- Linux 身份存储升级（libsecret；Android 已切 EncryptedSharedPreferences）

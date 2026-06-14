@@ -14,7 +14,7 @@ use log::{debug, info, warn};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::io::SeekFrom;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -33,10 +33,14 @@ const REPLAY_WINDOW: Duration = Duration::from_secs(5 * 60);
 
 /// 握手超时：连上后迟迟不进入 Ready / 文件态的连接，超过该时长即回收（防半开 DoS）。
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
-/// 空闲超时：已就绪连接长时间无任何帧即关闭（释放句柄；传输态不受此限）。
+/// 空闲超时：长时间无任何入站帧即关闭（释放句柄）。含 ReceivingFile——每个 FILE_CHUNK
+/// 都刷新 last_activity，故"已接受但只发一半 / 不发 chunk"会在此超时被回收。
+/// 仅 SendingFile 不受此限：发送方在推流期间通常收不到任何帧，last_activity 不更新。
 const IDLE_TIMEOUT: Duration = Duration::from_secs(120);
 /// 并发连接上限：同时存在的 ConnCtx 超过该数时拒绝新入站连接（防句柄 / 内存耗尽）。
 const MAX_CONNECTIONS: usize = 256;
+/// 单次 FILE_OFFER 文件数上限（transport.md：单次 offer 文件数 ≤ 1024）。
+const MAX_OFFER_FILES: usize = 1024;
 
 /// 入站 fp 必须是 32 位小写 hex（= SHA-256 公钥前 16 字节）。校验失败即拒绝该连接，
 /// 避免恶意 fp 污染指纹显示与 trust.json 键。
@@ -191,14 +195,9 @@ impl ShareEngine {
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
         tokio::spawn(async move {
-            loop {
-                match listener.accept().await {
-                    Ok((stream, addr)) => {
-                        if internal_tx_accept.send(InternalCmd::Incoming(stream, addr)).is_err() {
-                            break;
-                        }
-                    }
-                    Err(_) => break,
+            while let Ok((stream, addr)) = listener.accept().await {
+                if internal_tx_accept.send(InternalCmd::Incoming(stream, addr)).is_err() {
+                    break;
                 }
             }
         });
@@ -471,11 +470,11 @@ impl State {
         let now = Instant::now();
         self.seen_messages.retain(|_, ts| now.duration_since(*ts) < REPLAY_WINDOW);
         let key = (peer_fp.to_string(), message_id.to_string());
-        if self.seen_messages.contains_key(&key) {
-            true
-        } else {
-            self.seen_messages.insert(key, now);
+        if let std::collections::hash_map::Entry::Vacant(e) = self.seen_messages.entry(key) {
+            e.insert(now);
             false
+        } else {
+            true
         }
     }
 }
@@ -515,7 +514,7 @@ struct ConnCtx {
 
 enum Role {
     Server,
-    Client { target: Device, payload: ClientPayload },
+    Client { target: Box<Device>, payload: ClientPayload },
 }
 
 enum ClientPayload {
@@ -590,9 +589,9 @@ fn push_bucket(buf: &mut Vec<f64>, v: f64) {
 ///
 /// - 握手未完成（仍处于 AwaitingHello / AwaitingPairApproval / AwaitingHelloAck）超过
 ///   HANDSHAKE_TIMEOUT 的半开连接；
-/// - 已就绪但长时间无任何帧（非传输态）超过 IDLE_TIMEOUT 的连接。
+/// - 长时间无任何入站帧超过 IDLE_TIMEOUT 的连接（含 ReceivingFile：无新 FILE_CHUNK 即停滞）。
 ///
-/// 传输中（SendingFile / ReceivingFile）的连接不受空闲超时影响。
+/// 仅 SendingFile 不受空闲超时影响（推流期间通常收不到帧，last_activity 不更新）。
 async fn sweep_timeouts(state: &mut State) {
     let now = Instant::now();
     let mut to_close: Vec<Uuid> = Vec::new();
@@ -608,8 +607,10 @@ async fn sweep_timeouts(state: &mut State) {
             to_close.push(*id);
             continue;
         }
-        let transferring = matches!(ctx.state, ConnState::SendingFile | ConnState::ReceivingFile);
-        if !transferring && now.duration_since(ctx.last_activity) > IDLE_TIMEOUT {
+        // SendingFile 推流期间通常收不到帧 → 豁免；ReceivingFile 每个 FILE_CHUNK 都刷新
+        // last_activity，无新 chunk 即视为停滞，应回收（释放连接槽与文件句柄）。
+        let sending = matches!(ctx.state, ConnState::SendingFile);
+        if !sending && now.duration_since(ctx.last_activity) > IDLE_TIMEOUT {
             to_close.push(*id);
         }
     }
@@ -736,7 +737,7 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
 
     let mut ctx = ConnCtx::new_client(ctx_id, conn,
-        Role::Client { target: peer, payload: ClientPayload::Text(content) },
+        Role::Client { target: Box::new(peer), payload: ClientPayload::Text(content) },
         ConnState::AwaitingHelloAck);
     ctx.history_id = Some(item.id);
     state.contexts.insert(ctx_id, ctx);
@@ -755,7 +756,7 @@ async fn start_push_clipboard(state: &mut State, peer: Device, content: String, 
     let ctx_id = Uuid::new_v4();
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
     let ctx = ConnCtx::new_client(ctx_id, conn,
-        Role::Client { target: peer, payload: ClientPayload::Clipboard { content, kind } },
+        Role::Client { target: Box::new(peer), payload: ClientPayload::Clipboard { content, kind } },
         ConnState::AwaitingHelloAck);
     state.contexts.insert(ctx_id, ctx);
 }
@@ -839,7 +840,7 @@ async fn on_file_hash_ready(
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
 
     let mut ctx = ConnCtx::new_client(ctx_id, conn,
-        Role::Client { target: peer, payload: ClientPayload::File {
+        Role::Client { target: Box::new(peer), payload: ClientPayload::File {
             path: path.clone(), size, sha256: sha, name,
         }},
         ConnState::AwaitingHelloAck);
@@ -1095,7 +1096,7 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     let target_fp_payload = {
         let Some(ctx) = state.contexts.get(&ctx_id) else { return };
         match &ctx.role {
-            Role::Client { target, payload } => Some((target.clone(), payload_summary(payload))),
+            Role::Client { target, payload } => Some(((**target).clone(), payload_summary(payload))),
             _ => None,
         }
     };
@@ -1308,6 +1309,12 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     let offer: FileOfferMessage = match serde_json::from_slice(&body) {
         Ok(o) => o, Err(_) => return,
     };
+    // 文件数上限：超过 spec 上限直接关连接，避免海量 index 触发放大的 FILE_REJECT 与内存压力。
+    if offer.files.len() > MAX_OFFER_FILES {
+        warn!("FILE_OFFER 文件数 {} 超上限 {}，关闭连接", offer.files.len(), MAX_OFFER_FILES);
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
     let Some(first) = offer.files.first() else { return };
     let meta = first.clone();
     let Ok(tid) = Uuid::parse_str(&offer.transfer_id) else { return };
@@ -1346,7 +1353,7 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     }
 
     let pending = PendingFileOffer {
-        id: tid, peer, file_name: meta.name.clone(),
+        id: tid, peer, file_name: sanitize_received_name(&meta.name),
         file_size: meta.size, sha256: meta.sha256.clone(),
     };
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
@@ -1739,9 +1746,10 @@ async fn compute_sha256_async(path: &PathBuf) -> Result<String> {
 /// 接收文件落盘目录：有用户覆盖（set_save_dir）则在其下按对端名建子目录；
 /// 否则保持现状（~/Downloads/MeshDrop/<peer>）。
 fn resolve_save_dir(state: &State, peer: &Device) -> PathBuf {
-    let name = if peer.name.is_empty() { &peer.id } else { &peer.name };
+    // 对端可控的 name 作目录分量也可能含 `..` / 分隔符 → 净化，防保存目录整体逃逸到根目录外。
+    let name = sanitize_received_name(if peer.name.is_empty() { &peer.id } else { &peer.name });
     if let Some(base) = state.save_dir.lock().unwrap().clone() {
-        return base.join(name);
+        return base.join(&name);
     }
     default_save_dir(peer)
 }
@@ -1750,11 +1758,27 @@ fn default_save_dir(peer: &Device) -> PathBuf {
     let base = dirs::download_dir()
         .or_else(dirs::home_dir)
         .unwrap_or_else(|| PathBuf::from("/tmp"));
-    let name = if peer.name.is_empty() { &peer.id } else { &peer.name };
-    base.join("MeshDrop").join(name)
+    let name = sanitize_received_name(if peer.name.is_empty() { &peer.id } else { &peer.name });
+    base.join("MeshDrop").join(&name)
 }
 
-fn unique_file_path(dir: &PathBuf, file_name: &str) -> PathBuf {
+/// 把对端可控的文件名收敛成安全的单段文件名：取最后一段（按 `/`、`\` 切分），剔除控制
+/// 字符，拒绝 `.`/`..`/空（回退 `file-<uuid>`）。messages.md:84 要求 name 不含路径分隔符；
+/// 此处兜底防止 `..` / 绝对路径把接收文件写到下载目录之外（路径穿越）。
+fn sanitize_received_name(raw: &str) -> String {
+    let last = raw.rsplit(['/', '\\']).next().unwrap_or("").trim().trim_matches('\u{0}');
+    let cleaned: String = last.chars().filter(|c| !c.is_control()).collect();
+    if cleaned.is_empty() || cleaned == "." || cleaned == ".." {
+        format!("file-{}", Uuid::new_v4())
+    } else {
+        cleaned
+    }
+}
+
+fn unique_file_path(dir: &Path, file_name: &str) -> PathBuf {
+    // defense-in-depth：即便上游已净化，落盘汇聚点再兜底一次，确保任何写入都落在 dir 内。
+    let safe = sanitize_received_name(file_name);
+    let file_name = safe.as_str();
     let mut candidate = dir.join(file_name);
     if !candidate.exists() { return candidate; }
     let (stem, ext) = match file_name.rsplit_once('.') {
@@ -1912,11 +1936,33 @@ impl ConnCtx {
 
 #[cfg(test)]
 mod tests {
-    use super::is_valid_fingerprint;
+    use super::{is_valid_fingerprint, sanitize_received_name, unique_file_path};
 
     #[test]
     fn fingerprint_accepts_32_lowercase_hex() {
         assert!(is_valid_fingerprint("00112233445566778899aabbccddeeff"));
+    }
+
+    #[test]
+    fn sanitize_received_name_strips_path_components() {
+        assert_eq!(sanitize_received_name("report.pdf"), "report.pdf");
+        assert_eq!(sanitize_received_name("../../etc/passwd"), "passwd");
+        assert_eq!(sanitize_received_name("/home/user/.bashrc"), ".bashrc");
+        assert_eq!(sanitize_received_name("a\\b\\c.txt"), "c.txt");
+        assert!(sanitize_received_name("..").starts_with("file-"));
+        assert!(sanitize_received_name(".").starts_with("file-"));
+        assert!(sanitize_received_name("").starts_with("file-"));
+        assert!(sanitize_received_name("/").starts_with("file-"));
+    }
+
+    #[test]
+    fn unique_file_path_contains_traversal() {
+        let dir = std::env::temp_dir();
+        for evil in ["/etc/passwd", "../../../../etc/passwd", "..", "/", "a/b/c"] {
+            let p = unique_file_path(&dir, evil);
+            // 净化后无路径分隔符 → 父目录必须正好是 dir，绝不逃逸。
+            assert_eq!(p.parent(), Some(dir.as_path()), "{:?} escaped {:?}", p, dir);
+        }
     }
 
     #[test]

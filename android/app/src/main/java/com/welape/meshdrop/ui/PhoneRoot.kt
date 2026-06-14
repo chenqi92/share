@@ -16,7 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.History
@@ -130,7 +130,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             messages = realHistoryRaw?.toChatMessages(chatId),
                             useMockFallback = engine == null,
                             onSendText = { text ->
-                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine?.sendText(it, text) }
+                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine.sendText(it, text) }
                             },
                             onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
@@ -159,7 +159,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             messages = realHistoryRaw?.toChatMessages(chatId),
                             useMockFallback = engine == null,
                             onSendText = { text ->
-                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine?.sendText(it, text) }
+                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine.sendText(it, text) }
                             },
                             onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
@@ -285,7 +285,7 @@ private fun HistoryPane(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MeshIconBtn(
-                icon = Icons.Outlined.ArrowBack,
+                icon = Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = stringResource(R.string.common_back),
                 bordered = true,
                 sizeDp = 36.dp,

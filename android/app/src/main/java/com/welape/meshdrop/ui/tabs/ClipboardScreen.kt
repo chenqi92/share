@@ -1,5 +1,6 @@
 package com.welape.meshdrop.ui.tabs
 
+import android.content.ClipData
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,14 +33,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import com.welape.meshdrop.R
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,11 +57,13 @@ import com.welape.meshdrop.ui.theme.MeshTheme
 import com.welape.meshdrop.ui.theme.Sky
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 
 @Composable
 fun ClipboardScreen(engine: ShareEngine? = null) {
     val mesh = MeshTheme.colors
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
 
     val devices by remember(engine) {
         engine?.devices ?: MutableStateFlow(emptyList())
@@ -136,7 +140,12 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
                 }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = {
-                    clipboard.getText()?.text?.let { if (it.isNotEmpty()) draft = it }
+                    scope.launch {
+                        val pasted = clipboard.getClipEntry()?.clipData
+                            ?.takeIf { it.itemCount > 0 }
+                            ?.getItemAt(0)?.text?.toString()
+                        if (!pasted.isNullOrEmpty()) draft = pasted
+                    }
                 }) {
                     Icon(Icons.Outlined.ContentPaste, contentDescription = stringResource(R.string.clipboard_read_clipboard), tint = Sky, modifier = Modifier.height(16.dp))
                     Spacer(Modifier.width(4.dp))
@@ -194,7 +203,7 @@ fun ClipboardScreen(engine: ShareEngine? = null) {
         } else {
             AsciiDivider(label = stringResource(R.string.clipboard_section_received, inbox.size))
             inbox.forEach { entry ->
-                ClipboardCard(entry = entry, onCopy = { clipboard.setText(AnnotatedString(entry.content)) })
+                ClipboardCard(entry = entry, onCopy = { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("meshdrop", entry.content))) } })
                 Spacer(Modifier.height(10.dp))
             }
         }

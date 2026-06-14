@@ -18,7 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -186,7 +186,7 @@ fun DevicePickerSheet(
                             fontSize = 14.sp, color = Ink,
                         ),
                     )
-                    Icon(Icons.Outlined.ArrowForward, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = null, tint = Ink, modifier = Modifier.size(16.dp))
                 }
             }
         }
