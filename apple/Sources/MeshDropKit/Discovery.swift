@@ -43,9 +43,11 @@ public final class Discovery: @unchecked Sendable {
         self.devices = stream
         self.continuation = continuation
 
-        // 让 NWListener 自分配端口
+        // 让 NWListener 自分配端口。
+        // 不启用 peer-to-peer（AWDL）：本工具走同网段基础 Wi-Fi 发现；在 macOS 沙盒下启用 P2P
+        // 会让 Bonjour 只广告 link-local IPv6、不广告可路由 IPv4，对端能发现却连不上。
         let params = NWParameters.tcp
-        params.includePeerToPeer = true
+        params.includePeerToPeer = false
         self.listener = try NWListener(using: params)
     }
 
@@ -112,7 +114,7 @@ public final class Discovery: @unchecked Sendable {
             domain: nil
         )
         let params = NWParameters()
-        params.includePeerToPeer = true
+        params.includePeerToPeer = false
         let browser = NWBrowser(for: descriptor, using: params)
         self.browser = browser
 

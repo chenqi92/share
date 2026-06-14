@@ -185,31 +185,9 @@ private struct DeviceDot: View {
         }
     }
 
-    /// 取本机第一块非 loopback IPv4 地址；拿不到时显示占位。
+    /// 本机首选 IPv4（优先局域网网卡、跳过 VPN/隧道）；拿不到时显示占位。
     /// 仅用于雷达中心 "YOU" 标签的副文案，不参与协议。
     static func localAddressOrPlaceholder() -> String {
-        var address: String?
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return "—" }
-        defer { freeifaddrs(ifaddr) }
-        var ptr: UnsafeMutablePointer<ifaddrs>? = first
-        while let cur = ptr {
-            let flags = Int32(cur.pointee.ifa_flags)
-            let addr = cur.pointee.ifa_addr.pointee
-            if (flags & (IFF_UP | IFF_RUNNING)) == (IFF_UP | IFF_RUNNING),
-               (flags & IFF_LOOPBACK) == 0,
-               addr.sa_family == UInt8(AF_INET) {
-                var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                if getnameinfo(cur.pointee.ifa_addr,
-                               socklen_t(cur.pointee.ifa_addr.pointee.sa_len),
-                               &host, socklen_t(host.count),
-                               nil, 0, NI_NUMERICHOST) == 0 {
-                    address = String(cString: host)
-                    break
-                }
-            }
-            ptr = cur.pointee.ifa_next
-        }
-        return address ?? "—"
+        return LocalIP.primaryIPv4() ?? "—"
     }
 }

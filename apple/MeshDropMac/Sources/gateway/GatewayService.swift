@@ -73,34 +73,6 @@ final class GatewayService: ObservableObject {
     }
 
     private static func firstIPv4() -> String? {
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return nil }
-        defer { freeifaddrs(ifaddr) }
-        var ptr = first
-        var candidate: String?
-        while true {
-            let flags = Int32(ptr.pointee.ifa_flags)
-            let addr = ptr.pointee.ifa_addr.pointee
-            if (flags & (IFF_UP|IFF_RUNNING)) != 0 && (flags & IFF_LOOPBACK) == 0 {
-                if addr.sa_family == UInt8(AF_INET) {
-                    var hostBuf = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    let res = getnameinfo(
-                        ptr.pointee.ifa_addr,
-                        socklen_t(ptr.pointee.ifa_addr.pointee.sa_len),
-                        &hostBuf, socklen_t(hostBuf.count),
-                        nil, 0, NI_NUMERICHOST
-                    )
-                    if res == 0 {
-                        let host = String(cString: hostBuf)
-                        if !host.hasPrefix("127.") && !host.hasPrefix("169.254.") {
-                            candidate = host
-                        }
-                    }
-                }
-            }
-            guard let next = ptr.pointee.ifa_next else { break }
-            ptr = next
-        }
-        return candidate
+        LocalIP.primaryIPv4()
     }
 }
