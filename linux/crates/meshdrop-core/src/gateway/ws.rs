@@ -68,8 +68,11 @@ pub async fn accept(
     let mut po_rx = engine.pending_offers_rx();
     let (out_tx, mut out_rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
 
+    // 用 JoinSet 收纳事件转发 task：函数返回（客户端断开）时 JoinSet drop 会 abort 全部，
+    // 避免它们一直 park 在 changed().await 直到下次状态变更才退出（多次重连会累积泄漏）。
+    let mut forwarders = tokio::task::JoinSet::new();
     let out_tx_d = out_tx.clone();
-    tokio::spawn(async move {
+    forwarders.spawn(async move {
         while devices_rx.changed().await.is_ok() {
             let v = devices_rx.borrow().clone();
             let payload = json!({
@@ -81,7 +84,7 @@ pub async fn accept(
         }
     });
     let out_tx_h = out_tx.clone();
-    tokio::spawn(async move {
+    forwarders.spawn(async move {
         while history_rx.changed().await.is_ok() {
             let h = history_rx.borrow().clone();
             let payload = json!({
@@ -93,7 +96,7 @@ pub async fn accept(
         }
     });
     let out_tx_p = out_tx.clone();
-    tokio::spawn(async move {
+    forwarders.spawn(async move {
         while pp_rx.changed().await.is_ok() {
             let v = pp_rx.borrow().clone();
             for p in &v {
@@ -111,7 +114,7 @@ pub async fn accept(
         }
     });
     let out_tx_o = out_tx.clone();
-    tokio::spawn(async move {
+    forwarders.spawn(async move {
         while po_rx.changed().await.is_ok() {
             let v = po_rx.borrow().clone();
             for o in &v {
@@ -134,7 +137,7 @@ pub async fn accept(
     // 设成当前 head，避免重连重放旧条目；之后每次变更发出比 last_seen 新的条目。
     let out_tx_c = out_tx.clone();
     let mut clipboard_rx = engine.clipboard_rx();
-    tokio::spawn(async move {
+    forwarders.spawn(async move {
         let mut last_seen: Option<Uuid> = clipboard_rx.borrow().first().map(|e| e.id);
         while clipboard_rx.changed().await.is_ok() {
             let entries = clipboard_rx.borrow().clone();
