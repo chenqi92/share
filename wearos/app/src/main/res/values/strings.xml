@@ -1,4 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MeshDrop</string>
+
+    <!-- 通用 -->
+    <string name="common.accept">接收</string>
+    <string name="common.trust">信任</string>
+    <string name="common.offline">离线</string>
+
+    <!-- Nearby / 发现 -->
+    <string name="discovery.nearby">附近</string>
+    <string name="discovery.hint.offline">离线 · 手机不在身边</string>
+    <string name="discovery.hint.empty">附近没有 MeshDrop 设备</string>
+    <string name="discovery.hint.timeout">命令超时 · 检查手机</string>
+    <string name="discovery.hint.ready">转表冠选 · 按发</string>
+    <string name="discovery.offline.title">离线</string>
+    <string name="discovery.offline.tip">请在手机端打开 MeshDrop</string>
+
+    <!-- Pairing / 配对 -->
+    <string name="pairing.label">配对请求</string>
+    <string name="pairing.empty.title">暂无配对</string>
+    <string name="pairing.empty.sub">没有待处理的配对</string>
+    <string name="pairing.unknown_device">未知设备</string>
+    <string name="pairing.code">配对码 %1$s</string>
+
+    <!-- Receive / 接收 -->
+    <string name="receive.from">来自</string>
+    <string name="receive.empty.title">暂无待审</string>
+    <string name="receive.empty.back">返回附近</string>
+
+    <!-- QuickSend / 快捷消息 -->
+    <string name="quicksend.ok">收到</string>
+    <string name="quicksend.on_the_way">在路上</string>
+    <string name="quicksend.later">晚点说</string>
 </resources>

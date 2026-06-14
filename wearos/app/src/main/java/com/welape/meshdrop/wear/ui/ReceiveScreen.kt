@@ -22,9 +22,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.Text
+import com.welape.meshdrop.wear.R
 import com.welape.meshdrop.wear.bridge.Offer
 import com.welape.meshdrop.wear.bridge.WearEngineProxy
 import com.welape.meshdrop.wear.components.Avatar
@@ -100,7 +102,8 @@ private fun OfferCard(
             ) {
                 Box(modifier = Modifier.size(5.dp).background(MDColor.lime, CircleShape))
                 Text(
-                    text = "FROM",
+                    // 标签恒为大写呈现，文案由 i18n 提供
+                    text = stringResource(R.string.receive_from).uppercase(),
                     color = MDColor.lime,
                     style = MDType.mono(9f, FontWeight.Bold, tracking = 1.6f),
                 )
@@ -178,7 +181,7 @@ private fun OfferCard(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "接收 · ACCEPT", color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
+                Text(text = stringResource(R.string.common_accept), color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
             }
         }
     }
@@ -191,12 +194,13 @@ private fun OfflineHint() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            text = "OFFLINE",
+            // 标签恒为大写呈现，文案由 i18n 提供
+            text = stringResource(R.string.discovery_offline_title).uppercase(),
             color = MDColor.flame,
             style = MDType.mono(14f, FontWeight.Bold, tracking = 2.0f),
         )
         Text(
-            text = "请在手机端打开 MeshDrop",
+            text = stringResource(R.string.discovery_offline_tip),
             color = MDColor.muted,
             style = MDType.body(10f, FontWeight.Medium),
         )
@@ -211,12 +215,13 @@ private fun EmptyHint(onBack: () -> Unit) {
         modifier = Modifier.clickable { onBack() },
     ) {
         Text(
-            text = "暂无待审",
+            text = stringResource(R.string.receive_empty_title),
             color = MDColor.dpaper,
             style = MDType.display(16f, FontWeight.Bold),
         )
         Text(
-            text = "返回 NEARBY",
+            // 返回链接恒为大写呈现，文案由 i18n 提供
+            text = stringResource(R.string.receive_empty_back).uppercase(),
             color = MDColor.lime,
             style = MDType.mono(10f, FontWeight.Medium, tracking = 1.4f),
         )

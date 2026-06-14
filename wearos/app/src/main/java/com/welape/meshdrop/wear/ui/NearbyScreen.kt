@@ -28,10 +28,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.Text
+import com.welape.meshdrop.wear.R
 import com.welape.meshdrop.wear.bridge.WearEngineProxy
 import com.welape.meshdrop.wear.components.Avatar
 import com.welape.meshdrop.wear.components.MeshDropMark
@@ -145,7 +147,10 @@ internal fun NearbyContent(
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             ) {
                 Text(
-                    text = if (isOnline) "NEARBY" else "OFFLINE",
+                    // 中心状态标签恒为大写呈现，文案由 i18n 提供
+                    text = stringResource(
+                        if (isOnline) R.string.discovery_nearby else R.string.common_offline,
+                    ).uppercase(),
                     color = if (isOnline) MDColor.lime else MDColor.flame,
                     style = MDType.mono(10f, FontWeight.Bold, tracking = 2.0f),
                 )
@@ -183,12 +188,12 @@ internal fun NearbyContent(
             }
         }
 
-        // 底部 hint
+        // 底部 hint —— lastError 比较的是协议内部错误码（非展示串），仅文案走 i18n
         val hint = when {
-            !isOnline -> "OFFLINE · phone 不在身边"
-            uiDevices.isEmpty() -> "附近没有 MeshDrop 设备"
-            lastError == "timeout" -> "命令超时 · 检查 phone"
-            else -> "转表冠选 · 按发"
+            !isOnline -> stringResource(R.string.discovery_hint_offline)
+            uiDevices.isEmpty() -> stringResource(R.string.discovery_hint_empty)
+            lastError == "timeout" -> stringResource(R.string.discovery_hint_timeout)
+            else -> stringResource(R.string.discovery_hint_ready)
         }
         Text(
             text = hint,

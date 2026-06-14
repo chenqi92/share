@@ -22,9 +22,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.Text
+import com.welape.meshdrop.wear.R
 import com.welape.meshdrop.wear.bridge.Pairing
 import com.welape.meshdrop.wear.bridge.WearEngineProxy
 import com.welape.meshdrop.wear.components.Avatar
@@ -54,8 +56,17 @@ fun PairingScreen(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            !isOnline -> CenterHint(title = "OFFLINE", titleColor = MDColor.flame, sub = "请在手机端打开 MeshDrop")
-            pairing == null -> CenterHint(title = "暂无配对", titleColor = MDColor.dpaper, sub = "NO PENDING PAIRING", onTap = onResolved)
+            !isOnline -> CenterHint(
+                title = stringResource(R.string.discovery_offline_title).uppercase(),
+                titleColor = MDColor.flame,
+                sub = stringResource(R.string.discovery_offline_tip),
+            )
+            pairing == null -> CenterHint(
+                title = stringResource(R.string.pairing_empty_title),
+                titleColor = MDColor.dpaper,
+                sub = stringResource(R.string.pairing_empty_sub).uppercase(),
+                onTap = onResolved,
+            )
             else -> PairingCard(
                 pairing = pairing,
                 onAccept = {
@@ -95,7 +106,8 @@ private fun PairingCard(
         ) {
             Box(modifier = Modifier.size(5.dp).background(MDColor.sky, CircleShape))
             Text(
-                text = "配对请求 · PAIRING",
+                // 顶部标签恒为大写呈现，文案由 i18n 提供
+                text = stringResource(R.string.pairing_label).uppercase(),
                 color = MDColor.sky,
                 style = MDType.mono(9f, FontWeight.Bold, tracking = 1.2f),
             )
@@ -115,12 +127,15 @@ private fun PairingCard(
             )
             Column {
                 Text(
-                    text = pairing.peerName.ifBlank { "未知设备" },
+                    text = pairing.peerName.ifBlank { stringResource(R.string.pairing_unknown_device) },
                     color = MDColor.dpaper,
                     style = MDType.display(13f, FontWeight.Bold),
                 )
                 Text(
-                    text = if (pairing.code.isNotBlank()) "CODE ${pairing.code}" else "TOFU",
+                    // TOFU 为协议常量（首次信任模型），不翻译；有配对码时展示本地化标签
+                    text = if (pairing.code.isNotBlank())
+                        stringResource(R.string.pairing_code, pairing.code).uppercase()
+                    else "TOFU",
                     color = MDColor.dim,
                     style = MDType.mono(8f, FontWeight.Medium, tracking = 1.0f),
                 )
@@ -161,7 +176,7 @@ private fun PairingCard(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "信任 · TRUST", color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
+                Text(text = stringResource(R.string.common_trust), color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
             }
         }
     }

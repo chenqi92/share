@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MeshDrop</string>
+
+    <!-- Common -->
+    <string name="common.accept">Accept</string>
+    <string name="common.trust">Trust</string>
+    <string name="common.offline">Offline</string>
+
+    <!-- Nearby / Discovery -->
+    <string name="discovery.nearby">Nearby</string>
+    <string name="discovery.hint.offline">Offline · phone out of reach</string>
+    <string name="discovery.hint.empty">No MeshDrop devices nearby</string>
+    <string name="discovery.hint.timeout">Command timed out · check phone</string>
+    <string name="discovery.hint.ready">Turn crown to pick · tap to send</string>
+    <string name="discovery.offline.title">Offline</string>
+    <string name="discovery.offline.tip">Open MeshDrop on your phone</string>
+
+    <!-- Pairing -->
+    <string name="pairing.label">Pairing request</string>
+    <string name="pairing.empty.title">No pairing</string>
+    <string name="pairing.empty.sub">No pending pairing</string>
+    <string name="pairing.unknown_device">Unknown device</string>
+    <string name="pairing.code">Code %1$s</string>
+
+    <!-- Receive -->
+    <string name="receive.from">From</string>
+    <string name="receive.empty.title">Nothing pending</string>
+    <string name="receive.empty.back">Back to Nearby</string>
+
+    <!-- QuickSend -->
+    <string name="quicksend.ok">Got it</string>
+    <string name="quicksend.on_the_way">On my way</string>
+    <string name="quicksend.later">Talk later</string>
+</resources>
