@@ -11,6 +11,7 @@ export function ReceivePage() {
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
   const live = useEngine((s) => s.pendingOffer)
   const acceptOffer = useEngine((s) => s.acceptOffer)
   const rejectOffer = useEngine((s) => s.rejectOffer)
@@ -31,7 +32,7 @@ export function ReceivePage() {
         }}>
           没有待审项 · NO PENDING OFFER
         </div>
-        <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+        <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
       </div>
     )
   }
@@ -42,7 +43,7 @@ export function ReceivePage() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(8,6,4,0.92)',
+        background: 'var(--ink)',
       }}
     >
       {/* faint ghost backdrop strip */}
@@ -85,10 +86,7 @@ export function ReceivePage() {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '32px 24px',
-          background:
-            'radial-gradient(120% 80% at 50% 0%, rgba(221,249,75,0.10), transparent 60%), rgba(8,6,4,0.85)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
+          background: 'var(--ink)',
         }}
       >
         <div
@@ -98,7 +96,6 @@ export function ReceivePage() {
             borderRadius: 20,
             border: '2px solid var(--lime)',
             padding: '24px 26px 22px',
-            boxShadow: '0 30px 80px -16px rgba(0,0,0,0.6), 0 0 0 6px rgba(221,249,75,0.10)',
             color: 'var(--text)',
           }}
         >
@@ -114,7 +111,7 @@ export function ReceivePage() {
             }}
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime-deep)' }} />
-            INCOMING · 嘉伟想发给你
+            INCOMING · {offer.peer} 想发给你
             <span style={{ color: 'var(--text-faint)', marginLeft: 'auto' }}>{offer.receivedAt}</span>
           </div>
 
@@ -140,7 +137,7 @@ export function ReceivePage() {
                 }}
               >
                 <KindGlyph kind={peer.kind} size={9} />
-                {peer.os} · {peer.rtt} ms · 已配对 · ● 已验证
+                {peer.os} · {peer.rtt} ms · 已配对
               </div>
             </div>
           </div>
@@ -158,7 +155,7 @@ export function ReceivePage() {
               ext={offer.ext ?? 'file'}
               name={offer.fileName}
               size={offer.fileSize}
-              meta={`${offer.pages ?? '—'} 页 · 端到端加密`}
+              meta={`${offer.pages ?? '—'} 页 · LAN · 明文 v0.1`}
             />
           </div>
 
@@ -185,7 +182,7 @@ export function ReceivePage() {
                   marginBottom: 4,
                 }}
               >
-                🏷 文字便签 · NOTE
+                ¶ 文字便签 · NOTE
               </div>
               "{offer.note}"
             </div>
@@ -196,10 +193,10 @@ export function ReceivePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: 14 }}>
-            <Chip tone="lime" mono>● E2E ENCRYPTED</Chip>
+            <Chip tone="outline" mono>● LAN · 明文 v0.1</Chip>
             <Chip tone="outline" mono>SHA-256 校验</Chip>
             <Chip tone="outline" mono>LAN ONLY</Chip>
-            <Chip tone="outline" mono>3.4 MB · 预计 0.4s</Chip>
+            <Chip tone="outline" mono>{offer.fileSize}</Chip>
           </div>
 
           <div className="flex gap-3" style={{ marginTop: 18 }}>
@@ -216,7 +213,7 @@ export function ReceivePage() {
                 fontSize: 13.5,
               }}
             >
-              ✕ 不接收
+              × 不接收
             </button>
             <button
               onClick={() => { void acceptOffer() }}
@@ -230,13 +227,13 @@ export function ReceivePage() {
                 fontSize: 13.5,
               }}
             >
-              ✓ 接收并打开
+              接收并打开 →
             </button>
           </div>
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

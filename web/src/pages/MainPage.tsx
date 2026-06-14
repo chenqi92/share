@@ -8,6 +8,7 @@ import { AsciiDivider } from '../components/AsciiDivider'
 import { FileCard } from '../components/FileCard'
 import { Modal } from '../components/Modal'
 import { useEngine } from '../hooks/useEngine'
+import { formatBytes } from '../lib/format'
 
 export function MainPage() {
   const devices = useEngine((s) => s.devices)
@@ -29,6 +30,13 @@ export function MainPage() {
   const selected = devices.find((d) => d.id === selectedPeerId)
   const peerCount = devices.filter((d) => d.online).length
   const session = transfers.filter((t) => t.state === 'sending' || t.state === 'queued').slice(0, 3)
+
+  // 会话总量实算：求和 session 行的原始 totalBytes（host 上报时才有）；
+  // 没有任何字节信息时只显示件数，不再写死 62.8 MB。
+  const sessionBytes = session.reduce((sum, t) => sum + (t.totalBytes ?? 0), 0)
+  const sessionLabel = sessionBytes > 0
+    ? `${session.length} 件 · ${formatBytes(sessionBytes)}`
+    : `${session.length} 件`
 
   const fireToast = (msg: string) => {
     setToast(msg)
@@ -234,7 +242,7 @@ export function MainPage() {
               <div className="font-display" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}>
                 本次会话 · SESSION
               </div>
-              <Chip tone="outline" mono>{session.length} 件 · 62.8 MB</Chip>
+              <Chip tone="outline" mono>{sessionLabel}</Chip>
             </div>
             <div
               style={{
@@ -281,6 +289,7 @@ export function MainPage() {
       <StatusBar
         peerCount={peerCount}
         hostIp={me.hostIp}
+        connected={mode === 'live' ? conn === 'open' : true}
         modeLabel={mode === 'live' ? `LIVE · ${conn.toUpperCase()}` : 'OFFLINE PREVIEW'}
       />
 

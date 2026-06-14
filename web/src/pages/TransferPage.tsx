@@ -19,6 +19,7 @@ export function TransferPage() {
   const me = useEngine((s) => s.me)
   const transfers = useEngine((s) => s.transfers)
   const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
   const cancelTransfer = useEngine((s) => s.cancelTransfer)
   const retryTransfer = useEngine((s) => s.retryTransfer)
   const uploadBars = useEngine((s) => s.uploadBars)
@@ -144,7 +145,7 @@ export function TransferPage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

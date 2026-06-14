@@ -16,7 +16,7 @@ import type { ClipboardItem, DeviceKind, HistoryEntry, MeIdentity, MeshDevice, P
 export interface WireDevice {
   id: string
   displayName: string
-  kind: DeviceKind | 'tv' | 'vision' | 'watch' | 'wear' | 'ipad'
+  kind: DeviceKind
   model?: string
   ip?: string
   rttMs?: number
@@ -133,7 +133,7 @@ function initialsFor(name: string): string {
 }
 
 function adaptKind(k: WireDevice['kind']): DeviceKind {
-  if (k === 'tv' || k === 'vision' || k === 'watch' || k === 'wear') return 'mac'
+  // tv / vision / watch / wear 现已有独立 glyph，直接透传，不再坍缩成 mac。
   return k as DeviceKind
 }
 
@@ -371,10 +371,11 @@ export class GatewayClient {
     return !!this.session
   }
 
-  /** 已接收文件的下载 URL（GET /api/v1/download/<historyId>，server 带
-   *  Content-Disposition: attachment）。带 ?token= 兼容无 cookie 场景。 */
-  downloadURL(historyId: string): string {
-    const base = `${this.gateway}/api/v1/download/${encodeURIComponent(historyId)}`
+  /** 已接收文件的下载 URL（GET /api/v1/download/<offerId>，协议见 engine 顶部注释；
+   *  server 带 Content-Disposition: attachment）。带 ?token= 兼容无 cookie 场景。
+   *  注意：传入的是 history item id —— 协议约定它与对应 offerId 等值，server 端按此路由。 */
+  downloadURL(offerId: string): string {
+    const base = `${this.gateway}/api/v1/download/${encodeURIComponent(offerId)}`
     return this.session ? `${base}?token=${encodeURIComponent(this.session)}` : base
   }
 

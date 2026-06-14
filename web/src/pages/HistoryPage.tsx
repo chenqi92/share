@@ -177,6 +177,7 @@ export function HistoryPage() {
   const me = useEngine((s) => s.me)
   const liveHistory = useEngine((s) => s.history)
   const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
   const downloadURL = useEngine((s) => s.downloadURL)
   const peerCount = devices.filter((d) => d.online).length
   const history = mode === 'live' ? liveHistory : MESHDROP_HISTORY_BY_DAY
@@ -186,6 +187,13 @@ export function HistoryPage() {
     if (item.dir !== 'incoming' || item.status !== 'done' || item.kind !== 'file') return undefined
     return downloadURL(item.id)
   }
+
+  // 顶部统计实算：从当前 mode 的全部历史项汇总，避免与列表自相矛盾。
+  const allItems = history.flatMap((d) => d.items)
+  const total = allItems.length
+  const incoming = allItems.filter((i) => i.dir === 'incoming').length
+  const outgoing = allItems.filter((i) => i.dir === 'outgoing').length
+  const failed = allItems.filter((i) => i.status === 'failed').length
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -215,7 +223,7 @@ export function HistoryPage() {
               历史 · HISTORY
             </div>
             <h1 className="font-display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}>
-              这台浏览器上发生过的 13 件事
+              这台浏览器上发生过的 {total} 件事
             </h1>
             <p style={{ marginTop: 8, color: 'var(--text-mute)', fontSize: 13.5, maxWidth: 600 }}>
               访客身份下，历史只保留在内存里 — 关掉浏览器即清空。永久记录请在 native 端开启。
@@ -223,8 +231,8 @@ export function HistoryPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Chip tone="ink" mono>● 仅本会话</Chip>
-            <Chip tone="outline" mono>4 收 / 9 发</Chip>
-            <Chip tone="outline" mono>2 失败</Chip>
+            <Chip tone="outline" mono>{incoming} 收 / {outgoing} 发</Chip>
+            <Chip tone="outline" mono>{failed} 失败</Chip>
           </div>
         </header>
 
@@ -254,7 +262,7 @@ export function HistoryPage() {
         ))}
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

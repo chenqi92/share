@@ -99,6 +99,8 @@ export function ClipboardPage() {
   const inbox = useEngine((s) => s.clipboardInbox)
   const selectedPeerId = useEngine((s) => s.selectedPeerId)
   const pushClipboard = useEngine((s) => s.pushClipboard)
+  const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
   const peerCount = devices.filter((d) => d.online).length
 
   const online = devices.filter((d) => d.online)
@@ -300,7 +302,7 @@ export function ClipboardPage() {
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

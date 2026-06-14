@@ -1,6 +1,6 @@
 /* COMMON §9 — mock data ported to TS, drives all pages. */
 
-export type DeviceKind = 'mac' | 'ios' | 'ipad' | 'android' | 'win' | 'linux' | 'web'
+export type DeviceKind = 'mac' | 'ios' | 'ipad' | 'android' | 'win' | 'linux' | 'web' | 'tv' | 'vision' | 'watch' | 'wear'
 
 export interface MeshDevice {
   id: string
@@ -61,7 +61,7 @@ export const MESHDROP_PENDING_PAIRING: PendingPairing = {
   id: 'pp-1',
   peer: '李莉',
   deviceName: "Lily's MacBook",
-  fingerprint: 'ZX8K · L72M · 9FQ3 · 7HD2 · M1P6 · QA8N · KZ9R · X3WF',
+  fingerprint: 'A3F1 · 9C2D · 7B40 · E58A · 1D6C · F092 · 4AB3 · C7E5',
   receivedAt: '8s ago',
 }
 
@@ -151,7 +151,8 @@ export interface MeIdentity {
 
 export const MESHDROP_ME: MeIdentity = {
   name: '访客 · Visitor',
-  fingerprint: 'ZX8K · L72M · 9FQ3 · 7HD2',
+  // 指纹 = SHA-256(Ed25519 公钥) 前 16 字节 → 32 位小写 hex（展示按 4 字符分组大写）。
+  fingerprint: 'A3F1 · 9C2D · 7B40 · E58A · 1D6C · F092 · 4AB3 · C7E5',
   ip: '192.168.1.207',
   hostIp: '192.168.1.42',
   os: 'Chromium 121 · macOS',

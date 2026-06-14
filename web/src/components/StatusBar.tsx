@@ -40,7 +40,7 @@ export function StatusBar({ peerCount, connected = true, guestMode = true, hostI
         {connected ? 'CONNECTED' : 'OFFLINE'}
       </span>
       <span style={{ opacity: 0.4 }}>·</span>
-      <span>WebRTC + WebCrypto</span>
+      <span>GATEWAY · WSS</span>
       <span style={{ opacity: 0.4 }}>·</span>
       <span>{peerCount} peers</span>
       <span style={{ opacity: 0.4 }}>·</span>

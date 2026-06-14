@@ -12,6 +12,12 @@
 export interface AppSettings {
   autoAccept: boolean
   notifications: boolean
+  /** 以下为「仅本端偏好」：浏览器无法直接改 native 端的雷达/可见性/落盘路径，
+   *  这里只跨刷新记住选择，真正的可见性/接入控制需在 native 端配置。 */
+  showInRadar: boolean
+  scope: string
+  defaultPath: string
+  keepHistory: boolean
 }
 
 const KEY = 'meshdrop.settings'
@@ -19,6 +25,10 @@ const KEY = 'meshdrop.settings'
 const DEFAULTS: AppSettings = {
   autoAccept: false,
   notifications: true,
+  showInRadar: true,
+  scope: 'LAN 内全部',
+  defaultPath: '浏览器下载',
+  keepHistory: false,
 }
 
 export function loadSettings(): AppSettings {

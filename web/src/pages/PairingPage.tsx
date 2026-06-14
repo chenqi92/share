@@ -387,15 +387,15 @@ export function PairingPage() {
                 lineHeight: 1.7,
               }}
             >
-              ZX8K · L72M · 9FQ3 · 7HD2
+              A3F1 · 9C2D · 7B40 · E58A
               <br />
-              M1P6 · QA8N · KZ9R · X3WF
+              1D6C · F092 · 4AB3 · C7E5
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
               <Chip tone="outline" mono>对方应看到同样 8 组</Chip>
-              <Chip tone="outline" mono>X25519 PUBLIC KEY</Chip>
-              <Chip tone="outline" mono>HMAC-SHA-256</Chip>
+              <Chip tone="outline" mono>ED25519 PUBLIC KEY</Chip>
+              <Chip tone="outline" mono>SHA-256 FINGERPRINT</Chip>
             </div>
           </section>
 
@@ -477,7 +477,7 @@ export function PairingPage() {
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

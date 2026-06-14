@@ -345,10 +345,8 @@ export function useEngineConnection() {
       },
     })
     c.connect()
-    // 首次连接时请求通知授权（用户可拒绝；拒绝后 notifyIncoming 自动静默）。
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().catch(() => { /* ignore */ })
-    }
+    // 通知授权不在此自动请求：现代浏览器对非用户手势触发的权限请求体验差、易被拒。
+    // 改为用户在设置页打开「收到时弹通知」开关时再请求（见 SettingsPage）。
     // 每秒采样吞吐，喂给传输页速度柱状图。
     const tpTimer = window.setInterval(() => useEngine.getState().sampleThroughput(), 1000)
     return () => { unsub(); window.clearInterval(tpTimer) }

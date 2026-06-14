@@ -129,10 +129,6 @@ export function SettingsPage() {
       saveSettings(next)
       return next
     })
-  const [showInRadar, setShowInRadar] = useState(true)
-  const [keepHistory, setKeepHistory] = useState(false)
-  const [defaultPath, setDefaultPath] = useState('浏览器下载')
-  const [scope, setScope] = useState('LAN 内全部')
   const [confirmingForget, setConfirmingForget] = useState(false)
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
@@ -200,16 +196,16 @@ export function SettingsPage() {
           <AsciiDivider label="—— 可见性 · VISIBILITY ——" />
           <ToggleRow
             label="在他人雷达里露脸"
-            hint="关闭后你的设备不出现在 mDNS 广播里，但可以主动连他人。"
-            value={showInRadar}
-            onChange={setShowInRadar}
+            hint="仅本端偏好 · 实际 mDNS 广播由 native 端控制。关闭只在本浏览器记住选择。"
+            value={settings.showInRadar}
+            onChange={(v) => updateSettings({ showInRadar: v })}
           />
           <SelectRow
             label="可被谁连接"
-            hint="决定谁能向你发送文件 / 文字便签。"
-            value={scope}
+            hint="仅本端偏好 · 真正的接入控制需在 native 端设置；这里只跨刷新记住。"
+            value={settings.scope}
             options={['LAN 内全部', '已配对设备', '邀请链接']}
-            onChange={setScope}
+            onChange={(v) => updateSettings({ scope: v })}
           />
           <ToggleRow
             label="访客身份记住浏览器"
@@ -220,7 +216,7 @@ export function SettingsPage() {
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <AsciiDivider label="—— 安全 · ENCRYPTION ——" />
+          <AsciiDivider label="—— 安全 · SECURITY ——" />
           <div
             style={{
               background: 'var(--surface)',
@@ -234,10 +230,10 @@ export function SettingsPage() {
             }}
           >
             <Chip tone={mode === 'live' ? 'lime' : 'outline'} mono>
-              {mode === 'live' ? '● NATIVE E2E VIA GATEWAY' : '● MOCK SESSION'}
+              {mode === 'live' ? '● LAN · 明文 v0.1' : '● MOCK SESSION'}
             </Chip>
-            <Chip tone="outline" mono>SHA-256 校验</Chip>
-            <Chip tone="outline" mono>HTTPS / WSS SESSION</Chip>
+            <Chip tone="outline" mono>SHA-256 指纹校验</Chip>
+            <Chip tone="outline" mono>GATEWAY · WSS</Chip>
             <span
               style={{
                 marginLeft: 'auto',
@@ -260,7 +256,14 @@ export function SettingsPage() {
             label="收到文件 / 剪贴板时弹通知"
             hint="需要浏览器通知权限；关闭后即使有权限也不弹。"
             value={settings.notifications}
-            onChange={(v) => updateSettings({ notifications: v })}
+            onChange={(v) => {
+              updateSettings({ notifications: v })
+              // 用户主动打开时才请求授权（用户手势触发，符合浏览器最佳实践）。
+              if (v && typeof window !== 'undefined' && 'Notification' in window
+                  && Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => { /* 用户拒绝则 notifyIncoming 静默 */ })
+              }
+            }}
           />
         </section>
 
@@ -364,16 +367,16 @@ export function SettingsPage() {
           <AsciiDivider label="—— 接收行为 · RECEIVE BEHAVIOR ——" />
           <SelectRow
             label="默认保存到"
-            hint="浏览器只能写到下载文件夹；要其他路径请走 native。"
-            value={defaultPath}
+            hint="仅本端偏好 · 浏览器只能写到下载文件夹；要其他路径请走 native。"
+            value={settings.defaultPath}
             options={['浏览器下载', '当前域名 sandbox', '弹窗每次询问']}
-            onChange={setDefaultPath}
+            onChange={(v) => updateSettings({ defaultPath: v })}
           />
           <ToggleRow
             label="本会话历史保留到关页"
-            hint="打开后历史在内存里多保留一阵，便于你查刚才发过什么。永远不会写盘。"
-            value={keepHistory}
-            onChange={setKeepHistory}
+            hint="仅本端偏好 · 历史只在内存里，永远不会写盘；关页即清空。"
+            value={settings.keepHistory}
+            onChange={(v) => updateSettings({ keepHistory: v })}
           />
         </section>
 
@@ -395,12 +398,12 @@ export function SettingsPage() {
             meshdrop-web · v0.1.0-ui<br />
             host · {me.hostIp}<br />
             session · {mode === 'live' ? conn.toUpperCase() : '—'}<br />
-            engine · Native Web Gateway + LAN E2E transport · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
+            engine · Native Web Gateway · LAN 明文 v0.1 · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
           </div>
         </section>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

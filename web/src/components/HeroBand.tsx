@@ -61,7 +61,7 @@ export function HeroBand({ peerCount }: Props) {
         }}
       >
         Linux / Chromebook / 临时同事的笔记本 —— 任何浏览器进 <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }}>192.168.1.42</span>,
-        直接收发文件。会话密钥用 <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }}>WebCrypto · X25519</span>,
+        直接收发文件。身份用 <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }}>Ed25519 · SHA-256</span> 指纹核对,
         关页就销毁。
       </p>
 
@@ -78,7 +78,7 @@ export function HeroBand({ peerCount }: Props) {
         }}
       >
         <span>⤓ DRAG-TO-SEND</span>
-        <span>● E2E ENCRYPTED</span>
+        <span>● LAN · 明文 v0.1</span>
         <span>● LAN ONLY · 零云</span>
         <span>● PASTE-TO-SHARE</span>
       </div>

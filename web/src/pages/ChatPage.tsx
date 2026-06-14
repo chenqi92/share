@@ -16,6 +16,7 @@ export function ChatPage() {
   const selectPeer = useEngine((s) => s.selectPeer)
   const sendText = useEngine((s) => s.sendText)
   const mode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
 
   const devices = mode === 'live' ? liveDevices : MESHDROP_DEVICES
   const days = mode === 'live' ? liveHistory : MESHDROP_HISTORY_BY_DAY
@@ -167,8 +168,8 @@ export function ChatPage() {
                         borderRadius: 14,
                         borderBottomRightRadius: mine ? 4 : 14,
                         borderBottomLeftRadius: mine ? 14 : 4,
-                        background: mine ? 'var(--ink)' : 'var(--surface)',
-                        color: mine ? 'var(--paper)' : 'var(--text)',
+                        background: mine ? 'var(--outgoing-bg)' : 'var(--surface)',
+                        color: mine ? 'var(--outgoing-text)' : 'var(--text)',
                         border: mine ? 'none' : '1px solid var(--border)',
                         fontSize: 13.5,
                         lineHeight: 1.5,
@@ -228,7 +229,7 @@ export function ChatPage() {
         </div>
       </div>
 
-      <StatusBar peerCount={peerCount} hostIp={me.hostIp} />
+      <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
     </div>
   )
 }

@@ -54,6 +54,37 @@ export function KindGlyph({ kind, size = 11 }: Props) {
           <line x1="2" y1="5" x2="8" y2="5" stroke={stroke} strokeWidth={sw} />
         </svg>
       )
+    case 'tv':
+      return (
+        <svg width={s * 1.4} height={s} viewBox="0 0 14 10" fill="none" aria-hidden>
+          <rect x="0.7" y="0.7" width="12.6" height="7" rx="0.8" stroke={stroke} strokeWidth={sw} />
+          <line x1="4.5" y1="9.3" x2="9.5" y2="9.3" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+        </svg>
+      )
+    case 'vision':
+      return (
+        <svg width={s * 1.4} height={s} viewBox="0 0 14 10" fill="none" aria-hidden>
+          <path d="M1 5 Q1 2.4 4 2.4 L10 2.4 Q13 2.4 13 5 Q13 7.6 10 7.6 Q7 7.6 7 6 Q7 7.6 4 7.6 Q1 7.6 1 5 Z" stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+        </svg>
+      )
+    case 'watch':
+      return (
+        <svg width={s * 0.9} height={s * 1.3} viewBox="0 0 9 13" fill="none" aria-hidden>
+          <rect x="1.4" y="3" width="6.2" height="7" rx="1.6" stroke={stroke} strokeWidth={sw} />
+          <line x1="3" y1="3" x2="3.6" y2="1" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <line x1="6" y1="3" x2="5.4" y2="1" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <line x1="3" y1="10" x2="3.6" y2="12" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <line x1="6" y1="10" x2="5.4" y2="12" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+        </svg>
+      )
+    case 'wear':
+      return (
+        <svg width={s} height={s} viewBox="0 0 10 10" fill="none" aria-hidden>
+          <circle cx="5" cy="5" r="3.4" stroke={stroke} strokeWidth={sw} />
+          <line x1="5" y1="5" x2="5" y2="3.2" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <line x1="5" y1="5" x2="6.4" y2="5.6" stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+        </svg>
+      )
     case 'web':
     default:
       return (
