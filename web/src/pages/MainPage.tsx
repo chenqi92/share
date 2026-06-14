@@ -167,7 +167,9 @@ export function MainPage() {
                 marginTop: 8,
                 padding: '12px 12px',
                 borderRadius: 12,
-                background: 'var(--bg2)',
+                // 去掉 var(--bg2) 次级灰底——它在白卡(var(--surface))里发灰、显脏；
+                // 改为透明底 + 描边分隔，与外层卡片协调（暗色下同样不抢眼）。
+                background: 'transparent',
                 border: '1px solid var(--border)',
               }}
             >

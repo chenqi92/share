@@ -92,10 +92,14 @@ export function ChatPage() {
                   padding: '8px 10px',
                   borderRadius: 10,
                   border: '1px solid',
-                  borderColor: active ? 'var(--ink)' : 'transparent',
-                  background: active ? 'var(--surface)' : 'transparent',
+                  // 统一选中态：lime-fill 背景 + 1px lime 描边（与 PeerRow 一致）。
+                  // 旧的 surface(=dink2) 实底在暗色下和未选中行几乎同色，无法分辨；
+                  // lime 半透明填充在 light/dark 两套 token 下都有足够对比。
+                  borderColor: active ? 'var(--lime)' : 'transparent',
+                  background: active ? 'var(--lime-fill)' : 'transparent',
                   textAlign: 'left',
                   cursor: 'pointer',
+                  transition: 'background 160ms ease, border-color 160ms ease',
                 }}
               >
                 <span
@@ -116,7 +120,8 @@ export function ChatPage() {
                   {d.initials}
                 </span>
                 <span style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {/* 选中=主文字色+700，未选中=次文字色+600，进一步拉开两态差异 */}
+                  <div style={{ fontSize: 13, fontWeight: active ? 700 : 600, color: active ? 'var(--text)' : 'var(--text-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {d.who}
                   </div>
                   <div style={{ fontFamily: '"Geist Mono", monospace', fontSize: 9.5, color: d.online ? 'var(--lime-deep, #8AB400)' : 'var(--text-faint)' }}>

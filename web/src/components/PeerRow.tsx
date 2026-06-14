@@ -13,7 +13,9 @@ interface Props {
 }
 
 export function PeerRow({ device, selected, dragOver, onSelect, onDrop, onDragOver }: Props) {
-  const accent = dragOver ? 'var(--lime)' : selected ? 'var(--lime)' : 'transparent'
+  // 拖拽悬停优先于选中态展示，且两态要可区分：
+  //   selected   → lime-fill 实底 + 1px lime 实线描边（统一选中态基准）
+  //   dragOver   → 更强 lime 高亮 + 2px lime 虚线描边（“放手即发”的临时态）
   return (
     <button
       onClick={onSelect}
@@ -38,8 +40,18 @@ export function PeerRow({ device, selected, dragOver, onSelect, onDrop, onDragOv
         width: '100%',
         padding: '8px 10px',
         borderRadius: 12,
-        background: dragOver ? 'var(--lime-fill)' : selected ? 'var(--lime-fill)' : 'transparent',
-        border: `1px solid ${accent === 'transparent' ? 'transparent' : accent}`,
+        // dragOver 用更高不透明度的 lime 实底拉开与 selected 的差异
+        background: dragOver
+          ? 'rgba(221, 249, 75, 0.5)'
+          : selected
+            ? 'var(--lime-fill)'
+            : 'transparent',
+        // dragOver=2px lime 虚线；selected=1px lime 实线；其余无描边
+        border: dragOver
+          ? '2px dashed var(--lime)'
+          : selected
+            ? '1px solid var(--lime)'
+            : '1px solid transparent',
         textAlign: 'left',
         transition: 'background 160ms ease, border-color 160ms ease',
         cursor: 'pointer',
