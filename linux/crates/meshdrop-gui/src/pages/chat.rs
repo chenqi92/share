@@ -19,7 +19,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let head_holder = gtk::Box::new(gtk::Orientation::Vertical, 0);
     root.append(&head_holder);
 
-    let div = ascii_divider::build("── CONVERSATION · 0 条 ──");
+    let div = ascii_divider::build(&t!("chat.conversation_divider", count = 0));
     div.root.set_margin_start(20);
     div.root.set_margin_end(20);
     root.append(&div.root);
@@ -40,16 +40,16 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let composer = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     composer.add_css_class("meshdrop-composer");
     let entry = gtk::Entry::builder()
-        .placeholder_text("写一条消息… · Enter 发送")
+        .placeholder_text(t!("chat.composer_placeholder").as_ref())
         .hexpand(true)
         .build();
     composer.append(&entry);
     // mono glyph 代替 emoji：⊕ 附件、▤ 粘贴剪贴板（与导航 / TUI glyph 体系一致）。
-    let attach_btn = icon_btn::icon_btn("⊕", "附件 · 选文件发送", icon_btn::IconBtnTone::Default);
-    let paste_btn = icon_btn::icon_btn("▤", "粘贴剪贴板到输入框", icon_btn::IconBtnTone::Default);
+    let attach_btn = icon_btn::icon_btn("⊕", &t!("chat.attach_tip"), icon_btn::IconBtnTone::Default);
+    let paste_btn = icon_btn::icon_btn("▤", &t!("chat.paste_tip"), icon_btn::IconBtnTone::Default);
     composer.append(&attach_btn);
     composer.append(&paste_btn);
-    let send_btn = icon_btn::icon_btn("发送", "发送（Enter）", icon_btn::IconBtnTone::Accent);
+    let send_btn = icon_btn::icon_btn(&t!("common.send"), &t!("chat.send_tip"), icon_btn::IconBtnTone::Accent);
     composer.append(&send_btn);
     root.append(&composer);
 
@@ -59,8 +59,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         Some(h) => {
             render_real_header(&head_holder, h, &target_peer);
             render_real_messages(&flow, h, &target_peer);
-            div.set_text(&format!("── CONVERSATION · {} 条 ──",
-                count_for_peer(h, &target_peer.borrow())));
+            div.set_text(&t!("chat.conversation_divider",
+                count = count_for_peer(h, &target_peer.borrow())));
 
             // 订阅 device 变化：当目标 peer 离线 / 新增时刷新 header
             let head_c = head_holder.clone();
@@ -77,8 +77,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             let div_c = div.label.clone();
             h.observe(h.engine.history_rx(), move |_| {
                 render_real_messages(&flow_c, &h_c2, &target_c2);
-                div_c.set_text(&format!("── CONVERSATION · {} 条 ──",
-                    count_for_peer(&h_c2, &target_c2.borrow())));
+                div_c.set_text(&t!("chat.conversation_divider",
+                    count = count_for_peer(&h_c2, &target_c2.borrow())));
             });
 
             // composer 回调
@@ -110,7 +110,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
                     return;
                 };
                 let parent = btn.root().and_then(|r| r.downcast::<gtk::Window>().ok());
-                let dialog = gtk::FileDialog::builder().title("选择要发送的文件").build();
+                let dialog = gtk::FileDialog::builder().title(t!("chat.pick_file_title").as_ref()).build();
                 let h_pick = h_attach.clone();
                 dialog.open(parent.as_ref(), gtk::gio::Cancellable::NONE, move |res| {
                     if let Ok(file) = res {
@@ -165,15 +165,15 @@ fn render_real_header(holder: &gtk::Box, h: &Rc<AppHandle>, target: &Rc<RefCell<
             nm.set_halign(gtk::Align::Start);
             col.append(&nm);
             let ip = d.host.clone().unwrap_or_default();
-            let meta = gtk::Label::new(Some(&format!("Linux · {} · 指纹 {}", ip,
-                crate::view::short_fingerprint(&d.fingerprint))));
+            let meta = gtk::Label::new(Some(&*t!("chat.header_meta", ip = ip,
+                fp = crate::view::short_fingerprint(&d.fingerprint))));
             meta.add_css_class("meshdrop-meta");
             col.append(&meta);
             head.append(&col);
-            head.append(&chip::chip_with_dot("LAN · 明文", chip::Tone::Mute, crate::color::LIME_DEEP));
+            head.append(&chip::chip_with_dot(&t!("chat.peer_chip"), chip::Tone::Mute, crate::color::LIME_DEEP));
         }
         None => {
-            let lb = gtk::Label::new(Some("没有可对话的设备"));
+            let lb = gtk::Label::new(Some(&*t!("chat.no_peer")));
             lb.add_css_class("meshdrop-section");
             lb.set_halign(gtk::Align::Start);
             head.append(&lb);
@@ -243,16 +243,16 @@ fn render_mock(head: &gtk::Box, flow: &gtk::Box, div_label: &gtk::Label) {
     nm.add_css_class("meshdrop-section");
     nm.set_halign(gtk::Align::Start);
     col.append(&nm);
-    let meta = gtk::Label::new(Some(&format!("{} · {} · {} ms · 指纹 {}",
-        peer.os, peer.ip, peer.rtt_ms, peer.fp_short)));
+    let meta = gtk::Label::new(Some(&*t!("chat.header_meta_mock",
+        os = peer.os, ip = peer.ip, rtt = peer.rtt_ms, fp = peer.fp_short)));
     meta.add_css_class("meshdrop-meta");
     col.append(&meta);
     row.append(&col);
-    row.append(&chip::chip_with_dot("LAN · TRUSTED", chip::Tone::Mute, crate::color::LIME_DEEP));
+    row.append(&chip::chip_with_dot(&t!("chat.peer_chip_trusted"), chip::Tone::Mute, crate::color::LIME_DEEP));
     head.append(&row);
 
     for msg in mock::chat_with_mengxi() {
         flow.append(&msg_bubble::bubble(&msg));
     }
-    div_label.set_text(&format!("── TODAY · 今天 · {} 条 ──", mock::chat_with_mengxi().len()));
+    div_label.set_text(&t!("chat.today_divider", count = mock::chat_with_mengxi().len()));
 }

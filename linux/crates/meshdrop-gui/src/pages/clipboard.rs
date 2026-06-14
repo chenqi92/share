@@ -18,14 +18,14 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     root.set_vexpand(true);
 
     let title_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    let title = gtk::Label::new(Some("剪贴板 · Clipboard"));
+    let title = gtk::Label::new(Some(&*t!("clipboard.title")));
     title.add_css_class("meshdrop-hero");
     title.set_halign(gtk::Align::Start);
     title_row.append(&title);
     let sp = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     sp.set_hexpand(true);
     title_row.append(&sp);
-    let count_chip = chip::chip("INBOX · 0", chip::Tone::Ink, true);
+    let count_chip = chip::chip(&t!("clipboard.inbox_chip", count = 0), chip::Tone::Ink, true);
     title_row.append(&count_chip);
     root.append(&title_row);
 
@@ -33,7 +33,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let composer = gtk::Box::new(gtk::Orientation::Vertical, 8);
     composer.add_css_class("meshdrop-card");
 
-    let target_lbl = gtk::Label::new(Some("推送到：（无在线设备）"));
+    let target_lbl = gtk::Label::new(Some(&*t!("clipboard.push_to_none")));
     target_lbl.add_css_class("meshdrop-meta");
     target_lbl.set_halign(gtk::Align::Start);
     composer.append(&target_lbl);
@@ -50,12 +50,12 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let buffer = textview.buffer();
 
     let btn_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
-    let read_btn = icon_btn::icon_btn("读取剪贴板", "从系统剪贴板读取", icon_btn::IconBtnTone::Default);
+    let read_btn = icon_btn::icon_btn(&t!("clipboard.read_btn"), &t!("clipboard.read_btn_tip"), icon_btn::IconBtnTone::Default);
     btn_row.append(&read_btn);
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     btn_row.append(&spacer);
-    let push_btn = icon_btn::icon_btn("↑ 推送", "推送到设备", icon_btn::IconBtnTone::Accent);
+    let push_btn = icon_btn::icon_btn(&t!("clipboard.push_btn"), &t!("clipboard.push_btn_tip"), icon_btn::IconBtnTone::Accent);
     btn_row.append(&push_btn);
     composer.append(&btn_row);
     root.append(&composer);
@@ -74,7 +74,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         }
     });
 
-    let div = ascii_divider::build("── INBOX · 收到的剪贴板 · 0 ──");
+    let div = ascii_divider::build(&t!("clipboard.inbox_divider", count = 0));
     root.append(&div.root);
 
     let scroll = gtk::ScrolledWindow::builder()
@@ -109,8 +109,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         let h_dev = h.clone();
         h.observe(h.engine.devices_rx(), move |_| {
             match h_dev.devices().into_iter().next() {
-                Some(d) => target_c.set_text(&format!("推送到：{}", d.name)),
-                None => target_c.set_text("推送到：（无在线设备）"),
+                Some(d) => target_c.set_text(&t!("clipboard.push_to", name = d.name)),
+                None => target_c.set_text(&t!("clipboard.push_to_none")),
             }
         });
 
@@ -121,8 +121,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
         let count_c = count_chip.clone();
         h.observe(h.engine.clipboard_rx(), move |entries| {
             fill_inbox(&list_c, &empty_c, entries);
-            div_lbl.set_text(&format!("── INBOX · 收到的剪贴板 · {} ──", entries.len()));
-            count_c.set_tooltip_text(Some(&format!("共 {} 条", entries.len())));
+            div_lbl.set_text(&t!("clipboard.inbox_divider", count = entries.len()));
+            count_c.set_tooltip_text(Some(&*t!("clipboard.total_count", count = entries.len())));
         });
     }
 
@@ -173,7 +173,7 @@ fn inbox_card(e: &ClipboardEntry) -> gtk::Box {
     let sp2 = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     sp2.set_hexpand(true);
     actions.append(&sp2);
-    let copy_btn = icon_btn::icon_btn("复制", "复制到系统剪贴板", icon_btn::IconBtnTone::Default);
+    let copy_btn = icon_btn::icon_btn(&t!("common.copy"), &t!("clipboard.copy_tip"), icon_btn::IconBtnTone::Default);
     let content = e.content.clone();
     copy_btn.connect_clicked(move |_| {
         if let Some(display) = gtk::gdk::Display::default() {
@@ -189,11 +189,11 @@ fn inbox_card(e: &ClipboardEntry) -> gtk::Box {
 fn build_empty_card() -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
     card.add_css_class("meshdrop-card");
-    let title = gtk::Label::new(Some("还没有收到剪贴板"));
+    let title = gtk::Label::new(Some(&*t!("clipboard.empty_title")));
     title.add_css_class("meshdrop-card-title");
     title.set_halign(gtk::Align::Start);
     card.append(&title);
-    let hint = gtk::Label::new(Some("对方显式推送剪贴板后，会出现在这里。"));
+    let hint = gtk::Label::new(Some(&*t!("clipboard.empty_hint")));
     hint.add_css_class("meshdrop-muted");
     hint.set_halign(gtk::Align::Start);
     hint.set_wrap(true);

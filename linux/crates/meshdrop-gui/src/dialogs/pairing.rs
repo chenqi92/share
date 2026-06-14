@@ -26,7 +26,7 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     let win = adw::Window::builder()
         .transient_for(parent)
         .modal(true)
-        .title("配对 · Pairing")
+        .title(t!("pairing.window_title").as_ref())
         .default_width(520)
         .default_height(620)
         .build();
@@ -59,19 +59,19 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     nm.add_css_class("meshdrop-card-title");
     nm.set_halign(gtk::Align::Start);
     col.append(&nm);
-    let m = gtk::Label::new(Some("等待确认 · pending"));
+    let m = gtk::Label::new(Some(&*t!("common.pending")));
     m.add_css_class("meshdrop-meta");
     m.set_halign(gtk::Align::Start);
     col.append(&m);
     col.set_hexpand(true);
     card.append(&col);
     // 身份用 Ed25519 + SHA-256 指纹（非 X25519）；传输 v0.1 明文。不宣称 E2E。
-    let chip_id = chip::chip("Ed25519 · TOFU", chip::Tone::Mute, true);
+    let chip_id = chip::chip(&t!("pairing.chip"), chip::Tone::Mute, true);
     chip_id.set_valign(gtk::Align::Center);
     card.append(&chip_id);
     root.append(&card);
 
-    root.append(&ascii_divider::divider("── VERIFY · 验证 ──"));
+    root.append(&ascii_divider::divider(&t!("pairing.verify_divider")));
     let qr_row = gtk::Box::new(gtk::Orientation::Horizontal, 16);
     qr_row.set_halign(gtk::Align::Center);
 
@@ -80,7 +80,7 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
 
     let code_col = gtk::Box::new(gtk::Orientation::Vertical, 6);
     code_col.set_valign(gtk::Align::Center);
-    let lbl = gtk::Label::new(Some("六字符验证码 · 6-char code"));
+    let lbl = gtk::Label::new(Some(&*t!("pairing.code_label")));
     lbl.add_css_class("meshdrop-ascii-divider");
     lbl.set_halign(gtk::Align::Start);
     code_col.append(&lbl);
@@ -92,8 +92,7 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
         "<span font_family=\"Geist Mono\" font_weight=\"700\" size=\"32000\" letter_spacing=\"600\">{}</span>",
         glib::markup_escape_text(&view.code)));
     code_col.append(&code);
-    let hint = gtk::Label::new(Some(
-        "请让对方在 TA 的 MeshDrop 中输入同样的 6 字符 ——\n或扫码 / 直接对比指纹。"));
+    let hint = gtk::Label::new(Some(&*t!("pairing.code_hint")));
     hint.add_css_class("meshdrop-muted");
     hint.set_xalign(0.0);
     hint.set_wrap(true);
@@ -102,7 +101,7 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     qr_row.append(&code_col);
     root.append(&qr_row);
 
-    root.append(&ascii_divider::divider("── FINGERPRINT · 完整指纹 ──"));
+    root.append(&ascii_divider::divider(&t!("pairing.fingerprint_divider")));
     let fp_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
     fp_box.add_css_class("meshdrop-card");
     let fp = gtk::Label::new(Some(&view.fingerprint_full));
@@ -116,10 +115,10 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
     let btn_row = gtk::Box::new(gtk::Orientation::Horizontal, 8);
     btn_row.set_halign(gtk::Align::End);
     btn_row.set_margin_top(10);
-    let reject = gtk::Button::with_label("拒绝 · Reject");
+    let reject = gtk::Button::with_label(&t!("pairing.reject_btn"));
     reject.add_css_class("destructive-action");
-    let once = gtk::Button::with_label("允许一次 · Allow once");
-    let trust = gtk::Button::with_label("允许并记住 · Trust");
+    let once = gtk::Button::with_label(&t!("pairing.once_btn"));
+    let trust = gtk::Button::with_label(&t!("pairing.trust_btn"));
     trust.add_css_class("suggested-action");
     btn_row.append(&reject);
     btn_row.append(&once);
@@ -168,8 +167,8 @@ pub fn present(parent: &impl IsA<gtk::Window>, handle: Option<&Rc<AppHandle>>) -
 fn build_view(handle: Option<&Rc<AppHandle>>) -> PairingView {
     match handle.and_then(|h| h.pending_pairings().into_iter().next()) {
         Some(p) => PairingView {
-            title: "等待配对 · Pairing".into(),
-            sub: format!("{} 想要连接", p.peer.name),
+            title: t!("pairing.title").to_string(),
+            sub: t!("pairing.wants_connect", name = p.peer.name).to_string(),
             device_name: p.peer.name.clone(),
             initials: crate::view::initials_of(&p.peer.name),
             code: short_code(&p.peer.fingerprint),
@@ -179,8 +178,8 @@ fn build_view(handle: Option<&Rc<AppHandle>>) -> PairingView {
         None => {
             let m = mock::pending_pairing();
             PairingView {
-                title: "等待配对 · Pairing".into(),
-                sub: format!("{} 想要连接", m.peer),
+                title: t!("pairing.title").to_string(),
+                sub: t!("pairing.wants_connect", name = m.peer).to_string(),
                 device_name: m.device_name.to_string(),
                 initials: "李".into(),
                 code: "ZX-8K-L7".into(),

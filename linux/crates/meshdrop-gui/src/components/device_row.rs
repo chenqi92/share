@@ -54,7 +54,7 @@ pub fn build_with_handle(
 
     // 真实 engine 模式：附发送按钮（discovery 右栏列表用）。
     if let Some(h) = handle {
-        let send = icon_btn::icon_btn("发送", "发送文件给该设备", icon_btn::IconBtnTone::Accent);
+        let send = icon_btn::icon_btn(&t!("common.send"), &t!("device_row.send_tip"), icon_btn::IconBtnTone::Accent);
         send.set_valign(gtk::Align::Center);
         let h_c = h.clone();
         let dev_id = d.id.clone();
@@ -76,7 +76,7 @@ pub fn build_with_handle(
 /// 弹 GTK 文件选择器；用户确认后调 engine.send_file 把文件发给 peer。
 fn pick_file_and_send(handle: &Rc<AppHandle>, peer: meshdrop_core::Device) {
     let dialog = gtk::FileDialog::builder()
-        .title("选择要发送的文件 · Send file")
+        .title(t!("device_row.pick_file_title").as_ref())
         .modal(true)
         .build();
     let h_c = handle.clone();

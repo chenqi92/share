@@ -22,7 +22,7 @@ pub fn render(
     let title = Line::from(vec![
         Span::raw(" "),
         Span::styled("NEARBY", Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD)),
-        Span::styled(format!("  {}  附近 ", theme.small_dot()), Style::default().fg(theme.muted())),
+        Span::styled(format!("  {}  {} ", theme.small_dot(), t!("device_list.subtitle")), Style::default().fg(theme.muted())),
         Span::styled(format!("({})", devices.len()), Style::default().fg(theme.muted())),
         Span::raw(" "),
     ]);

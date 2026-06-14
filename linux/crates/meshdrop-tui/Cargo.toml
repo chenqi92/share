@@ -26,3 +26,4 @@ sha2 = { workspace = true }
 hex = { workspace = true }
 
 meshdrop-core = { path = "../meshdrop-core" }
+rust-i18n = { workspace = true }

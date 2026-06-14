@@ -197,7 +197,7 @@ impl ViewTransferRow {
                 (name.clone(), format_bytes(*size), ext, saved)
             }
             HistoryKind::Text(t) => (
-                format!("文字便签 · {}", truncate(t, 24)),
+                t!("transfers.text_note", preview = truncate(t, 24)).to_string(),
                 format!("{} B", t.len()),
                 "txt".to_string(),
                 None,
@@ -230,7 +230,7 @@ impl ViewTransferRow {
         };
         let fail_reason = match &h.status {
             TransferStatus::Failed(reason) => Some(reason.clone()),
-            TransferStatus::Canceled => Some("已取消".to_string()),
+            TransferStatus::Canceled => Some(t!("transfers.canceled").to_string()),
             _ => None,
         };
         Some(Self {
@@ -328,8 +328,8 @@ fn format_relative(unix_secs: i64) -> String {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs() as i64).unwrap_or(0);
     let diff = (now - unix_secs).max(0);
-    if diff < 60 { "刚刚".to_string() }
-    else if diff < 3600 { format!("{} 分钟前", diff / 60) }
-    else if diff < 86400 { format!("{} 小时前", diff / 3600) }
-    else { format!("{} 天前", diff / 86400) }
+    if diff < 60 { t!("time.just_now").to_string() }
+    else if diff < 3600 { t!("time.minutes_ago", n = diff / 60).to_string() }
+    else if diff < 86400 { t!("time.hours_ago", n = diff / 3600).to_string() }
+    else { t!("time.days_ago", n = diff / 86400).to_string() }
 }

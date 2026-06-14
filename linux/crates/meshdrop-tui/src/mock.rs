@@ -266,6 +266,6 @@ pub fn self_card() -> SelfCard {
         fingerprint: "ZX8K · L72M · 9FQ3 · 7HD2".into(),
         ip: "192.168.1.42".into(),
         os: "Linux".into(),
-        visibility: "可见".into(),
+        visibility: t!("self.visibility").to_string(),
     }
 }

@@ -22,3 +22,4 @@ dirs.workspace = true
 uuid.workspace = true
 log.workspace = true
 env_logger.workspace = true
+rust-i18n.workspace = true

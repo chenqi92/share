@@ -25,7 +25,7 @@ pub fn render(
             Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("  {}  历史 ", theme.small_dot()),
+            format!("  {}  {} ", theme.small_dot(), t!("history.subtitle")),
             Style::default().fg(theme.muted()),
         ),
         Span::styled(format!("({})", items.len()), Style::default().fg(theme.muted())),
@@ -96,30 +96,30 @@ fn history_line<'a>(theme: &Theme, h: &HistoryItem) -> Line<'a> {
             Style::default().fg(theme.ink()),
         ),
         HistoryBody::Image { count } => Span::styled(
-            format!("[IMG]  {} 张照片", count),
+            t!("history.images_count", count = count).to_string(),
             Style::default().fg(theme.ink()),
         ),
     };
 
     let status = match h.state {
         HistoryState::Done => Span::styled(
-            format!("  {} 完成", theme.check()),
+            format!("  {}", t!("history.state_done", glyph = theme.check())),
             Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
         ),
         HistoryState::Sending => Span::styled(
-            format!("  {} 发送中", theme.arrow_up()),
+            format!("  {}", t!("history.state_sending", glyph = theme.arrow_up())),
             Style::default().fg(theme.flame()).add_modifier(Modifier::BOLD),
         ),
         HistoryState::Receiving => Span::styled(
-            format!("  {} 接收中", theme.arrow_down()),
+            format!("  {}", t!("history.state_receiving", glyph = theme.arrow_down())),
             Style::default().fg(theme.sky()).add_modifier(Modifier::BOLD),
         ),
         HistoryState::Queued => Span::styled(
-            "  · 队列".to_string(),
+            format!("  {}", t!("history.state_queued")),
             Style::default().fg(theme.muted()),
         ),
         HistoryState::Failed => Span::styled(
-            format!("  {} 失败", theme.cross()),
+            format!("  {}", t!("history.state_failed", glyph = theme.cross())),
             Style::default().fg(theme.error()).add_modifier(Modifier::BOLD),
         ),
     };

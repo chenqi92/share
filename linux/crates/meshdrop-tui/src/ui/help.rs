@@ -24,7 +24,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
                 Style::default().fg(theme.lime()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  按键参考 ", theme.small_dot()),
+                format!("  {}  {} ", theme.small_dot(), t!("help.subtitle")),
                 Style::default().fg(theme.muted()),
             ),
         ]));
@@ -45,7 +45,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
     let header = vec![
         meshdrop_logo::wordmark(theme),
         Line::from(Span::styled(
-            "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)",
+            t!("help.tagline"),
             Style::default().fg(theme.muted()),
         )),
     ];
@@ -54,39 +54,39 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
         rows[0],
     );
 
-    ascii_divider::render(f, rows[1], theme, "KEYBINDINGS · 按键");
+    ascii_divider::render(f, rows[1], theme, &t!("help.keybindings_divider"));
 
     let lines = vec![
-        keyrow(theme, "j  k  ↑↓",     "在焦点区上下移动"),
-        keyrow(theme, "Tab",          "切换焦点（设备 ↔ 历史）"),
-        keyrow(theme, "Enter  i",     "进入文本输入模式（发给选中设备）"),
-        keyrow(theme, ":",            "命令模式（:f <path> · :set k=v · :q · :trust · :revoke）"),
-        keyrow(theme, "/",            "设备过滤"),
-        keyrow(theme, "a  /  r  /  t","接受 / 拒绝 / 接受并信任 待审请求"),
-        keyrow(theme, "d  c",         "删除选中历史 / 清空历史"),
-        keyrow(theme, "x",            "取消选中进行中传输（仅 Transfers 焦点）"),
-        keyrow(theme, "R",            "重发选中失败发送项（仅 Transfers 焦点）"),
-        keyrow(theme, "F1..F6",       "切换页：发现 · 传输 · 历史 · 信任 · 剪贴板 · 设置"),
-        keyrow(theme, "p",            "弹配对 demo 模态"),
-        keyrow(theme, "o",            "弹文件 offer demo 模态"),
-        keyrow(theme, "?",            "打开 / 关闭本帮助"),
-        keyrow(theme, "q  Esc",       "退出（或退出当前模式）"),
+        keyrow(theme, "j  k  ↑↓",     &t!("help.k_move")),
+        keyrow(theme, "Tab",          &t!("help.k_focus")),
+        keyrow(theme, "Enter  i",     &t!("help.k_input")),
+        keyrow(theme, ":",            &t!("help.k_command")),
+        keyrow(theme, "/",            &t!("help.k_filter")),
+        keyrow(theme, "a  /  r  /  t",&t!("help.k_decision")),
+        keyrow(theme, "d  c",         &t!("help.k_history")),
+        keyrow(theme, "x",            &t!("help.k_cancel")),
+        keyrow(theme, "R",            &t!("help.k_retry")),
+        keyrow(theme, "F1..F6",       &t!("help.k_pages")),
+        keyrow(theme, "p",            &t!("help.k_demo_pairing")),
+        keyrow(theme, "o",            &t!("help.k_demo_offer")),
+        keyrow(theme, "?",            &t!("help.k_help")),
+        keyrow(theme, "q  Esc",       &t!("help.k_quit")),
     ];
     f.render_widget(Paragraph::new(lines), rows[3]);
 
     let footer = Paragraph::new(Line::from(Span::styled(
-        format!(
-            "终端: {}  ·  字符: {}  ·  按任意键关闭",
-            theme.label_color_tier(),
-            theme.label_char_tier(),
-        ),
+        t!("help.footer",
+            color = theme.label_color_tier(),
+            chars = theme.label_char_tier(),
+        ).to_string(),
         Style::default().fg(theme.muted()),
     )))
     .alignment(Alignment::Center);
     f.render_widget(footer, rows[4]);
 }
 
-fn keyrow<'a>(theme: &Theme, key: &'a str, desc: &'a str) -> Line<'a> {
+fn keyrow(theme: &Theme, key: &str, desc: &str) -> Line<'static> {
+    // desc 来自 t!() 临时值，转成 owned String 让返回的 Line 不再借用临时量。
     Line::from(vec![
         Span::raw("  "),
         Span::styled(
@@ -96,6 +96,6 @@ fn keyrow<'a>(theme: &Theme, key: &'a str, desc: &'a str) -> Line<'a> {
                 .add_modifier(Modifier::BOLD),
         ),
         Span::raw("  "),
-        Span::styled(desc, Style::default().fg(theme.ink())),
+        Span::styled(desc.to_string(), Style::default().fg(theme.ink())),
     ])
 }

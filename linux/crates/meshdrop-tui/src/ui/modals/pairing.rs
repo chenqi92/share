@@ -23,7 +23,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, pairing: &PendingPairing
                 Style::default().fg(theme.lime()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  配对请求  ", theme.small_dot()),
+                format!("  {}  {}  ", theme.small_dot(), t!("pairing.subtitle")),
                 Style::default().fg(theme.muted()),
             ),
             Span::styled(
@@ -68,9 +68,9 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, pairing: &PendingPairing
     ]));
     f.render_widget(peer_line, rows[0]);
 
-    ascii_divider::render(f, rows[2], theme, "VERIFY CODE · 6 位代码");
+    ascii_divider::render(f, rows[2], theme, &t!("pairing.verify_divider"));
     render_big_code(f, rows[4], theme, &pairing.code);
-    ascii_divider::render(f, rows[6], theme, "FINGERPRINT · 完整指纹");
+    ascii_divider::render(f, rows[6], theme, &t!("pairing.fingerprint_divider"));
 
     let fp_lines: Vec<Line> = split_fingerprint(&pairing.fingerprint)
         .into_iter()
@@ -89,11 +89,11 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, pairing: &PendingPairing
     let hint = Line::from(vec![
         Span::raw("  "),
         chip::chip(theme, "[a]", chip::Tone::Lime),
-        Span::styled(" 允许一次   ", Style::default().fg(theme.ink())),
+        Span::styled(t!("pairing.allow_once"), Style::default().fg(theme.ink())),
         chip::chip(theme, "[t]", chip::Tone::Lime),
-        Span::styled(" 信任并记住   ", Style::default().fg(theme.ink())),
+        Span::styled(t!("pairing.trust_remember"), Style::default().fg(theme.ink())),
         chip::chip(theme, "[r]", chip::Tone::Flame),
-        Span::styled(" 拒绝", Style::default().fg(theme.ink())),
+        Span::styled(t!("pairing.reject"), Style::default().fg(theme.ink())),
     ])
     .alignment(Alignment::Center);
     f.render_widget(Paragraph::new(hint), rows[10]);

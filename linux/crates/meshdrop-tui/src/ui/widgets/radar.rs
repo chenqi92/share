@@ -66,7 +66,7 @@ pub fn render(
                 Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  雷达 ", theme.small_dot()),
+                format!("  {}  {} ", theme.small_dot(), t!("radar.subtitle")),
                 Style::default().fg(theme.muted()),
             ),
             Span::styled(

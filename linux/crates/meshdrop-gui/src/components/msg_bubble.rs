@@ -89,7 +89,7 @@ pub fn bubble_view(msg: &BubbleView) -> gtk::Box {
     t.add_css_class("meshdrop-bubble-time");
     time_row.append(&t);
     if msg.delivered && matches!(msg.side, Dir::Out) {
-        let ok = gtk::Label::new(Some("· 已送达"));
+        let ok = gtk::Label::new(Some(&*t!("bubble.delivered")));
         ok.add_css_class("meshdrop-bubble-time");
         ok.add_css_class("meshdrop-bubble-delivered");
         time_row.append(&ok);

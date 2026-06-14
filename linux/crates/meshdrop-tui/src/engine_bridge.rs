@@ -362,7 +362,7 @@ pub fn self_card(engine: &ShareEngine) -> mock::SelfCard {
         fingerprint: fp,
         ip: detect_lan_ip().unwrap_or_else(|| "0.0.0.0".into()),
         os: "Linux".into(),
-        visibility: "可见".into(),
+        visibility: t!("self.visibility").to_string(),
     }
 }
 

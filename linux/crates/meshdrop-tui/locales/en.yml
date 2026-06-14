@@ -1,0 +1,163 @@
+# Section titles / dividers / tab chips keep the constant "EN · 中" bilingual identity in both files.
+# Status lines / hints / prose are translated per-language.
+
+common:
+  no_device_selected: "No device selected"
+  canceled: "Canceled"
+
+tabs:
+  discovery: "DISCOVERY · 发现"
+  transfers: "TRANSFERS · 传输"
+  history: "HISTORY · 历史"
+  trust: "TRUST · 信任"
+  clipboard: "CLIPBOARD · 剪贴板"
+  settings: "SETTINGS · 设置"
+
+banner:
+  scanning: "  Scanning · scanning LAN · mDNS _meshdrop._tcp"
+  empty: "  No MeshDrop devices nearby · ask a friend to open it too"
+  live: "  LIVE · %{count} devices found"
+  error: "  Network error — %{err}"
+  demo: "  DEMO mode · mock data · no backend"
+
+info:
+  self_label: "Self"
+  self_sub: "Radar discovery · TOFU trust · drag-to-send · clipboard sync · text notes"
+  self_divider: "SELF · 本机"
+  clipboard_divider: "CLIPBOARD · 剪贴板"
+
+trust:
+  subtitle: "Paired devices"
+  revoke_hint: ":revoke <fp> to revoke"
+  empty: "  No trusted devices yet. A pairing prompt appears on first connection; press t to confirm and write to the trust store."
+  table_header: "  Device              Fingerprint (first 4)        Last seen"
+
+clipboard:
+  subtitle: "Clipboard inbox"
+  empty: "  Inbox empty. When a peer taps 'Push clipboard' on a device card, the content shows up here."
+
+speed:
+  subtitle: "Speed"
+  samples: "(%{n})"
+
+history:
+  today_divider: "TODAY · 今天"
+  subtitle: "History"
+  images_count: "[IMG]  %{count} photos"
+  state_done: "%{glyph} Done"
+  state_sending: "%{glyph} Sending"
+  state_receiving: "%{glyph} Receiving"
+  state_queued: "· Queued"
+  state_failed: "%{glyph} Failed"
+
+transfers:
+  subtitle: "Transfers"
+  state_sending: "%{glyph} Send"
+  state_receiving: "%{glyph} Recv"
+  state_done: "%{glyph} Done"
+  state_failed: "%{glyph} Failed"
+  state_failed_reason: "%{glyph} %{reason}"
+  state_queued: "· Queued"
+
+device_list:
+  subtitle: "Nearby"
+radar:
+  subtitle: "Radar"
+
+input:
+  ready_hint: "↑↓ select  ·  Enter send text  ·  : command  ·  / search  ·  ? help  ·  q quit"
+  text_title: " INPUT  ·  send to %{name}  ·  Enter send  ·  Esc cancel "
+  command_title: " COMMAND  ·  :q quit  ·  :f <path> file  ·  :set k=v "
+  search_title: " SEARCH  ·  filter devices  ·  Esc close "
+
+settings:
+  subtitle: "Settings"
+  set_hint: "·  change with :set k=v "
+  visibility_divider: "VISIBILITY · 可见性"
+  security_divider: "SECURITY · 安全"
+  behavior_divider: "BEHAVIOR · 行为"
+  hint_display_name: "  change: :set displayName=Alice"
+  hint_revoke: "  change: :revoke <fingerprint>"
+  hint_save_dir: "  change: :set saveDir=~/dl"
+  hint_auto_accept: "          :set autoAccept=on"
+  hint_radar: "          :set radar=pulse"
+
+help:
+  subtitle: "Key reference"
+  tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
+  keybindings_divider: "KEYBINDINGS · 按键"
+  k_move: "Move up / down within the focused pane"
+  k_focus: "Switch focus (devices ↔ history)"
+  k_input: "Enter text input mode (send to selected device)"
+  k_command: "Command mode (:f <path> · :set k=v · :q · :trust · :revoke)"
+  k_filter: "Filter devices"
+  k_decision: "Accept / reject / accept & trust pending requests"
+  k_history: "Delete selected history / clear history"
+  k_cancel: "Cancel selected in-progress transfer (Transfers focus only)"
+  k_retry: "Retry selected failed send (Transfers focus only)"
+  k_pages: "Switch pages: Discovery · Transfers · History · Trust · Clipboard · Settings"
+  k_demo_pairing: "Show pairing demo modal"
+  k_demo_offer: "Show file offer demo modal"
+  k_help: "Open / close this help"
+  k_quit: "Quit (or exit the current mode)"
+  footer: "Terminal: %{color}  ·  Chars: %{chars}  ·  press any key to close"
+
+pairing:
+  subtitle: "Pairing request"
+  verify_divider: "VERIFY CODE · 6 位代码"
+  fingerprint_divider: "FINGERPRINT · 完整指纹"
+  allow_once: " Allow once   "
+  trust_remember: " Trust & remember   "
+  reject: " Reject"
+
+offer:
+  subtitle: "Incoming file"
+  file_divider: "FILE · 文件"
+  note_divider: "NOTE · 文字便签"
+  accept: " Accept   "
+  reject: " Reject   "
+  trust: " Accept & trust"
+
+status:
+  sent_to: "Sent to %{name} · %{preview}"
+  history_cleared: "History cleared"
+  trust_hint: "Use the :pair flow to trust a device (press t after a pairing request)"
+  revoke_usage: "Usage: :revoke <fingerprint>"
+  revoked: "Trust revoked: %{fp}"
+  not_in_trust: "Fingerprint not in trust list: %{fp}"
+  revoke_mock: "(mock) revoke trust: %{fp}"
+  file_not_found: "File not found: %{path}"
+  send_file: "Sending file %{name} → %{name2}"
+  send_file_mock: "(mock) send file %{path}"
+  set_ok: "set %{key} = %{value}"
+  set_display_name_restart: "set %{key} = %{value} · visible to peers after restart"
+  set_save_dir_pending: "set %{key} = %{value} · not yet applied (fixed ~/Downloads/MeshDrop/)"
+  set_unknown_key: "Unknown setting: %{key}"
+  set_bad_value: "Invalid value: %{key}=%{value}"
+  set_syntax: "Syntax: :set key=value (e.g. :set radar=pulse)"
+  unknown_command: "Unknown command: %{cmd}"
+  allowed_once: "Allowed pairing once: %{name}"
+  accepted: "Accepted %{name}"
+  rejected_pairing: "Pairing rejected"
+  rejected_offer: "File offer rejected"
+  trusted_saved: "Trusted and saved: %{name}"
+  accept_and_trust: "Accepted %{name} and trusted %{name2}"
+  history_deleted: "Deleted one history item"
+  history_not_found: "No matching record"
+  cancel_started: "Cancel requested"
+  cancel_no_engine: "Engine not connected, can't cancel"
+  cancel_only_active: "Only in-progress transfers can be canceled"
+  cancel_switch: "Switch to Transfers (F2), then press x to cancel"
+  retry_started: "Resent"
+  retry_no_engine: "Engine not connected, can't resend"
+  retry_only_failed: "Only failed sends can be resent"
+  retry_switch: "Switch to Transfers (F2), then press R to resend"
+
+self:
+  visibility: "Visible"
+
+time:
+  just_now: "just now"
+  minutes_ago: "%{n} min ago"
+  hours_ago: "%{n} h ago"
+  days_ago: "%{n} d ago"

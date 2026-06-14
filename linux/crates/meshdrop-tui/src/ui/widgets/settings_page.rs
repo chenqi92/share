@@ -24,11 +24,11 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, settings:
                 Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  设置 ", theme.small_dot()),
+                format!("  {}  {} ", theme.small_dot(), t!("settings.subtitle")),
                 Style::default().fg(theme.muted()),
             ),
             Span::styled(
-                "·  改值用 :set k=v ",
+                t!("settings.set_hint"),
                 Style::default().fg(theme.muted()),
             ),
             Span::raw(""),
@@ -67,7 +67,7 @@ fn section_visibility(
             Constraint::Min(0),
         ])
         .split(area);
-    ascii_divider::render(f, rows[0], theme, "VISIBILITY · 可见性");
+    ascii_divider::render(f, rows[0], theme, &t!("settings.visibility_divider"));
 
     let name = if settings.display_name.is_empty() {
         me.name.clone()
@@ -91,7 +91,7 @@ fn section_visibility(
     f.render_widget(Paragraph::new(lines), rows[3]);
 
     let hint = Paragraph::new(Line::from(Span::styled(
-        "  改：:set displayName=Alice",
+        t!("settings.hint_display_name"),
         Style::default().fg(theme.muted()),
     )));
     f.render_widget(hint, rows[4]);
@@ -108,7 +108,7 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard) {
             Constraint::Min(0),
         ])
         .split(area);
-    ascii_divider::render(f, rows[0], theme, "SECURITY · 安全");
+    ascii_divider::render(f, rows[0], theme, &t!("settings.security_divider"));
 
     // v0.1 局域网传输为明文 TCP；身份用 Ed25519 + SHA-256 指纹做 TOFU。不宣称 E2E。
     let lines = vec![
@@ -127,7 +127,7 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard) {
     f.render_widget(Paragraph::new(lines), rows[3]);
 
     let hint = Paragraph::new(Line::from(Span::styled(
-        "  改：:revoke <fingerprint>",
+        t!("settings.hint_revoke"),
         Style::default().fg(theme.muted()),
     )));
     f.render_widget(hint, rows[4]);
@@ -144,7 +144,7 @@ fn section_behavior(f: &mut Frame, area: Rect, theme: &Theme, settings: &Setting
             Constraint::Min(0),
         ])
         .split(area);
-    ascii_divider::render(f, rows[0], theme, "BEHAVIOR · 行为");
+    ascii_divider::render(f, rows[0], theme, &t!("settings.behavior_divider"));
 
     let auto_label = if settings.auto_accept_trusted {
         "trusted only"
@@ -175,15 +175,15 @@ fn section_behavior(f: &mut Frame, area: Rect, theme: &Theme, settings: &Setting
 
     let hint = Paragraph::new(vec![
         Line::from(Span::styled(
-            "  改：:set saveDir=~/dl",
+            t!("settings.hint_save_dir"),
             Style::default().fg(theme.muted()),
         )),
         Line::from(Span::styled(
-            "       :set autoAccept=on",
+            t!("settings.hint_auto_accept"),
             Style::default().fg(theme.muted()),
         )),
         Line::from(Span::styled(
-            "       :set radar=pulse",
+            t!("settings.hint_radar"),
             Style::default().fg(theme.muted()),
         )),
     ])

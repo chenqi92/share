@@ -18,20 +18,20 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     root.set_vexpand(true);
 
     let title_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    let title = gtk::Label::new(Some("传输 · Transfers"));
+    let title = gtk::Label::new(Some(&*t!("transfers.title")));
     title.add_css_class("meshdrop-hero");
     title.set_halign(gtk::Align::Start);
     title_row.append(&title);
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     title_row.append(&spacer);
-    title_row.append(&chip::chip("LIVE · 实时", chip::Tone::Flame, true));
+    title_row.append(&chip::chip(&t!("transfers.live_chip"), chip::Tone::Flame, true));
     root.append(&title_row);
 
     let chart_card = gtk::Box::new(gtk::Orientation::Vertical, 8);
     chart_card.add_css_class("meshdrop-card");
     let head_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    let head = gtk::Label::new(Some("当前会话 · SESSION"));
+    let head = gtk::Label::new(Some(&*t!("transfers.session_head")));
     head.add_css_class("meshdrop-card-title");
     head.set_halign(gtk::Align::Start);
     head_row.append(&head);
@@ -44,7 +44,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let legend_down = gtk::Label::new(Some("↓ —"));
     legend_down.add_css_class("meshdrop-meta");
     legend_down.add_css_class("meshdrop-legend-down");
-    let legend_total = gtk::Label::new(Some("· 0 B 已传输"));
+    let legend_total = gtk::Label::new(Some(&*t!("transfers.legend_total_zero")));
     legend_total.add_css_class("meshdrop-meta");
     head_row.append(&legend_up);
     head_row.append(&legend_down);
@@ -63,18 +63,18 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
 
     let filter_row = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     let chips = [
-        ("全部 · ALL", chip::Tone::Ink),
-        ("进行中 · ACTIVE", chip::Tone::Outline),
-        ("已完成 · DONE", chip::Tone::Outline),
-        ("失败 · FAILED", chip::Tone::Outline),
+        (t!("transfers.filter_all"), chip::Tone::Ink),
+        (t!("transfers.filter_active"), chip::Tone::Outline),
+        (t!("transfers.filter_done"), chip::Tone::Outline),
+        (t!("transfers.filter_failed"), chip::Tone::Outline),
     ];
     for (label, tone) in chips {
-        let c = chip::chip(label, tone, true);
+        let c = chip::chip(&label, tone, true);
         filter_row.append(&c);
     }
     root.append(&filter_row);
 
-    let active_div = ascii_divider::build("── ACTIVE · 进行中 · 0 件 ──");
+    let active_div = ascii_divider::build(&t!("transfers.active_divider", count = 0));
     root.append(&active_div.root);
 
     let scroll = gtk::ScrolledWindow::builder()
@@ -118,8 +118,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
 
     let initial = build(handle);
     fill_transfers(&list, &empty_card, &initial, handle.cloned());
-    active_div.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──",
-        initial.iter().filter(|t| !is_terminal(t)).count()));
+    active_div.set_text(&t!("transfers.active_divider",
+        count = initial.iter().filter(|t| !is_terminal(t)).count()));
 
     if let Some(h) = handle {
         // history → 重建
@@ -132,7 +132,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             h.observe(h.engine.history_rx(), move |_items| {
                 let views = build_c(Some(&handle_c));
                 let active = views.iter().filter(|t| !is_terminal(t)).count();
-                div_lbl.set_text(&format!("── ACTIVE · 进行中 · {} 件 ──", active));
+                div_lbl.set_text(&t!("transfers.active_divider", count = active));
                 fill_transfers(&list_c, &empty_c, &views, Some(handle_c.clone()));
             });
         }
@@ -203,7 +203,7 @@ fn refresh_session_legend(
     }
     legend_up.set_text(&format!("↑ {}", format_bps(up_bps)));
     legend_down.set_text(&format!("↓ {}", format_bps(down_bps)));
-    legend_total.set_text(&format!("· {} 已传输", meshdrop_core::history::format_bytes(total)));
+    legend_total.set_text(&t!("transfers.legend_total", size = meshdrop_core::history::format_bytes(total)));
 }
 
 fn format_bps(bps: f64) -> String {
@@ -244,11 +244,11 @@ fn is_terminal(t: &ViewTransferRow) -> bool {
 fn empty_card() -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
     card.add_css_class("meshdrop-card");
-    let t = gtk::Label::new(Some("当前没有进行中的传输"));
+    let t = gtk::Label::new(Some(&*t!("transfers.empty_title")));
     t.add_css_class("meshdrop-card-title");
     t.set_halign(gtk::Align::Start);
     card.append(&t);
-    let h = gtk::Label::new(Some("拖文件到 MeshDrop 窗口或在 Discovery 选设备 → 发送。"));
+    let h = gtk::Label::new(Some(&*t!("transfers.empty_hint")));
     h.add_css_class("meshdrop-muted");
     h.set_halign(gtk::Align::Start);
     h.set_wrap(true);

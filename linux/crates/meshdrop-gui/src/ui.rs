@@ -19,16 +19,33 @@ use std::rc::Rc;
 use uuid::Uuid;
 
 // 导航图标统一用几何 / mono glyph（与 TUI 的 dot/arrow/check 体系对齐），不用 emoji。
-const PAGES: &[(&str, &str, &str)] = &[
-    ("discovery", "附近 · Nearby",   "◎"),
-    ("chat",      "对话 · Chat",     "✱"),
-    ("transfers", "传输 · Transfers", "↕"),
-    ("clipboard", "剪贴板 · Clipboard", "▤"),
-    ("history",   "历史 · History",  "◫"),
-    ("trust",     "已配对 · Trusted", "◉"),
-    ("settings",  "设置 · Settings", "⚙"),
-    ("empty",     "空态 · States",   "○"),
+// label 不在此放字面量，改运行时按 i18n key 取（见 nav_label），以支持 zh-CN / en 切换。
+const PAGES: &[(&str, &str)] = &[
+    ("discovery", "◎"),
+    ("chat",      "✱"),
+    ("transfers", "↕"),
+    ("clipboard", "▤"),
+    ("history",   "◫"),
+    ("trust",     "◉"),
+    ("settings",  "⚙"),
+    ("empty",     "○"),
 ];
+
+/// 把页面 id 映射到 i18n 导航标签 key。
+fn nav_label(id: &str) -> String {
+    let key = match id {
+        "discovery" => "nav.discovery",
+        "chat"      => "nav.chat",
+        "transfers" => "nav.transfers",
+        "clipboard" => "nav.clipboard",
+        "history"   => "nav.history",
+        "trust"     => "nav.trust",
+        "settings"  => "nav.settings",
+        "empty"     => "nav.states",
+        _ => "nav.discovery",
+    };
+    t!(key).to_string()
+}
 
 pub struct Shell {
     pub window: adw::ApplicationWindow,
@@ -61,7 +78,7 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
     title_pack.append(&meshdrop_logo::lockup(22, meshdrop_logo::LogoTone::Dark));
 
     // 状态 chip：根据 engine 状态显示
-    let status_chip = chip::chip_with_dot("LIVE · LAN", chip::Tone::Mute, "#A8C800");
+    let status_chip = chip::chip_with_dot(&t!("shell.status_live"), chip::Tone::Mute, "#A8C800");
     title_pack.append(&status_chip);
     header.set_title_widget(Some(&title_pack));
 
@@ -69,16 +86,16 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
     let error_banner = adw::Banner::builder().build();
     error_banner.set_revealed(false);
 
-    let pair_btn = icon_btn::icon_btn("配对", "弹出配对窗 · Pairing", icon_btn::IconBtnTone::Default);
-    let offer_btn = icon_btn::icon_btn("接收", "弹出文件 offer · File offer", icon_btn::IconBtnTone::Default);
-    let intro_btn = icon_btn::icon_btn("Onboarding", "首次教程", icon_btn::IconBtnTone::Default);
-    let send_btn = icon_btn::icon_btn("发送 · Send", "选择文件 / 文字便签", icon_btn::IconBtnTone::Accent);
+    let pair_btn = icon_btn::icon_btn(&t!("shell.pair_btn"), &t!("shell.pair_btn_tip"), icon_btn::IconBtnTone::Default);
+    let offer_btn = icon_btn::icon_btn(&t!("shell.offer_btn"), &t!("shell.offer_btn_tip"), icon_btn::IconBtnTone::Default);
+    let intro_btn = icon_btn::icon_btn(&t!("shell.intro_btn"), &t!("shell.intro_btn_tip"), icon_btn::IconBtnTone::Default);
+    let send_btn = icon_btn::icon_btn(&t!("shell.send_btn"), &t!("shell.send_btn_tip"), icon_btn::IconBtnTone::Accent);
     header.pack_end(&send_btn);
     header.pack_end(&intro_btn);
     header.pack_end(&offer_btn);
     header.pack_end(&pair_btn);
 
-    let theme_btn = icon_btn::icon_btn("☼", "切换浅 / 暗", icon_btn::IconBtnTone::Default);
+    let theme_btn = icon_btn::icon_btn("☼", &t!("shell.theme_btn_tip"), icon_btn::IconBtnTone::Default);
     header.pack_start(&theme_btn);
 
     toolbar.add_top_bar(&header);
@@ -99,7 +116,7 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
         .vexpand(true)
         .build();
 
-    for (id, _, _) in PAGES {
+    for (id, _) in PAGES {
         let widget = match *id {
             "discovery" => pages::discovery::build(handle.as_ref()),
             "chat"      => pages::chat::build(handle.as_ref()),
@@ -195,7 +212,7 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
                 let mut s = seen.borrow_mut();
                 for o in list {
                     if s.insert(o.id) {
-                        notify::toast(&app_c, &format!("{} 想发文件给你", o.peer.name), &o.file_name);
+                        notify::toast(&app_c, &t!("notify.wants_send_file", name = o.peer.name), &o.file_name);
                     }
                 }
             });
@@ -212,7 +229,7 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
                     match &it.kind {
                         HistoryKind::Text(t) => notify::toast(&app_c, &it.peer.name, t),
                         HistoryKind::File { name, .. } =>
-                            notify::toast(&app_c, &format!("{} 发来文件", it.peer.name), name),
+                            notify::toast(&app_c, &t!("notify.sent_file", name = it.peer.name), name),
                     }
                 }
             });
@@ -225,7 +242,7 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
                 let mut s = seen.borrow_mut();
                 for e in items {
                     if s.insert(e.id) {
-                        notify::toast(&app_c, &format!("{} 推送了剪贴板", e.peer_name), &e.content);
+                        notify::toast(&app_c, &t!("notify.pushed_clipboard", name = e.peer_name), &e.content);
                     }
                 }
             });
@@ -237,18 +254,18 @@ pub fn build_shell(app: &adw::Application, handle: Option<Rc<AppHandle>>) -> She
         match h.status.get() {
             EngineStatus::Starting => {
                 status_chip_c.remove_css_class("meshdrop-chip-lime");
-                error_banner.set_title("引擎启动中 · scanning LAN");
+                error_banner.set_title(&t!("shell.banner_starting"));
                 error_banner.set_revealed(true);
             }
             EngineStatus::Running => { error_banner.set_revealed(false); }
             EngineStatus::Error => {
-                error_banner.set_title("引擎出错 · 请查看终端日志");
+                error_banner.set_title(&t!("shell.banner_error"));
                 error_banner.set_revealed(true);
             }
         }
     } else {
         // 没有 handle —— banner 提示用户引擎未启动
-        error_banner.set_title("引擎未启动 · UI 仅展示 mock 数据");
+        error_banner.set_title(&t!("shell.banner_no_engine"));
         error_banner.set_revealed(true);
     }
 
@@ -291,12 +308,12 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     search_pad.set_margin_start(12);
     search_pad.set_margin_end(12);
     let search = gtk::Entry::builder()
-        .placeholder_text("搜索设备 / 文件 / 历史（即将支持）")
+        .placeholder_text(t!("shell.search_placeholder").as_ref())
         .build();
     // 侧栏全局搜索尚未接线（设备列表在 watch 回调里重建，过滤需重构数据流）：
     // 先禁用，避免输入无任何反应的“假搜索框”。TUI 已有 `/` 搜索可用。
     search.set_sensitive(false);
-    search.set_tooltip_text(Some("即将支持：用 TUI 的 / 可先行搜索设备"));
+    search.set_tooltip_text(Some(t!("shell.search_disabled_tip").as_ref()));
     search_pad.append(&search);
     root.append(&search_pad);
 
@@ -306,7 +323,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     nav.set_margin_end(8);
 
     let mut nav_buttons: Vec<(String, gtk::Button)> = Vec::new();
-    for (id, label, glyph) in PAGES {
+    for (id, glyph) in PAGES {
         let row = gtk::Button::new();
         row.add_css_class("meshdrop-nav-row");
         row.set_has_frame(false);
@@ -317,7 +334,8 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
         g.add_css_class("meshdrop-mono");
         g.set_size_request(22, -1);
         inner.append(&g);
-        let l = gtk::Label::new(Some(label));
+        let label = nav_label(id);
+        let l = gtk::Label::new(Some(&label));
         l.set_halign(gtk::Align::Start);
         l.set_hexpand(true);
         inner.append(&l);
@@ -328,7 +346,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     root.append(&nav);
 
     // ── 设备列表 ──
-    let peer_divider = ascii_divider::build("── PEERS · 设备 · 0 ──");
+    let peer_divider = ascii_divider::build(&t!("shell.peers_divider", count = 0));
     peer_divider.root.set_margin_start(14);
     peer_divider.root.set_margin_end(14);
     peer_divider.root.set_margin_top(6);
@@ -358,7 +376,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
                 let r = device_row::build(v, false);
                 dev_list_for_obs.append(&r);
             }
-            divider_for_obs.set_text(&format!("── PEERS · 设备 · {} ──", views.len()));
+            divider_for_obs.set_text(&t!("shell.peers_divider", count = views.len()));
         });
     } else {
         for (i, d) in mock::devices().iter().enumerate() {
@@ -366,7 +384,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
             let r = device_row::build(&v, i == mock::CHAT_PEER_INDEX);
             dev_list.append(&r);
         }
-        peer_divider_label.set_text(&format!("── PEERS · 设备 · {} ──", mock::devices().len()));
+        peer_divider_label.set_text(&t!("shell.peers_divider", count = mock::devices().len()));
     }
 
     // 底部本机摘要
@@ -374,7 +392,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     me_row.set_margin_start(14);
     me_row.set_margin_end(14);
     me_row.set_margin_top(6);
-    me_row.append(&crate::components::avatar::avatar("我", "#DDF94B", 24,
+    me_row.append(&crate::components::avatar::avatar(&t!("common.me"), "#DDF94B", 24,
                                                      crate::components::avatar::Ring::Lime));
     let me_col = gtk::Box::new(gtk::Orientation::Vertical, 0);
     let (me_name, me_fp) = if let Some(h) = handle {
@@ -383,7 +401,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
         let m = mock::me();
         (m.name.to_string(), m.fingerprint.to_string())
     };
-    let nm = gtk::Label::new(Some(&format!("我 · {}", me_name)));
+    let nm = gtk::Label::new(Some(&*t!("shell.me_summary", name = me_name)));
     nm.add_css_class("meshdrop-body");
     nm.set_halign(gtk::Align::Start);
     me_col.append(&nm);
@@ -394,7 +412,7 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     me_col.set_hexpand(true);
     me_row.append(&me_col);
     // v0.1 LAN 传输为明文 TCP；不宣称 E2E。诚实标注当前阶段状态。
-    me_row.append(&chip::chip("LAN · 明文", chip::Tone::Outline, true));
+    me_row.append(&chip::chip(&t!("shell.me_chip"), chip::Tone::Outline, true));
     root.append(&me_row);
 
     Sidebar { root, nav_buttons }
@@ -419,22 +437,22 @@ fn build_statusbar(handle: Option<&Rc<AppHandle>>) -> Statusbar {
         l
     };
 
-    let online_chip = chip::chip_with_dot("ONLINE", chip::Tone::Mute, "#A8C800");
+    let online_chip = chip::chip_with_dot(&t!("shell.statusbar_online"), chip::Tone::Mute, "#A8C800");
     row.append(&online_chip);
 
     let mdns_label = mk("_meshdrop._tcp · 0 peers");
     row.append(&mdns_label);
     row.append(&sep());
     // 传输层现状：明文 TCP（v0.1）。身份用 Ed25519 + SHA-256 指纹做 TOFU 信任。
-    row.append(&mk("LAN · 明文 TCP · v0.1"));
+    row.append(&mk(&t!("shell.statusbar_transport")));
     row.append(&sep());
 
     let gateway_text = match handle {
         Some(h) => match h.gateway_port() {
-            Some(p) => format!("Web Gateway · :{}", p),
-            None => "Web Gateway · OFF".to_string(),
+            Some(p) => t!("shell.gateway_on", port = p).to_string(),
+            None => t!("shell.gateway_off").to_string(),
         },
-        None => "Web Gateway · OFF".to_string(),
+        None => t!("shell.gateway_off").to_string(),
     };
     let gw = mk(&gateway_text);
     row.append(&gw);

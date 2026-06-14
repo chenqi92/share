@@ -285,9 +285,9 @@ impl App {
                         if let Some(peer) = self.selected_core_device() {
                             let who = peer.name.clone();
                             engine.send_text(peer, text.clone());
-                            self.status = format!("已发送到 {} · {}", who, preview(&text, 40));
+                            self.status = t!("status.sent_to", name = who, preview = preview(&text, 40)).to_string();
                         } else {
-                            self.status = "没有选中设备".into();
+                            self.status = t!("common.no_device_selected").to_string();
                         }
                     } else {
                         // mock 路径：插一条假历史
@@ -307,7 +307,7 @@ impl App {
                                 state: mock::HistoryState::Done,
                             },
                         );
-                        self.status = format!("已发送到 {} · {}", peer, text);
+                        self.status = t!("status.sent_to", name = peer, preview = text).to_string();
                     }
                 }
                 self.mode = Mode::Normal;
@@ -331,13 +331,13 @@ impl App {
             ["c"] | ["clear"] => {
                 if let Some(engine) = &self.engine {
                     engine.clear_history();
-                    self.status = "已清空历史".into();
+                    self.status = t!("status.history_cleared").to_string();
                 } else {
                     self.history.clear();
-                    self.status = "已清空历史".into();
+                    self.status = t!("status.history_cleared").to_string();
                 }
             }
-            ["trust"] => self.status = "用 :pair 流程信任设备（收到配对请求后按 t）".into(),
+            ["trust"] => self.status = t!("status.trust_hint").to_string(),
             ["revoke", fp] => {
                 // 用户可能粘贴带分隔符的展示型指纹（如 "ZX8K · L72M …"），
                 // 归一成 trust store 里存的紧凑小写 hex 再撤销。
@@ -348,20 +348,20 @@ impl App {
                     .to_lowercase();
                 if let Some(engine) = &self.engine {
                     if normalized.is_empty() {
-                        self.status = "用法：:revoke <fingerprint>".into();
+                        self.status = t!("status.revoke_usage").to_string();
                     } else if engine.revoke_trust(&normalized) {
-                        self.status = format!("已撤销信任：{}", fp);
+                        self.status = t!("status.revoked", fp = fp).to_string();
                     } else {
-                        self.status = format!("指纹不在信任列表：{}", fp);
+                        self.status = t!("status.not_in_trust", fp = fp).to_string();
                     }
                 } else {
-                    self.status = format!("（mock）撤销信任：{}", fp);
+                    self.status = t!("status.revoke_mock", fp = fp).to_string();
                 }
             }
             ["f", path] => {
                 let path_buf = std::path::PathBuf::from(expand_home(path));
                 if !path_buf.exists() {
-                    self.status = format!("文件不存在：{}", path);
+                    self.status = t!("status.file_not_found", path = path).to_string();
                     return;
                 }
                 if let Some(engine) = &self.engine {
@@ -369,12 +369,12 @@ impl App {
                         let who = peer.name.clone();
                         let name = path_buf.file_name().and_then(|s| s.to_str()).unwrap_or(path).to_string();
                         engine.send_file(peer, path_buf);
-                        self.status = format!("发送文件 {} → {}", name, who);
+                        self.status = t!("status.send_file", name = name, name2 = who).to_string();
                     } else {
-                        self.status = "没有选中设备".into();
+                        self.status = t!("common.no_device_selected").to_string();
                     }
                 } else {
-                    self.status = format!("（mock）发送文件 {}", path);
+                    self.status = t!("status.send_file_mock", path = path).to_string();
                 }
             }
             ["set", kv] => match self.settings.apply(kv) {
@@ -384,9 +384,9 @@ impl App {
                             self.me.name = value.clone();
                             // core 当前不支持热改广播名（mDNS 注册时固定），提示需重启。
                             if self.engine.is_some() {
-                                self.status = format!("set {} = {} · 重启后对端可见", key, value);
+                                self.status = t!("status.set_display_name_restart", key = key, value = value).to_string();
                             } else {
-                                self.status = format!("set {} = {}", key, value);
+                                self.status = t!("status.set_ok", key = key, value = value).to_string();
                             }
                         }
                         "autoAccept" => {
@@ -394,28 +394,28 @@ impl App {
                             if let Some(engine) = &self.engine {
                                 engine.set_auto_accept(self.settings.auto_accept_trusted);
                             }
-                            self.status = format!("set {} = {}", key, value);
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
                         }
                         "saveDir" => {
                             // core 按对端名固定派生下载目录，暂不支持热改：提示仅本地记录。
                             if self.engine.is_some() {
-                                self.status = format!("set {} = {} · 暂未下发（固定 ~/Downloads/MeshDrop/）", key, value);
+                                self.status = t!("status.set_save_dir_pending", key = key, value = value).to_string();
                             } else {
-                                self.status = format!("set {} = {}", key, value);
+                                self.status = t!("status.set_ok", key = key, value = value).to_string();
                             }
                         }
-                        _ => self.status = format!("set {} = {}", key, value),
+                        _ => self.status = t!("status.set_ok", key = key, value = value).to_string(),
                     }
                 }
-                SetResult::UnknownKey(k) => self.status = format!("未知设置项：{}", k),
+                SetResult::UnknownKey(k) => self.status = t!("status.set_unknown_key", key = k).to_string(),
                 SetResult::BadValue { key, value } => {
-                    self.status = format!("非法值：{}={}", key, value);
+                    self.status = t!("status.set_bad_value", key = key, value = value).to_string();
                 }
                 SetResult::Syntax => {
-                    self.status = "语法：:set key=value（如 :set radar=pulse）".into();
+                    self.status = t!("status.set_syntax").to_string();
                 }
             },
-            _ => self.status = format!("未知命令：{}", cmd),
+            _ => self.status = t!("status.unknown_command", cmd = cmd).to_string(),
         }
     }
 
@@ -451,7 +451,7 @@ impl App {
                     use meshdrop_core::history::TransferStatus;
                     match &c.status {
                         TransferStatus::Failed(reason) => Some(reason.clone()),
-                        TransferStatus::Canceled => Some("已取消".to_string()),
+                        TransferStatus::Canceled => Some(t!("common.canceled").to_string()),
                         _ => None,
                     }
                 });
@@ -726,22 +726,22 @@ fn apply(app: &mut App, action: Action) {
                 if app.pending_pairing.is_some() {
                     if let Some(p) = app.core_pairings.first() {
                         engine.respond_pairing(p.id, PairingDecision::AllowOnce);
-                        app.status = format!("已允许一次配对：{}", p.peer.name);
+                        app.status = t!("status.allowed_once", name = p.peer.name).to_string();
                     }
                 }
                 if app.pending_offer.is_some() {
                     if let Some(o) = app.core_offers.first() {
                         engine.respond_file_offer(o.id, true);
-                        app.status = format!("已接受 {}", o.file_name);
+                        app.status = t!("status.accepted", name = o.file_name).to_string();
                     }
                 }
             } else {
                 // mock 路径
                 if let Some(p) = &app.pending_pairing {
-                    app.status = format!("已允许一次配对：{}", p.peer);
+                    app.status = t!("status.allowed_once", name = p.peer).to_string();
                 }
                 if let Some(o) = &app.pending_offer {
-                    app.status = format!("已接受 {}", o.file_name);
+                    app.status = t!("status.accepted", name = o.file_name).to_string();
                 }
             }
             app.pending_pairing = None;
@@ -754,20 +754,20 @@ fn apply(app: &mut App, action: Action) {
                     if let Some(p) = app.core_pairings.first() {
                         engine.respond_pairing(p.id, PairingDecision::Reject);
                     }
-                    app.status = "已拒绝配对".into();
+                    app.status = t!("status.rejected_pairing").to_string();
                 }
                 if app.pending_offer.is_some() {
                     if let Some(o) = app.core_offers.first() {
                         engine.respond_file_offer(o.id, false);
                     }
-                    app.status = "已拒绝文件接收".into();
+                    app.status = t!("status.rejected_offer").to_string();
                 }
             } else {
                 if app.pending_pairing.is_some() {
-                    app.status = "已拒绝配对".into();
+                    app.status = t!("status.rejected_pairing").to_string();
                 }
                 if app.pending_offer.is_some() {
-                    app.status = "已拒绝文件接收".into();
+                    app.status = t!("status.rejected_offer").to_string();
                 }
             }
             app.pending_pairing = None;
@@ -779,21 +779,21 @@ fn apply(app: &mut App, action: Action) {
                 if app.pending_pairing.is_some() {
                     if let Some(p) = app.core_pairings.first() {
                         engine.respond_pairing(p.id, PairingDecision::Trust);
-                        app.status = format!("已信任并保存：{}", p.peer.name);
+                        app.status = t!("status.trusted_saved", name = p.peer.name).to_string();
                     }
                 }
                 if app.pending_offer.is_some() {
                     if let Some(o) = app.core_offers.first() {
                         engine.respond_file_offer(o.id, true);
-                        app.status = format!("接受 {} 并信任 {}", o.file_name, o.peer.name);
+                        app.status = t!("status.accept_and_trust", name = o.file_name, name2 = o.peer.name).to_string();
                     }
                 }
             } else {
                 if let Some(p) = &app.pending_pairing {
-                    app.status = format!("已信任并保存：{}", p.peer);
+                    app.status = t!("status.trusted_saved", name = p.peer).to_string();
                 }
                 if let Some(o) = &app.pending_offer {
-                    app.status = format!("接受 {} 并信任 {}", o.file_name, o.peer);
+                    app.status = t!("status.accept_and_trust", name = o.file_name, name2 = o.peer).to_string();
                 }
             }
             app.pending_pairing = None;
@@ -809,16 +809,16 @@ fn apply(app: &mut App, action: Action) {
                             // 故同一下标对应同一条；按下标回查真实 UUID 删除。
                             if let Some(core) = app.core_history.get(i) {
                                 engine.remove_history(core.id);
-                                app.status = "删除一条历史".into();
+                                app.status = t!("status.history_deleted").to_string();
                             } else {
-                                app.status = "找不到对应记录".into();
+                                app.status = t!("status.history_not_found").to_string();
                             }
                         } else {
                             app.history.remove(i);
                             if i >= app.history.len() && i > 0 {
                                 app.history_state.select(Some(i - 1));
                             }
-                            app.status = "删除一条历史".into();
+                            app.status = t!("status.history_deleted").to_string();
                         }
                     }
                 }
@@ -827,10 +827,10 @@ fn apply(app: &mut App, action: Action) {
         Action::ClearHistory => {
             if let Some(engine) = &app.engine {
                 engine.clear_history();
-                app.status = "已清空历史".into();
+                app.status = t!("status.history_cleared").to_string();
             } else {
                 app.history.clear();
-                app.status = "已清空历史".into();
+                app.status = t!("status.history_cleared").to_string();
             }
         }
         Action::CancelTransfer => {
@@ -845,17 +845,17 @@ fn apply(app: &mut App, action: Action) {
                         if in_progress {
                             if let Some(engine) = &app.engine {
                                 engine.cancel_transfer(core.id);
-                                app.status = "已发起取消".into();
+                                app.status = t!("status.cancel_started").to_string();
                             } else {
-                                app.status = "engine 未连接，无法取消".into();
+                                app.status = t!("status.cancel_no_engine").to_string();
                             }
                         } else {
-                            app.status = "只能取消进行中的传输".into();
+                            app.status = t!("status.cancel_only_active").to_string();
                         }
                     }
                 }
             } else {
-                app.status = "切到 Transfers (F2) 后按 x 取消".into();
+                app.status = t!("status.cancel_switch").to_string();
             }
         }
         Action::RetryTransfer => {
@@ -874,17 +874,17 @@ fn apply(app: &mut App, action: Action) {
                         if failed_outgoing {
                             if let Some(engine) = &app.engine {
                                 engine.retry_transfer(core.id);
-                                app.status = "已重新发起".into();
+                                app.status = t!("status.retry_started").to_string();
                             } else {
-                                app.status = "engine 未连接，无法重发".into();
+                                app.status = t!("status.retry_no_engine").to_string();
                             }
                         } else {
-                            app.status = "只能重发失败的发送项".into();
+                            app.status = t!("status.retry_only_failed").to_string();
                         }
                     }
                 }
             } else {
-                app.status = "切到 Transfers (F2) 后按 R 重发".into();
+                app.status = t!("status.retry_switch").to_string();
             }
         }
     }
@@ -950,23 +950,23 @@ fn ui(f: &mut Frame, app: &mut App) {
 fn render_engine_banner(f: &mut Frame, area: Rect, app: &App) {
     let (text, color) = match &app.engine_status {
         EngineStatus::Starting => (
-            "  扫描中 · scanning LAN · mDNS _meshdrop._tcp".to_string(),
+            t!("banner.scanning").to_string(),
             app.theme.lime(),
         ),
         EngineStatus::Live if app.devices.is_empty() => (
-            "  附近没有 MeshDrop 设备 · 让朋友也打开试试".to_string(),
+            t!("banner.empty").to_string(),
             app.theme.muted(),
         ),
         EngineStatus::Live => (
-            format!("  LIVE · 已发现 {} 台设备", app.devices.len()),
+            t!("banner.live", count = app.devices.len()).to_string(),
             app.theme.lime_deep(),
         ),
         EngineStatus::Error(e) => (
-            format!("  网络出错 — {}", e),
+            t!("banner.error", err = e).to_string(),
             app.theme.error(),
         ),
         EngineStatus::Mock => (
-            "  DEMO 模式 · mock 数据 · 不接 backend".to_string(),
+            t!("banner.demo").to_string(),
             app.theme.flame(),
         ),
     };
@@ -980,12 +980,12 @@ fn render_engine_banner(f: &mut Frame, area: Rect, app: &App) {
 fn render_tabs(f: &mut Frame, area: Rect, app: &App) {
     let mut spans = vec![Span::raw("  ")];
     for (page, key, label) in [
-        (Page::Discovery, "F1", "DISCOVERY · 发现"),
-        (Page::Transfers, "F2", "TRANSFERS · 传输"),
-        (Page::History,   "F3", "HISTORY · 历史"),
-        (Page::Trust,     "F4", "TRUST · 信任"),
-        (Page::Clipboard, "F5", "CLIPBOARD · 剪贴板"),
-        (Page::Settings,  "F6", "SETTINGS · 设置"),
+        (Page::Discovery, "F1", t!("tabs.discovery")),
+        (Page::Transfers, "F2", t!("tabs.transfers")),
+        (Page::History,   "F3", t!("tabs.history")),
+        (Page::Trust,     "F4", t!("tabs.trust")),
+        (Page::Clipboard, "F5", t!("tabs.clipboard")),
+        (Page::Settings,  "F6", t!("tabs.settings")),
     ] {
         let active = page == app.page;
         let chip_text = format!("{} {}", key, label);
@@ -1021,8 +1021,8 @@ fn render_trust_page(f: &mut Frame, area: Rect, app: &App) {
         .title(Line::from(vec![
             Span::raw(" "),
             Span::styled("TRUST", Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {}  已配对设备 ", app.theme.small_dot()), Style::default().fg(app.theme.muted())),
-            Span::styled("·  :revoke <fp> 撤销 ", Style::default().fg(app.theme.muted())),
+            Span::styled(format!("  {}  {} ", app.theme.small_dot(), t!("trust.subtitle")), Style::default().fg(app.theme.muted())),
+            Span::styled(format!("·  {} ", t!("trust.revoke_hint")), Style::default().fg(app.theme.muted())),
         ]));
     f.render_widget(&block, area);
     let inner = block.inner(area);
@@ -1032,12 +1032,12 @@ fn render_trust_page(f: &mut Frame, area: Rect, app: &App) {
     lines.push(Line::from(""));
     if records.is_empty() {
         lines.push(Line::from(Span::styled(
-            "  还没有已信任的设备。首次连接弹出配对，按 t 确认即写入信任库。",
+            t!("trust.empty"),
             Style::default().fg(app.theme.muted()),
         )));
     } else {
         lines.push(Line::from(vec![
-            Span::styled("  设备                指纹（前 4 组）              最近在线",
+            Span::styled(t!("trust.table_header"),
                 Style::default().fg(app.theme.muted()).add_modifier(Modifier::BOLD)),
         ]));
         for r in &records {
@@ -1064,7 +1064,7 @@ fn render_clipboard_page(f: &mut Frame, area: Rect, app: &App) {
         .title(Line::from(vec![
             Span::raw(" "),
             Span::styled("CLIPBOARD", Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD)),
-            Span::styled(format!("  {}  剪贴板收件箱 ", app.theme.small_dot()), Style::default().fg(app.theme.muted())),
+            Span::styled(format!("  {}  {} ", app.theme.small_dot(), t!("clipboard.subtitle")), Style::default().fg(app.theme.muted())),
         ]));
     f.render_widget(&block, area);
     let inner = block.inner(area);
@@ -1073,7 +1073,7 @@ fn render_clipboard_page(f: &mut Frame, area: Rect, app: &App) {
     lines.push(Line::from(""));
     if app.clip.is_empty() {
         lines.push(Line::from(Span::styled(
-            "  收件箱为空。对端在设备卡片上点「推送剪贴板」后，内容会出现在这里。",
+            t!("clipboard.empty"),
             Style::default().fg(app.theme.muted()),
         )));
     } else {
@@ -1107,10 +1107,10 @@ fn relative_ms(unix_ms: i64) -> String {
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as i64).unwrap_or(0);
     let diff = (now - unix_ms).max(0) / 1000;
-    if diff < 60 { "刚刚".into() }
-    else if diff < 3600 { format!("{} 分钟前", diff / 60) }
-    else if diff < 86400 { format!("{} 小时前", diff / 3600) }
-    else { format!("{} 天前", diff / 86400) }
+    if diff < 60 { t!("time.just_now").to_string() }
+    else if diff < 3600 { t!("time.minutes_ago", n = diff / 60).to_string() }
+    else if diff < 86400 { t!("time.hours_ago", n = diff / 3600).to_string() }
+    else { t!("time.days_ago", n = diff / 86400).to_string() }
 }
 
 fn trunc(s: &str, max: usize) -> String {
@@ -1185,7 +1185,7 @@ fn render_info_panel(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  本机 ", app.theme.small_dot()),
+                format!("  {}  {} ", app.theme.small_dot(), t!("info.self_label")),
                 Style::default().fg(app.theme.muted()),
             ),
         ]));
@@ -1207,13 +1207,13 @@ fn render_info_panel(f: &mut Frame, area: Rect, app: &App) {
     meshdrop_logo::hero(f, rows[0], &app.theme);
 
     let sub = Paragraph::new(Line::from(Span::styled(
-        "雷达式发现 · TOFU 信任 · 拖即发送 · 剪贴板同步 · 文字便签",
+        t!("info.self_sub"),
         Style::default().fg(app.theme.muted()),
     )))
     .alignment(ratatui::layout::Alignment::Center);
     f.render_widget(sub, rows[1]);
 
-    ascii_divider::render(f, rows[2], &app.theme, "SELF · 本机");
+    ascii_divider::render(f, rows[2], &app.theme, &t!("info.self_divider"));
 
     let lines = vec![
         kv_line(&app.theme, "DEVICE", &app.me.name),
@@ -1224,7 +1224,7 @@ fn render_info_panel(f: &mut Frame, area: Rect, app: &App) {
     ];
     f.render_widget(Paragraph::new(lines), rows[3]);
 
-    ascii_divider::render(f, rows[4], &app.theme, "CLIPBOARD · 剪贴板");
+    ascii_divider::render(f, rows[4], &app.theme, &t!("info.clipboard_divider"));
 
     let clip_lines: Vec<Line> = app
         .clip
@@ -1284,7 +1284,7 @@ fn render_speed_chart(f: &mut Frame, area: Rect, app: &App) {
                 Style::default().fg(app.theme.lime_deep()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  速度  ", app.theme.small_dot()),
+                format!("  {}  {}  ", app.theme.small_dot(), t!("speed.subtitle")),
                 Style::default().fg(app.theme.muted()),
             ),
             Span::styled("(↑ flame · ↓ sky · session)", Style::default().fg(app.theme.muted())),
@@ -1338,7 +1338,7 @@ fn bar_chart<U: AsRef<[u8]>>(
         lines.push(Line::from(Span::styled(s, Style::default().fg(color))));
     }
     lines.push(Line::from(Span::styled(
-        format!(" {} ({}样)", title, data.len()),
+        format!(" {} {}", title, t!("speed.samples", n = data.len())),
         Style::default().fg(theme.muted()).add_modifier(Modifier::BOLD),
     )));
     f.render_widget(Paragraph::new(lines), area);
@@ -1349,7 +1349,7 @@ fn render_history_page(f: &mut Frame, area: Rect, app: &mut App) {
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(1), Constraint::Min(5)])
         .split(area);
-    ascii_divider::render(f, rows[0], &app.theme, "TODAY · 今天");
+    ascii_divider::render(f, rows[0], &app.theme, &t!("history.today_divider"));
     history_widget::render(
         f,
         rows[1],
@@ -1375,7 +1375,7 @@ fn render_bottom(f: &mut Frame, area: Rect, app: &App) {
             area,
             &app.theme,
             &app.status,
-            "↑↓ 选择  ·  Enter 发文本  ·  : 命令  ·  / 搜索  ·  ? 帮助  ·  q 退出",
+            &t!("input.ready_hint"),
         ),
     }
 }

@@ -1,0 +1,181 @@
+# 约定同 GUI：
+# - SECTION 标题 / 分隔条 / chip 徽章保持「EN · 中」恒定双语并排，两份文件一致。
+# - 状态行 / 提示 / 散文按语言拆分。
+
+common:
+  no_device_selected: "没有选中设备"
+  canceled: "已取消"
+
+# ─── 顶部 tab（恒定双语）───
+tabs:
+  discovery: "DISCOVERY · 发现"
+  transfers: "TRANSFERS · 传输"
+  history: "HISTORY · 历史"
+  trust: "TRUST · 信任"
+  clipboard: "CLIPBOARD · 剪贴板"
+  settings: "SETTINGS · 设置"
+
+# ─── engine banner ───
+banner:
+  scanning: "  扫描中 · scanning LAN · mDNS _meshdrop._tcp"
+  empty: "  附近没有 MeshDrop 设备 · 让朋友也打开试试"
+  live: "  LIVE · 已发现 %{count} 台设备"
+  error: "  网络出错 — %{err}"
+  demo: "  DEMO 模式 · mock 数据 · 不接 backend"
+
+# ─── Discovery info panel ───
+info:
+  self_label: "本机"
+  self_sub: "雷达式发现 · TOFU 信任 · 拖即发送 · 剪贴板同步 · 文字便签"
+  self_divider: "SELF · 本机"
+  clipboard_divider: "CLIPBOARD · 剪贴板"
+
+# ─── Trust 页 ───
+trust:
+  subtitle: "已配对设备"
+  revoke_hint: ":revoke <fp> 撤销"
+  empty: "  还没有已信任的设备。首次连接弹出配对，按 t 确认即写入信任库。"
+  table_header: "  设备                指纹（前 4 组）              最近在线"
+
+# ─── Clipboard 页 ───
+clipboard:
+  subtitle: "剪贴板收件箱"
+  empty: "  收件箱为空。对端在设备卡片上点「推送剪贴板」后，内容会出现在这里。"
+
+# ─── 速度图 ───
+speed:
+  subtitle: "速度"
+  samples: "(%{n}样)"
+
+# ─── 历史分组 ───
+history:
+  today_divider: "TODAY · 今天"
+  subtitle: "历史"
+  images_count: "[IMG]  %{count} 张照片"
+  state_done: "%{glyph} 完成"
+  state_sending: "%{glyph} 发送中"
+  state_receiving: "%{glyph} 接收中"
+  state_queued: "· 队列"
+  state_failed: "%{glyph} 失败"
+
+# ─── 传输行 ───
+transfers:
+  subtitle: "传输"
+  state_sending: "%{glyph} 发送"
+  state_receiving: "%{glyph} 接收"
+  state_done: "%{glyph} 完成"
+  state_failed: "%{glyph} 失败"
+  state_failed_reason: "%{glyph} %{reason}"
+  state_queued: "· 队列"
+
+# ─── 设备列表 / 雷达 ───
+device_list:
+  subtitle: "附近"
+radar:
+  subtitle: "雷达"
+
+# ─── 底部输入条 ───
+input:
+  ready_hint: "↑↓ 选择  ·  Enter 发文本  ·  : 命令  ·  / 搜索  ·  ? 帮助  ·  q 退出"
+  text_title: " INPUT  ·  发送给 %{name}  ·  Enter 发  ·  Esc 取消 "
+  command_title: " COMMAND  ·  :q 退出  ·  :f <path> 文件  ·  :set k=v "
+  search_title: " SEARCH  ·  过滤设备  ·  Esc 关闭 "
+
+# ─── 设置子页 ───
+settings:
+  subtitle: "设置"
+  set_hint: "·  改值用 :set k=v "
+  visibility_divider: "VISIBILITY · 可见性"
+  security_divider: "SECURITY · 安全"
+  behavior_divider: "BEHAVIOR · 行为"
+  hint_display_name: "  改：:set displayName=Alice"
+  hint_revoke: "  改：:revoke <fingerprint>"
+  hint_save_dir: "  改：:set saveDir=~/dl"
+  hint_auto_accept: "       :set autoAccept=on"
+  hint_radar: "       :set radar=pulse"
+
+# ─── 帮助 overlay ───
+help:
+  subtitle: "按键参考"
+  tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
+  keybindings_divider: "KEYBINDINGS · 按键"
+  k_move: "在焦点区上下移动"
+  k_focus: "切换焦点（设备 ↔ 历史）"
+  k_input: "进入文本输入模式（发给选中设备）"
+  k_command: "命令模式（:f <path> · :set k=v · :q · :trust · :revoke）"
+  k_filter: "设备过滤"
+  k_decision: "接受 / 拒绝 / 接受并信任 待审请求"
+  k_history: "删除选中历史 / 清空历史"
+  k_cancel: "取消选中进行中传输（仅 Transfers 焦点）"
+  k_retry: "重发选中失败发送项（仅 Transfers 焦点）"
+  k_pages: "切换页：发现 · 传输 · 历史 · 信任 · 剪贴板 · 设置"
+  k_demo_pairing: "弹配对 demo 模态"
+  k_demo_offer: "弹文件 offer demo 模态"
+  k_help: "打开 / 关闭本帮助"
+  k_quit: "退出（或退出当前模式）"
+  footer: "终端: %{color}  ·  字符: %{chars}  ·  按任意键关闭"
+
+# ─── 配对 modal ───
+pairing:
+  subtitle: "配对请求"
+  verify_divider: "VERIFY CODE · 6 位代码"
+  fingerprint_divider: "FINGERPRINT · 完整指纹"
+  allow_once: " 允许一次   "
+  trust_remember: " 信任并记住   "
+  reject: " 拒绝"
+
+# ─── 文件 offer modal ───
+offer:
+  subtitle: "收到文件"
+  file_divider: "FILE · 文件"
+  note_divider: "NOTE · 文字便签"
+  accept: " 接受   "
+  reject: " 拒绝   "
+  trust: " 接受并信任"
+
+# ─── 状态行（动作回执）───
+status:
+  sent_to: "已发送到 %{name} · %{preview}"
+  history_cleared: "已清空历史"
+  trust_hint: "用 :pair 流程信任设备（收到配对请求后按 t）"
+  revoke_usage: "用法：:revoke <fingerprint>"
+  revoked: "已撤销信任：%{fp}"
+  not_in_trust: "指纹不在信任列表：%{fp}"
+  revoke_mock: "（mock）撤销信任：%{fp}"
+  file_not_found: "文件不存在：%{path}"
+  send_file: "发送文件 %{name} → %{name2}"
+  send_file_mock: "（mock）发送文件 %{path}"
+  set_ok: "set %{key} = %{value}"
+  set_display_name_restart: "set %{key} = %{value} · 重启后对端可见"
+  set_save_dir_pending: "set %{key} = %{value} · 暂未下发（固定 ~/Downloads/MeshDrop/）"
+  set_unknown_key: "未知设置项：%{key}"
+  set_bad_value: "非法值：%{key}=%{value}"
+  set_syntax: "语法：:set key=value（如 :set radar=pulse）"
+  unknown_command: "未知命令：%{cmd}"
+  allowed_once: "已允许一次配对：%{name}"
+  accepted: "已接受 %{name}"
+  rejected_pairing: "已拒绝配对"
+  rejected_offer: "已拒绝文件接收"
+  trusted_saved: "已信任并保存：%{name}"
+  accept_and_trust: "接受 %{name} 并信任 %{name2}"
+  history_deleted: "删除一条历史"
+  history_not_found: "找不到对应记录"
+  cancel_started: "已发起取消"
+  cancel_no_engine: "engine 未连接，无法取消"
+  cancel_only_active: "只能取消进行中的传输"
+  cancel_switch: "切到 Transfers (F2) 后按 x 取消"
+  retry_started: "已重新发起"
+  retry_no_engine: "engine 未连接，无法重发"
+  retry_only_failed: "只能重发失败的发送项"
+  retry_switch: "切到 Transfers (F2) 后按 R 重发"
+
+# ─── 自卡 ───
+self:
+  visibility: "可见"
+
+# ─── 相对时间 ───
+time:
+  just_now: "刚刚"
+  minutes_ago: "%{n} 分钟前"
+  hours_ago: "%{n} 小时前"
+  days_ago: "%{n} 天前"

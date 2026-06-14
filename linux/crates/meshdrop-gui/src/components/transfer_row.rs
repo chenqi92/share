@@ -6,6 +6,18 @@ use crate::mock::TransferState;
 use crate::view::ViewTransferRow;
 use adw::prelude::*;
 
+/// 传输状态的本地化标签（i18n key 见 locales 的 state.*）。
+fn state_label(s: TransferState) -> String {
+    let key = match s {
+        TransferState::Done      => "state.done",
+        TransferState::Sending   => "state.sending",
+        TransferState::Receiving => "state.receiving",
+        TransferState::Queued    => "state.queued",
+        TransferState::Failed    => "state.failed",
+    };
+    t!(key).to_string()
+}
+
 /// 渲染一行；`on_cancel` 非空且状态是 Sending / Receiving 时，状态 chip 右侧加取消按钮。
 /// `on_retry` 非空且状态是 Failed 时，状态 chip 右侧加重试按钮。
 pub fn row(
@@ -30,7 +42,7 @@ pub fn row(
         TransferState::Queued    => chip::Tone::Outline,
         TransferState::Failed    => chip::Tone::Error,
     };
-    let glyph_label = format!("{} {}", item.state.glyph(), item.state.label_en());
+    let glyph_label = format!("{} {}", item.state.glyph(), state_label(item.state));
     let state_top = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     state_top.set_halign(gtk::Align::End);
     state_top.append(&chip::chip(&glyph_label, state_tone, true));
@@ -39,7 +51,7 @@ pub fn row(
     if is_active {
         if let Some(cb) = on_cancel {
             let btn = gtk::Button::from_icon_name("window-close-symbolic");
-            btn.set_tooltip_text(Some("取消传输 · Cancel"));
+            btn.set_tooltip_text(Some(t!("transfers.cancel_tip").as_ref()));
             btn.add_css_class("flat");
             btn.add_css_class("circular");
             let hid = item.id;
@@ -50,8 +62,8 @@ pub fn row(
     if matches!(item.state, TransferState::Failed) {
         if let Some(cb) = on_retry {
             let btn = gtk::Button::from_icon_name("view-refresh-symbolic");
-            btn.set_label("RETRY");
-            btn.set_tooltip_text(Some("重试发送 · Retry"));
+            btn.set_label(t!("common.retry").as_ref());
+            btn.set_tooltip_text(Some(t!("transfers.retry_tip").as_ref()));
             btn.add_css_class("flat");
             let hid = item.id;
             btn.connect_clicked(move |_| cb(hid));
@@ -61,7 +73,7 @@ pub fn row(
     if matches!(item.state, TransferState::Done) {
         if let Some(path) = item.saved_path.clone() {
             let reveal_btn = gtk::Button::from_icon_name("folder-open-symbolic");
-            reveal_btn.set_tooltip_text(Some("在文件管理器中显示 · Reveal"));
+            reveal_btn.set_tooltip_text(Some(t!("transfers.reveal_tip").as_ref()));
             reveal_btn.add_css_class("flat");
             reveal_btn.add_css_class("circular");
             let parent = path.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| path.clone());
@@ -71,7 +83,7 @@ pub fn row(
             state_top.append(&reveal_btn);
 
             let open_btn = gtk::Button::from_icon_name("document-open-symbolic");
-            open_btn.set_tooltip_text(Some("打开 · Open"));
+            open_btn.set_tooltip_text(Some(t!("transfers.open_tip").as_ref()));
             open_btn.add_css_class("flat");
             open_btn.add_css_class("circular");
             let p = path;
@@ -103,14 +115,15 @@ pub fn row(
     bottom.append(&bar);
 
     let is_failed = matches!(item.state, TransferState::Failed);
+    let failed_fallback = t!("transfers.failed_fallback");
     let meta_str = if is_failed {
         // 失败：优先显示具体原因（校验失败 / 连接中断 / 拒收 …）
-        format!("× {}", item.fail_reason.as_deref().unwrap_or("失败"))
+        format!("× {}", item.fail_reason.as_deref().unwrap_or(failed_fallback.as_ref()))
     } else {
         match (item.speed.as_deref(), item.eta.as_deref(), item.progress) {
             (Some(sp), Some(eta), _) => format!("{}  ·  ETA {}  ·  {}%", sp, eta, item.progress),
-            (None,     Some(eta), 100) => format!("✓ {}  ·  {}", item.state.label_cn(), eta),
-            (None,     None,      0)   => "排队中…".to_string(),
+            (None,     Some(eta), 100) => format!("✓ {}  ·  {}", state_label(item.state), eta),
+            (None,     None,      0)   => t!("transfers.queued").to_string(),
             _ => format!("{}%", item.progress),
         }
     };

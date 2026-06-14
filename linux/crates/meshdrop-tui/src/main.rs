@@ -20,6 +20,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
+// i18n：locales/ 下 zh-CN.yml（默认/简体中文）+ en.yml（English）。
+// fallback=zh-CN，缺键回退中文而非空串。
+#[macro_use]
+extern crate rust_i18n;
+i18n!("locales", fallback = "zh-CN");
+
 mod app;
 mod cli;
 mod engine_bridge;
@@ -34,6 +40,8 @@ async fn main() -> Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("warn"))
         .target(env_logger::Target::Stderr)
         .init();
+
+    init_locale();
 
     let parsed = cli::Cli::parse();
     match parsed.command {
@@ -125,6 +133,18 @@ async fn run_tui_demo(demo: Option<app::DemoScene>) -> Result<()> {
     let _ = terminal.show_cursor();
 
     result
+}
+
+/// 按环境变量选择界面语言；默认简体中文（zh-CN）。
+/// 识别 MESHDROP_LANG（优先）/ LC_ALL / LANG 中的 en/zh 前缀。
+fn init_locale() {
+    let env_lang = std::env::var("MESHDROP_LANG")
+        .or_else(|_| std::env::var("LC_ALL"))
+        .or_else(|_| std::env::var("LANG"))
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let locale = if env_lang.starts_with("en") { "en" } else { "zh-CN" };
+    rust_i18n::set_locale(locale);
 }
 
 /// Panic safety：unwind 时也得把终端复位。

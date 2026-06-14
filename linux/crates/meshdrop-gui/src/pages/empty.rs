@@ -12,35 +12,35 @@ pub fn build() -> gtk::Widget {
     root.set_hexpand(true);
     root.set_vexpand(true);
 
-    let title = gtk::Label::new(Some("空态 · Empty States"));
+    let title = gtk::Label::new(Some(&*t!("empty.title")));
     title.add_css_class("meshdrop-hero");
     title.set_halign(gtk::Align::Start);
     root.append(&title);
 
     // 空态图标统一用几何 mono glyph，不用 emoji（DESIGN_SPEC §10）。
-    root.append(&ascii_divider::divider("── EMPTY · 没有附近设备 ──"));
+    root.append(&ascii_divider::divider(&t!("empty.nearby_divider")));
     root.append(&state_card(
         "◎",
-        "暂无附近设备",
-        "正在扫描 _meshdrop._tcp · 同一 Wi-Fi 下的其他设备会在几秒内出现。",
-        Some(("再扫一次", icon_btn::IconBtnTone::Accent)),
+        &t!("empty.nearby_title"),
+        &t!("empty.nearby_body"),
+        Some((t!("empty.nearby_action").as_ref(), icon_btn::IconBtnTone::Accent)),
         None));
 
-    root.append(&ascii_divider::divider("── OFFLINE · 没连上局域网 ──"));
+    root.append(&ascii_divider::divider(&t!("empty.offline_divider")));
     root.append(&state_card(
         "⌁",
-        "没连上局域网",
-        "MeshDrop 需要本机至少在一个有线 / 无线网络上。请检查网线是否拔出，或 Wi-Fi 是否已连接。",
-        Some(("打开网络设置", icon_btn::IconBtnTone::Default)),
-        Some("LAN · DOWN")));
+        &t!("empty.offline_title"),
+        &t!("empty.offline_body"),
+        Some((t!("empty.offline_action").as_ref(), icon_btn::IconBtnTone::Default)),
+        Some(t!("empty.offline_badge").as_ref())));
 
-    root.append(&ascii_divider::divider("── FAILED · 上一次传输失败 ──"));
+    root.append(&ascii_divider::divider(&t!("empty.failed_divider")));
     root.append(&state_card(
         "✗",
-        "对方拒收 · 校验失败",
-        "demo-video.mp4 在传输 87% 时 SHA-256 校验失败。MeshDrop 不会落盘损坏文件。",
-        Some(("重试", icon_btn::IconBtnTone::Default)),
-        Some("FAILED · 0xE5")));
+        &t!("empty.failed_title"),
+        &t!("empty.failed_body"),
+        Some((t!("empty.failed_action").as_ref(), icon_btn::IconBtnTone::Default)),
+        Some(t!("empty.failed_badge").as_ref())));
 
     root.upcast()
 }

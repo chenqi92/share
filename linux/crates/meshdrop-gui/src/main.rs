@@ -8,6 +8,12 @@
 //!
 //! `--screenshots <dir>` 模式跳过 engine 启动，纯 mock 渲染（PR 截图用）。
 
+// i18n：locales/ 下 zh-CN.yml（默认/简体中文）+ en.yml（English）。
+// 为何 fallback=zh-CN：缺键时回退到中文而非空串，避免 UI 出现空白标签。
+#[macro_use]
+extern crate rust_i18n;
+i18n!("locales", fallback = "zh-CN");
+
 mod color;
 mod components;
 mod dialogs;
@@ -32,6 +38,10 @@ fn main() -> glib::ExitCode {
     env_logger::Builder::from_env(
         env_logger::Env::default().default_filter_or("info"),
     ).init();
+
+    // 默认 locale 设为 zh-CN（简体中文）。运行时可用 rust_i18n::set_locale("en") 切换；
+    // 这里按环境变量 MESHDROP_LANG / LANG 推断，未命中则保持 zh-CN。
+    init_locale();
 
     let args: Vec<String> = std::env::args().collect();
     let screenshot_dir: Option<String> = args.iter().position(|a| a == "--screenshots")
@@ -68,4 +78,20 @@ fn main() -> glib::ExitCode {
         app.connect_activate(move |a| ui::build(a, handle.clone()));
     }
     app.run()
+}
+
+/// 按环境变量选择界面语言；默认简体中文（zh-CN）。
+/// 识别 MESHDROP_LANG（优先）/ LC_ALL / LANG 中的 en/zh 前缀。
+fn init_locale() {
+    let env_lang = std::env::var("MESHDROP_LANG")
+        .or_else(|_| std::env::var("LC_ALL"))
+        .or_else(|_| std::env::var("LANG"))
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let locale = if env_lang.starts_with("en") {
+        "en"
+    } else {
+        "zh-CN"
+    };
+    rust_i18n::set_locale(locale);
 }

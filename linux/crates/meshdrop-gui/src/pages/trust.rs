@@ -18,31 +18,37 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     root.set_vexpand(true);
 
     let title_row = gtk::Box::new(gtk::Orientation::Horizontal, 10);
-    let title = gtk::Label::new(Some("已配对 · Trusted"));
+    let title = gtk::Label::new(Some(&*t!("trust.title")));
     title.add_css_class("meshdrop-hero");
     title.set_halign(gtk::Align::Start);
     title_row.append(&title);
     let sp = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     sp.set_hexpand(true);
     title_row.append(&sp);
-    let count_chip = chip::chip("0 台 · DEVICES", chip::Tone::Mute, true);
+    let count_chip = chip::chip(&t!("trust.count_chip"), chip::Tone::Mute, true);
     title_row.append(&count_chip);
     root.append(&title_row);
 
-    let hint = gtk::Label::new(Some(
-        "信任记录写在 ~/.local/share/meshdrop/trust.json。撤销后下次对方发起会再次出现配对弹窗。"));
+    let hint = gtk::Label::new(Some(&*t!("trust.hint")));
     hint.add_css_class("meshdrop-muted");
     hint.set_halign(gtk::Align::Start);
     hint.set_wrap(true);
     root.append(&hint);
 
-    root.append(&ascii_divider::divider("── PAIRED · 已配对 ──"));
+    root.append(&ascii_divider::divider(&t!("trust.divider")));
 
     let header = gtk::Box::new(gtk::Orientation::Horizontal, 10);
     header.set_margin_start(12);
     header.set_margin_end(12);
-    for (label, w) in [("设备", 200), ("指纹（前 4 组）", 260), ("配对日期", 110), ("最近在线", 130), ("", 90)] {
-        let l = gtk::Label::new(Some(label));
+    let cols: [(String, i32); 5] = [
+        (t!("trust.col_device").to_string(), 200),
+        (t!("trust.col_fingerprint").to_string(), 260),
+        (t!("trust.col_paired").to_string(), 110),
+        (t!("trust.col_last_seen").to_string(), 130),
+        (String::new(), 90),
+    ];
+    for (label, w) in cols {
+        let l = gtk::Label::new(Some(&label));
         l.set_xalign(0.0);
         l.add_css_class("meshdrop-ascii-divider");
         l.set_size_request(w, -1);
@@ -72,7 +78,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     };
     let n = entries.len();
     fill_trust(&list, &entries, handle);
-    count_chip.set_tooltip_text(Some(&format!("共 {} 台", n)));
+    count_chip.set_tooltip_text(Some(&*t!("trust.total_count", count = n)));
     title_row.queue_draw();
 
     // Trust store 没有 watch；订阅 devices_rx 触发刷新作为代理
@@ -97,11 +103,11 @@ fn fill_trust(list: &gtk::Box, entries: &[ViewTrustEntry], handle: Option<&Rc<Ap
     if entries.is_empty() {
         let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
         card.add_css_class("meshdrop-card");
-        let t = gtk::Label::new(Some("还没有配对的设备"));
+        let t = gtk::Label::new(Some(&*t!("trust.empty_title")));
         t.add_css_class("meshdrop-card-title");
         t.set_halign(gtk::Align::Start);
         card.append(&t);
-        let h = gtk::Label::new(Some("当对方首次连接时会弹出配对窗，确认后写入信任库。"));
+        let h = gtk::Label::new(Some(&*t!("trust.empty_hint")));
         h.add_css_class("meshdrop-muted");
         h.set_halign(gtk::Align::Start);
         h.set_wrap(true);
@@ -151,7 +157,7 @@ fn trust_row(entry: &ViewTrustEntry, handle: Option<&Rc<AppHandle>>) -> gtk::Box
     last.set_xalign(0.0);
     row.append(&last);
 
-    let btn = icon_btn::icon_btn("撤销", "撤销信任", icon_btn::IconBtnTone::Danger);
+    let btn = icon_btn::icon_btn(&t!("trust.revoke_btn"), &t!("trust.revoke_btn_tip"), icon_btn::IconBtnTone::Danger);
     btn.set_size_request(90, -1);
     if let Some(h) = handle {
         let h_c = h.clone();

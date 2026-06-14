@@ -24,17 +24,17 @@ pub fn render(
     let (prefix, title, prefix_color) = match kind {
         InputKind::Text => (
             "✎ ",
-            format!(" INPUT  ·  发送给 {}  ·  Enter 发  ·  Esc 取消 ", target_name),
+            t!("input.text_title", name = target_name).to_string(),
             theme.flame(),
         ),
         InputKind::Command => (
             ":",
-            " COMMAND  ·  :q 退出  ·  :f <path> 文件  ·  :set k=v ".to_string(),
+            t!("input.command_title").to_string(),
             theme.lime(),
         ),
         InputKind::Search => (
             "/",
-            " SEARCH  ·  过滤设备  ·  Esc 关闭 ".to_string(),
+            t!("input.search_title").to_string(),
             theme.flame(),
         ),
     };

@@ -22,7 +22,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, list: &[Transfer]) {
             Style::default().fg(theme.lime_deep()).add_modifier(Modifier::BOLD),
         ),
         Span::styled(
-            format!("  {}  传输 ", theme.small_dot()),
+            format!("  {}  {} ", theme.small_dot(), t!("transfers.subtitle")),
             Style::default().fg(theme.muted()),
         ),
         Span::styled(format!("({})", list.len()), Style::default().fg(theme.muted())),
@@ -81,14 +81,14 @@ fn bottom_line<'a>(theme: &Theme, t: &Transfer) -> Line<'a> {
         bar.push_str(theme.block(i < filled));
     }
     let state_label = match t.state {
-        HistoryState::Sending => format!("{} 发送", theme.arrow_up()),
-        HistoryState::Receiving => format!("{} 接收", theme.arrow_down()),
-        HistoryState::Done => format!("{} 完成", theme.check()),
+        HistoryState::Sending => t!("transfers.state_sending", glyph = theme.arrow_up()).to_string(),
+        HistoryState::Receiving => t!("transfers.state_receiving", glyph = theme.arrow_down()).to_string(),
+        HistoryState::Done => t!("transfers.state_done", glyph = theme.check()).to_string(),
         HistoryState::Failed => match t.fail_reason.as_deref() {
-            Some(reason) => format!("{} {}", theme.cross(), reason),
-            None => format!("{} 失败", theme.cross()),
+            Some(reason) => t!("transfers.state_failed_reason", glyph = theme.cross(), reason = reason).to_string(),
+            None => t!("transfers.state_failed", glyph = theme.cross()).to_string(),
         },
-        HistoryState::Queued => "· 队列".to_string(),
+        HistoryState::Queued => t!("transfers.state_queued").to_string(),
     };
     let mut spans = vec![
         Span::raw("       "),

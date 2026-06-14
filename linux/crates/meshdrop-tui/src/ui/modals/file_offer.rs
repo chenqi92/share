@@ -23,7 +23,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
                 Style::default().fg(theme.sky()).add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!("  {}  收到文件  ", theme.small_dot()),
+                format!("  {}  {}  ", theme.small_dot(), t!("offer.subtitle")),
                 Style::default().fg(theme.muted()),
             ),
             Span::styled(
@@ -67,7 +67,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
     ]));
     f.render_widget(peer_line, rows[0]);
 
-    ascii_divider::render(f, rows[2], theme, "FILE · 文件");
+    ascii_divider::render(f, rows[2], theme, &t!("offer.file_divider"));
 
     let file_line = Paragraph::new(Line::from(vec![
         Span::raw("  "),
@@ -78,7 +78,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
     ]));
     f.render_widget(file_line, rows[4]);
 
-    ascii_divider::render(f, rows[6], theme, "NOTE · 文字便签");
+    ascii_divider::render(f, rows[6], theme, &t!("offer.note_divider"));
 
     let note = Paragraph::new(Line::from(vec![
         Span::raw("  "),
@@ -93,11 +93,11 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, offer: &PendingOffer) {
     let hint = Paragraph::new(Line::from(vec![
         Span::raw("  "),
         chip::chip(theme, "[a]", chip::Tone::Lime),
-        Span::styled(" 接受   ", Style::default().fg(theme.ink())),
+        Span::styled(t!("offer.accept"), Style::default().fg(theme.ink())),
         chip::chip(theme, "[r]", chip::Tone::Flame),
-        Span::styled(" 拒绝   ", Style::default().fg(theme.ink())),
+        Span::styled(t!("offer.reject"), Style::default().fg(theme.ink())),
         chip::chip(theme, "[t]", chip::Tone::Ink),
-        Span::styled(" 接受并信任", Style::default().fg(theme.ink())),
+        Span::styled(t!("offer.trust"), Style::default().fg(theme.ink())),
     ]))
     .alignment(Alignment::Center);
     f.render_widget(hint, rows[10]);

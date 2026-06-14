@@ -25,11 +25,11 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let hero_row = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     hero_row.append(&meshdrop_logo::mark(34, meshdrop_logo::LogoTone::Dark));
     let hero_col = gtk::Box::new(gtk::Orientation::Vertical, 2);
-    let title = gtk::Label::new(Some("附近 · Nearby"));
+    let title = gtk::Label::new(Some(&*t!("discovery.title")));
     title.add_css_class("meshdrop-hero");
     title.set_halign(gtk::Align::Start);
     hero_col.append(&title);
-    let sub = gtk::Label::new(Some("一个内网，任何设备，谁都能 ping 到。"));
+    let sub = gtk::Label::new(Some(&*t!("app.tagline")));
     sub.add_css_class("meshdrop-muted");
     sub.set_halign(gtk::Align::Start);
     hero_col.append(&sub);
@@ -37,13 +37,13 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let spacer = gtk::Box::new(gtk::Orientation::Horizontal, 0);
     spacer.set_hexpand(true);
     hero_row.append(&spacer);
-    hero_row.append(&chip::chip_with_dot("LIVE · LAN", chip::Tone::Mute, "#A8C800"));
+    hero_row.append(&chip::chip_with_dot(&t!("shell.status_live"), chip::Tone::Mute, "#A8C800"));
     left.append(&hero_row);
 
     // 本机卡
     let me_card = gtk::Box::new(gtk::Orientation::Horizontal, 14);
     me_card.add_css_class("meshdrop-card");
-    me_card.append(&crate::components::avatar::avatar("我", "#DDF94B", 40,
+    me_card.append(&crate::components::avatar::avatar(&t!("common.me"), "#DDF94B", 40,
                                                       crate::components::avatar::Ring::Lime));
     let col = gtk::Box::new(gtk::Orientation::Vertical, 2);
     col.set_hexpand(true);
@@ -52,13 +52,13 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
             let ip = h.self_ip.borrow().clone().unwrap_or_else(|| "—".into());
             (
                 h.engine.display_name.clone(),
-                format!("Linux · {} · 端口 {} · 指纹 {}", ip, h.engine.listen_port, h.fingerprint()),
+                t!("discovery.me_meta", ip = ip, port = h.engine.listen_port, fp = h.fingerprint()).to_string(),
             )
         }
         None => {
             let m = mock::me();
             (m.name.to_string(),
-             format!("{} · {} · 指纹 {}", m.os, m.ip, m.fingerprint))
+             t!("discovery.me_meta_mock", os = m.os, ip = m.ip, fp = m.fingerprint).to_string())
         }
     };
     let nm = gtk::Label::new(Some(&me_name));
@@ -71,13 +71,13 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     col.append(&meta);
     me_card.append(&col);
 
-    let vis_chip = chip::chip("可见 · VISIBLE", chip::Tone::Lime, true);
+    let vis_chip = chip::chip(&t!("discovery.visible_chip"), chip::Tone::Lime, true);
     vis_chip.set_valign(gtk::Align::Center);
     me_card.append(&vis_chip);
     left.append(&me_card);
 
     // 雷达 divider（数量动态）
-    let radar_div = ascii_divider::build("── RADAR · 雷达 · 0 PEERS ──");
+    let radar_div = ascii_divider::build(&t!("discovery.radar_divider", count = 0));
     left.append(&radar_div.root);
 
     let initial_views: Vec<ViewDevice> = match handle {
@@ -90,7 +90,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     let r = radar::build(&initial_views, None, self_ip);
     r.root.set_size_request(380, 380);
     left.append(&r.root);
-    radar_div.set_text(&format!("── RADAR · 雷达 · {} PEERS ──", initial_views.len()));
+    radar_div.set_text(&t!("discovery.radar_divider", count = initial_views.len()));
 
     root.append(&left);
 
@@ -103,7 +103,7 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     right.set_margin_start(10);
     right.set_margin_end(18);
 
-    let devices_div = ascii_divider::build("── DEVICES · 设备 · 0 ──");
+    let devices_div = ascii_divider::build(&t!("discovery.devices_divider", count = 0));
     right.append(&devices_div.root);
 
     // 列表容器 + 空态占位
@@ -117,9 +117,9 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
 
     // 初始填充
     fill_devices(&list_card, &initial_views, handle);
-    devices_div.set_text(&format!("── DEVICES · 设备 · {} ──", initial_views.len()));
+    devices_div.set_text(&t!("discovery.devices_divider", count = initial_views.len()));
 
-    // 终端块（保留视觉占位）
+    // 终端块（保留视觉占位）—— 分隔条 ASCII 标识恒定双语保留。
     right.append(&ascii_divider::divider("── TERMINAL · trace ──"));
     let term = gtk::Box::new(gtk::Orientation::Vertical, 2);
     term.add_css_class("meshdrop-terminal");
@@ -166,8 +166,8 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
                 .map(|(i, d)| ViewDevice::from_device(d, i)).collect();
             fill_devices(&list_clone, &views, Some(&h_for_rows));
             empty_clone.set_visible(views.is_empty());
-            dev_div_lbl.set_text(&format!("── DEVICES · 设备 · {} ──", views.len()));
-            radar_div_lbl.set_text(&format!("── RADAR · 雷达 · {} PEERS ──", views.len()));
+            dev_div_lbl.set_text(&t!("discovery.devices_divider", count = views.len()));
+            radar_div_lbl.set_text(&t!("discovery.radar_divider", count = views.len()));
             radar_handle.set_devices(views);
         });
     }
@@ -188,12 +188,11 @@ fn fill_devices(container: &gtk::Box, devs: &[ViewDevice], handle: Option<&Rc<Ap
 fn build_empty_card() -> gtk::Box {
     let card = gtk::Box::new(gtk::Orientation::Vertical, 6);
     card.add_css_class("meshdrop-card");
-    let title = gtk::Label::new(Some("附近没有 MeshDrop 设备"));
+    let title = gtk::Label::new(Some(&*t!("discovery.empty_title")));
     title.add_css_class("meshdrop-card-title");
     title.set_halign(gtk::Align::Start);
     card.append(&title);
-    let hint = gtk::Label::new(Some(
-        "正在扫描 _meshdrop._tcp · 同 Wi-Fi 下的其他设备会在几秒内出现。\n让朋友也打开试试。"));
+    let hint = gtk::Label::new(Some(&*t!("discovery.empty_hint")));
     hint.add_css_class("meshdrop-muted");
     hint.set_halign(gtk::Align::Start);
     hint.set_wrap(true);
