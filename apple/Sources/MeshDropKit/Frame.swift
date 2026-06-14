@@ -68,4 +68,15 @@ public enum MessageType {
     public static let fileChunk: UInt8    = 0x30
     public static let ping: UInt8         = 0xF0
     public static let pong: UInt8         = 0xF1
+
+    /// 是否为本协议已定义的 type；用于「未识别 type 丢弃该帧并继续读」（transport.md）的判定。
+    public static func isKnown(_ t: UInt8) -> Bool {
+        switch t {
+        case hello, helloAck, text, clipboard, fileOffer, fileAccept,
+             fileReject, fileComplete, fileCancel, fileChunk, ping, pong:
+            return true
+        default:
+            return false
+        }
+    }
 }

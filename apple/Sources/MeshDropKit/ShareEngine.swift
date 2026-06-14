@@ -775,8 +775,13 @@ public final class ShareEngine: ObservableObject {
             await closeContext(id: contextID, error: nil)
 
         default:
-            log.info("drop unexpected type=\(type) in state=\(String(describing: ctx.state))")
-            await closeContext(id: contextID, error: nil)
+            if !MessageType.isKnown(type) {
+                // 未识别 type：按 transport.md 丢弃该帧、继续读，不关连接（前向兼容）。
+                log.info("ignoring unknown type=\(type)")
+            } else {
+                log.info("drop unexpected type=\(type) in state=\(String(describing: ctx.state))")
+                await closeContext(id: contextID, error: nil)
+            }
         }
     }
 

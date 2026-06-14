@@ -572,8 +572,13 @@ class ShareEngine(private val context: Context) {
             type == MessageType.PONG -> { /* no-op */ }
 
             else -> {
-                Log.i(TAG, "drop type=$type in state=$state")
-                closeContext(ctxId, null)
+                if (!MessageType.isKnown(type)) {
+                    // 未识别 type：按 transport.md 丢弃该帧、继续读，不关连接（前向兼容）。
+                    Log.i(TAG, "ignore unknown type=$type")
+                } else {
+                    Log.i(TAG, "drop type=$type in state=$state")
+                    closeContext(ctxId, null)
+                }
             }
         }
     }

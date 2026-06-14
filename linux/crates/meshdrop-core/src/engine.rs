@@ -996,6 +996,10 @@ async fn on_frame(state: &mut State, ctx_id: Uuid, msg_type: u8, body: Vec<u8>) 
             }
         }
         (_, msg_type::PONG) => {}
+        (_, other) if !msg_type::is_known(other) => {
+            // 未识别 type：按 transport.md 丢弃该帧、继续读下一帧，不关连接（前向兼容）。
+            debug!("ignoring unknown msg type {} on ctx {}", other, ctx_id);
+        }
         _ => {
             debug!("unexpected msg type {} in state of ctx {}", msg_type, ctx_id);
             close_ctx(state, ctx_id, None).await;

@@ -59,4 +59,11 @@ object MessageType {
     const val FILE_CHUNK: Byte = 0x30
     const val PING: Byte = 0xF0.toByte()
     const val PONG: Byte = 0xF1.toByte()
+
+    /** 是否为本协议已定义的 type；用于「未识别 type 丢弃该帧并继续读」（transport.md）的判定。 */
+    fun isKnown(t: Byte): Boolean = when (t) {
+        HELLO, HELLO_ACK, TEXT, CLIPBOARD, FILE_OFFER, FILE_ACCEPT,
+        FILE_REJECT, FILE_COMPLETE, FILE_CANCEL, FILE_CHUNK, PING, PONG -> true
+        else -> false
+    }
 }

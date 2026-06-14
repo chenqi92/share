@@ -60,6 +60,15 @@ pub mod msg_type {
     pub const FILE_CHUNK: u8    = 0x30;
     pub const PING: u8          = 0xF0;
     pub const PONG: u8          = 0xF1;
+
+    /// 是否为本协议已定义的 type；用于「未识别 type 丢弃该帧并继续读」（transport.md）的判定。
+    pub fn is_known(t: u8) -> bool {
+        matches!(
+            t,
+            HELLO | HELLO_ACK | TEXT | CLIPBOARD | FILE_OFFER | FILE_ACCEPT
+                | FILE_REJECT | FILE_COMPLETE | FILE_CANCEL | FILE_CHUNK | PING | PONG
+        )
+    }
 }
 
 // ─── JSON 消息 ───────────────────────────────────────────────────────
