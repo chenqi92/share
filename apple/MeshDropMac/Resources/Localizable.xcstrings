@@ -928,6 +928,20 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "即将支持 · SOON" } }
       }
     },
+    "settings.note.needsRestart" : {
+      "comment" : "开关下方的小字说明：重启后生效",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Takes effect after restart" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重启后生效" } }
+      }
+    },
+    "settings.note.alwaysOn" : {
+      "comment" : "陌生设备首次配对确认始终开启的说明",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Always on — strangers must be confirmed before pairing" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "始终开启 · 陌生设备必须经确认才能配对" } }
+      }
+    },
     "sidebar.search" : {
       "comment" : "搜索占位符（中文部分）",
       "localizations" : {

@@ -7,6 +7,10 @@ struct MeshDropMacApp: App {
     @StateObject private var state = AppState()
     @StateObject private var gateway = GatewayService()
 
+    /// 「显示在菜单栏」：默认开，与现有常驻 MenuBarExtra 行为一致。
+    /// 通过 `MenuBarExtra(isInserted:)` 绑定，关闭后菜单栏项消失；持久化到 UserDefaults。
+    @AppStorage("meshdrop.showInMenuBar") private var showInMenuBar = true
+
     init() {
         MeshDropFont.register()
         DispatchQueue.main.async {
@@ -49,7 +53,7 @@ struct MeshDropMacApp: App {
                 .frame(minWidth: 720, minHeight: 560)
         }
 
-        MenuBarExtra {
+        MenuBarExtra(isInserted: $showInMenuBar) {
             MenuBarDropdown()
                 .environmentObject(state)
                 .padding(8)

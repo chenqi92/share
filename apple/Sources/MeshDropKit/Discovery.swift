@@ -21,6 +21,12 @@ public final class Discovery: @unchecked Sendable {
     private var listener: NWListener?
     private var browser: NWBrowser?
 
+    /// 监听器就绪后系统分配的实际端口；用于在 setAdvertising 重新发布 mDNS 服务时重建 TXT。
+    private var advertisedPort: UInt16 = 0
+    /// 「局域网可见」状态：true=发布 mDNS 服务可被发现；false=撤下服务（listener 仍在跑、
+    /// 已建连接不受影响、浏览他机不受影响）。默认 true，保持现有广告行为。
+    private var advertising: Bool = true
+
     private let lock = NSLock()
     private var _devices: [String: Device] = [:]
     private let continuation: AsyncStream<[Device]>.Continuation
@@ -64,6 +70,40 @@ public final class Discovery: @unchecked Sendable {
         continuation.finish()
     }
 
+    /// 切换「局域网可见」：附加式能力，不影响 listener 收发与 browser 浏览。
+    /// enabled=true → 发布 mDNS 服务（可被发现）；false → 撤下服务（不再被发现，
+    /// 但已建连接不强断、仍可接受新入站连接、仍能浏览他机）。
+    /// 若 listener 尚未 ready（端口未知），只记录标志，待 .ready 时按此决定是否发布。
+    public func setAdvertising(enabled: Bool) {
+        lock.lock()
+        advertising = enabled
+        let port = advertisedPort
+        lock.unlock()
+        guard let listener else { return }
+        if enabled {
+            guard port != 0 else { return } // 端口未就绪，留给 .ready 发布
+            listener.service = NWListener.Service(
+                name: identity.id,
+                type: TXTRecord.serviceType,
+                domain: nil,
+                txtRecord: makeTXT(port: port)
+            )
+        } else {
+            // 撤下服务（停止 mDNS 广告），listener 本身继续运行。
+            listener.service = nil
+        }
+    }
+
+    private func makeTXT(port: UInt16) -> NWTXTRecord {
+        TXTRecord.encode(
+            identity: identity,
+            displayName: displayName,
+            os: .current,
+            model: model,
+            port: port
+        )
+    }
+
     // MARK: - 广告本机
 
     private func startResponder() throws {
@@ -83,20 +123,20 @@ public final class Discovery: @unchecked Sendable {
             case .ready:
                 let actualPort = listener.port?.rawValue ?? 0
                 log.info("listener ready on port \(actualPort)")
-                // 端口已知后，正式注册 mDNS 服务
-                let txt = TXTRecord.encode(
-                    identity: self.identity,
-                    displayName: self.displayName,
-                    os: .current,
-                    model: self.model,
-                    port: actualPort
-                )
-                listener.service = NWListener.Service(
-                    name: self.identity.id,             // mDNS 实例名用 device id（唯一）
-                    type: TXTRecord.serviceType,
-                    domain: nil,
-                    txtRecord: txt
-                )
+                self.lock.lock()
+                self.advertisedPort = actualPort
+                let shouldAdvertise = self.advertising
+                self.lock.unlock()
+                // 端口已知后，按「局域网可见」状态决定是否注册 mDNS 服务。
+                // 关闭时 listener 照常接受入站连接，只是不发布服务（不被发现）。
+                if shouldAdvertise {
+                    listener.service = NWListener.Service(
+                        name: self.identity.id,             // mDNS 实例名用 device id（唯一）
+                        type: TXTRecord.serviceType,
+                        domain: nil,
+                        txtRecord: self.makeTXT(port: actualPort)
+                    )
+                }
             case .failed(let err):
                 log.error("listener failed: \(err.localizedDescription)")
             default:

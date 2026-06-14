@@ -63,6 +63,48 @@ public final class ShareEngine: ObservableObject {
         didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "meshdrop.notify") }
     }
 
+    /// 设置：仅信任设备可见（trusted-only，security.md「仅信任设备可见」）。
+    /// 开=HELLO 阶段只对信任库里已有 fp 的对端回 ACK，未知 fp 直接关连接（不进配对待审）；
+    /// 关=现状（未知 fp 走 TOFU 配对确认）。默认**关**——保持现有 TOFU 配对流程不变。
+    @Published public var trustedOnly: Bool =
+        UserDefaults.standard.bool(forKey: "meshdrop.trustedOnly") {
+        didSet { UserDefaults.standard.set(trustedOnly, forKey: "meshdrop.trustedOnly") }
+    }
+
+    /// 设置：收到来自**陌生**（未信任）设备的文件 offer 时自动接受（危险，持久化）。
+    /// 与 `autoAcceptFromTrusted` 正交：自动接受判定 = (trusted && autoAcceptFromTrusted)
+    ///   || (!trusted && autoAcceptStranger)。默认**关**——陌生设备一律进待确认。
+    @Published public var autoAcceptStranger: Bool =
+        UserDefaults.standard.bool(forKey: "meshdrop.autoAcceptStranger") {
+        didSet { UserDefaults.standard.set(autoAcceptStranger, forKey: "meshdrop.autoAcceptStranger") }
+    }
+
+    /// 设置：接收前必须验证对方指纹（默认**开**，更安全；持久化）。
+    /// 开=禁用一切自动接受（无论 trusted/stranger），所有 offer 一律进待确认 sheet；
+    /// 关=允许 `autoAcceptFromTrusted` / `autoAcceptStranger` 的自动接受逻辑生效。
+    @Published public var verifyBeforeReceive: Bool =
+        (UserDefaults.standard.object(forKey: "meshdrop.verifyBeforeReceive") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(verifyBeforeReceive, forKey: "meshdrop.verifyBeforeReceive") }
+    }
+
+    /// 设置：跨设备剪贴板同步总开关（默认**开**，与现有行为一致；持久化）。
+    /// 关=不发不收剪贴板——`pushClipboard` 直接 no-op，入站 CLIPBOARD 帧丢弃不入收件箱。
+    @Published public var clipboardSyncEnabled: Bool =
+        (UserDefaults.standard.object(forKey: "meshdrop.clipboardSync") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(clipboardSyncEnabled, forKey: "meshdrop.clipboardSync") }
+    }
+
+    /// 设置：局域网可见（mDNS 广告）开关（默认**开**，与现有行为一致；持久化）。
+    /// 开=正常广告 mDNS（可被发现）；关=停止广告（不再被发现，但已建连接不强断、浏览他机不受影响）。
+    /// `didSet` 在 discovery 运行时立即生效；start() 时也会读取该值决定初始广告状态。
+    @Published public var visibleOnLan: Bool =
+        (UserDefaults.standard.object(forKey: "meshdrop.visibleOnLan") as? Bool) ?? true {
+        didSet {
+            UserDefaults.standard.set(visibleOnLan, forKey: "meshdrop.visibleOnLan")
+            discovery?.setAdvertising(enabled: visibleOnLan)
+        }
+    }
+
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
     /// true  = 启动中 / 扫描中（mDNS 已开但尚未收齐首批设备 / 3s 超时前）
     /// false = 已稳定（收到首批设备 或 3s 超时；或未启动 / 已 stop）
@@ -73,6 +115,13 @@ public final class ShareEngine: ObservableObject {
     private var discovery: Discovery?
     private let trustStore = TrustStore()
     private let resumeStore = ResumeStore()
+    private let historyStore = HistoryStore()
+    /// 历史落盘订阅：监听 `history` 任何变更（新增 / 状态更新 / 删除 / 清空）整表覆盖写。
+    private var historyCancellable: AnyCancellable?
+    /// 内存历史上限，超出截断最旧（与 [HistoryStore.maxItems] 一致）。防长会话内存无限增长。
+    private static let maxHistoryItems = HistoryStore.maxItems
+    /// 标记是否已从磁盘载入过历史，避免重复 load（start 可能被多次调用）。
+    private var historyLoaded = false
     private var devicesTask: Task<Void, Never>?
     private var throughputTask: Task<Void, Never>?
     private var heartbeatTask: Task<Void, Never>?
@@ -183,6 +232,9 @@ public final class ShareEngine: ObservableObject {
     // MARK: - 生命周期
 
     public func start() {
+        // 历史载入独立于网络发现：即使 discovery 已在跑（guard 提前返回），
+        // 也要确保历史已从磁盘读回并挂上落盘订阅。
+        loadHistoryIfNeeded()
         guard discovery == nil else { return }
         isStarting = true
         lastError = nil
@@ -197,6 +249,8 @@ public final class ShareEngine: ObservableObject {
                 Task { @MainActor in await self.acceptIncoming(nwConn) }
             }
             try d.start()
+            // 应用持久化的「局域网可见」状态：关闭时启动即不广告（仍浏览他机、仍可被已建连接使用）。
+            d.setAdvertising(enabled: visibleOnLan)
             discovery = d
             devicesTask = Task { [weak self] in
                 guard let self else { return }
@@ -291,6 +345,46 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 历史管理
 
+    /// 新增一条历史项（最新在前），并就地把内存历史截断到上限（截掉最旧的尾部）。
+    /// 所有「插入历史」的调用都走这里，保证上限在内存层就生效，落盘由 `$history` 订阅触发。
+    private func appendHistory(_ item: HistoryItem) {
+        history.insert(item, at: 0)
+        if history.count > Self.maxHistoryItems {
+            history.removeLast(history.count - Self.maxHistoryItems)
+        }
+    }
+
+    /// 启动时从磁盘载入历史并挂上落盘订阅。幂等：重复调用只生效一次。
+    /// 历史项的状态此时是上次退出时的快照（可能停留在 .transferring —— 连接早已断，
+    /// 不在这里硬改成 completed/failed，交给 UI 按 isTerminal 展示「未完成」即可）。
+    private func loadHistoryIfNeeded() {
+        guard !historyLoaded else { return }
+        historyLoaded = true
+        Task { [weak self] in
+            guard let self else { return }
+            let loaded = await self.historyStore.load()
+            await MainActor.run {
+                // 仅当内存历史还空时才覆盖，避免 race 覆盖掉启动瞬间已产生的新条目。
+                if self.history.isEmpty, !loaded.isEmpty {
+                    self.history = loaded
+                }
+                self.subscribeHistoryPersistence()
+            }
+        }
+    }
+
+    /// 监听 `history` 的每一次变更，整表覆盖写到 history.json。
+    /// `removeDuplicates` 避免无意义的重复写（@Published 即使赋同值也会发事件）。
+    private func subscribeHistoryPersistence() {
+        guard historyCancellable == nil else { return }
+        historyCancellable = $history
+            .removeDuplicates()
+            .sink { [weak self] items in
+                guard let self else { return }
+                Task { await self.historyStore.save(items) }
+            }
+    }
+
     public func removeHistoryItem(_ id: UUID) {
         history.removeAll { $0.id == id }
     }
@@ -308,7 +402,7 @@ public final class ShareEngine: ObservableObject {
             kind: .text(content),
             status: .pending
         )
-        history.insert(historyItem, at: 0)
+        appendHistory(historyItem)
 
         let conn = Connection(connectingTo: device)
         let ctx = ConnectionContext(
@@ -327,6 +421,8 @@ public final class ShareEngine: ObservableObject {
     /// 复用 TEXT 的连接生命周期；本端不留收件箱记录（只有接收方进 inbox）。
     public func pushClipboard(to device: Device, content: String, kind: String = "text") {
         guard !content.isEmpty else { return }
+        // 剪贴板同步总开关关闭时不发送（门控已存在的剪贴板收发）。
+        guard clipboardSyncEnabled else { return }
         let conn = Connection(connectingTo: device)
         let ctx = ConnectionContext(
             connection: conn,
@@ -362,7 +458,7 @@ public final class ShareEngine: ObservableObject {
                 kind: .file(name: fileName, size: fileSize, url: sourceURL),
                 status: .pending
             )
-            history.insert(historyItem, at: 0)
+            appendHistory(historyItem)
             let historyID = historyItem.id
 
             // 后台算 sha256（大文件流式），算完后启动连接
@@ -562,7 +658,7 @@ public final class ShareEngine: ObservableObject {
                 kind: .file(name: offer.fileName, size: offer.fileSize, url: saveURL),
                 status: .transferring(bytesDone: 0, bytesTotal: offer.fileSize)
             )
-            history.insert(item, at: 0)
+            appendHistory(item)
             ctx.historyID = item.id
 
             Task {
@@ -721,6 +817,10 @@ public final class ShareEngine: ObservableObject {
             await trustStore.touch(fingerprint: hello.fp)
             await refreshTrusted()
             await sendAckAndReady(contextID: contextID, peer: peer)
+        } else if trustedOnly {
+            // 仅信任设备可见：未知 fp 不进配对待审，直接关连接（security.md「仅信任设备可见」）。
+            log.info("trustedOnly: reject unknown fp")
+            await closeContext(id: contextID, error: nil)
         } else {
             let req = PairingRequest(peer: peer)
             ctx.state = .awaitingPairApproval(req)
@@ -916,11 +1016,13 @@ public final class ShareEngine: ObservableObject {
             kind: .text(text.content),
             status: .completed
         )
-        history.insert(item, at: 0)
+        appendHistory(item)
         unreadByPeer[peer.id, default: 0] += 1
     }
 
     private func handleReceivedClipboard(body: Data, contextID: UUID) {
+        // 剪贴板同步总开关关闭时不收（丢弃入站 CLIPBOARD，不进收件箱）。
+        guard clipboardSyncEnabled else { return }
         guard let ctx = contexts[contextID],
               let peer = ctx.peer,
               let msg = try? MessageCodec.decode(ClipboardMessage.self, from: body),
@@ -1008,8 +1110,15 @@ public final class ShareEngine: ObservableObject {
                 )
                 ctx.pendingOfferID = pending.id
                 self.pendingFileOffers.append(pending)
-                // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
-                if self.autoAcceptFromTrusted, await self.trustStore.isTrusted(peer.fingerprint) {
+                // 自动接受判定（附加式安全门控）：
+                //   verifyBeforeReceive 开（默认）→ 一律不自动接受，进待确认。
+                //   否则按对端信任态分流：trusted && autoAcceptFromTrusted，
+                //   或 !trusted && autoAcceptStranger（默认关）。命中则复用标准接受流程（移出 pending）。
+                let isTrusted = await self.trustStore.isTrusted(peer.fingerprint)
+                let shouldAuto = !self.verifyBeforeReceive
+                    && ((isTrusted && self.autoAcceptFromTrusted)
+                        || (!isTrusted && self.autoAcceptStranger))
+                if shouldAuto {
                     self.respondToFileOffer(pending.id, accept: true)
                 }
             }
@@ -1047,7 +1156,7 @@ public final class ShareEngine: ObservableObject {
                 kind: .file(name: fileMeta.name, size: fileMeta.size, url: savedURL),
                 status: .transferring(bytesDone: record.bytesDone, bytesTotal: fileMeta.size)
             )
-            history.insert(item, at: 0)
+            appendHistory(item)
             ctx.historyID = item.id
 
             Task {

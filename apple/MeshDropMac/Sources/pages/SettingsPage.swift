@@ -8,6 +8,10 @@ struct SettingsPage: View {
     @State private var keepHistoryDays = 30
     @State private var displayNameEdit = ""
     @State private var confirmingReset = false
+    /// 「登录时启动」回显以系统真实登录项状态为准（onAppear 同步），开关动作走 SMAppService。
+    @State private var launchAtLogin = LoginItemManager.isEnabled
+    /// 「显示在菜单栏」与 App 的 MenuBarExtra(isInserted:) 共享同一 key，改动重启后稳定生效。
+    @AppStorage("meshdrop.showInMenuBar") private var showInMenuBar = true
 
     var body: some View {
         PageScroll {
@@ -40,9 +44,10 @@ struct SettingsPage: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    // 尚未接 engine 持久化/生效逻辑，禁用并标注，避免给「已设置」错觉。
-                    disabledToggle(String(localized: "settings.visibleOnLan"), on: true)
-                    disabledToggle(String(localized: "settings.pairedOnly"), on: false)
+                    // 局域网可见：开=广告 mDNS 可被发现；关=停止广告（已建连接不强断）。即时生效。
+                    toggle(String(localized: "settings.visibleOnLan"), on: $engine.visibleOnLan)
+                    // 仅显示已配对设备（trusted-only）：开=只对信任库 fp 回 ACK，未知 fp 关连接。
+                    toggle(String(localized: "settings.pairedOnly"), on: $engine.trustedOnly)
                     field(String(localized: "settings.deviceType"), trailing:
                         Text("MAC · macOS")
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
@@ -58,9 +63,14 @@ struct SettingsPage: View {
                             .frame(width: 380, alignment: .trailing)
                             .multilineTextAlignment(.trailing)
                     )
-                    // 安全开关：engine 暂未提供持久化入口，禁用并标注，避免安全预期落空。
-                    disabledToggle(String(localized: "settings.security.verifyBeforeReceive"), on: true)
-                    disabledToggle(String(localized: "settings.security.confirmStranger"), on: true)
+                    // 接收前必须验证对方指纹：开（默认）=禁用一切自动接受，offer 一律进待确认。
+                    toggle(String(localized: "settings.security.verifyBeforeReceive"), on: $engine.verifyBeforeReceive)
+                    // 陌生设备首次配对要求确认：TOFU 是安全基线，关闭等于自动信任陌生设备（危险），
+                    // 故锁定为始终开启并加说明，而不是留作可关的假开关。
+                    lockedOnToggle(
+                        String(localized: "settings.security.confirmStranger"),
+                        note: String(localized: "settings.note.alwaysOn")
+                    )
                     HStack(spacing: 10) {
                         Button("settings.security.copyFingerprint") {
                             NSPasteboard.general.clearContents()
@@ -109,8 +119,13 @@ struct SettingsPage: View {
 
                 section(String(localized: "settings.section.receive")) {
                     toggle(String(localized: "settings.receive.autoAcceptTrusted"), on: $engine.autoAcceptFromTrusted)
-                    // 安全相关开关，engine 暂无对应能力 —— 禁用并标注，避免误以为已开启自动接受。
-                    disabledToggle(String(localized: "settings.receive.autoAcceptStranger"), on: false)
+                    // 陌生设备自动接受（危险，默认关）。仅在「接收前验证指纹」关闭时才会真正生效，
+                    // 故验证开启时灰显锁定，避免「已开但无效」的错觉。
+                    gatedToggle(
+                        String(localized: "settings.receive.autoAcceptStranger"),
+                        on: $engine.autoAcceptStranger,
+                        enabled: !engine.verifyBeforeReceive
+                    )
                     field(String(localized: "settings.receive.defaultPath"), trailing:
                         Text("~/Documents/MeshDrop/")
                             .font(MeshDropFont.mono(size: 12))
@@ -119,7 +134,8 @@ struct SettingsPage: View {
                 }
 
                 section(String(localized: "settings.section.clipboard")) {
-                    disabledToggle(String(localized: "settings.clipboard.enableSync"), on: true)
+                    // 跨设备剪贴板同步总开关：关=不发不收剪贴板（门控已有 push/handle 收发）。
+                    toggle(String(localized: "settings.clipboard.enableSync"), on: $engine.clipboardSyncEnabled)
                     field(String(localized: "settings.clipboard.keepDuration"), trailing:
                         Text("settings.clipboard.keepDuration.value")
                             .font(MeshDropFont.mono(size: 12))
@@ -128,8 +144,21 @@ struct SettingsPage: View {
                 }
 
                 section(String(localized: "settings.section.behavior")) {
-                    disabledToggle(String(localized: "settings.behavior.launchAtLogin"), on: true)
-                    disabledToggle(String(localized: "settings.behavior.showInMenuBar"), on: true)
+                    // 登录时启动：真实注册到系统登录项（SMAppService），回显以系统状态为准。
+                    toggle(String(localized: "settings.behavior.launchAtLogin"), on: Binding(
+                        get: { launchAtLogin },
+                        set: { newValue in
+                            LoginItemManager.setEnabled(newValue)
+                            // 以系统真实状态回写，注册失败 / 需批准时不会留下错误的「已开」假象。
+                            launchAtLogin = LoginItemManager.isEnabled || newValue
+                        }
+                    ))
+                    // 显示在菜单栏：与 App 的 MenuBarExtra(isInserted:) 共享 key，重启后稳定生效。
+                    noteToggle(
+                        String(localized: "settings.behavior.showInMenuBar"),
+                        on: $showInMenuBar,
+                        note: String(localized: "settings.note.needsRestart")
+                    )
                     field(String(localized: "settings.behavior.keepHistoryDays"), trailing:
                         Text(String(format: String(localized: "settings.behavior.keepHistoryDays.value"), keepHistoryDays))
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
@@ -162,7 +191,11 @@ struct SettingsPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MeshDropColor.background)
-        .onAppear { if displayNameEdit.isEmpty { displayNameEdit = state.displayName } }
+        .onAppear {
+            if displayNameEdit.isEmpty { displayNameEdit = state.displayName }
+            // 以系统真实登录项状态回显（用户可能在系统设置里手动改过）。
+            launchAtLogin = LoginItemManager.isEnabled
+        }
     }
 
     @ViewBuilder
@@ -208,27 +241,59 @@ struct SettingsPage: View {
         .padding(.vertical, 10)
     }
 
-    /// 尚未接入 engine 生效逻辑的开关：固定展示状态、禁用交互、标注「即将支持」，
-    /// 不让用户误以为切换有效果（尤其安全相关项）。
+    /// 开关 + 下方小字说明（如「重启后生效」），交互正常。
     @ViewBuilder
-    private func disabledToggle(_ label: String, on: Bool) -> some View {
+    private func noteToggle(_ label: String, on: Binding<Bool>, note: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(MeshDropFont.body(size: 12.5))
+                    .foregroundStyle(MeshDropColor.textPrimary)
+                Text(note)
+                    .font(MeshDropFont.mono(size: 10))
+                    .foregroundStyle(MeshDropColor.textMuted)
+            }
+            Spacer()
+            MeshToggle(on: on)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    /// 永远开启且不可关闭的安全开关：保持开态、禁用交互、给出原因说明，
+    /// 不留「可关」的危险假象（如关闭 TOFU 会自动信任陌生设备）。
+    @ViewBuilder
+    private func lockedOnToggle(_ label: String, note: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(MeshDropFont.body(size: 12.5))
+                    .foregroundStyle(MeshDropColor.textPrimary)
+                Text(note)
+                    .font(MeshDropFont.mono(size: 10))
+                    .foregroundStyle(MeshDropColor.textMuted)
+            }
+            Spacer()
+            MeshToggle(on: .constant(true))
+                .opacity(0.55)
+                .allowsHitTesting(false)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    /// 受前置条件门控的开关：`enabled=false` 时灰显锁定（仍展示当前持久化值，但不可改），
+    /// 避免「已开但当前无效」的错觉。用于「陌生设备自动接受」依赖「关闭接收前验证」。
+    @ViewBuilder
+    private func gatedToggle(_ label: String, on: Binding<Bool>, enabled: Bool) -> some View {
         HStack {
             Text(label)
                 .font(MeshDropFont.body(size: 12.5))
-                .foregroundStyle(MeshDropColor.textMuted)
-            Text("settings.soon")
-                .font(MeshDropFont.mono(size: 9, weight: .semibold))
-                .foregroundStyle(MeshDropColor.textMuted)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 1)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(MeshDropColor.divider, lineWidth: 0.5)
-                )
+                .foregroundStyle(enabled ? MeshDropColor.textPrimary : MeshDropColor.textMuted)
             Spacer()
-            MeshToggle(on: .constant(on))
-                .opacity(0.4)
-                .allowsHitTesting(false)
+            MeshToggle(on: on)
+                .opacity(enabled ? 1 : 0.4)
+                .allowsHitTesting(enabled)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
