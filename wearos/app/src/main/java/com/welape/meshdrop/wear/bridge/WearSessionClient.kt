@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
 import java.util.UUID
@@ -139,6 +140,13 @@ internal class WearSessionClient(private val context: Context) {
             }
         }.getOrNull()
     }
+
+    /**
+     * 注入一条经 WearableListenerService 收到的回执。
+     * 进程被系统回收/重建时，回执可能只到达 Service 这一路；交给同一个 pending map
+     * 才能 complete 等待者，否则命令一律走到超时。
+     */
+    fun injectResp(data: ByteArray) = handleResp(data)
 
     private fun handleResp(data: ByteArray) {
         val resp = runCatching {

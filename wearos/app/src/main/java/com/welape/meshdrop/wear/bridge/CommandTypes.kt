@@ -107,6 +107,7 @@ data class HistoryItem(
 internal data class StateSnapshot(
     val devices: List<Device> = emptyList(),
     val history: List<HistoryItem> = emptyList(),
+    val pendingPairings: List<Pairing> = emptyList(),
     val pendingOffers: List<Offer> = emptyList(),
 )
 

@@ -2,7 +2,6 @@ package com.welape.meshdrop.wear.ui
 
 import androidx.compose.ui.graphics.Color
 import com.welape.meshdrop.wear.bridge.Device
-import kotlin.math.abs
 
 /**
  * UI 用的设备视图，把 [Device] 协议字段映射成圆屏 radar 上能用的几何/颜色。
@@ -72,6 +71,7 @@ fun List<Device>.toUi(): List<DeviceUi> {
 
 private fun String.stableSeed(): Long {
     var h = 0L
-    for (c in this) h = abs(h * 31 + c.code)
+    // 用位掩码把符号位清掉，避免 abs(Long.MIN_VALUE) 仍为负导致索引越界
+    for (c in this) h = (h * 31 + c.code) and 0x7FFFFFFFFFFFFFFFL
     return h
 }

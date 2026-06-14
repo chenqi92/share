@@ -25,27 +25,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.Text
-import com.welape.meshdrop.wear.bridge.Offer
+import com.welape.meshdrop.wear.bridge.Pairing
 import com.welape.meshdrop.wear.bridge.WearEngineProxy
 import com.welape.meshdrop.wear.components.Avatar
-import com.welape.meshdrop.wear.components.FileChipMini
-import com.welape.meshdrop.wear.components.MonoTag
-import com.welape.meshdrop.wear.components.Tone
 import com.welape.meshdrop.wear.ui.theme.MDColor
 import com.welape.meshdrop.wear.ui.theme.MDType
 import kotlinx.coroutines.launch
 
+/**
+ * 配对待审页 —— 呼应 phone 端推送的 pairing_pending 事件。
+ * 接收端显式确认配对（TOFU 信任流）是协议不变量，必须在表上可呈现/响应。
+ */
 @Composable
-fun ReceiveScreen(
-    onAccept: () -> Unit = {},
-    onReject: () -> Unit = {},
+fun PairingScreen(
+    onResolved: () -> Unit = {},
 ) {
     val proxy = remember { WearEngineProxy.instance }
-    val offers by proxy.pendingOffers.collectAsState()
+    val pairings by proxy.pendingPairings.collectAsState()
     val isOnline by proxy.isOnline.collectAsState()
     val scope = rememberCoroutineScope()
 
-    val offer = offers.firstOrNull()
+    val pairing = pairings.firstOrNull()
 
     Box(
         modifier = Modifier
@@ -54,20 +54,20 @@ fun ReceiveScreen(
         contentAlignment = Alignment.Center,
     ) {
         when {
-            !isOnline -> OfflineHint()
-            offer == null -> EmptyHint(onBack = onAccept)
-            else -> OfferCard(
-                offer = offer,
+            !isOnline -> CenterHint(title = "OFFLINE", titleColor = MDColor.flame, sub = "请在手机端打开 MeshDrop")
+            pairing == null -> CenterHint(title = "暂无配对", titleColor = MDColor.dpaper, sub = "NO PENDING PAIRING", onTap = onResolved)
+            else -> PairingCard(
+                pairing = pairing,
                 onAccept = {
                     scope.launch {
-                        proxy.acceptOffer(offer.id)
-                        onAccept()
+                        proxy.acceptPairing(pairing.id)
+                        onResolved()
                     }
                 },
                 onReject = {
                     scope.launch {
-                        proxy.rejectOffer(offer.id)
-                        onReject()
+                        proxy.rejectPairing(pairing.id)
+                        onResolved()
                     }
                 },
             )
@@ -76,37 +76,29 @@ fun ReceiveScreen(
 }
 
 @Composable
-private fun OfferCard(
-    offer: Offer,
+private fun PairingCard(
+    pairing: Pairing,
     onAccept: () -> Unit,
     onReject: () -> Unit,
 ) {
-    val firstFile = offer.files.firstOrNull()
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 30.dp, vertical = 26.dp),
+            .padding(horizontal = 28.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(modifier = Modifier.size(5.dp).background(MDColor.lime, CircleShape))
-                Text(
-                    text = "FROM",
-                    color = MDColor.lime,
-                    style = MDType.mono(9f, FontWeight.Bold, tracking = 1.6f),
-                )
-            }
-            // v0.1 LAN 为明文 TCP，不得宣称端到端加密——如实标注传输状态
-            MonoTag(text = "LAN", tone = Tone.Ink)
+            Box(modifier = Modifier.size(5.dp).background(MDColor.sky, CircleShape))
+            Text(
+                text = "配对请求 · PAIRING",
+                color = MDColor.sky,
+                style = MDType.mono(9f, FontWeight.Bold, tracking = 1.2f),
+            )
         }
 
         Row(
@@ -115,42 +107,33 @@ private fun OfferCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Avatar(
-                initials = offer.peerName.take(1).ifBlank { "?" },
-                color = Color(0xFFFFB4A1),
-                sizeDp = 28,
+                initials = pairing.peerName.take(1).ifBlank { "?" },
+                color = Color(0xFF9AD0FF),
+                sizeDp = 26,
                 ring = true,
-                ringColor = MDColor.lime,
+                ringColor = MDColor.sky,
             )
             Column {
                 Text(
-                    text = offer.peerName.ifBlank { offer.peerId },
+                    text = pairing.peerName.ifBlank { "未知设备" },
                     color = MDColor.dpaper,
-                    style = MDType.display(14f, FontWeight.Bold),
+                    style = MDType.display(13f, FontWeight.Bold),
                 )
                 Text(
-                    text = offer.kind.uppercase(),
+                    text = if (pairing.code.isNotBlank()) "CODE ${pairing.code}" else "TOFU",
                     color = MDColor.dim,
                     style = MDType.mono(8f, FontWeight.Medium, tracking = 1.0f),
                 )
             }
         }
 
-        if (firstFile != null) {
-            val ext = firstFile.name.substringAfterLast('.', missingDelimiterValue = "bin")
-            FileChipMini(
-                name = firstFile.name,
-                size = humanSize(firstFile.sizeBytes),
-                ext = ext,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else if (!offer.noteText.isNullOrBlank()) {
-            Text(
-                text = offer.noteText,
-                color = MDColor.dpaper,
-                style = MDType.body(11f, FontWeight.Medium),
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
+        // 指纹 4 字符分组大写，便于人工核对
+        Text(
+            text = groupFingerprint(pairing.fingerprint),
+            color = MDColor.muted,
+            style = MDType.mono(9f, FontWeight.Medium, tracking = 0.8f),
+            modifier = Modifier.fillMaxWidth(),
+        )
 
         Row(
             modifier = Modifier
@@ -178,57 +161,37 @@ private fun OfferCard(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = "接收 · ACCEPT", color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
+                Text(text = "信任 · TRUST", color = MDColor.dink, style = MDType.display(13f, FontWeight.Bold))
             }
         }
     }
 }
 
 @Composable
-private fun OfflineHint() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Text(
-            text = "OFFLINE",
-            color = MDColor.flame,
-            style = MDType.mono(14f, FontWeight.Bold, tracking = 2.0f),
-        )
-        Text(
-            text = "请在手机端打开 MeshDrop",
-            color = MDColor.muted,
-            style = MDType.body(10f, FontWeight.Medium),
-        )
-    }
-}
-
-@Composable
-private fun EmptyHint(onBack: () -> Unit) {
+private fun CenterHint(
+    title: String,
+    titleColor: Color,
+    sub: String,
+    onTap: (() -> Unit)? = null,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.clickable { onBack() },
+        modifier = if (onTap != null) Modifier.clickable { onTap() } else Modifier,
     ) {
         Text(
-            text = "暂无待审",
-            color = MDColor.dpaper,
+            text = title,
+            color = titleColor,
             style = MDType.display(16f, FontWeight.Bold),
         )
         Text(
-            text = "返回 NEARBY",
-            color = MDColor.lime,
-            style = MDType.mono(10f, FontWeight.Medium, tracking = 1.4f),
+            text = sub,
+            color = MDColor.muted,
+            style = MDType.mono(10f, FontWeight.Medium, tracking = 1.2f),
         )
     }
 }
 
-private fun humanSize(bytes: Long): String {
-    if (bytes < 1024) return "$bytes B"
-    val kb = bytes / 1024.0
-    if (kb < 1024) return String.format("%.1f KB", kb)
-    val mb = kb / 1024.0
-    if (mb < 1024) return String.format("%.1f MB", mb)
-    val gb = mb / 1024.0
-    return String.format("%.1f GB", gb)
-}
+/** 把 32 hex 指纹按 4 字符一组、大写展示，便于人工比对。 */
+private fun groupFingerprint(fp: String): String =
+    fp.uppercase().chunked(4).joinToString(" ")

@@ -19,17 +19,21 @@ cd wearos
 
 ## 当前覆盖（v0.1）
 
-- ✅ Compose for Wear UI（Tile / Detail / Quick Send sheet）
+- ✅ Compose for Wear UI（Nearby radar / Receive / Pairing 三页，HorizontalPager 可见切换）
 - ✅ WearableDataLayer 接 phone companion proxy
 - ✅ 快捷消息发送（替代写死的 wave / mock）
-- ✅ 同步显示 phone 端的设备列表 / 历史 / 待审 offer
+- ✅ 同步显示 phone 端的设备列表 / 历史 / 待审 offer / 待审配对
 - ✅ 处理 phone 推送的 incoming offer（accept / reject）
+- ✅ 处理 phone 推送的 pairing_pending（信任 / 拒绝，TOFU 显式确认）
 
 ## 不支持（设计如此）
 
 - ❌ 直接挂 LAN（带宽 / 电池预算不允许）
-- ❌ 大文件发送（>10 MB 时 UI 直接拒绝并提示用 phone）
+- ❌ 文件发送：桥接链路（`sendFileRef` / `putFileAsset`）已实装且带 >10 MiB 上限校验，
+  但尚未接入可达的发送 UI 入口（表上无文件选择器）；当前仅作为接口预留，需发文件请用 phone。
 - ❌ 单独身份（身份与 phone 共享）
+
+> 传输安全：v0.1 LAN 为明文 TCP，UI 不宣称端到端加密；身份/指纹为 Ed25519 + SHA-256。
 
 ## 与 Apple Watch 的对应关系
 
@@ -37,7 +41,7 @@ cd wearos
 | --- | --- | --- |
 | 桥接技术 | WatchConnectivity (WCSession) | WearableDataLayer (MessageClient / DataClient) |
 | Companion path | iOS phone | Android phone |
-| 大文件 | 直接拒 | 直接拒 |
+| 大文件 | 直接拒 | >10 MiB 直接拒（发送 UI 未接入） |
 | 短信发送 | ✓ | ✓ |
 | 接收 offer 响应 | ✓ | ✓ |
 | 单独身份 | × | × |

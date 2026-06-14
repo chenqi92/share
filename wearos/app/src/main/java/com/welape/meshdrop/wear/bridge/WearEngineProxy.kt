@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import java.util.UUID
 
@@ -38,6 +38,9 @@ class WearEngineProxy private constructor(context: Context) {
 
     private val _pendingOffers = MutableStateFlow<List<Offer>>(emptyList())
     val pendingOffers: StateFlow<List<Offer>> = _pendingOffers.asStateFlow()
+
+    private val _pendingPairings = MutableStateFlow<List<Pairing>>(emptyList())
+    val pendingPairings: StateFlow<List<Pairing>> = _pendingPairings.asStateFlow()
 
     private val _lastError = MutableStateFlow<String?>(null)
     val lastError: StateFlow<String?> = _lastError.asStateFlow()
@@ -71,12 +74,20 @@ class WearEngineProxy private constructor(context: Context) {
 
     suspend fun sendFileRef(peerId: String, fileUri: Uri, name: String, sizeBytes: Long, mime: String = "application/octet-stream"): Result<Unit> {
         if (!session.isOnline.value) return failOffline()
+        // 与 README/能力声明一致：wear 不发大文件，>10 MiB 由本端直接拒绝
+        if (sizeBytes > MAX_FILE_BYTES) {
+            _lastError.value = "file_too_large"
+            return Result.failure(IllegalArgumentException("file_too_large"))
+        }
         val transferId = "wear-${UUID.randomUUID()}"
         return runCatching { session.putFileAsset(fileUri, transferId) }
             .fold(
                 onSuccess = {
+                    // fileRef 必须是完整 DataItem path（/meshdrop/files/<id>），
+                    // phone 端按 path 解析 DataItem；传裸 id 会 100% asset_fetch_failed
+                    val fileRef = BridgePaths.FILES_PREFIX + transferId
                     val payload = bridgeJson.encodeToJsonElement(
-                        SendFileRefPayload(peerId, transferId, name, sizeBytes, mime),
+                        SendFileRefPayload(peerId, fileRef, name, sizeBytes, mime),
                     )
                     session.send(CmdType.SEND_FILE_REF, payload).toResult()
                 },
@@ -101,6 +112,22 @@ class WearEngineProxy private constructor(context: Context) {
         return resp.toResult()
     }
 
+    suspend fun acceptPairing(pairingId: String, trust: Boolean = true): Result<Unit> =
+        sendPairingDecision(CmdType.ACCEPT_PAIRING, pairingId, trust)
+
+    suspend fun rejectPairing(pairingId: String): Result<Unit> =
+        sendPairingDecision(CmdType.REJECT_PAIRING, pairingId, trust = false)
+
+    private suspend fun sendPairingDecision(type: String, pairingId: String, trust: Boolean): Result<Unit> {
+        if (!session.isOnline.value) return failOffline()
+        val payload = bridgeJson.encodeToJsonElement(PairingDecisionPayload(pairingId, trust))
+        val resp = session.send(type, payload)
+        if (resp.ok) {
+            _pendingPairings.value = _pendingPairings.value.filterNot { it.id == pairingId }
+        }
+        return resp.toResult()
+    }
+
     private fun handleEvent(evt: Evt) {
         runCatching {
             when (evt.type) {
@@ -119,6 +146,10 @@ class WearEngineProxy private constructor(context: Context) {
                 EvtType.OFFER_PENDING -> {
                     val offer = decode<Offer>(evt.payload)
                     _pendingOffers.value = _pendingOffers.value.upsert(offer) { it.id }
+                }
+                EvtType.PAIRING_PENDING -> {
+                    val pairing = decode<Pairing>(evt.payload)
+                    _pendingPairings.value = _pendingPairings.value.upsert(pairing) { it.id }
                 }
                 EvtType.TRANSFER_DONE -> {
                     val done = decode<TransferDone>(evt.payload)
@@ -140,12 +171,13 @@ class WearEngineProxy private constructor(context: Context) {
             return
         }
         runCatching {
-            val snap = bridgeJson.decodeFromString<StateSnapshot>(
-                Json.Default.encodeToString(resp.result ?: return@runCatching),
-            )
+            val result = resp.result ?: return@runCatching
+            // 直接对 JsonElement 解码，免去 encodeToString → decodeFromString 的二次往返
+            val snap = bridgeJson.decodeFromJsonElement<StateSnapshot>(result)
             _devices.value = snap.devices
             _history.value = snap.history
             _pendingOffers.value = snap.pendingOffers
+            _pendingPairings.value = snap.pendingPairings
         }.onFailure { Log.w(TAG, "state decode error", it) }
     }
 
@@ -153,6 +185,7 @@ class WearEngineProxy private constructor(context: Context) {
         _devices.value = emptyList()
         _history.value = emptyList()
         _pendingOffers.value = emptyList()
+        _pendingPairings.value = emptyList()
     }
 
     private fun failOffline(): Result<Unit> {
@@ -162,7 +195,7 @@ class WearEngineProxy private constructor(context: Context) {
 
     private inline fun <reified T> decode(payload: kotlinx.serialization.json.JsonElement?): T {
         requireNotNull(payload) { "payload missing" }
-        return bridgeJson.decodeFromString(Json.Default.encodeToString(payload))
+        return bridgeJson.decodeFromJsonElement(payload)
     }
 
     private fun <T> List<T>.upsert(item: T, key: (T) -> String): List<T> {
@@ -185,12 +218,18 @@ class WearEngineProxy private constructor(context: Context) {
                     val evt = bridgeJson.decodeFromString<Evt>(data.toString(Charsets.UTF_8))
                     handleEvent(evt)
                 }
+                // 回执经 Service 这路到达时，交回同一个 pending map 才能 complete 等待者，
+                // 否则命令一律走到 10s 超时
+                BridgePaths.CMD_RESP -> session.injectResp(data)
             }
         }
     }
 
     companion object {
         private const val TAG = "WearEngineProxy"
+
+        /** wear 端文件发送上限：10 MiB，超过由本端直接拒绝并提示用 phone（与 README 声明一致）。 */
+        const val MAX_FILE_BYTES = 10L * 1024 * 1024
 
         @Volatile
         private var INSTANCE: WearEngineProxy? = null
