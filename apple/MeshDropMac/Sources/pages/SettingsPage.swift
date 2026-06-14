@@ -10,8 +10,6 @@ struct SettingsPage: View {
     @State private var confirmingReset = false
     /// 「登录时启动」回显以系统真实登录项状态为准（onAppear 同步），开关动作走 SMAppService。
     @State private var launchAtLogin = LoginItemManager.isEnabled
-    /// 「显示在菜单栏」与 App 的 MenuBarExtra(isInserted:) 共享同一 key，改动重启后稳定生效。
-    @AppStorage("meshdrop.showInMenuBar") private var showInMenuBar = true
 
     var body: some View {
         PageScroll {
@@ -153,11 +151,11 @@ struct SettingsPage: View {
                             launchAtLogin = LoginItemManager.isEnabled || newValue
                         }
                     ))
-                    // 显示在菜单栏：与 App 的 MenuBarExtra(isInserted:) 共享 key，重启后稳定生效。
-                    noteToggle(
+                    // 显示在菜单栏：当前菜单栏项常驻（SwiftUI MenuBarExtra(isInserted:) 有启动卡死
+                    // 的 bug，显隐开关需改用手动 NSStatusItem，留待后续），先锁定为常显并标注。
+                    lockedOnToggle(
                         String(localized: "settings.behavior.showInMenuBar"),
-                        on: $showInMenuBar,
-                        note: String(localized: "settings.note.needsRestart")
+                        note: String(localized: "settings.note.alwaysOn")
                     )
                     field(String(localized: "settings.behavior.keepHistoryDays"), trailing:
                         Text(String(format: String(localized: "settings.behavior.keepHistoryDays.value"), keepHistoryDays))

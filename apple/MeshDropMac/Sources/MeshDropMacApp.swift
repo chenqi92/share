@@ -7,10 +7,6 @@ struct MeshDropMacApp: App {
     @StateObject private var state = AppState()
     @StateObject private var gateway = GatewayService()
 
-    /// 「显示在菜单栏」：默认开，与现有常驻 MenuBarExtra 行为一致。
-    /// 通过 `MenuBarExtra(isInserted:)` 绑定，关闭后菜单栏项消失；持久化到 UserDefaults。
-    @AppStorage("meshdrop.showInMenuBar") private var showInMenuBar = true
-
     init() {
         MeshDropFont.register()
         DispatchQueue.main.async {
@@ -53,7 +49,10 @@ struct MeshDropMacApp: App {
                 .frame(minWidth: 720, minHeight: 560)
         }
 
-        MenuBarExtra(isInserted: $showInMenuBar) {
+        // 菜单栏项常驻。注意：不要用 MenuBarExtra(isInserted:)——它在 .window 样式下
+        // 会与主菜单重建相互触发，启动即无限刷新菜单、主线程卡死。显隐开关需改用手动
+        // 管理的 NSStatusItem，留待后续。
+        MenuBarExtra {
             MenuBarDropdown()
                 .environmentObject(state)
                 .padding(8)
