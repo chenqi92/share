@@ -16,9 +16,9 @@ struct ShareExtensionMock: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     chosenAssets
-                    AsciiDivider("通过 MESHDROP 发送 · LAN")
+                    AsciiDivider(MD("shareExt.sendVia"))
                     deviceStrip
-                    AsciiDivider("EXTRAS · 附加")
+                    AsciiDivider(MD("shareExt.extrasSection"))
                     extras
                     Spacer(minLength: 20)
                     sendButton
@@ -31,7 +31,7 @@ struct ShareExtensionMock: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("取消") { dismiss() }
+                Button(MD("common.cancel")) { dismiss() }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 MeshDropMark(size: 22)
@@ -42,7 +42,7 @@ struct ShareExtensionMock: View {
     private var chosenAssets: some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("已选 3 张照片")
+                Text(MD("shareExt.assets.selected"))
                     .font(MeshDropFont.body(14, weight: .semibold))
                 Text("12.4 MB · HEIC")
                     .font(MeshDropFont.mono(11))
@@ -109,8 +109,8 @@ struct ShareExtensionMock: View {
                 HStack {
                     Image(systemName: "note.text").frame(width: 22)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text("加文字便签").font(MeshDropFont.body(13.5, weight: .semibold))
-                        Text("随手记一句").font(MeshDropFont.mono(10))
+                        Text(MD("shareExt.extras.note.title")).font(MeshDropFont.body(13.5, weight: .semibold))
+                        Text(MD("shareExt.extras.note.detail")).font(MeshDropFont.mono(10))
                             .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                     }
                 }
@@ -121,8 +121,8 @@ struct ShareExtensionMock: View {
             HStack {
                 Image(systemName: "wifi").frame(width: 22)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("只走局域网").font(MeshDropFont.body(13.5, weight: .semibold))
-                    Text("LAN · 明文 · v0.1").font(MeshDropFont.mono(10))
+                    Text(MD("shareExt.extras.lan.title")).font(MeshDropFont.body(13.5, weight: .semibold))
+                    Text(MD("shareExt.extras.lan.detail")).font(MeshDropFont.mono(10))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 }
                 Spacer()
@@ -153,7 +153,7 @@ struct ShareExtensionMock: View {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 15, weight: .bold))
-                Text("发送给 \(target.who)")
+                Text(MD("send.submit.toPeer", target.who))
                     .font(MeshDropFont.body(15, weight: .semibold))
             }
             .frame(maxWidth: .infinity)

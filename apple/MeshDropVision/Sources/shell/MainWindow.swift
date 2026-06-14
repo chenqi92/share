@@ -31,12 +31,12 @@ struct MainWindow: View {
     private var header: some View {
         HStack(spacing: 14) {
             MeshDropLockup(size: 26)
-            Chip(text: "SPATIAL · 客厅", tone: .outline, mono: true)
+            Chip(text: L10n.windowSpatialTag, tone: .outline, mono: true)
             Spacer()
             if engine.isStarting {
                 Chip(text: "● SCANNING", tone: .outline, mono: true)
             } else if engine.devices.isEmpty {
-                Chip(text: "● 等待设备", tone: .outline, mono: true)
+                Chip(text: L10n.windowWaitingChip, tone: .outline, mono: true)
             } else {
                 Chip(text: "● \(engine.devices.count) PEERS", tone: .lime, mono: true)
             }
@@ -47,44 +47,44 @@ struct MainWindow: View {
     private var heroCopy: some View {
         VStack(alignment: .leading, spacing: 10) {
             if engine.isStarting {
-                Text("正在扫描")
+                Text(L10n.windowScanningTitle)
                     .font(MDFont.hero)
                     .foregroundStyle(MD.dpaper)
                 HStack(alignment: .firstTextBaseline, spacing: 14) {
-                    Text("你身边的设备…")
+                    Text(L10n.windowScanningAccent)
                         .font(MDFont.hero)
                         .foregroundStyle(MD.lime)
                 }
-                Text("SCANNING · mDNS · _meshdrop._tcp")
+                Text(L10n.nearbyScanningSub)
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.55))
                     .padding(.top, 4)
             } else if engine.devices.isEmpty {
-                Text("你身边")
+                Text(L10n.windowEmptyTitle)
                     .font(MDFont.hero)
                     .foregroundStyle(MD.dpaper)
                 HStack(alignment: .firstTextBaseline, spacing: 14) {
-                    Text("还没有设备。")
+                    Text(L10n.windowEmptyAccent)
                         .font(MDFont.hero)
                         .foregroundStyle(MD.flame)
                 }
-                Text("让朋友也打开 MeshDrop · 同一 Wi-Fi 即可发现")
+                Text(L10n.windowEmptyBody)
                     .font(MDFont.body)
                     .foregroundStyle(MD.dpaper.opacity(0.65))
                     .padding(.top, 4)
             } else {
-                Text("你身边的设备")
+                Text(L10n.windowReadyTitle)
                     .font(MDFont.hero)
                     .foregroundStyle(MD.dpaper)
                 HStack(alignment: .firstTextBaseline, spacing: 14) {
-                    Text("都已就位。")
+                    Text(L10n.windowReadyAccent)
                         .font(MDFont.hero)
                         .foregroundStyle(MD.lime)
                     Image(systemName: "arrow.left")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(MD.dpaper.opacity(0.45))
                 }
-                Text("看向任意一台设备 · 捏合即发送")
+                Text(L10n.windowReadyBody)
                     .font(MDFont.body)
                     .foregroundStyle(MD.dpaper.opacity(0.65))
                     .padding(.top, 4)
@@ -117,7 +117,7 @@ struct MainWindow: View {
                     }
                 }
             } else {
-                Text("EMPTY · 还没有互动")
+                Text(L10n.windowRecentEmpty)
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.55))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -127,17 +127,16 @@ struct MainWindow: View {
     }
 
     private var recentLabel: String {
-        let total = engine.history.count
-        return "Recent · 最近互动 · 共 \(total) 条"
+        L10n.windowRecentLabel(engine.history.count)
     }
 
     private func statusLabel(_ status: TransferStatus) -> String {
         switch status {
         case .pending:                return "PENDING"
-        case .waitingApproval:        return "等待对方"
+        case .waitingApproval:        return L10n.statusWaitingApproval
         case .transferring(let d, let t) where t > 0:
             return "\(Int(Double(d)/Double(t)*100))%"
-        case .transferring:           return "传输中"
+        case .transferring:           return L10n.statusTransferring
         case .completed:              return "DONE"
         case .failed(let msg):        return "FAIL · \(msg.prefix(12))"
         case .canceled:               return "CANCELED"
@@ -158,7 +157,7 @@ struct MainWindow: View {
         case .text(let body): return body
         case .file(let name, let bytes, _):
             let s = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-            return "文件 · \(name) · \(s)"
+            return L10n.windowFileSnippet(name, s)
         }
     }
 
@@ -184,10 +183,10 @@ struct MainWindow: View {
             HStack(spacing: 8) {
                 Image(systemName: "hand.point.up.left.and.text")
                     .font(.system(size: 11, weight: .semibold))
-                Text("HOLD · 上下文")
+                Text(L10n.windowHoldHint)
             }
             Spacer()
-            Text("LAN · 明文 · v0.1")
+            Text(L10n.windowLanFooter)
                 .font(MDFont.microHi).tracking(1.6).textCase(.uppercase)
                 .foregroundStyle(MD.limeDeep)
         }

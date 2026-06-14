@@ -32,7 +32,7 @@ struct MenuBarDropdown: View {
             Spacer()
             Chip(text: "LAN", tone: .lime, mono: true)
             // v0.1 明文传输，不宣称 E2E/加密。
-            Chip(text: "明文 · v0.1", tone: .outline, mono: true)
+            Chip(text: String(localized: "menubar.tag.plaintext"), tone: .outline, mono: true)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -46,7 +46,7 @@ struct MenuBarDropdown: View {
             Text("DROP HERE")
                 .meshTag()
                 .foregroundStyle(MeshDropColor.limeDeep)
-            Text("拖入文件 / 图片 / 文字便签")
+            Text("menubar.dropHint")
                 .font(MeshDropFont.body(size: 11))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
@@ -68,7 +68,7 @@ struct MenuBarDropdown: View {
     private var nearby: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("附近 · NEARBY")
+                Text("menubar.nearby")
                     .meshTag()
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
@@ -80,7 +80,7 @@ struct MenuBarDropdown: View {
             .padding(.bottom, 4)
 
             if state.engineDevices.isEmpty {
-                Text(state.isScanning ? "扫描中…" : "附近暂无设备")
+                Text(state.isScanning ? "menubar.scanning" : "menubar.noDevices")
                     .font(MeshDropFont.mono(size: 11))
                     .foregroundStyle(MeshDropColor.textMuted)
                     .frame(maxWidth: .infinity)
@@ -98,12 +98,12 @@ struct MenuBarDropdown: View {
 
     private var actions: some View {
         VStack(spacing: 0) {
-            actionRow("快速发送 · Quick send", "paperplane") { openMainWindow(tab: .discovery) }
-            actionRow("剪贴板历史", "doc.on.clipboard") { openMainWindow(tab: .clipboard) }
-            actionRow("配对新设备", "person.2.badge.key") { openMainWindow(tab: .pairing) }
-            actionRow("打开 MeshDrop", "macwindow") { openMainWindow(tab: nil) }
-            actionRow("设置…", "gearshape") { openMainWindow(tab: .settings) }
-            actionRow("退出 MeshDrop", "power") { NSApp.terminate(nil) }
+            actionRow(String(localized: "menubar.action.quickSend"), "paperplane") { openMainWindow(tab: .discovery) }
+            actionRow(String(localized: "menubar.action.clipboardHistory"), "doc.on.clipboard") { openMainWindow(tab: .clipboard) }
+            actionRow(String(localized: "menubar.action.pair"), "person.2.badge.key") { openMainWindow(tab: .pairing) }
+            actionRow(String(localized: "menubar.action.open"), "macwindow") { openMainWindow(tab: nil) }
+            actionRow(String(localized: "menubar.action.settings"), "gearshape") { openMainWindow(tab: .settings) }
+            actionRow(String(localized: "menubar.action.quit"), "power") { NSApp.terminate(nil) }
         }
         .padding(.vertical, 6)
     }

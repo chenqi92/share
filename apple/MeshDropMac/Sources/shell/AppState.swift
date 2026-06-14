@@ -358,7 +358,7 @@ final class AppState: ObservableObject {
 extension MockDevice {
     static let placeholder = MockDevice(
         id: "—",
-        name: "等待发现…",
+        name: String(localized: "device.placeholder.waiting"),
         who: "—",
         kind: .mac,
         dist: 0,

@@ -24,7 +24,7 @@ struct ReceivePage: View {
                     Image(systemName: "tray.and.arrow.down")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(MeshDropColor.sky)
-                    Text(state.engineOffer == nil ? "暂无传输请求" : "收到一份传输请求")
+                    Text(state.engineOffer == nil ? "receive.empty.title" : "receive.title")
                         .font(MeshDropFont.hero(28))
                         .tracking(-0.5)
                         .foregroundStyle(MeshDropColor.textPrimary)
@@ -33,7 +33,7 @@ struct ReceivePage: View {
                 if let offer = state.engineOffer {
                     offerCard(offer)
                 } else {
-                    Text("当 LAN 上的设备给你发文件时，这里会弹出确认。")
+                    Text("receive.empty.detail")
                         .font(MeshDropFont.body(size: 12))
                         .foregroundStyle(MeshDropColor.textMuted)
                         .padding(20)
@@ -61,7 +61,7 @@ struct ReceivePage: View {
                         .font(MeshDropFont.body(size: 14, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textPrimary)
                     HStack(spacing: 5) {
-                        Chip(text: "已配对 · Paired", tone: .lime, mono: false)
+                        Chip(text: String(localized: "receive.paired"), tone: .lime, mono: false)
                         Text(offer.receivedAt)
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.textMuted)
@@ -73,12 +73,12 @@ struct ReceivePage: View {
             offerPreview(offer)
 
             HStack(spacing: 14) {
-                Text("将存到 ~/Documents/MeshDrop/\(offer.peer)/")
+                Text(String(format: String(localized: "receive.saveTo"), offer.peer))
                     .font(MeshDropFont.mono(size: 10.5))
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
                 Button { state.rejectCurrentOffer() } label: {
-                    Text("拒绝 · Reject")
+                    Text("receive.reject")
                         .font(MeshDropFont.body(size: 13, weight: .semibold))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 9)
@@ -90,7 +90,7 @@ struct ReceivePage: View {
                 }
                 .buttonStyle(.plain)
                 Button { state.acceptCurrentOffer() } label: {
-                    Text("接收 · Accept ⏎")
+                    Text("receive.accept")
                         .font(MeshDropFont.body(size: 13, weight: .semibold))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 9)

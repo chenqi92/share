@@ -153,7 +153,7 @@ extension HistoryItem {
         case .failed(let reason):
             state = .failed; failReason = reason
         case .canceled:
-            state = .failed; failReason = "已取消"
+            state = .failed; failReason = MD("transfer.canceled")
         }
         let ext = (name as NSString).pathExtension
         return MockTransfer(
@@ -161,8 +161,8 @@ extension HistoryItem {
             name: name,
             size: Self.byteFormatter.string(fromByteCount: Int64(size)),
             ext: ext.isEmpty ? "?" : ext,
-            from: dir == .outgoing ? "我" : peer.name,
-            to: dir == .outgoing ? peer.name : "我",
+            from: dir == .outgoing ? MD("common.me") : peer.name,
+            to: dir == .outgoing ? peer.name : MD("common.me"),
             progress: progress,
             state: state,
             direction: dir,
@@ -322,7 +322,7 @@ extension Identity {
             fingerprint: TrustRecord.humanFingerprint(fingerprint),
             ip: ip,
             os: Self.osLabel,
-            visibility: "可见"
+            visibility: MD("common.visible")
         )
     }
 

@@ -3,7 +3,8 @@ import SwiftUI
 /// gaze 瞄准圈：4 段弧 + 中央十字 + lime 微脉冲 + "看向 LILY · 准备捏合发送" 标签。
 struct GazeReticle: View {
     var radius: CGFloat = 80
-    var label: String = "看向 LILY · 准备捏合发送"
+    // 默认仅作占位；真实使用处（SpatialNearbyPage）总会传入本地化 label。
+    var label: String = L10n.nearbyGazeLabel("LILY")
     @State private var pulse = false
 
     var body: some View {

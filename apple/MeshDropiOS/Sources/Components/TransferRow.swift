@@ -66,7 +66,7 @@ public struct TransferRow: View {
                                     .foregroundStyle(MeshDropColor.flame)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("取消传输")
+                            .accessibilityLabel(MD("transfer.cancel.a11y"))
                         }
                     }
                     if item.state == .failed, let onRetry {
@@ -86,7 +86,7 @@ public struct TransferRow: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("重试发送")
+                        .accessibilityLabel(MD("transfer.retry.a11y"))
                     }
                     if item.state == .done, let onOpen {
                         Spacer(minLength: 4)
@@ -106,7 +106,7 @@ public struct TransferRow: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("打开文件")
+                        .accessibilityLabel(MD("transfer.open.a11y"))
                     }
                 }
 
@@ -148,11 +148,11 @@ public struct TransferRow: View {
 
     private var directionText: String {
         switch item.state {
-        case .done:         return "完成 · 给 \(item.to)"
+        case .done:         return MD("transfer.state.done", item.to)
         case .transferring: return item.direction == .outgoing
-            ? "发送中 · 给 \(item.to)" : "接收中 · 来自 \(item.from)"
-        case .queued:       return "排队 · 给 \(item.to)"
-        case .failed:       return item.failReason.map { "失败 · \($0)" } ?? "失败"
+            ? MD("transfer.state.sending", item.to) : MD("transfer.state.receiving", item.from)
+        case .queued:       return MD("transfer.state.queued", item.to)
+        case .failed:       return item.failReason.map { MD("transfer.state.failedReason", $0) } ?? MD("transfer.state.failed")
         }
     }
 

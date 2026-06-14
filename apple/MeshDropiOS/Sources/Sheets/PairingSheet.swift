@@ -15,9 +15,9 @@ struct PairingSheet: View {
                     VStack(alignment: .leading, spacing: 20) {
                         if let pending = engine.pendingPairings.first {
                             header(pending)
-                            AsciiDivider("FINGERPRINT · 指纹")
+                            AsciiDivider(MD("pairing.fingerprintSection"))
                             fingerprint(pending.peer.humanFingerprint)
-                            AsciiDivider("STEPS · 三步")
+                            AsciiDivider(MD("pairing.stepsSection"))
                             steps
                             actions(pending.id)
                         } else {
@@ -27,11 +27,11 @@ struct PairingSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle("配对 · Pairing")
+            .navigationTitle(MD("pairing.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(MD("common.done")) { dismiss() }
                 }
             }
         }
@@ -42,7 +42,7 @@ struct PairingSheet: View {
         return HStack(spacing: 12) {
             Avatar(initials: mock.initials, color: mock.color, size: 44, ring: .lime, online: true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("\(req.peer.name) 想配对")
+                Text(MD("pairing.wantsToPair", req.peer.name))
                     .font(MeshDropFont.body(15, weight: .semibold))
                 Text(req.peer.model ?? req.peer.name)
                     .font(MeshDropFont.mono(10.5))
@@ -60,7 +60,7 @@ struct PairingSheet: View {
                 .lineLimit(nil)
                 .multilineTextAlignment(.leading)
                 .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
-            Text("对端 MeshDrop 设置里也能看到相同的指纹。两边一致才允许。")
+            Text(MD("pairing.fingerprint.hint"))
                 .font(MeshDropFont.mono(11))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -68,9 +68,9 @@ struct PairingSheet: View {
 
     private var steps: some View {
         VStack(alignment: .leading, spacing: 10) {
-            stepRow(1, "在对端设备上确认 MeshDrop 已可见")
-            stepRow(2, "对比上方指纹首两组")
-            stepRow(3, "允许后下次自动放行")
+            stepRow(1, MD("pairing.step1"))
+            stepRow(2, MD("pairing.step2"))
+            stepRow(3, MD("pairing.step3"))
         }
     }
 
@@ -88,9 +88,9 @@ struct PairingSheet: View {
 
     private var empty: some View {
         VStack(spacing: 8) {
-            Text("当前没有待配对的设备")
+            Text(MD("pairing.empty.title"))
                 .font(MeshDropFont.body(14, weight: .semibold))
-            Text("对端发起连接时会出现在这里")
+            Text(MD("pairing.empty.subtitle"))
                 .font(MeshDropFont.mono(11))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -103,7 +103,7 @@ struct PairingSheet: View {
                 engine.respondToPairing(requestID, decision: .reject)
                 dismiss()
             } label: {
-                Text("拒绝")
+                Text(MD("common.reject"))
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -114,7 +114,7 @@ struct PairingSheet: View {
                 engine.respondToPairing(requestID, decision: .trust)
                 dismiss()
             } label: {
-                Text("允许并记住")
+                Text(MD("pairing.primary.trust"))
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

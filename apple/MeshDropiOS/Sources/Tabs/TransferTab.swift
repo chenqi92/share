@@ -32,23 +32,23 @@ struct TransferTab: View {
                         emptyCard
                     } else {
                         if !active.isEmpty {
-                            AsciiDivider("ACTIVE · 进行中 · \(active.count)")
+                            AsciiDivider(MD("transfer.section.active", active.count))
                             ForEach(active) { item in
                                 TransferRow(item, onCancel: { cancel(item) })
                             }
                         }
                         if !queued.isEmpty {
-                            AsciiDivider("QUEUED · 等待 · \(queued.count)")
+                            AsciiDivider(MD("transfer.section.queued", queued.count))
                             ForEach(queued) { TransferRow($0) }
                         }
                         if !done.isEmpty {
-                            AsciiDivider("COMPLETED · 完成 · \(done.count)")
+                            AsciiDivider(MD("transfer.section.completed", done.count))
                             ForEach(done) { item in
                                 TransferRow(item, onOpen: openClosure(for: item))
                             }
                         }
                         if !failed.isEmpty {
-                            AsciiDivider("FAILED · 失败 · \(failed.count)")
+                            AsciiDivider(MD("transfer.section.failed", failed.count))
                             ForEach(failed) { item in
                                 TransferRow(item, onRetry: retryClosure(for: item))
                             }
@@ -69,9 +69,9 @@ struct TransferTab: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("传输")
+            Text(MD("transfer.title"))
                 .font(MeshDropFont.display(28, weight: .bold))
-            Text("Transfers.")
+            Text(MD("nav.transfers.subtitle"))
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
@@ -102,9 +102,9 @@ struct TransferTab: View {
 
     private var emptyCard: some View {
         VStack(spacing: 8) {
-            Text("没有传输任务")
+            Text(MD("transfer.empty.title"))
                 .font(MeshDropFont.body(14, weight: .semibold))
-            Text("发送或接收文件后会出现在这里")
+            Text(MD("transfer.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }

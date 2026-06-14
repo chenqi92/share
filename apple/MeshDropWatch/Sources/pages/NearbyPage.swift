@@ -87,7 +87,7 @@ struct NearbyPage: View {
                 }
             }
         }
-        .alert(alertText, isPresented: $alertShown) { Button("好", role: .cancel) {} }
+        .alert(alertText, isPresented: $alertShown) { Button(L10n.commonOK, role: .cancel) {} }
         .sheet(item: $sendTarget) { target in
             SendTextSheet(peerName: target.who) { text in
                 sendTarget = nil
@@ -109,7 +109,7 @@ struct NearbyPage: View {
             // 已有多选：单击切换该项选中状态。
             if selectedIDs.contains(d.id) { selectedIDs.remove(d.id) } else { selectedIDs.insert(d.id) }
             WKInterfaceDevice.current().play(.click)
-            alertText = "多选 · \(selectedIDs.count) 台 · SELECTED"
+            alertText = L10n.nearbySelectedCount(selectedIDs.count)
             alertShown = true
         }
     }
@@ -124,10 +124,10 @@ struct NearbyPage: View {
             do {
                 try await proxy.sendText(to: d.id, text: trimmed)
                 WKInterfaceDevice.current().play(.success)
-                alertText = "已发送 · SENT · \(d.who)"
+                alertText = L10n.nearbySent(d.who)
             } catch {
                 WKInterfaceDevice.current().play(.failure)
-                alertText = "发送失败 · \(proxy.lastError ?? error.localizedDescription)"
+                alertText = L10n.nearbySendFailed(proxy.lastError ?? error.localizedDescription)
             }
             alertShown = true
         }
@@ -169,11 +169,11 @@ struct NearbyPage: View {
 
     private var title: some View {
         HStack(alignment: .lastTextBaseline, spacing: 6) {
-            Text("附近")
+            Text(L10n.nearbyTitle)
                 .font(MDFont.display(28, weight: .bold))
                 .tracking(-0.6)
                 .foregroundColor(MD.dpaper)
-            Text("· Nearby")
+            Text(L10n.nearbyTitleSuffix)
                 .font(MDFont.body(13, weight: .medium))
                 .foregroundColor(MD.muted)
                 .offset(y: -2)
@@ -181,7 +181,7 @@ struct NearbyPage: View {
     }
 
     private var hint: some View {
-        Text(isOffline ? "iPhone 不在身边 · OFFLINE" : "转动表冠选人 · CROWN TO PICK")
+        Text(isOffline ? L10n.nearbyHintOffline : L10n.nearbyHintCrown)
             .font(MDFont.mono(10, weight: .medium))
             .tracking(1.2)
             .foregroundColor(MD.muted)
@@ -193,10 +193,10 @@ struct NearbyPage: View {
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("iPhone 不在身边")
+            Text(L10n.nearbyOfflineTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("等手机靠近自动回连")
+            Text(L10n.nearbyOfflineDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
             if let err = proxy.lastError {
@@ -214,14 +214,14 @@ struct NearbyPage: View {
 
     private var emptyCard: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("空 · EMPTY")
+            Text(L10n.nearbyEmptyTag)
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("附近没有设备")
+            Text(L10n.nearbyEmptyTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("让朋友也打开 MeshDrop")
+            Text(L10n.nearbyEmptyDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
         }
@@ -236,7 +236,7 @@ struct NearbyPage: View {
             Text("↑")
                 .font(MDFont.mono(12, weight: .bold))
                 .foregroundColor(MD.lime)
-            Text("点击发文本 · 长按多选")
+            Text(L10n.nearbyFooterHint)
                 .font(MDFont.mono(10, weight: .medium))
                 .tracking(1.0)
                 .foregroundColor(MD.dim)
@@ -303,7 +303,7 @@ private struct SendTextSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 4) {
-                    Text("发给 · TO")
+                    Text(L10n.composerTo)
                         .font(MDFont.mono(10, weight: .bold))
                         .tracking(1.4)
                         .foregroundColor(MD.lime)
@@ -313,7 +313,7 @@ private struct SendTextSheet: View {
                         .lineLimit(1)
                 }
 
-                TextField("说点什么…", text: $text)
+                TextField(L10n.composerPlaceholder, text: $text)
                     .font(MDFont.body(14, weight: .regular))
                     .foregroundColor(MD.dpaper)
                     .padding(8)
@@ -324,7 +324,7 @@ private struct SendTextSheet: View {
                 } label: {
                     HStack {
                         Spacer()
-                        Text("发送 · SEND")
+                        Text(L10n.composerSend)
                             .font(MDFont.mono(12, weight: .bold))
                             .tracking(1.2)
                             .foregroundColor(MD.dink)
@@ -336,7 +336,7 @@ private struct SendTextSheet: View {
                 .buttonStyle(.plain)
                 .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                Button("取消 · CANCEL", role: .cancel, action: onCancel)
+                Button(L10n.composerCancel, role: .cancel, action: onCancel)
                     .font(MDFont.mono(10, weight: .medium))
                     .foregroundColor(MD.muted)
             }

@@ -9,7 +9,7 @@ struct PairingCodeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Web 浏览器入口")
+                Text("gateway.entry")
                     .font(MeshDropFont.body(size: 12.5))
                     .foregroundStyle(MeshDropColor.textPrimary)
                 Spacer()
@@ -44,15 +44,15 @@ struct PairingCodeView: View {
                             .buttonStyle(.borderless)
                         }
                         Text(gateway.isRunning
-                             ? "● 已运行 · listening :\(gateway.port)"
-                             : (gateway.enabled ? "○ 未运行" : "○ 已关闭"))
+                             ? String(format: String(localized: "gateway.running"), "\(gateway.port)")
+                             : (gateway.enabled ? String(localized: "gateway.notRunning") : String(localized: "gateway.off")))
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(gateway.isRunning ? MeshDropColor.limeDeep : MeshDropColor.textMuted)
                     }
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text("配对码 · PAIRING CODE")
+                        Text("gateway.pairingCode")
                             .font(MeshDropFont.mono(size: 10, weight: .bold))
                             .foregroundStyle(MeshDropColor.textMuted)
                         HStack(spacing: 6) {
@@ -77,7 +77,7 @@ struct PairingCodeView: View {
                 .padding(.horizontal, 14)
 
                 HStack(spacing: 12) {
-                    Text("端口")
+                    Text("gateway.port")
                         .font(MeshDropFont.body(size: 12))
                         .foregroundStyle(MeshDropColor.textPrimary)
                     TextField("", text: $portText, onCommit: {
@@ -91,7 +91,7 @@ struct PairingCodeView: View {
                     .font(MeshDropFont.mono(size: 12, weight: .semibold))
                     .frame(width: 90)
                     Spacer()
-                    Text("浏览器首次访问需输入上方的 6 字符配对码（24h 有效）")
+                    Text("gateway.codeHint")
                         .font(MeshDropFont.body(size: 11))
                         .foregroundStyle(MeshDropColor.textMuted)
                 }

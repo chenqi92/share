@@ -107,7 +107,7 @@ struct TransfersPage: View {
         GlassCard(corner: 32) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text("飞行中 · IN FLIGHT")
+                    Text(L10n.transferInFlight)
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundStyle(MD.dpaper)
                     Spacer()
@@ -118,11 +118,11 @@ struct TransfersPage: View {
                 if inFlight.isEmpty {
                     emptyState
                 } else {
-                    ASCIIDivider(label: "ACTIVE · 进行中")
+                    ASCIIDivider(label: L10n.transferActiveDivider)
                     ForEach(inFlight) { tr in
                         transferRow(tr)
                     }
-                    Text("看向轨迹任意一段 · 捏合可暂停 / 取消")
+                    Text(L10n.transferFooterHint)
                         .font(MDFont.micro).mdMonoTracking()
                         .foregroundStyle(MD.dpaper.opacity(0.45))
                 }
@@ -137,9 +137,9 @@ struct TransfersPage: View {
     private var emptyState: some View {
         VStack(spacing: 10) {
             Spacer()
-            Text("没有进行中的传输")
+            Text(L10n.transferEmptyTitle)
                 .font(MDFont.cardTitle).foregroundStyle(MD.dpaper)
-            Text("EMPTY · 在附近页面 pinch 一台设备试试")
+            Text(L10n.transferEmptySub)
                 .font(MDFont.microHi).tracking(1.6)
                 .foregroundStyle(MD.dpaper.opacity(0.6))
             Spacer()
@@ -193,7 +193,7 @@ struct TransfersPage: View {
                     Text(tr.size)
                         .font(MDFont.micro).mdMonoTracking()
                         .foregroundStyle(MD.dpaper.opacity(0.6))
-                    Text(tr.state == .failed ? "失败 · FAILED" : "\(Int(tr.progress * 100))%")
+                    Text(tr.state == .failed ? L10n.transferFailedLabel : "\(Int(tr.progress * 100))%")
                         .font(MDFont.microHi).mdMonoTracking()
                         .foregroundStyle(stateColor)
                     Spacer()
@@ -204,7 +204,7 @@ struct TransfersPage: View {
     }
 
     private func peerName(for id: String) -> String {
-        if id == "me" { return "我" }
+        if id == "me" { return L10n.transferSelfName }
         if let p = livePeers.first(where: { $0.id == id }) {
             return p.who
         }

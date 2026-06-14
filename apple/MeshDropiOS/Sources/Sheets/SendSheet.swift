@@ -19,12 +19,22 @@ struct SendSheet: View {
     @State private var photoSelection: [PhotosPickerItem] = []
 
     enum SendKind: String, CaseIterable, Identifiable {
-        case text = "文本"
-        case clipboard = "剪贴板"
-        case photo = "照片"
-        case file = "文件"
+        case text
+        case clipboard
+        case photo
+        case file
 
         var id: String { rawValue }
+
+        /// 分段选择器 / 标题里展示的本地化名称。
+        var label: String {
+            switch self {
+            case .text:      return MD("send.kind.text")
+            case .clipboard: return MD("send.kind.clipboard")
+            case .photo:     return MD("send.kind.photo")
+            case .file:      return MD("send.kind.file")
+            }
+        }
     }
 
     init(initialKind: SendKind = .text, allowsKindSwitch: Bool = true) {
@@ -50,7 +60,7 @@ struct SendSheet: View {
                         if allowsKindSwitch {
                             Picker("", selection: $kind) {
                                 ForEach(SendKind.allCases) { k in
-                                    Text(k.rawValue).tag(k)
+                                    Text(k.label).tag(k)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -58,8 +68,8 @@ struct SendSheet: View {
 
                         switch kind {
                         case .text:
-                            textBlock(title: "TEXT · 文本",
-                                      placeholder: "想写点什么…\n例如「方案已确认，明天发」")
+                            textBlock(title: MD("send.text.section"),
+                                      placeholder: MD("send.text.placeholder"))
                         case .clipboard:
                             clipboardBlock
                         case .photo:
@@ -74,11 +84,11 @@ struct SendSheet: View {
                     .padding(20)
                 }
             }
-            .navigationTitle(allowsKindSwitch ? "发送 · Send" : "发送\(kind.rawValue)")
+            .navigationTitle(allowsKindSwitch ? MD("send.title.general") : MD("send.title.kind", kind.label))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") { dismiss() }
+                    Button(MD("common.cancel")) { dismiss() }
                 }
             }
             .fileImporter(
@@ -109,7 +119,7 @@ struct SendSheet: View {
             Avatar(initials: target.initials,
                    color: target.color, size: 36, online: target.isOnline)
             VStack(alignment: .leading, spacing: 2) {
-                Text(realTarget == nil ? "选择设备" : "发送给 \(target.who)")
+                Text(realTarget == nil ? MD("common.selectDevice") : MD("send.target.toPeer", target.who))
                     .font(MeshDropFont.body(15, weight: .semibold))
                 HStack(spacing: 6) {
                     KindGlyph(target.kind, size: 10)
@@ -162,32 +172,32 @@ struct SendSheet: View {
     private var clipboardBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("剪贴板")
+                Text(MD("send.clipboard.title"))
                     .font(MeshDropFont.body(13, weight: .semibold))
                     .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
                 Spacer()
                 Button {
                     readClipboard()
                 } label: {
-                    Label("读取当前剪贴板", systemImage: "doc.on.clipboard")
+                    Label(MD("send.clipboard.read"), systemImage: "doc.on.clipboard")
                         .font(MeshDropFont.mono(10))
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(MeshDropColor.sky)
             }
-            textBlock(title: "CLIPBOARD · 推送内容",
-                      placeholder: "读取或粘贴要推送的剪贴板内容…")
+            textBlock(title: MD("send.clipboard.section"),
+                      placeholder: MD("send.clipboard.placeholder"))
         }
     }
 
     private var photoBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AsciiDivider("PHOTO · 已选 \(stagedPhotos.count) 张")
+            AsciiDivider(MD("send.photo.section", stagedPhotos.count))
             fileRows(stagedPhotos)
             PhotosPicker(selection: $photoSelection,
                          maxSelectionCount: 0,
                          matching: .images) {
-                pickerButton(title: stagedPhotos.isEmpty ? "选择照片" : "继续添加照片",
+                pickerButton(title: stagedPhotos.isEmpty ? MD("send.photo.choose") : MD("send.photo.add"),
                              systemImage: "photo.on.rectangle")
             }
             .buttonStyle(.plain)
@@ -196,12 +206,12 @@ struct SendSheet: View {
 
     private var fileBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AsciiDivider("FILE · 已选 \(stagedFiles.count) 个")
+            AsciiDivider(MD("send.file.section", stagedFiles.count))
             fileRows(stagedFiles)
             Button {
                 showFileImporter = true
             } label: {
-                pickerButton(title: stagedFiles.isEmpty ? "选择文件" : "继续添加文件",
+                pickerButton(title: stagedFiles.isEmpty ? MD("send.file.choose") : MD("send.file.add"),
                              systemImage: "plus.circle")
             }
             .buttonStyle(.plain)
@@ -211,7 +221,7 @@ struct SendSheet: View {
     @ViewBuilder
     private func fileRows(_ urls: [URL]) -> some View {
         if urls.isEmpty {
-            Text("还没有选择内容")
+            Text(MD("send.nothingSelected"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -258,7 +268,7 @@ struct SendSheet: View {
             HStack(spacing: 8) {
                 Image(systemName: "arrow.up.right")
                     .font(.system(size: 15, weight: .bold))
-                Text(realTarget == nil ? "请先选择设备" : "发送给 \(target.who)")
+                Text(realTarget == nil ? MD("send.submit.selectDeviceFirst") : MD("send.submit.toPeer", target.who))
                     .font(MeshDropFont.body(15, weight: .semibold))
             }
             .frame(maxWidth: .infinity)

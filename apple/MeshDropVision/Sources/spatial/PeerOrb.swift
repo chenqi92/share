@@ -50,7 +50,7 @@ struct PeerOrb: View {
                     }
 
                     HStack(spacing: 6) {
-                        Chip(text: "ONLINE", tone: .lime, mono: true, leadingDot: MD.limeDeep)
+                        Chip(text: L10n.peerOnline, tone: .lime, mono: true, leadingDot: MD.limeDeep)
                         Chip(text: "\(device.rtt) ms", tone: .outline, mono: true)
                         Spacer()
                         Text("≈ \(formattedMeters)")
@@ -63,7 +63,7 @@ struct PeerOrb: View {
                             Image(systemName: "hand.pinch.fill")
                                 .foregroundStyle(MD.lime)
                                 .font(.system(size: 12, weight: .semibold))
-                            Text("捏合 · 发送 3 张照片 → \(device.who)")
+                            Text(L10n.peerSendCue(device.who))
                                 .font(MDFont.label)
                                 .foregroundStyle(MD.dpaper.opacity(0.92))
                         }

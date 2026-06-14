@@ -4,6 +4,10 @@ options:
   deploymentTarget:
     macOS: "14.0"
   developmentLanguage: zh-Hans
+  # String Catalog 本地化：简体中文（默认）+ English
+  knownRegions:
+    - zh-Hans
+    - en
 
 settings:
   base:

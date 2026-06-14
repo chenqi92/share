@@ -54,7 +54,7 @@ struct DiscoverTab: View {
             case .success(let urls):
                 sendPickedFiles(urls)
             case .failure(let error):
-                quickNotice = QuickNotice(title: "文件无法读取", message: error.localizedDescription)
+                quickNotice = QuickNotice(title: MD("discovery.fileUnreadable.title"), message: error.localizedDescription)
             }
         }
         .photosPicker(isPresented: $showPhotoPicker,
@@ -75,7 +75,7 @@ struct DiscoverTab: View {
         .alert(item: $quickNotice) { notice in
             Alert(title: Text(notice.title),
                   message: Text(notice.message),
-                  dismissButton: .default(Text("好")))
+                  dismissButton: .default(Text(MD("common.ok"))))
         }
     }
 
@@ -98,7 +98,7 @@ struct DiscoverTab: View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(MeshDropColor.flame)
-            Text("网络出错 — \(msg)")
+            Text(MD("discovery.error", msg))
                 .font(MeshDropFont.mono(11))
                 .lineLimit(2)
             Spacer()
@@ -121,14 +121,14 @@ struct DiscoverTab: View {
     private var heroBlock: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("附近")
+                Text(MD("discovery.title"))
                     .font(MeshDropFont.display(34, weight: .bold))
-                Text("\(devices.filter(\.isOnline).count) 台")
+                Text(MD("discovery.deviceCount", devices.filter(\.isOnline).count))
                     .font(MeshDropFont.mono(14, weight: .semibold))
                     .foregroundStyle(MeshDropColor.flame)
             }
             HStack(spacing: 6) {
-                Text("Nearby devices.")
+                Text(MD("discovery.subtitle"))
                     .font(MeshDropFont.display(20, weight: .semibold))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                 Spacer()
@@ -154,7 +154,7 @@ struct DiscoverTab: View {
     @ViewBuilder
     private var deviceListBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AsciiDivider("DEVICES · 设备 · \(devices.count)")
+            AsciiDivider("DEVICES · \(devices.count)")
             if devices.isEmpty {
                 emptyDeviceCard
             } else {
@@ -165,14 +165,14 @@ struct DiscoverTab: View {
                             state.phoneTab = .chats
                         }
                         .contextMenu {
-                            Button("发送…") {
+                            Button(MD("discovery.menu.send")) {
                                 state.selectedDeviceID = d.id
                                 state.presentSend(.text)
                             }
-                            Button("查看资料") {}
-                            Button("静音") {}
+                            Button(MD("discovery.menu.viewProfile")) {}
+                            Button(MD("discovery.menu.mute")) {}
                             Divider()
-                            Button("取消信任", role: .destructive) {
+                            Button(MD("discovery.menu.revokeTrust"), role: .destructive) {
                                 if let real = engine.realDevice(for: d.id) {
                                     engine.revokeTrust(fingerprint: real.fingerprint)
                                 }
@@ -185,9 +185,9 @@ struct DiscoverTab: View {
 
     private var emptyDeviceCard: some View {
         VStack(spacing: 8) {
-            Text("附近没有 MeshDrop 设备")
+            Text(MD("discovery.devices.empty.title"))
                 .font(MeshDropFont.body(13.5, weight: .semibold))
-            Text("让朋友也打开试试 · 同一 Wi-Fi 自动发现")
+            Text(MD("discovery.devices.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -205,12 +205,12 @@ struct DiscoverTab: View {
 
     private var quickStripBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("QUICK SEND · 快捷发送")
+            AsciiDivider(MD("discovery.quick.sectionTitle"))
             HStack(spacing: 10) {
-                quickItem("文本",  "text.alignleft",  variant: .ink, action: openQuickText)
-                quickItem("剪贴板", "doc.on.clipboard", variant: .ghost, action: sendClipboardNow)
-                quickItem("照片",   "photo.on.rectangle", variant: .ghost, action: openPhotoPickerNow)
-                quickItem("文件",   "folder",         variant: .ghost, action: openFilePickerNow)
+                quickItem(MD("discovery.quick.text"),      "text.alignleft",  variant: .ink, action: openQuickText)
+                quickItem(MD("discovery.quick.clipboard"), "doc.on.clipboard", variant: .ghost, action: sendClipboardNow)
+                quickItem(MD("discovery.quick.photo"),     "photo.on.rectangle", variant: .ghost, action: openPhotoPickerNow)
+                quickItem(MD("discovery.quick.file"),      "folder",         variant: .ghost, action: openFilePickerNow)
             }
             if let quickStatus {
                 Text(quickStatus)
@@ -246,11 +246,11 @@ struct DiscoverTab: View {
         guard let target = ensureQuickTarget() else { return }
         let content = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !content.isEmpty else {
-            quickNotice = QuickNotice(title: "剪贴板为空", message: "复制一段文字后再点剪贴板快捷发送。")
+            quickNotice = QuickNotice(title: MD("discovery.quickTarget.clipboardEmpty.title"), message: MD("discovery.quickTarget.clipboardEmpty.message"))
             return
         }
         engine.pushClipboard(to: target, content: content, kind: ClipboardTab.clipKind(content))
-        showQuickSuccess("已发送剪贴板给 \(target.name)")
+        showQuickSuccess(MD("discovery.quickStatus.clipboardSent", target.name))
     }
 
     private func openPhotoPickerNow() {
@@ -267,7 +267,7 @@ struct DiscoverTab: View {
 
     private func ensureQuickTarget() -> Device? {
         guard let target = quickTarget else {
-            quickNotice = QuickNotice(title: "没有可发送设备", message: "等附近设备出现后再使用快捷发送。")
+            quickNotice = QuickNotice(title: MD("discovery.quickTarget.noDevice.title"), message: MD("discovery.quickTarget.noDevice.message"))
             return nil
         }
         state.selectedDeviceID = target.id
@@ -277,7 +277,7 @@ struct DiscoverTab: View {
     private func sendPickedFiles(_ urls: [URL]) {
         guard let target = ensureQuickTarget(), !urls.isEmpty else { return }
         urls.forEach { engine.sendFile(to: target, sourceURL: $0) }
-        showQuickSuccess("已发送 \(urls.count) 个文件给 \(target.name)")
+        showQuickSuccess(MD("discovery.quickStatus.filesSent", urls.count, target.name))
     }
 
     private func sendPickedPhotos(_ items: [PhotosPickerItem]) async {
@@ -299,9 +299,9 @@ struct DiscoverTab: View {
             }
         }
         if sent > 0 {
-            showQuickSuccess("已发送 \(sent) 张照片给 \(target.name)")
+            showQuickSuccess(MD("discovery.quickStatus.photosSent", sent, target.name))
         } else {
-            quickNotice = QuickNotice(title: "照片无法读取", message: "没有成功读取可发送的图片。")
+            quickNotice = QuickNotice(title: MD("discovery.photosUnreadable.title"), message: MD("discovery.photosUnreadable.message"))
         }
     }
 
@@ -313,7 +313,7 @@ struct DiscoverTab: View {
     private var statusBar: some View {
         HStack(spacing: 8) {
             Chip("LAN ONLY", tone: .outline, mono: true, uppercased: true)
-            Chip(engine.isStarting ? "扫描中" : "可见",
+            Chip(engine.isStarting ? MD("discovery.status.scanning") : MD("discovery.status.visible"),
                  tone: .lime,
                  mono: true, uppercased: true,
                  icon: engine.isStarting ? "circle.dotted" : "eye.fill")

@@ -29,7 +29,7 @@ struct ClipboardTab: View {
                     if engine.clipboardInbox.isEmpty {
                         emptyCard
                     } else {
-                        AsciiDivider("INBOX · 收到的剪贴板 · \(engine.clipboardInbox.count)")
+                        AsciiDivider(MD("clipboard.inbox.section", engine.clipboardInbox.count))
                         ForEach(engine.clipboardInbox) { entry in
                             row(entry)
                         }
@@ -46,16 +46,16 @@ struct ClipboardTab: View {
             ToolbarItem(placement: .principal) { MeshDropLockup(size: 17) }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("完成") { editorFocused = false }
+                Button(MD("common.done")) { editorFocused = false }
             }
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("剪贴板")
+            Text(MD("clipboard.title"))
                 .font(MeshDropFont.display(28, weight: .bold))
-            Text("Clipboard.")
+            Text(MD("clipboard.subtitle"))
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
@@ -66,12 +66,12 @@ struct ClipboardTab: View {
     private var composer: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("推送到")
+                Text(MD("clipboard.composer.pushTo"))
                     .font(MeshDropFont.mono(10.5))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                 Menu {
                     if devices.isEmpty {
-                        Text("无在线设备")
+                        Text(MD("clipboard.noOnlineDevice"))
                     } else {
                         ForEach(devices, id: \.id) { d in
                             Button(d.name) { state.selectedDeviceID = d.id }
@@ -79,7 +79,7 @@ struct ClipboardTab: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(target?.name ?? "选择设备")
+                        Text(target?.name ?? MD("common.selectDevice"))
                             .font(MeshDropFont.body(13, weight: .semibold))
                         Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
                     }
@@ -89,7 +89,7 @@ struct ClipboardTab: View {
                 Button {
                     if let s = UIPasteboard.general.string, !s.isEmpty { draft = s }
                 } label: {
-                    Label("读取剪贴板", systemImage: "doc.on.clipboard")
+                    Label(MD("clipboard.composer.read"), systemImage: "doc.on.clipboard")
                         .font(MeshDropFont.mono(10))
                 }
                 .buttonStyle(.plain)
@@ -116,7 +116,7 @@ struct ClipboardTab: View {
                 Button {
                     push()
                 } label: {
-                    Text("↑ 推送")
+                    Text(MD("clipboard.composer.push"))
                         .font(MeshDropFont.mono(11, weight: .bold))
                         .padding(.horizontal, 18).padding(.vertical, 8)
                         .background(
@@ -169,7 +169,7 @@ struct ClipboardTab: View {
                 Button {
                     UIPasteboard.general.string = entry.content
                 } label: {
-                    Label("复制", systemImage: "doc.on.doc")
+                    Label(MD("common.copy"), systemImage: "doc.on.doc")
                         .font(MeshDropFont.mono(10))
                 }
                 .buttonStyle(.plain)
@@ -193,9 +193,9 @@ struct ClipboardTab: View {
 
     private var emptyCard: some View {
         VStack(spacing: 8) {
-            Text("还没有收到剪贴板")
+            Text(MD("clipboard.empty.title"))
                 .font(MeshDropFont.body(14, weight: .semibold))
-            Text("对方推送剪贴板后会出现在这里")
+            Text(MD("clipboard.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }

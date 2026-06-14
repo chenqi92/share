@@ -36,7 +36,7 @@ enum LivePeerMapper {
         return MockDevice(
             id: device.id,
             name: device.model ?? device.name,
-            who: device.name.isEmpty ? "未命名" : device.name,
+            who: device.name.isEmpty ? L10n.deviceUnnamed : device.name,
             kind: kind,
             dist: dist,
             angle: angle,
@@ -133,7 +133,7 @@ enum LiveTransferMapper {
             case .text(let body):
                 name = body.count > 40 ? String(body.prefix(40)) + "…" : body
                 ext = "txt"
-                size = "\(body.count) 字"
+                size = L10n.transferCharCount(body.count)
             case .file(let fileName, let bytes, _):
                 name = fileName
                 ext = (fileName as NSString).pathExtension

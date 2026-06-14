@@ -25,22 +25,22 @@ struct PendingShareResolverSheet: View {
                                 itemRow(resolved)
                             }
                         } header: {
-                            Text("从「分享」收到 \(items.count) 项 · 选择发送目标")
+                            Text(MD("pendingShare.header", items.count))
                         } footer: {
                             if engine.devices.isEmpty {
-                                Text("附近暂无设备。确保对方在同一 Wi-Fi 且打开了 MeshDrop，设备出现后即可选择。")
+                                Text(MD("pendingShare.noDevices.footer"))
                             }
                         }
                     }
                 }
             }
-            .navigationTitle("待发送")
+            .navigationTitle(MD("pendingShare.title"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("稍后") { dismiss() }
+                    Button(MD("pendingShare.later")) { dismiss() }
                 }
             }
         }
@@ -66,7 +66,7 @@ struct PendingShareResolverSheet: View {
             }
 
             if engine.devices.isEmpty {
-                Text("等待设备…")
+                Text(MD("pendingShare.waitingForDevice"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -100,7 +100,7 @@ struct PendingShareResolverSheet: View {
             Button(role: .destructive) {
                 discard(resolved)
             } label: {
-                Label("删除", systemImage: "trash")
+                Label(MD("common.delete"), systemImage: "trash")
             }
         }
     }
@@ -110,7 +110,7 @@ struct PendingShareResolverSheet: View {
             Image(systemName: "tray")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("没有待发送的分享")
+            Text(MD("pendingShare.empty.title"))
                 .font(.headline)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

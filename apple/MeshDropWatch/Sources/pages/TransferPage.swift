@@ -54,7 +54,7 @@ struct TransferPage: View {
 
             statRow(transfer)
 
-            Text("传输由手机继续 · 手表只显示进度")
+            Text(L10n.transferFooterHint)
                 .font(MDFont.mono(10, weight: .medium))
                 .tracking(0.8)
                 .foregroundColor(MD.dim)
@@ -70,10 +70,10 @@ struct TransferPage: View {
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("iPhone 不在身边")
+            Text(L10n.transferOfflineTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("传输进度暂停更新")
+            Text(L10n.transferOfflineDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
         }
@@ -85,14 +85,14 @@ struct TransferPage: View {
 
     private var idleCard: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("空闲 · IDLE")
+            Text(L10n.transferIdleTag)
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("当前无传输")
+            Text(L10n.transferIdleTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("发起后会在这里看到进度")
+            Text(L10n.transferIdleDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
         }
@@ -140,10 +140,10 @@ struct TransferPage: View {
     private func statRow(_ transfer: WatchTransferVM) -> some View {
         HStack(spacing: 10) {
             if let speed = transfer.speed {
-                statItem(label: "速度", value: speed, color: stateColor(transfer))
+                statItem(label: L10n.transferStatSpeed, value: speed, color: stateColor(transfer))
             }
             if let eta = transfer.eta {
-                statItem(label: "剩余", value: eta, color: MD.dpaper)
+                statItem(label: L10n.transferStatEta, value: eta, color: MD.dpaper)
             }
         }
     }

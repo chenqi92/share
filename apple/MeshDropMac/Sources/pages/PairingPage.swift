@@ -7,11 +7,11 @@ struct PairingPage: View {
         PageScroll {
             VStack(spacing: 22) {
                 HStack {
-                    Text("配对新设备")
+                    Text("pairing.title")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("· Pair a device")
+                    Text("pairing.title.suffix")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
@@ -22,17 +22,17 @@ struct PairingPage: View {
                     // 左：本机身份指纹（真实数据，供目视核对）。
                     // 扫码配对（QR / 一次性配对码生成）尚未实现，不展示假占位 QR 与固定码。
                     VStack(spacing: 14) {
-                        Text("本机指纹 · THIS DEVICE")
+                        Text("pairing.thisDevice")
                             .meshTag()
                             .foregroundStyle(MeshDropColor.textMuted)
                         VStack(spacing: 10) {
                             Image(systemName: "qrcode")
                                 .font(.system(size: 56, weight: .light))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            Text("扫码配对开发中")
+                            Text("pairing.qr.developing")
                                 .font(MeshDropFont.body(size: 12, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textSecondary)
-                            Text("当前请用下方指纹与对端目视核对")
+                            Text("pairing.qr.hint")
                                 .font(MeshDropFont.body(size: 11))
                                 .foregroundStyle(MeshDropColor.textMuted)
                         }
@@ -52,7 +52,7 @@ struct PairingPage: View {
                                 RoundedRectangle(cornerRadius: 12)
                                     .fill(MeshDropColor.lime)
                             )
-                        Text("两端指纹必须**完全一致**才能配对")
+                        Text("pairing.mustMatch")
                             .font(MeshDropFont.body(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
                     }
@@ -65,14 +65,14 @@ struct PairingPage: View {
 
                     // 右：三步说明
                     VStack(alignment: .leading, spacing: 16) {
-                        Text("三步完成")
+                        Text("pairing.steps.title")
                             .meshTag()
                             .foregroundStyle(MeshDropColor.textMuted)
-                        step(1, "在对端 MeshDrop → 设置 → 配对新设备 → 对比指纹")
-                        step(2, "对比两端的 Ed25519 指纹（4 字符 × 8 组）目视一致")
-                        step(3, "双方点 \"允许并记住\"，从此自动信任")
+                        step(1, String(localized: "pairing.step1"))
+                        step(2, String(localized: "pairing.step2"))
+                        step(3, String(localized: "pairing.step3"))
 
-                        AsciiDivider(text: state.enginePairing == nil ? "待审 · PENDING · 0" : "待审 · PENDING · 1")
+                        AsciiDivider(text: String(format: String(localized: "pairing.divider.pending"), state.enginePairing == nil ? 0 : 1))
 
                         if let p = state.enginePairing {
                             VStack(alignment: .leading, spacing: 8) {
@@ -88,7 +88,7 @@ struct PairingPage: View {
                                             .foregroundStyle(MeshDropColor.textMuted)
                                     }
                                 }
-                                Text("FP \(p.fingerprint)")
+                                Text(String(format: String(localized: "pairing.fingerprint.prefix"), p.fingerprint))
                                     .font(MeshDropFont.mono(size: 11))
                                     .foregroundStyle(MeshDropColor.textSecondary)
                                     .padding(10)
@@ -103,7 +103,7 @@ struct PairingPage: View {
                                     Button {
                                         state.rejectCurrentPairing()
                                     } label: {
-                                        Text("拒绝")
+                                        Text("pairing.reject")
                                             .font(MeshDropFont.body(size: 12, weight: .semibold))
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 7)
@@ -117,7 +117,7 @@ struct PairingPage: View {
                                     Button {
                                         state.acceptCurrentPairing(trust: true)
                                     } label: {
-                                        Text("允许并记住")
+                                        Text("pairing.allowRemember")
                                             .font(MeshDropFont.body(size: 12, weight: .semibold))
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 7)
@@ -140,7 +140,7 @@ struct PairingPage: View {
                                     )
                             )
                         } else {
-                            Text("当前没有待审请求")
+                            Text("pairing.noPending")
                                 .font(MeshDropFont.body(size: 12))
                                 .foregroundStyle(MeshDropColor.textMuted)
                                 .padding(14)

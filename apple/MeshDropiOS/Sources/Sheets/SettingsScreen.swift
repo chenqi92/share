@@ -18,13 +18,13 @@ struct SettingsScreen: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    sectionHeader("可见性 · Visibility")
+                    sectionHeader(MD("settings.section.visibility"))
                     visibilityCard
-                    sectionHeader("安全 / 身份 · Security")
+                    sectionHeader(MD("settings.section.security"))
                     securityCard
-                    sectionHeader("行为 / 接收 · Behavior")
+                    sectionHeader(MD("settings.section.behavior"))
                     behaviorCard
-                    sectionHeader("关于 · About")
+                    sectionHeader(MD("settings.section.about"))
                     aboutCard
                     Spacer(minLength: 40)
                 }
@@ -32,11 +32,11 @@ struct SettingsScreen: View {
                 .padding(.top, 10)
             }
         }
-        .navigationTitle("设置 · Settings")
+        .navigationTitle(MD("settings.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("完成") { dismiss() }
+                Button(MD("common.done")) { dismiss() }
             }
         }
         .onChange(of: visible) { _, newValue in
@@ -52,13 +52,14 @@ struct SettingsScreen: View {
     private var visibilityCard: some View {
         VStack(spacing: 0) {
             Toggle(isOn: $visible) {
-                row(title: "可见", detail: visible ? "附近设备可发现我" : "完全隐身（停止 mDNS）")
+                row(title: MD("settings.visibility.visible.title"),
+                    detail: visible ? MD("settings.visibility.visible.detail.on") : MD("settings.visibility.visible.detail.off"))
             }
             .tint(MeshDropColor.lime)
             .padding(14)
             divider
             HStack {
-                row(title: "本机名", detail: me.name)
+                row(title: MD("settings.visibility.deviceName.title"), detail: me.name)
                 Spacer()
                 Image(systemName: "chevron.right").opacity(0.4)
             }
@@ -71,14 +72,14 @@ struct SettingsScreen: View {
     private var securityCard: some View {
         VStack(spacing: 0) {
             HStack {
-                row(title: "传输安全", detail: "LAN · 明文 · v0.1")
+                row(title: MD("settings.security.transport.title"), detail: MD("settings.security.transport.detail"))
                 Spacer()
                 Chip("PLAINTEXT", tone: .flame, mono: true, uppercased: true)
             }
             .padding(14)
             divider
             HStack {
-                row(title: "本机指纹", detail: me.fingerprint)
+                row(title: MD("settings.security.fingerprint.title"), detail: me.fingerprint)
                 Spacer()
                 IconBtn("doc.on.doc", size: 28, variant: .ghost) {
                     UIPasteboard.general.string = me.fingerprint
@@ -87,7 +88,7 @@ struct SettingsScreen: View {
             .padding(14)
             divider
             HStack {
-                row(title: "信任管理", detail: "\(engine.trusted.count) 台已配对")
+                row(title: MD("settings.security.trust.title"), detail: MD("me.action.trust.detail", engine.trusted.count))
                 Spacer()
                 Image(systemName: "chevron.right").opacity(0.4)
             }
@@ -97,7 +98,7 @@ struct SettingsScreen: View {
                 confirmingReset = true
             } label: {
                 HStack {
-                    row(title: "重置身份…", detail: "对端会把本机视为新设备需重新配对")
+                    row(title: MD("settings.security.reset.title"), detail: MD("settings.security.reset.detail"))
                     Spacer()
                     Image(systemName: "arrow.counterclockwise")
                         .foregroundStyle(MeshDropColor.flame)
@@ -106,12 +107,12 @@ struct SettingsScreen: View {
             }
             .buttonStyle(.plain)
             .confirmationDialog(
-                "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+                MD("settings.security.resetConfirm.message"),
                 isPresented: $confirmingReset,
                 titleVisibility: .visible
             ) {
-                Button("重置身份", role: .destructive) { engine.resetIdentity() }
-                Button("取消", role: .cancel) {}
+                Button(MD("settings.security.reset.confirm"), role: .destructive) { engine.resetIdentity() }
+                Button(MD("common.cancel"), role: .cancel) {}
             }
         }
         .background(sectionBg)
@@ -121,22 +122,22 @@ struct SettingsScreen: View {
     private var behaviorCard: some View {
         VStack(spacing: 0) {
             Toggle(isOn: $requireConfirm) {
-                row(title: "新设备需要确认", detail: "陌生设备发文件时弹审批")
+                row(title: MD("settings.behavior.requireConfirm.title"), detail: MD("settings.behavior.requireConfirm.detail"))
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
             Toggle(isOn: $engine.autoAcceptFromTrusted) {
-                row(title: "信任设备自动接收", detail: "来自已配对设备的文件自动接收")
+                row(title: MD("settings.behavior.autoAccept.title"), detail: MD("settings.behavior.autoAccept.detail"))
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
             Toggle(isOn: $engine.notificationsEnabled) {
-                row(title: "到达通知", detail: "横幅 / 锁屏 / Dynamic Island")
+                row(title: MD("settings.behavior.notifications.title"), detail: MD("settings.behavior.notifications.detail"))
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
             HStack {
-                row(title: "保存到", detail: "Files / MeshDrop 收件箱")
+                row(title: MD("settings.behavior.saveTo.title"), detail: MD("settings.behavior.saveTo.detail"))
                 Spacer()
                 Image(systemName: "chevron.right").opacity(0.4)
             }
@@ -149,19 +150,19 @@ struct SettingsScreen: View {
     private var aboutCard: some View {
         VStack(spacing: 0) {
             HStack {
-                row(title: "版本", detail: "0.1.0 · build 1")
+                row(title: MD("settings.about.version"), detail: "0.1.0 · build 1")
                 Spacer()
             }
             .padding(14)
             divider
             HStack {
-                row(title: "服务类型", detail: "_meshdrop._tcp")
+                row(title: MD("settings.about.serviceType"), detail: "_meshdrop._tcp")
                 Spacer()
             }
             .padding(14)
             divider
             HStack {
-                row(title: "Bundle id", detail: "com.welape.meshdrop")
+                row(title: MD("settings.about.bundleId"), detail: "com.welape.meshdrop")
                 Spacer()
             }
             .padding(14)

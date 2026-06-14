@@ -93,7 +93,7 @@ final class WatchEngineProxy: ObservableObject {
                 guard let self else { return }
                 self.isStarting = false
                 if let err {
-                    self.lastError = "桥接初始化失败：\(err)"
+                    self.lastError = L10n.errorBridgeInitFailed(err)
                 }
                 if ok {
                     await self.requestSnapshot()
@@ -183,10 +183,10 @@ final class WatchEngineProxy: ObservableObject {
         do {
             let ack = try await client.sendCommand(command)
             if !ack.ok {
-                lastError = ack.error ?? "命令失败"
+                lastError = ack.error ?? L10n.errorCommandFailed
                 throw NSError(
                     domain: "WatchEngineProxy", code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: lastError ?? "命令失败"]
+                    userInfo: [NSLocalizedDescriptionKey: lastError ?? L10n.errorCommandFailed]
                 )
             }
             lastError = nil

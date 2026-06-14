@@ -13,17 +13,17 @@ struct NearbyPage: View {
 
             // 右：配对入口 + 设备 row
             VStack(alignment: .leading, spacing: 24) {
-                Text("在你手机上打开 MeshDrop，选「\(engine.displayName)」。\n照片、视频、文档都可以推到这块屏上。")
+                Text(L10n.nearbyPairIntro(engine.displayName))
                     .font(.system(size: 20, weight: .regular))
                     .foregroundStyle(MeshDropColor.dpaperDim)
                     .lineSpacing(4)
 
-                MeshAsciiDivider(label: "或 · OR · 扫码加入 · SCAN")
+                MeshAsciiDivider(label: L10n.nearbyDividerScan)
 
                 HStack(spacing: 28) {
                     MeshQRCode(content: pairURL, size: 220)
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("指纹 · FINGERPRINT")
+                        Text(L10n.nearbyFingerprintTag)
                             .monoTag()
                         Text(shortFingerprint)
                             .font(.system(size: 36, weight: .bold, design: .monospaced))
@@ -31,7 +31,7 @@ struct NearbyPage: View {
                             .foregroundStyle(MeshDropColor.lime)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
-                        Text("本机 · THIS TV")
+                        Text(L10n.nearbyThisTVTag)
                             .monoTag()
                         Text(engine.displayName)
                             .font(.system(size: 24, weight: .bold, design: .monospaced))
@@ -46,7 +46,7 @@ struct NearbyPage: View {
                     Text(headerLabel)
                         .monoTag(MeshDropColor.dpaperDim)
                     if engine.devices.isEmpty {
-                        Text("附近没有 MeshDrop 设备 · 让朋友也打开试试")
+                        Text(L10n.nearbyEmpty)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(MeshDropColor.dpaperMute)
                             .padding(.vertical, 8)
@@ -64,8 +64,7 @@ struct NearbyPage: View {
     }
 
     private var headerLabel: String {
-        let n = engine.devices.count
-        return "附近 \(n) 台 · NEARBY · 客厅可见"
+        L10n.nearbyHeaderCount(engine.devices.count)
     }
 
     private var shortFingerprint: String {

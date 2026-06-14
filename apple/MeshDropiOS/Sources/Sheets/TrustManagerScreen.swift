@@ -17,7 +17,7 @@ struct TrustManagerScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     header
-                    AsciiDivider("PAIRED · 已配对 · \(trusted.count)")
+                    AsciiDivider(MD("trust.paired.section", trusted.count))
                     if trusted.isEmpty {
                         empty
                     } else {
@@ -31,20 +31,20 @@ struct TrustManagerScreen: View {
                 .padding(.top, 10)
             }
         }
-        .navigationTitle("信任 · Trust")
+        .navigationTitle(MD("trust.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("完成") { dismiss() }
+                Button(MD("common.done")) { dismiss() }
             }
         }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("信任管理")
+            Text(MD("trust.header.title"))
                 .font(MeshDropFont.display(24, weight: .bold))
-            Text("已配对设备的指纹与最近活动")
+            Text(MD("trust.header.subtitle"))
                 .font(MeshDropFont.body(13))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -52,9 +52,9 @@ struct TrustManagerScreen: View {
 
     private var empty: some View {
         VStack(spacing: 8) {
-            Text("还没有信任的设备")
+            Text(MD("trust.empty.title"))
                 .font(MeshDropFont.body(13.5, weight: .semibold))
-            Text("第一次收到新设备的连接时会弹出配对请求")
+            Text(MD("trust.empty.subtitle"))
                 .font(MeshDropFont.mono(11))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -85,7 +85,7 @@ struct TrustManagerScreen: View {
                 Button {
                     engine.revokeTrust(fingerprint: fingerprint)
                 } label: {
-                    Text("撤销").font(MeshDropFont.body(12, weight: .semibold))
+                    Text(MD("trust.revoke")).font(MeshDropFont.body(12, weight: .semibold))
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .foregroundStyle(MeshDropColor.error)
                         .overlay(Capsule().strokeBorder(MeshDropColor.error, lineWidth: 1))

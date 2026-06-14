@@ -86,7 +86,7 @@ struct ChatPage: View {
 
     private var emptyHint: some View {
         VStack(spacing: 6) {
-            Text(state.selectedDeviceID.isEmpty ? "还没有可对话的设备" : "还没有消息")
+            Text(state.selectedDeviceID.isEmpty ? "chat.empty.noDevice.title" : "chat.empty.noMessages.title")
                 .font(MeshDropFont.body(size: 13, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textPrimary)
             Text(emptyDetail)
@@ -98,8 +98,8 @@ struct ChatPage: View {
     }
 
     private var emptyDetail: String {
-        if state.selectedDeviceID.isEmpty { return "等待同一局域网的设备出现" }
-        return canSend ? "发一句话开始对话" : "设备已离线 · 历史仍保留"
+        if state.selectedDeviceID.isEmpty { return String(localized: "chat.empty.waitingDevice.detail") }
+        return canSend ? String(localized: "chat.empty.startChat.detail") : String(localized: "chat.composer.placeholder.offline")
     }
 
     @ViewBuilder
@@ -192,9 +192,9 @@ struct ChatPage: View {
     }
 
     private var composerPlaceholder: String {
-        if state.selectedDeviceID.isEmpty { return "等待设备…" }
-        if !canSend { return "设备已离线 · 历史仍保留" }
-        return "发送给 \(dev.who) · 拖入即送 / ⏎ 发送"
+        if state.selectedDeviceID.isEmpty { return String(localized: "chat.composer.placeholder.waiting") }
+        if !canSend { return String(localized: "chat.composer.placeholder.offline") }
+        return String(format: String(localized: "chat.composer.placeholder.send"), dev.who)
     }
 
     private var dropOverlay: some View {
@@ -204,7 +204,7 @@ struct ChatPage: View {
                 Text("⤓")
                     .font(MeshDropFont.display(size: 60, weight: .bold))
                     .foregroundStyle(MeshDropColor.ink)
-                Text("放手即发 · Drop to send")
+                Text("chat.drop.title")
                     .font(MeshDropFont.display(size: 28, weight: .bold))
                     .foregroundStyle(MeshDropColor.ink)
                 Text(state.dragFileSummary)
@@ -236,8 +236,8 @@ struct ChatPage: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
-        panel.title = imagesOnly ? "选择图片" : "选择文件"
-        panel.prompt = "发送"
+        panel.title = imagesOnly ? String(localized: "chat.picker.images.title") : String(localized: "chat.picker.files.title")
+        panel.prompt = String(localized: "chat.picker.send")
         if imagesOnly {
             panel.allowedContentTypes = [.image]
         }
@@ -266,15 +266,15 @@ struct ChatPage: View {
         let base = Self.byteFormatter.string(fromByteCount: Int64(size))
         switch status {
         case .completed:
-            return "\(base) · ✓ SHA-256 verified"
+            return String(format: String(localized: "chat.file.verified"), base)
         case let .transferring(done, total) where total > 0:
-            return "\(base) · \(Int(Double(done) / Double(total) * 100))%"
+            return String(format: String(localized: "chat.file.progress"), base, Int(Double(done) / Double(total) * 100))
         case .waitingApproval, .pending:
-            return "\(base) · 等待中"
+            return String(format: String(localized: "chat.file.waiting"), base)
         case .failed:
-            return "\(base) · 失败"
+            return String(format: String(localized: "chat.file.failed"), base)
         case .canceled:
-            return "\(base) · 已取消"
+            return String(format: String(localized: "chat.file.canceled"), base)
         default:
             return base
         }

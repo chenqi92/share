@@ -2,15 +2,23 @@ import SwiftUI
 import MeshDropKit
 
 private enum GalleryFilter: String, CaseIterable, Hashable {
-    case all     = "全部"
-    case photos  = "图片"
-    case files   = "文件"
+    case all
+    case photos
+    case files
 
+    /// 本地化的过滤器中文 / 英文名。
+    var localizedName: String {
+        switch self {
+        case .all:    return L10n.galleryFilterAll
+        case .photos: return L10n.galleryFilterPhotos
+        case .files:  return L10n.galleryFilterFiles
+        }
+    }
     var english: String {
         switch self {
-        case .all:    return "ALL"
-        case .photos: return "PHOTOS"
-        case .files:  return "FILES"
+        case .all:    return L10n.galleryFilterAllEn
+        case .photos: return L10n.galleryFilterPhotosEn
+        case .files:  return L10n.galleryFilterFilesEn
         }
     }
 }
@@ -33,13 +41,13 @@ struct GalleryPage: View {
                     filterChip(f)
                 }
                 Spacer()
-                Text("\(filtered.count) 件")
+                Text(L10n.galleryCount(filtered.count))
                     .font(.system(size: 18, weight: .semibold, design: .monospaced))
                     .foregroundStyle(MeshDropColor.dpaperMute)
             }
             .padding(.top, 4)
 
-            MeshAsciiDivider(label: inbox.isEmpty ? "收件箱 · INBOX · 空" : "收件箱 · INBOX")
+            MeshAsciiDivider(label: inbox.isEmpty ? L10n.galleryDividerInboxEmpty : L10n.galleryDividerInbox)
                 .padding(.top, 4)
 
             if filtered.isEmpty {
@@ -60,9 +68,9 @@ struct GalleryPage: View {
             Spacer(minLength: 0)
 
             RemoteHint(items: [
-                .init(glyph: "↕  ↔︎", label: "选择"),
-                .init(glyph: "OK", label: "查看"),
-                .init(glyph: "TV", label: "返回"),
+                .init(glyph: "↕  ↔︎", label: L10n.hintSelect),
+                .init(glyph: "OK", label: L10n.hintView),
+                .init(glyph: "TV", label: L10n.hintReturn),
             ])
         }
     }
@@ -92,11 +100,11 @@ struct GalleryPage: View {
 
     private var emptyState: some View {
         VStack(spacing: 14) {
-            Text("WAITING · 空收件箱")
+            Text(L10n.galleryEmptyTag)
                 .font(.system(size: 18, weight: .bold, design: .monospaced))
                 .tracking(2)
                 .foregroundStyle(MeshDropColor.dpaperMute)
-            Text("还没收到过文件或照片。")
+            Text(L10n.galleryEmptyBody)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(MeshDropColor.dpaperDim)
         }
@@ -111,7 +119,7 @@ struct GalleryPage: View {
             selectedFilter = f
         } content: {
             HStack(spacing: 6) {
-                Text(f.rawValue)
+                Text(f.localizedName)
                     .font(.system(size: 18, weight: .bold))
                 Text("· \(f.english)")
                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
@@ -163,7 +171,7 @@ struct GalleryPage: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(name.isEmpty ? "未命名" : name)
+                    Text(name.isEmpty ? L10n.galleryUnnamed : name)
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(MeshDropColor.dpaper)
                         .lineLimit(1)
@@ -210,7 +218,7 @@ struct GalleryPage: View {
             f.dateFormat = "HH:mm"
             return f.string(from: date)
         }
-        if cal.isDateInYesterday(date) { return "昨天" }
+        if cal.isDateInYesterday(date) { return L10n.galleryYesterday }
         let f = DateFormatter()
         f.dateFormat = "MM-dd"
         return f.string(from: date)

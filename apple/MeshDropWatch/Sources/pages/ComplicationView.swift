@@ -22,7 +22,7 @@ struct ComplicationPreviewView: View {
         ZStack {
             MD.dink.ignoresSafeArea()
             VStack(spacing: 12) {
-                Text("COMPLICATION · 表盘")
+                Text(L10n.complicationTitle)
                     .font(MDFont.mono(11, weight: .bold))
                     .tracking(1.6)
                     .foregroundColor(MD.muted)
@@ -72,7 +72,7 @@ struct ComplicationPreviewView: View {
                     .background(Capsule().fill(MD.dink2).overlay(Capsule().stroke(accent.opacity(0.4), lineWidth: 0.5)))
                 }
 
-                Text(isOffline ? "iPhone 不在身边" : "Tap 进入 MeshDrop")
+                Text(isOffline ? L10n.nearbyOfflineTitle : L10n.complicationTapHint)
                     .font(MDFont.mono(9, weight: .medium))
                     .foregroundColor(MD.dim)
                     .padding(.top, 4)

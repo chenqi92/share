@@ -39,7 +39,7 @@ struct GlobalOverlay: View {
                 Image(systemName: "person.2.badge.key")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(MeshDropColor.limeDeep)
-                Text("配对请求 · Pairing")
+                Text("overlay.pairing.title")
                     .font(MeshDropFont.body(size: 16, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textPrimary)
                 Spacer()
@@ -62,7 +62,7 @@ struct GlobalOverlay: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("对比指纹 · 两端目视一致")
+                Text("overlay.pairing.compare")
                     .meshTag()
                     .foregroundStyle(MeshDropColor.textMuted)
                 Text(p.fingerprint)
@@ -77,9 +77,9 @@ struct GlobalOverlay: View {
 
             HStack(spacing: 10) {
                 Spacer()
-                pillButton("拒绝 · Reject", filled: false) { state.rejectCurrentPairing() }
-                pillButton("仅本次", filled: false) { state.acceptCurrentPairing(trust: false) }
-                pillButton("允许并记住", filled: true) { state.acceptCurrentPairing(trust: true) }
+                pillButton(String(localized: "receive.reject"), filled: false) { state.rejectCurrentPairing() }
+                pillButton(String(localized: "overlay.pairing.thisTime"), filled: false) { state.acceptCurrentPairing(trust: false) }
+                pillButton(String(localized: "pairing.allowRemember"), filled: true) { state.acceptCurrentPairing(trust: true) }
             }
         }
         .padding(20)
@@ -95,7 +95,7 @@ struct GlobalOverlay: View {
                 Image(systemName: "tray.and.arrow.down")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(MeshDropColor.sky)
-                Text("收到传输请求 · Incoming")
+                Text("overlay.offer.title")
                     .font(MeshDropFont.body(size: 16, weight: .semibold))
                     .foregroundStyle(MeshDropColor.textPrimary)
                 Spacer()
@@ -111,7 +111,7 @@ struct GlobalOverlay: View {
                     Text("\(offer.peer) · \(offer.deviceName)")
                         .font(MeshDropFont.body(size: 13.5, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("将存到 ~/Documents/MeshDrop/\(offer.peer)/")
+                    Text(String(format: String(localized: "receive.saveTo"), offer.peer))
                         .font(MeshDropFont.mono(size: 10))
                         .foregroundStyle(MeshDropColor.textMuted)
                 }
@@ -122,8 +122,8 @@ struct GlobalOverlay: View {
 
             HStack(spacing: 10) {
                 Spacer()
-                pillButton("拒绝 · Reject", filled: false) { state.rejectCurrentOffer() }
-                pillButton("接收 · Accept", filled: true) { state.acceptCurrentOffer() }
+                pillButton(String(localized: "receive.reject"), filled: false) { state.rejectCurrentOffer() }
+                pillButton(String(localized: "overlay.offer.accept"), filled: true) { state.acceptCurrentOffer() }
             }
         }
         .padding(20)

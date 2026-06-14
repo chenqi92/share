@@ -45,8 +45,8 @@ struct MeshDropStatusComplication: Widget {
         StaticConfiguration(kind: kind, provider: ComplicationProvider()) { entry in
             ComplicationView(entry: entry)
         }
-        .configurationDisplayName("MeshDrop 在线设备")
-        .description("显示附近在线的 MeshDrop 设备数。")
+        .configurationDisplayName(MDC("complication.configDisplayName"))
+        .description(MDC("complication.description"))
         .supportedFamilies([
             .accessoryCircular,
             .accessoryRectangular,
@@ -88,7 +88,7 @@ struct ComplicationView: View {
             }
         }
         .widgetLabel {
-            Text(entry.isOnline ? "MeshDrop" : "离线")
+            Text(entry.isOnline ? "MeshDrop" : MDC("complication.offline"))
         }
     }
 
@@ -101,7 +101,7 @@ struct ComplicationView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("MeshDrop")
                     .font(.caption.weight(.semibold))
-                Text(entry.isOnline ? "\(entry.deviceCount) 台设备在线" : "iPhone 不在身边")
+                Text(entry.isOnline ? MDC("complication.rectangular.online", entry.deviceCount) : MDC("complication.rectangular.offline"))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -112,7 +112,7 @@ struct ComplicationView: View {
     // 内联：单行文本（带前缀图标）。
     private var inline: some View {
         Label(
-            entry.isOnline ? "MeshDrop · \(entry.deviceCount) 在线" : "MeshDrop · 离线",
+            entry.isOnline ? MDC("complication.inline.online", entry.deviceCount) : MDC("complication.inline.offline"),
             systemImage: entry.isOnline ? "dot.radiowaves.left.and.right" : "wifi.slash"
         )
     }
@@ -122,7 +122,7 @@ struct ComplicationView: View {
         Text(countText)
             .font(.system(size: 18, weight: .bold, design: .rounded))
             .widgetLabel {
-                Text(entry.isOnline ? "MeshDrop \(entry.deviceCount)" : "MeshDrop 离线")
+                Text(entry.isOnline ? "MeshDrop \(entry.deviceCount)" : MDC("complication.corner.offline"))
             }
     }
 }

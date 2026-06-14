@@ -46,9 +46,9 @@ struct PairingPage: View {
     private var waitingPlaceholder: some View {
         GlassCard(corner: 28) {
             VStack(spacing: 10) {
-                Text("没有待审的配对")
+                Text(L10n.pairingNoPending)
                     .font(MDFont.heroSmall).foregroundStyle(MD.dpaper)
-                Text("WAITING · 让对方先尝试发送给你")
+                Text(L10n.pairingNoPendingSub)
                     .font(MDFont.microHi).tracking(1.6)
                     .foregroundStyle(MD.dpaper.opacity(0.55))
             }
@@ -61,19 +61,19 @@ struct PairingPage: View {
         GlassCard(corner: 32) {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 10) {
-                    Chip(text: "FIRST PAIRING · 首次配对",
+                    Chip(text: L10n.pairingFirstTag,
                          tone: .lime, mono: true, leadingDot: MD.limeDeep)
                     Spacer()
-                    Text("WAITING · 等你确认")
+                    Text(L10n.pairingWaitingConfirm)
                         .font(MDFont.microHi).tracking(1.6)
                         .foregroundStyle(MD.dpaper.opacity(0.55))
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("和 \(req.peer.name)")
+                    Text(L10n.pairingWithPeer(req.peer.name))
                         .font(MDFont.heroSmall)
                         .foregroundStyle(MD.dpaper)
-                    Text("对一下这串字符，确认是同一台。")
+                    Text(L10n.pairingCompareHint)
                         .font(MDFont.body)
                         .foregroundStyle(MD.dpaper.opacity(0.6))
                 }
@@ -98,7 +98,7 @@ struct PairingPage: View {
                     }
                 }
 
-                ASCIIDivider(label: "Fingerprint · 完整指纹 · ED25519")
+                ASCIIDivider(label: L10n.pairingDivider)
 
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(fingerprintRows(req.peer.humanFingerprint), id: \.self) { row in
@@ -119,23 +119,23 @@ struct PairingPage: View {
                     Button {
                         engine.respondToPairing(req.id, decision: .reject)
                     } label: {
-                        pairingCTA(title: "不，这台不对",
-                                   subtitle: "REJECT", accent: false)
+                        pairingCTA(title: L10n.pairingRejectTitle,
+                                   subtitle: L10n.pairingRejectSub, accent: false)
                     }
                     .buttonStyle(.plain)
 
                     Button {
                         engine.respondToPairing(req.id, decision: .trust)
                     } label: {
-                        pairingCTA(title: "✥ 捏合确认 · 是同一台",
-                                   subtitle: "PINCH · CONFIRM",
+                        pairingCTA(title: L10n.pairingConfirmTitle,
+                                   subtitle: L10n.pairingConfirmSub,
                                    accent: true)
                     }
                     .buttonStyle(.plain)
                     .hoverEffect(.lift)
                 }
 
-                Text("一旦确认，这台设备会被记住；以后互发不再弹此卡片。")
+                Text(L10n.pairingRememberHint)
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.45))
             }

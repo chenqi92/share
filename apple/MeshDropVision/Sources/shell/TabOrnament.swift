@@ -44,11 +44,12 @@ enum AppTab: String, CaseIterable, Identifiable {
     case nearby, chats, transfers, pairing
     var id: String { rawValue }
     var label: String {
+        // 并排显示：中文名 · 英文名（两段各自本地化）。
         switch self {
-        case .nearby:    return "附近 · Nearby"
-        case .chats:     return "对话 · Chats"
-        case .transfers: return "传输 · Transfers"
-        case .pairing:   return "配对 · Pair"
+        case .nearby:    return "\(L10n.tabNearby) · \(L10n.tabNearbyEn)"
+        case .chats:     return "\(L10n.tabChats) · \(L10n.tabChatsEn)"
+        case .transfers: return "\(L10n.tabTransfers) · \(L10n.tabTransfersEn)"
+        case .pairing:   return "\(L10n.tabPairing) · \(L10n.tabPairingEn)"
         }
     }
     var systemImage: String {

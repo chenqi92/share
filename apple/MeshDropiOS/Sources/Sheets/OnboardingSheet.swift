@@ -5,14 +5,16 @@ struct OnboardingSheet: View {
     @Environment(\.colorScheme) private var scheme
     @State private var page: Int = 0
 
-    private let pages: [(String, String, String, String)] = [
-        ("dot.radiowaves.left.and.right", "雷达式发现",
-         "Discovery.", "同一 Wi-Fi 下，设备 1 秒内互相 ping 到。"),
-        ("hand.draw", "拖即发送",
-         "Drag to send.", "把文件 / 照片 / 文字直接拖到设备上即可发送。"),
-        ("wifi", "只走局域网",
-         "LAN only.", "数据只在同一 Wi-Fi 内点对点传输，不经过云端。当前为明文（v0.1）。"),
-    ]
+    private var pages: [(String, String, String, String)] {
+        [
+            ("dot.radiowaves.left.and.right", MD("onboarding.page1.title"),
+             MD("onboarding.page1.subtitle"), MD("onboarding.page1.body")),
+            ("hand.draw", MD("onboarding.page2.title"),
+             MD("onboarding.page2.subtitle"), MD("onboarding.page2.body")),
+            ("wifi", MD("onboarding.page3.title"),
+             MD("onboarding.page3.subtitle"), MD("onboarding.page3.body")),
+        ]
+    }
 
     var body: some View {
         ZStack {
@@ -22,7 +24,7 @@ struct OnboardingSheet: View {
                 HStack {
                     MeshDropLockup(size: 22)
                     Spacer()
-                    Button("跳过") { dismiss() }
+                    Button(MD("onboarding.skip")) { dismiss() }
                         .font(MeshDropFont.body(13, weight: .medium))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.6) : MeshDropColor.ink60)
                 }
@@ -41,7 +43,7 @@ struct OnboardingSheet: View {
                 Button {
                     if page < pages.count - 1 { page += 1 } else { dismiss() }
                 } label: {
-                    Text(page < pages.count - 1 ? "下一步" : "开始使用")
+                    Text(page < pages.count - 1 ? MD("onboarding.primary.next") : MD("onboarding.primary.start"))
                         .font(MeshDropFont.body(15, weight: .semibold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)

@@ -1,0 +1,76 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "liveActivity.completed" : {
+      "comment" : "Live Activity 子标题：已完成",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已完成" } }
+      }
+    },
+    "liveActivity.failed" : {
+      "comment" : "Live Activity 子标题：失败",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "失败" } }
+      }
+    },
+    "liveActivity.transferring" : {
+      "comment" : "Live Activity 子标题：传输中",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transferring" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输中" } }
+      }
+    },
+    "liveActivity.expanded.send" : {
+      "comment" : "灵动岛展开区方向：发送",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送" } }
+      }
+    },
+    "liveActivity.expanded.receive" : {
+      "comment" : "灵动岛展开区方向：接收",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receive" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收" } }
+      }
+    },
+    "liveActivity.headline.sent" : {
+      "comment" : "锁屏标题：已发送给 %@（对端名）",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent to %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已发送给 %@" } }
+      }
+    },
+    "liveActivity.headline.received" : {
+      "comment" : "锁屏标题：已接收自 %@（对端名）",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Received from %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已接收自 %@" } }
+      }
+    },
+    "liveActivity.headline.failed" : {
+      "comment" : "锁屏标题：传输失败 · %@（对端名）",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transfer failed · %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输失败 · %@" } }
+      }
+    },
+    "liveActivity.headline.sending" : {
+      "comment" : "锁屏标题：正在发送给 %@（对端名）",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sending to %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在发送给 %@" } }
+      }
+    },
+    "liveActivity.headline.receiving" : {
+      "comment" : "锁屏标题：正在接收自 %@（对端名）",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receiving from %@" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在接收自 %@" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -1,20 +1,32 @@
 import SwiftUI
 
 enum TVTab: String, CaseIterable, Identifiable {
-    case receive  = "接收"
-    case nearby   = "附近"
-    case gallery  = "收件箱"
-    case pairing  = "配对"
-    case settings = "设置"
+    case receive
+    case nearby
+    case gallery
+    case pairing
+    case settings
 
     var id: String { rawValue }
+
+    /// 当前语言下的本地化名（中文名 / 英文名）。
+    var localizedName: String {
+        switch self {
+        case .receive:  return L10n.tabReceive
+        case .nearby:   return L10n.tabNearby
+        case .gallery:  return L10n.tabGallery
+        case .pairing:  return L10n.tabPairing
+        case .settings: return L10n.tabSettings
+        }
+    }
+    /// 并排显示的英文副标。
     var english: String {
         switch self {
-        case .receive:  return "Receive"
-        case .nearby:   return "Nearby"
-        case .gallery:  return "Library"
-        case .pairing:  return "Pair"
-        case .settings: return "Settings"
+        case .receive:  return L10n.tabReceiveEn
+        case .nearby:   return L10n.tabNearbyEn
+        case .gallery:  return L10n.tabGalleryEn
+        case .pairing:  return L10n.tabPairingEn
+        case .settings: return L10n.tabSettingsEn
         }
     }
 }
@@ -59,8 +71,8 @@ struct TVTopBar: View {
     }
 
     private var statusLabel: String {
-        if deviceCount == 0 { return "客厅 · LIVING ROOM · 扫描中" }
-        return "客厅 · LIVING ROOM · \(deviceCount) 台"
+        if deviceCount == 0 { return L10n.topbarScanning }
+        return L10n.topbarLivingRoomCount(deviceCount)
     }
 
     @ViewBuilder
@@ -72,7 +84,7 @@ struct TVTopBar: View {
             selection = tab
         } content: {
             HStack(spacing: 10) {
-                Text(tab.rawValue)
+                Text(tab.localizedName)
                     .font(.system(size: 22, weight: .bold))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)

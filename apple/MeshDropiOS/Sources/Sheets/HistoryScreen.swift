@@ -28,9 +28,9 @@ struct HistoryScreen: View {
                     if today.isEmpty && earlier.isEmpty {
                         emptyState
                     } else {
-                        AsciiDivider("TODAY · 今天 · \(today.count) 件")
+                        AsciiDivider(MD("history.section.today", today.count))
                         if today.isEmpty {
-                            Text("今天还没有传输")
+                            Text(MD("history.today.empty"))
                                 .font(MeshDropFont.mono(11))
                                 .foregroundStyle(muted)
                                 .frame(maxWidth: .infinity)
@@ -38,7 +38,7 @@ struct HistoryScreen: View {
                         } else {
                             ForEach(today) { row($0) }
                         }
-                        AsciiDivider("EARLIER · 早些时候")
+                        AsciiDivider(MD("history.section.earlier"))
                         if earlier.isEmpty {
                             emptyMore
                         } else {
@@ -51,15 +51,15 @@ struct HistoryScreen: View {
                 .padding(.top, 10)
             }
         }
-        .navigationTitle("历史 · History")
+        .navigationTitle(MD("history.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
+                Button(MD("common.close")) { dismiss() }
             }
             ToolbarItem(placement: .topBarTrailing) {
                 if !engine.history.isEmpty {
-                    Button("清空", role: .destructive) { engine.clearHistory() }
+                    Button(MD("common.clear"), role: .destructive) { engine.clearHistory() }
                 }
             }
         }
@@ -73,7 +73,7 @@ struct HistoryScreen: View {
                     Text(h.dir == .outgoing ? "↑" : "↓")
                         .font(MeshDropFont.mono(11, weight: .bold))
                         .foregroundStyle(h.dir == .outgoing ? MeshDropColor.flame : MeshDropColor.sky)
-                    Text(h.dir == .outgoing ? "发送给 \(h.peer)" : "来自 \(h.peer)")
+                    Text(h.dir == .outgoing ? MD("history.dir.toPeer", h.peer) : MD("history.dir.fromPeer", h.peer))
                         .font(MeshDropFont.body(13.5, weight: .semibold))
                     Spacer()
                     Text(h.time).font(MeshDropFont.mono(10.5))
@@ -93,7 +93,7 @@ struct HistoryScreen: View {
                 .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
         )
         .contextMenu {
-            Button("删除", role: .destructive) {
+            Button(MD("common.delete"), role: .destructive) {
                 if let id = UUID(uuidString: h.id) {
                     engine.removeHistoryItem(id)
                 }
@@ -133,7 +133,7 @@ struct HistoryScreen: View {
                     .font(MeshDropFont.mono(10.5)).foregroundStyle(muted)
             }
         case .image:
-            Text("\(h.count ?? 1) 张图片").font(MeshDropFont.body(12)).foregroundStyle(muted)
+            Text(MD("history.imageCount", h.count ?? 1)).font(MeshDropFont.body(12)).foregroundStyle(muted)
         case .text:
             Text(h.content ?? "").font(MeshDropFont.body(12)).lineLimit(1)
         }
@@ -151,8 +151,8 @@ struct HistoryScreen: View {
 
     private var emptyState: some View {
         VStack(spacing: 10) {
-            Text("空空如也").font(MeshDropFont.body(14, weight: .semibold))
-            Text("发送或接收后会在这里出现")
+            Text(MD("history.empty.title")).font(MeshDropFont.body(14, weight: .semibold))
+            Text(MD("history.empty.subtitle"))
                 .font(MeshDropFont.mono(11)).foregroundStyle(muted)
         }
         .frame(maxWidth: .infinity, minHeight: 200)
@@ -160,9 +160,9 @@ struct HistoryScreen: View {
 
     private var emptyMore: some View {
         VStack(spacing: 6) {
-            Text("空空如也").font(MeshDropFont.body(13))
+            Text(MD("history.more.empty.title")).font(MeshDropFont.body(13))
                 .foregroundStyle(muted)
-            Text("超过 24 小时的历史会折叠到归档")
+            Text(MD("history.more.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5)).foregroundStyle(muted.opacity(0.7))
         }
         .frame(maxWidth: .infinity, minHeight: 60)

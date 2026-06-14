@@ -52,7 +52,7 @@ public final class IncomingNotifier {
             guard it.direction == .incoming else { continue }
             switch it.kind {
             case .text(let t): post(title: it.peer.name, body: t)
-            case .file(let name, _, _): post(title: "\(it.peer.name) 发来文件", body: name)
+            case .file(let name, _, _): post(title: L10n.notifIncomingFile(peer: it.peer.name), body: name)
             }
         }
     }
@@ -60,14 +60,14 @@ public final class IncomingNotifier {
     private func onClipboard(_ items: [ClipboardEntry]) {
         for e in items where !seenClip.contains(e.id) {
             seenClip.insert(e.id)
-            post(title: "\(e.peerName) 推送了剪贴板", body: e.content)
+            post(title: L10n.notifClipboard(peer: e.peerName), body: e.content)
         }
     }
 
     private func onOffers(_ offers: [PendingFileOffer]) {
         for o in offers where !seenOffers.contains(o.id) {
             seenOffers.insert(o.id)
-            post(title: "\(o.peer.name) 想发文件给你", body: o.fileName)
+            post(title: L10n.notifFileOffer(peer: o.peer.name), body: o.fileName)
         }
     }
 

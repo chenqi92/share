@@ -25,9 +25,9 @@ struct MeTab: View {
                 VStack(alignment: .leading, spacing: 18) {
                     header
                     selfCard
-                    AsciiDivider("MANAGE · 管理")
+                    AsciiDivider(MD("me.section.manage"))
                     actionList
-                    AsciiDivider("RECEIVED · 最近收件")
+                    AsciiDivider(MD("me.section.received"))
                     pendingCard
                     Spacer(minLength: 40)
                 }
@@ -46,9 +46,9 @@ struct MeTab: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("我")
+            Text(MD("me.title"))
                 .font(MeshDropFont.display(28, weight: .bold))
-            Text("Me.")
+            Text(MD("me.subtitle"))
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
@@ -95,23 +95,23 @@ struct MeTab: View {
             ],
             spacing: 10
         ) {
-            actionTile("传输历史", "clock.arrow.circlepath",
-                       detail: "\(historyToday) 条今天") { state.showHistory = true }
-            actionTile("信任管理", "checkmark.shield",
-                       detail: "\(trustedCount) 台已配对") { state.showTrustManager = true }
-            actionTile("配对新设备", "qrcode",
-                       detail: "QR / 6 位代码") { state.showPairingSheet = true }
-            actionTile("快速上手", "sparkles",
-                       detail: "3 步介绍") { state.showOnboarding = true }
-            actionTile("设置", "gearshape",
-                       detail: "可见性 / 身份") { state.showSettings = true }
-            actionTile("Share 预览", "square.and.arrow.up",
-                       detail: "系统分享入口") { state.showShareExt = true }
-            actionTile("实时活动", "clock.badge",
-                       detail: "锁屏进度") { state.showLiveActivity = true }
+            actionTile(MD("me.action.history.title"), "clock.arrow.circlepath",
+                       detail: MD("me.action.history.detail", historyToday)) { state.showHistory = true }
+            actionTile(MD("me.action.trust.title"), "checkmark.shield",
+                       detail: MD("me.action.trust.detail", trustedCount)) { state.showTrustManager = true }
+            actionTile(MD("me.action.pairing.title"), "qrcode",
+                       detail: MD("me.action.pairing.detail")) { state.showPairingSheet = true }
+            actionTile(MD("me.action.onboarding.title"), "sparkles",
+                       detail: MD("me.action.onboarding.detail")) { state.showOnboarding = true }
+            actionTile(MD("me.action.settings.title"), "gearshape",
+                       detail: MD("me.action.settings.detail")) { state.showSettings = true }
+            actionTile(MD("me.action.shareExt.title"), "square.and.arrow.up",
+                       detail: MD("me.action.shareExt.detail")) { state.showShareExt = true }
+            actionTile(MD("me.action.liveActivity.title"), "clock.badge",
+                       detail: MD("me.action.liveActivity.detail")) { state.showLiveActivity = true }
             if pendingShareCount > 0 {
-                actionTile("待发分享", "tray.and.arrow.up",
-                           detail: "\(pendingShareCount) 项待选目标") {
+                actionTile(MD("me.action.pendingShare.title"), "tray.and.arrow.up",
+                           detail: MD("me.action.pendingShare.detail", pendingShareCount)) {
                     state.pendingShares = PendingShareQueue.shared.unresolvedItems()
                     state.showPendingShareResolver = true
                 }
@@ -165,7 +165,7 @@ struct MeTab: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Chip("OFFER", tone: .flame, mono: true, uppercased: true)
-                    Text("来自 \(offer.peer)")
+                    Text(MD("me.offer.fromPeer", offer.peer))
                         .font(MeshDropFont.body(13, weight: .semibold))
                     Spacer()
                     Text(offer.receivedAt)
@@ -197,7 +197,7 @@ struct MeTab: View {
                 }
                 HStack(spacing: 8) {
                     Button { state.showOfferSheet = true } label: {
-                        Text("查看并选择")
+                        Text(MD("me.offer.viewAndChoose"))
                             .font(MeshDropFont.body(13, weight: .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 8)
                             .background(Capsule().fill(MeshDropColor.lime))
@@ -209,7 +209,7 @@ struct MeTab: View {
                             engine.respondToFileOffer(uuid, accept: false)
                         }
                     } label: {
-                        Text("拒绝")
+                        Text(MD("common.reject"))
                             .font(MeshDropFont.body(13, weight: .semibold))
                             .padding(.horizontal, 14).padding(.vertical, 8)
                             .overlay(Capsule().strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 1))
@@ -229,7 +229,7 @@ struct MeTab: View {
             )
         } else {
             HStack {
-                Text("暂无待审收件")
+                Text(MD("me.pending.empty"))
                     .font(MeshDropFont.mono(11))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                 Spacer()

@@ -11,7 +11,7 @@ struct OnboardingPage: View {
                 MeshDropLockup(size: 26)
                 Spacer()
                 Chip(text: "STEP 2 / 4", tone: .outline, mono: true)
-                Text("跳过")
+                Text("onboarding.skip")
                     .font(MeshDropFont.body(size: 12))
                     .foregroundStyle(MeshDropColor.textMuted)
                     .padding(.leading, 6)
@@ -37,29 +37,29 @@ struct OnboardingPage: View {
 
                 // 右侧文案
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("拖即发送")
+                    Text("onboarding.hero.title")
                         .font(MeshDropFont.hero(48))
                         .tracking(-1.5)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("Drag → Drop. 就这么简单。")
+                    Text("onboarding.hero.subtitle")
                         .font(MeshDropFont.hero(28))
                         .tracking(-0.5)
                         .foregroundStyle(MeshDropColor.textMuted)
 
-                    Text("任何文件、图片、文字便签。把它拖到 Discovery 雷达上的设备头像，对端立刻收到接受请求。")
+                    Text("onboarding.body")
                         .font(MeshDropFont.body(size: 14))
                         .foregroundStyle(MeshDropColor.textPrimary)
                         .frame(width: 380, alignment: .leading)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        feature("●", "雷达式自动发现局域网内设备",  MeshDropColor.limeDeep)
-                        feature("●", "Ed25519 身份指纹 · 目视核对",   MeshDropColor.flame)
-                        feature("●", "剪贴板跨设备同步 · 仅本人",     MeshDropColor.sky)
-                        feature("●", "常驻菜单栏 · ⌥⇧S 一键发送",     MeshDropColor.ink)
+                        feature("●", String(localized: "onboarding.feature.discovery"),  MeshDropColor.limeDeep)
+                        feature("●", String(localized: "onboarding.feature.identity"),   MeshDropColor.flame)
+                        feature("●", String(localized: "onboarding.feature.clipboard"),     MeshDropColor.sky)
+                        feature("●", String(localized: "onboarding.feature.menubar"),     MeshDropColor.ink)
                     }
 
                     HStack(spacing: 10) {
-                        Text("上一步")
+                        Text("onboarding.back")
                             .font(MeshDropFont.body(size: 13, weight: .semibold))
                             .padding(.horizontal, 18)
                             .padding(.vertical, 9)
@@ -68,7 +68,7 @@ struct OnboardingPage: View {
                                     .stroke(MeshDropColor.divider, lineWidth: 1)
                             )
                             .foregroundStyle(MeshDropColor.textSecondary)
-                        Text("继续 ⏎")
+                        Text("onboarding.continue")
                             .font(MeshDropFont.body(size: 13, weight: .semibold))
                             .padding(.horizontal, 18)
                             .padding(.vertical, 9)
@@ -92,11 +92,11 @@ struct OnboardingPage: View {
                         RoundedRectangle(cornerRadius: 4)
                             .stroke(MeshDropColor.divider, lineWidth: 0.5)
                     )
-                Text("跳过新手指引")
+                Text("onboarding.escHint")
                     .font(MeshDropFont.body(size: 11))
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
-                Text("MeshDrop · 局域网分享 · 不上云")
+                Text("onboarding.footer")
                     .font(MeshDropFont.mono(size: 10))
                     .foregroundStyle(MeshDropColor.textMuted)
             }

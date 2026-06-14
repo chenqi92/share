@@ -51,7 +51,7 @@ struct ChatDetailScreen: View {
                     if messages.isEmpty {
                         emptyHint
                     } else {
-                        AsciiDivider("TODAY · 今天")
+                        AsciiDivider(MD("common.today"))
                         ForEach(messages) { m in
                             MsgBubble(m)
                         }
@@ -110,7 +110,7 @@ struct ChatDetailScreen: View {
                     .font(MeshDropFont.mono(10))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
             } else {
-                Text("历史可查看 · 暂停发送")
+                Text(MD("chat.header.offlineHint"))
                     .font(MeshDropFont.mono(10))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
             }
@@ -119,9 +119,9 @@ struct ChatDetailScreen: View {
 
     private var emptyHint: some View {
         VStack(spacing: 6) {
-            Text("还没有消息")
+            Text(MD("chat.empty.title"))
                 .font(MeshDropFont.body(13, weight: .semibold))
-            Text("发一句你好开始对话")
+            Text(MD("chat.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }
@@ -150,7 +150,7 @@ struct ChatDetailScreen: View {
 
             ZStack(alignment: .leading) {
                 if composerText.isEmpty {
-                    Text(realTarget == nil ? "设备已离线 · 历史仍保留" : "想说点什么…")
+                    Text(realTarget == nil ? MD("chat.composer.offline.placeholder") : MD("chat.composer.placeholder"))
                         .font(MeshDropFont.body(14))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
                         .allowsHitTesting(false)

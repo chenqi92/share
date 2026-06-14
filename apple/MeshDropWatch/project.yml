@@ -5,6 +5,11 @@ options:
     watchOS: "10.0"
   developmentLanguage: zh-Hans
 
+# i18n：默认简体中文 + 英文。complication target 的 Resources/Localizable.xcstrings 提供两份文案。
+knownRegions:
+  - zh-Hans
+  - en
+
 settings:
   base:
     MARKETING_VERSION: "0.1.0"
@@ -61,6 +66,7 @@ targets:
     platform: watchOS
     sources:
       - ../MeshDropWatchComplications/Sources
+      - ../MeshDropWatchComplications/Resources      # Localizable.xcstrings（zh-Hans + en）
       - Sources/bridge/ComplicationSnapshot.swift   # 与 watch app 共享同一份快照读写代码
     info:
       path: ../MeshDropWatchComplications/Info.plist

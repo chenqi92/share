@@ -16,16 +16,16 @@ struct SettingsPage: View {
 
     private var rows: [Row] {
         [
-            .init(label: "显示名",   english: "DISPLAY NAME",
+            .init(label: L10n.settingsRowDisplayName,   english: L10n.settingsRowDisplayNameEn,
                   value: engine.displayName, kind: .display),
-            .init(label: "保存位置", english: "SAVE PATH",
-                  value: "本机 Documents/MeshDrop/<对端>/", kind: .savePath),
-            .init(label: "网络",     english: "NETWORK",
+            .init(label: L10n.settingsRowSavePath, english: L10n.settingsRowSavePathEn,
+                  value: L10n.settingsRowSavePathValue, kind: .savePath),
+            .init(label: L10n.settingsRowNetwork,     english: L10n.settingsRowNetworkEn,
                   value: "Wi-Fi · LAN ONLY · _meshdrop._tcp", kind: .network),
-            .init(label: "行为",     english: "BEHAVIOR",
-                  value: "只接收 · 不发送（tvOS）", kind: .behavior),
-            .init(label: "重置身份", english: "RESET IDENTITY",
-                  value: "对端需重新配对", kind: .resetIdentity),
+            .init(label: L10n.settingsRowBehavior,     english: L10n.settingsRowBehaviorEn,
+                  value: L10n.settingsRowBehaviorValue, kind: .behavior),
+            .init(label: L10n.settingsRowReset, english: L10n.settingsRowResetEn,
+                  value: L10n.settingsRowResetValue, kind: .resetIdentity),
         ]
     }
 
@@ -36,7 +36,7 @@ struct SettingsPage: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            MeshAsciiDivider(label: "可见性 · 安全 · 行为 · BEHAVIOR")
+            MeshAsciiDivider(label: L10n.settingsDivider)
 
             VStack(spacing: 18) {
                 ForEach(rows) { row in
@@ -55,27 +55,27 @@ struct SettingsPage: View {
                 fingerprintBlock
                 Spacer()
                 RemoteHint(items: [
-                    .init(glyph: "↕", label: "选择"),
-                    .init(glyph: "OK", label: "修改"),
-                    .init(glyph: "TV", label: "返回"),
+                    .init(glyph: "↕", label: L10n.hintSelect),
+                    .init(glyph: "OK", label: L10n.hintEdit),
+                    .init(glyph: "TV", label: L10n.hintReturn),
                 ])
             }
         }
         .confirmationDialog(
-            "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+            L10n.settingsResetConfirm,
             isPresented: $confirmingReset,
             titleVisibility: .visible
         ) {
-            Button("重置身份", role: .destructive) { engine.resetIdentity() }
-            Button("取消", role: .cancel) {}
+            Button(L10n.settingsResetAction, role: .destructive) { engine.resetIdentity() }
+            Button(L10n.commonCancel, role: .cancel) {}
         }
     }
 
     private var nameEditor: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("修改显示名 · DISPLAY NAME")
+            Text(L10n.settingsNameEditorTag)
                 .monoTag()
-            TextField("Living Room TV", text: $nameDraft)
+            TextField(L10n.settingsNamePlaceholder, text: $nameDraft)
                 .font(.system(size: 22, weight: .semibold))
                 .padding(.horizontal, 16).padding(.vertical, 14)
                 .background(
@@ -86,7 +86,7 @@ struct SettingsPage: View {
                 .onSubmit(commitName)
             HStack(spacing: 12) {
                 Button(action: commitName) {
-                    Text("保存")
+                    Text(L10n.commonSave)
                         .font(.system(size: 18, weight: .bold))
                         .padding(.horizontal, 18).padding(.vertical, 10)
                         .background(MeshDropColor.lime)
@@ -94,7 +94,7 @@ struct SettingsPage: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 Button(action: { editingName = false }) {
-                    Text("取消")
+                    Text(L10n.commonCancel)
                         .font(.system(size: 18, weight: .semibold))
                         .padding(.horizontal, 18).padding(.vertical, 10)
                         .background(MeshDropColor.dink3)
@@ -180,13 +180,13 @@ struct SettingsPage: View {
 
     private var fingerprintBlock: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("本机指纹 · DEVICE FINGERPRINT")
+            Text(L10n.settingsFingerprintTag)
                 .monoTag()
             Text(shortFingerprint)
                 .font(.system(size: 22, weight: .bold, design: .monospaced))
                 .tracking(1.6)
                 .foregroundStyle(MeshDropColor.lime)
-            Text("身份校验用 · 当面比对")
+            Text(L10n.settingsFingerprintHint)
                 .font(.system(size: 14, weight: .semibold, design: .monospaced))
                 .foregroundStyle(MeshDropColor.dpaperMute)
         }

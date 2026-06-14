@@ -1,0 +1,168 @@
+{
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "notification.incoming.clipboard" : {
+      "comment" : "入站通知标题：对方推送了剪贴板内容。%@ = 对端显示名。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ shared clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 推送了剪贴板"
+          }
+        }
+      }
+    },
+    "notification.incoming.file" : {
+      "comment" : "入站通知标题：对方发来文件。%@ = 对端显示名。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File from %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 发来文件"
+          }
+        }
+      }
+    },
+    "notification.incoming.offer" : {
+      "comment" : "入站通知标题：对方请求发文件给你（offer）。%@ = 对端显示名。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wants to send you a file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想发文件给你"
+          }
+        }
+      }
+    },
+    "transfer.fail.checksum" : {
+      "comment" : "传输失败：文件哈希校验不通过。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checksum failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "校验失败"
+          }
+        }
+      }
+    },
+    "transfer.fail.chunkTooLarge" : {
+      "comment" : "传输失败：协议错误，单个分块超过上限。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Protocol error: chunk too large"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "协议错误：分块过大"
+          }
+        }
+      }
+    },
+    "transfer.fail.disconnected" : {
+      "comment" : "传输失败：连接中断（不可续传）。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接中断"
+          }
+        }
+      }
+    },
+    "transfer.fail.disconnectedResumable" : {
+      "comment" : "传输失败：连接中断，但已记录断点可续传。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnected · waiting to resume"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接中断 · 等待续传"
+          }
+        }
+      }
+    },
+    "transfer.fail.peerRejected" : {
+      "comment" : "传输失败：对方拒收。%@ = 对端给出的原因码（协议常量，原文展示）。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Declined by peer: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对方拒收: %@"
+          }
+        }
+      }
+    },
+    "transfer.fail.readFile" : {
+      "comment" : "传输失败：读取本地源文件出错。%@ = 系统错误描述。",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot read file: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取文件: %@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

@@ -13,7 +13,7 @@ struct MenuBarPreviewPage: View {
                     MeshDropMark(size: 18)
                     Image(systemName: "wifi").font(.system(size: 12))
                     Image(systemName: "battery.100").font(.system(size: 12))
-                    Text("14:18 周一")
+                    Text("menubarPreview.clock")
                         .font(MeshDropFont.mono(size: 11))
                 }
                 .padding(.horizontal, 14)

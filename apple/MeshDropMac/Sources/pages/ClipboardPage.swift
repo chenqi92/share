@@ -11,11 +11,11 @@ struct ClipboardPage: View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Text("剪贴板")
+                    Text("clipboard.title")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("· Clipboard")
+                    Text("clipboard.title.suffix")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
@@ -25,12 +25,12 @@ struct ClipboardPage: View {
 
                 HStack(spacing: 6) {
                     Circle().fill(MeshDropColor.limeDeep).frame(width: 6, height: 6)
-                    Text("\(inbox.count) 条收件 · 显式推送 · 仅本人可见 · 不上云")
+                    Text(String(format: String(localized: "clipboard.summary"), inbox.count))
                         .font(MeshDropFont.mono(size: 11))
                         .foregroundStyle(MeshDropColor.textMuted)
                 }
 
-                AsciiDivider(text: "INBOX · 收件箱 · \(inbox.count)")
+                AsciiDivider(text: String(format: String(localized: "clipboard.divider.inbox"), inbox.count))
 
                 if inbox.isEmpty {
                     emptyView
@@ -53,7 +53,7 @@ struct ClipboardPage: View {
             HStack(spacing: 5) {
                 Image(systemName: "arrow.up.doc.on.clipboard")
                     .font(.system(size: 11, weight: .semibold))
-                Text("推送剪贴板 → \(state.selectedDevice.who)")
+                Text(String(format: String(localized: "clipboard.push.button"), state.selectedDevice.who))
                     .font(MeshDropFont.body(size: 12, weight: .semibold))
             }
             .padding(.horizontal, 12)
@@ -64,7 +64,7 @@ struct ClipboardPage: View {
         .buttonStyle(.plain)
         .disabled(!state.canSendToSelectedDevice)
         .opacity(state.canSendToSelectedDevice ? 1 : 0.5)
-        .help("读取本机剪贴板并推送给选中设备")
+        .help("clipboard.push.help")
     }
 
     private func pushCurrentClipboard() {
@@ -76,10 +76,10 @@ struct ClipboardPage: View {
 
     private var emptyView: some View {
         VStack(spacing: 8) {
-            Text("剪贴板收件箱为空")
+            Text("clipboard.empty.title")
                 .font(MeshDropFont.body(size: 13, weight: .medium))
                 .foregroundStyle(MeshDropColor.textMuted)
-            Text("对方点「推送剪贴板」后会在这里出现，点 ⌘C 图标复制到本机")
+            Text("clipboard.empty.detail")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted.opacity(0.7))
         }
@@ -117,7 +117,7 @@ struct ClipboardPage: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .help("复制到本机剪贴板")
+                    .help("clipboard.copy.help")
                 }
                 Text(c.content)
                     .font(c.kind == "code" ? MeshDropFont.mono(size: 12) : MeshDropFont.body(size: 13))

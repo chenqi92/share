@@ -26,7 +26,7 @@ struct SpeedChart: View {
                 if bars.isEmpty {
                     // 无实时采样时渲染空态基线，不回退到假数据。
                     HStack {
-                        Text("暂无数据 · NO DATA")
+                        Text("transfers.chart.noData")
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.textMuted)
                         Spacer()

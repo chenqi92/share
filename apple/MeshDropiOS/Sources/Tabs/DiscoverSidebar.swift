@@ -42,7 +42,7 @@ struct DiscoverSidebar: View {
 
     private var radarHeader: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("附近 · Nearby")
+            Text(MD("discovery.sidebar.title"))
                 .font(MeshDropFont.display(22, weight: .bold))
             Text(engine.isStarting ? "scanning · \(me.ip)/24" : "LAN · \(me.ip)/24")
                 .font(MeshDropFont.mono(10.5))
@@ -62,7 +62,7 @@ struct DiscoverSidebar: View {
         VStack(alignment: .leading, spacing: 8) {
             AsciiDivider("DEVICES · \(devices.count)")
             if devices.isEmpty {
-                Text("附近没有设备 · 让朋友也打开试试")
+                Text(MD("discovery.sidebar.devices.empty"))
                     .font(MeshDropFont.mono(11))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                     .frame(maxWidth: .infinity)
@@ -82,11 +82,11 @@ struct DiscoverSidebar: View {
     private var sectionList: some View {
         VStack(alignment: .leading, spacing: 6) {
             AsciiDivider("SECTIONS")
-            sectionRow("聊天", "message", .chat)
-            sectionRow("传输", "arrow.up.arrow.down", .transfers)
-            sectionRow("历史", "clock.arrow.circlepath", .history)
-            sectionRow("信任", "checkmark.shield", .trust)
-            sectionRow("设置", "gearshape", .settings)
+            sectionRow(MD("discovery.sidebar.section.chat"), "message", .chat)
+            sectionRow(MD("discovery.sidebar.section.transfers"), "arrow.up.arrow.down", .transfers)
+            sectionRow(MD("discovery.sidebar.section.history"), "clock.arrow.circlepath", .history)
+            sectionRow(MD("discovery.sidebar.section.trust"), "checkmark.shield", .trust)
+            sectionRow(MD("discovery.sidebar.section.settings"), "gearshape", .settings)
         }
     }
 

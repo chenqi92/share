@@ -12,16 +12,16 @@ struct DiscoveryPage: View {
                 // 标题区
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {
-                        Text("附近 \(state.engineDevices.count) 台设备")
+                        Text(String(format: String(localized: "discovery.title"), state.engineDevices.count))
                             .font(MeshDropFont.hero(34))
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textPrimary)
-                        Text("· Nearby")
+                        Text("discovery.title.suffix")
                             .font(MeshDropFont.hero(34))
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textMuted)
                         Spacer()
-                        Chip(text: "LAN · 明文 · v0.1", tone: .outline, mono: true)
+                        Chip(text: String(localized: "discovery.tag.plaintext"), tone: .outline, mono: true)
                         Chip(text: "LAN ONLY",         tone: .outline, mono: true)
                     }
                     HStack(spacing: 6) {
@@ -29,8 +29,8 @@ struct DiscoveryPage: View {
                             .font(MeshDropFont.mono(size: 12, weight: .bold))
                             .foregroundStyle(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
                         Text(state.isScanning
-                             ? "扫描中 · scanning LAN · \(state.localIPSummary) · mDNS"
-                             : "已就绪 · ready · \(state.localIPSummary) · mDNS+uTP")
+                             ? String(format: String(localized: "discovery.status.scanning"), state.localIPSummary)
+                             : String(format: String(localized: "discovery.status.ready"), state.localIPSummary))
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
                     }
@@ -38,11 +38,11 @@ struct DiscoveryPage: View {
                         HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(MeshDropColor.error)
-                            Text("网络出错 — \(err)")
+                            Text(String(format: String(localized: "discovery.error"), err))
                                 .font(MeshDropFont.body(size: 11.5))
                                 .foregroundStyle(MeshDropColor.error)
                             Spacer()
-                            Text("关闭")
+                            Text("common.close")
                                 .font(MeshDropFont.body(size: 11, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textSecondary)
                                 .onTapGesture { state.clearError() }
@@ -63,13 +63,13 @@ struct DiscoveryPage: View {
                         statBlock(label: "PENDING",  value: "\((state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0))", color: MeshDropColor.ink45)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("快速操作")
+                            Text("discovery.quickActions")
                                 .font(MeshDropFont.body(size: 11, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            quickAction(text: "剪贴板同步") { state.tab = .clipboard }
-                            quickAction(text: "发送文字便签") { state.tab = .chat }
-                            quickAction(text: "查看传输") { state.tab = .transfers }
-                            quickAction(text: "配对新设备") { state.tab = .pairing }
+                            quickAction(text: String(localized: "discovery.quick.clipboard")) { state.tab = .clipboard }
+                            quickAction(text: String(localized: "discovery.quick.note")) { state.tab = .chat }
+                            quickAction(text: String(localized: "discovery.quick.transfers")) { state.tab = .transfers }
+                            quickAction(text: String(localized: "discovery.quick.pair")) { state.tab = .pairing }
                         }
                     }
                     .frame(width: 220)
@@ -90,10 +90,10 @@ struct DiscoveryPage: View {
                             Text("⤓")
                                 .font(MeshDropFont.mono(size: 13, weight: .bold))
                                 .foregroundStyle(MeshDropColor.limeDeep)
-                            Text("拖任何文件到设备头像即可发送")
+                            Text("discovery.dropHint")
                                 .font(MeshDropFont.body(size: 12))
                                 .foregroundStyle(MeshDropColor.textSecondary)
-                            Text("· drag a file to a device avatar")
+                            Text("discovery.dropHint.suffix")
                                 .font(MeshDropFont.body(size: 12))
                                 .foregroundStyle(MeshDropColor.textMuted)
                         }
@@ -114,7 +114,7 @@ struct DiscoveryPage: View {
                     )
                 }
 
-                AsciiDivider(text: "TODAY · 今天 · \(state.engineHistory.count) 件")
+                AsciiDivider(text: String(format: String(localized: "discovery.divider.today"), state.engineHistory.count))
 
                 // 今日活动
                 if state.engineHistory.isEmpty {
@@ -141,10 +141,10 @@ struct DiscoveryPage: View {
             Image(systemName: "antenna.radiowaves.left.and.right")
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(MeshDropColor.textMuted)
-            Text("附近没有 MeshDrop 设备")
+            Text("discovery.empty.title")
                 .font(MeshDropFont.body(size: 14, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textPrimary)
-            Text("让朋友也打开 MeshDrop · 同一 Wi-Fi 即可")
+            Text("discovery.empty.detail")
                 .font(MeshDropFont.body(size: 12))
                 .foregroundStyle(MeshDropColor.textMuted)
             Spacer()
@@ -154,10 +154,10 @@ struct DiscoveryPage: View {
 
     private var emptyHistoryCard: some View {
         VStack(spacing: 6) {
-            Text("还没有传输记录")
+            Text("discovery.history.empty.title")
                 .font(MeshDropFont.body(size: 12.5, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textSecondary)
-            Text("发出去 / 收到的第一份内容会显示在这里")
+            Text("discovery.history.empty.detail")
                 .font(MeshDropFont.body(size: 11))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
@@ -254,7 +254,7 @@ struct DiscoveryPage: View {
         switch h.kind {
         case .text:  return h.content ?? ""
         case .file:  return h.name ?? ""
-        case .image: return "\(h.count ?? 0) 张图片"
+        case .image: return String(format: String(localized: "discovery.images.count"), h.count ?? 0)
         }
     }
 

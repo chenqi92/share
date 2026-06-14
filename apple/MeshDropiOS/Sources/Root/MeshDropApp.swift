@@ -127,7 +127,7 @@ enum PhoneTab: Hashable {
 extension MockDevice {
     /// 当 LAN 上一台设备都还没发现时的占位卡片。
     static let placeholder = MockDevice(
-        id: "—", name: "等待设备", who: "—", kind: .ios,
+        id: "—", name: MD("device.placeholder.name"), who: "—", kind: .ios,
         dist: 0, angle: 0, colorHex: 0xE5E7EB,
         initials: "··", os: "—", rtt: 0, isOnline: false
     )

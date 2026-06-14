@@ -19,7 +19,7 @@ struct Sidebar: View {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 11))
                         .foregroundStyle(MeshDropColor.textMuted)
-                    Text(state.searchQuery.isEmpty ? "搜索 · Search" : state.searchQuery)
+                    Text(state.searchQuery.isEmpty ? String(localized: "sidebar.search") : state.searchQuery)
                         .font(MeshDropFont.body(size: 12))
                         .foregroundStyle(state.searchQuery.isEmpty
                                          ? MeshDropColor.textMuted
@@ -49,26 +49,26 @@ struct Sidebar: View {
             let devicesCount = state.engineDevices.count
             let activeTransfers = state.engineHistory.filter { $0.status == .transferring }.count
             let pendingBadge = (state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0)
-            navItem(.discovery, title: "附近 · Nearby",
+            navItem(.discovery, title: String(localized: "sidebar.nav.discovery"),
                     badge: devicesCount > 0 ? "\(devicesCount)" : nil,
                     system: "antenna.radiowaves.left.and.right")
-            navItem(.chat,       title: "对话 · Chat",      badge: nil, system: "bubble.left.and.bubble.right")
-            navItem(.transfers,  title: "传输 · Transfers",
+            navItem(.chat,       title: String(localized: "sidebar.nav.chat"),      badge: nil, system: "bubble.left.and.bubble.right")
+            navItem(.transfers,  title: String(localized: "sidebar.nav.transfers"),
                     badge: activeTransfers > 0 ? "\(activeTransfers)" : nil,
                     system: "arrow.up.arrow.down")
-            navItem(.history,    title: "历史 · History",
+            navItem(.history,    title: String(localized: "sidebar.nav.history"),
                     badge: state.engineHistory.isEmpty ? nil : "\(state.engineHistory.count)",
                     system: "clock.arrow.circlepath")
-            navItem(.clipboard,  title: "剪贴板 · Clipboard", badge: nil, system: "doc.on.clipboard")
-            navItem(.trust,      title: "已配对 · Paired",
+            navItem(.clipboard,  title: String(localized: "sidebar.nav.clipboard"), badge: nil, system: "doc.on.clipboard")
+            navItem(.trust,      title: String(localized: "sidebar.nav.trust"),
                     badge: pendingBadge > 0 ? "\(pendingBadge)" : nil,
                     system: "person.2.badge.key")
-            navItem(.settings,   title: "设置 · Settings",  badge: nil,  system: "gearshape")
+            navItem(.settings,   title: String(localized: "sidebar.nav.settings"),  badge: nil,  system: "gearshape")
 
             // 附近 device cards
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text("● 附近 · Nearby")
+                    Text("sidebar.nearby")
                         .font(MeshDropFont.body(size: 11, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textSecondary)
                     Spacer()
@@ -82,10 +82,10 @@ struct Sidebar: View {
 
                 if state.engineDevices.isEmpty {
                     VStack(spacing: 4) {
-                        Text(state.isScanning ? "扫描中 · scanning…" : "附近暂无设备")
+                        Text(state.isScanning ? "sidebar.scanning" : "sidebar.noDevices")
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
-                        Text("让朋友也打开 MeshDrop 试试")
+                        Text("sidebar.tryOpen")
                             .font(MeshDropFont.body(size: 11))
                             .foregroundStyle(MeshDropColor.textMuted)
                     }
@@ -108,12 +108,12 @@ struct Sidebar: View {
 
             // 本机
             HStack(spacing: 10) {
-                Avatar(initials: "我", color: Color(hex: 0xE2DCCD), size: 32, ring: true, ringColor: MeshDropColor.lime)
+                Avatar(initials: String(localized: "common.me"), color: Color(hex: 0xE2DCCD), size: 32, ring: true, ringColor: MeshDropColor.lime)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("\(state.displayName)")
+                    Text(verbatim: state.displayName)
                         .font(MeshDropFont.body(size: 12.5, weight: .semibold))
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text(state.isScanning ? "扫描中 · scanning LAN" : "可见 · Visible · LAN")
+                    Text(state.isScanning ? "sidebar.self.scanning" : "sidebar.self.visible")
                         .font(MeshDropFont.mono(size: 9.5))
                         .foregroundStyle(MeshDropColor.limeDeep)
                 }

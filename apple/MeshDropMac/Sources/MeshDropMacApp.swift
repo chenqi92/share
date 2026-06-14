@@ -35,7 +35,7 @@ struct MeshDropMacApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
-                Button("配对新设备…") {
+                Button("menu.pairNewDevice") {
                     state.tab = .pairing
                 }
                 .keyboardShortcut("p", modifiers: [.option, .shift])

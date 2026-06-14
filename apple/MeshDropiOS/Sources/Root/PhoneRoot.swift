@@ -9,20 +9,20 @@ struct PhoneRoot: View {
     var body: some View {
         TabView(selection: $state.phoneTab) {
             NavigationStack { DiscoverTab() }
-                .tabItem { Label("附近", systemImage: "dot.radiowaves.left.and.right") }
+                .tabItem { Label(MD("tab.discover"), systemImage: "dot.radiowaves.left.and.right") }
                 .tag(PhoneTab.discover)
 
             NavigationStack { ChatListTab() }
-                .tabItem { Label("发送", systemImage: "paperplane") }
+                .tabItem { Label(MD("tab.send"), systemImage: "paperplane") }
                 .badge(engine.unreadTotal)
                 .tag(PhoneTab.chats)
 
             NavigationStack { TransferTab() }
-                .tabItem { Label("传输", systemImage: "arrow.up.arrow.down") }
+                .tabItem { Label(MD("tab.transfers"), systemImage: "arrow.up.arrow.down") }
                 .tag(PhoneTab.transfers)
 
             NavigationStack { MeTab() }
-                .tabItem { Label("我", systemImage: "person.circle") }
+                .tabItem { Label(MD("tab.me"), systemImage: "person.circle") }
                 .tag(PhoneTab.me)
         }
         .tint(MeshDropColor.limeDeep)

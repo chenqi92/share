@@ -45,14 +45,14 @@ struct ReceivePage: View {
                 }
             }
         }
-        .alert("已接收 ✓", isPresented: $accepted) { Button("好", role: .cancel) {} }
-        .alert("已拒绝 ×", isPresented: $rejected) { Button("好", role: .cancel) {} }
+        .alert(L10n.receiveAccepted, isPresented: $accepted) { Button(L10n.commonOK, role: .cancel) {} }
+        .alert(L10n.receiveRejected, isPresented: $rejected) { Button(L10n.commonOK, role: .cancel) {} }
         .alert(
-            "出错",
+            L10n.commonError,
             isPresented: Binding(get: { commandError != nil },
                                  set: { if !$0 { commandError = nil } })
         ) {
-            Button("好", role: .cancel) { commandError = nil }
+            Button(L10n.commonOK, role: .cancel) { commandError = nil }
         } message: {
             Text(commandError ?? "")
         }
@@ -106,7 +106,7 @@ struct ReceivePage: View {
             actionRow(offer: offer)
                 .padding(.top, 3)
 
-            Text("⌃ 双击侧键也行")
+            Text(L10n.receiveSideHint)
                 .font(MDFont.mono(10, weight: .medium))
                 .tracking(0.6)
                 .foregroundColor(MD.dim)
@@ -120,7 +120,7 @@ struct ReceivePage: View {
     private var headerLabel: some View {
         HStack(spacing: 3) {
             Circle().fill(MD.lime).frame(width: 5, height: 5)
-            Text("来自 · FROM")
+            Text(L10n.receiveFrom)
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.lime)
@@ -135,10 +135,10 @@ struct ReceivePage: View {
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("iPhone 不在身边")
+            Text(L10n.receiveOfflineTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("接收功能暂不可用")
+            Text(L10n.receiveOfflineDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
         }
@@ -150,14 +150,14 @@ struct ReceivePage: View {
 
     private var emptyCard: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("收件箱 · INBOX")
+            Text(L10n.receiveEmptyTag)
                 .font(MDFont.mono(10, weight: .bold))
                 .tracking(1.4)
                 .foregroundColor(MD.dim)
-            Text("没有新文件")
+            Text(L10n.receiveEmptyTitle)
                 .font(MDFont.display(14, weight: .semibold))
                 .foregroundColor(MD.dpaper)
-            Text("有人发来时会自动弹出")
+            Text(L10n.receiveEmptyDetail)
                 .font(MDFont.body(11, weight: .regular))
                 .foregroundColor(MD.muted)
         }
@@ -173,7 +173,7 @@ struct ReceivePage: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 3) {
                 Circle().fill(MD.lime).frame(width: 5, height: 5)
-                Text("收件箱 · INBOX")
+                Text(L10n.receiveInboxTag)
                     .font(MDFont.mono(10, weight: .bold))
                     .tracking(1.4)
                     .foregroundColor(MD.lime)
@@ -218,11 +218,11 @@ struct ReceivePage: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 FileChipMini(
-                    name: item.fileName ?? "文件",
+                    name: item.fileName ?? L10n.receiveFilePlaceholder,
                     size: byteString(item.sizeBytes),
                     ext: (item.fileName as NSString?)?.pathExtension ?? ""
                 )
-                Text(item.fileAvailable ? "已存到 iPhone · 表上可预览" : "正在从 iPhone 传输…")
+                Text(item.fileAvailable ? L10n.receiveFileSaved : L10n.receiveFileTransferring)
                     .font(MDFont.mono(8, weight: .medium))
                     .foregroundColor(item.fileAvailable ? MD.lime : MD.dim)
             }
@@ -263,7 +263,7 @@ struct ReceivePage: View {
                 Task { await accept(offerId: offer.id) }
             } label: {
                 HStack(spacing: 3) {
-                    Text("接收")
+                    Text(L10n.receiveAccept)
                         .font(MDFont.display(16, weight: .bold))
                         .foregroundColor(MD.dink)
                     Text("✓")

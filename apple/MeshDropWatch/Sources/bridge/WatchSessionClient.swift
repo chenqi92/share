@@ -21,11 +21,11 @@ final class WatchSessionClient: NSObject {
 
         var errorDescription: String? {
             switch self {
-            case .sessionUnsupported:   return "本设备不支持 WatchConnectivity"
-            case .sessionUnreachable:   return "iPhone 不在身边 · 等待回连"
-            case .timeout:              return "命令超时（>10s）"
+            case .sessionUnsupported:   return L10n.errorBridgeUnsupported
+            case .sessionUnreachable:   return L10n.errorBridgeUnreachable
+            case .timeout:              return L10n.errorCommandTimeout
             case .underlying(let e):    return e.localizedDescription
-            case .malformedAck(let s):  return "回执格式异常：\(s)"
+            case .malformedAck(let s):  return L10n.errorMalformedAck(s)
             }
         }
     }

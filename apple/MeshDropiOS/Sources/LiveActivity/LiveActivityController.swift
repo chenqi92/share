@@ -24,10 +24,10 @@ struct LiveActivityController: View {
             (scheme == .dark ? MeshDropColor.dink : MeshDropColor.paper).ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 20) {
-                AsciiDivider("LOCK SCREEN · 锁屏")
+                AsciiDivider(MD("liveActivity.lockScreen.section"))
                 if let item = activeTransfer { lockScreenCard(item) } else { idleCard }
 
-                AsciiDivider("DYNAMIC ISLAND · 灵动岛")
+                AsciiDivider(MD("liveActivity.dynamicIsland.section"))
                 if let item = activeTransfer { dynamicIslandPreview(item) } else { idleIsland }
 
                 Spacer()
@@ -35,11 +35,11 @@ struct LiveActivityController: View {
             .padding(.horizontal, 18)
             .padding(.top, 14)
         }
-        .navigationTitle("实时活动 · Live Activity")
+        .navigationTitle(MD("liveActivity.title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("关闭") { dismiss() }
+                Button(MD("common.close")) { dismiss() }
             }
         }
     }
@@ -55,9 +55,9 @@ struct LiveActivityController: View {
             }
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(item.direction == .outgoing ? "传输中" : "接收中")
+                    Text(item.direction == .outgoing ? MD("liveActivity.transferring") : MD("liveActivity.receiving"))
                         .font(MeshDropFont.body(13, weight: .semibold))
-                    Text("· \(item.direction == .outgoing ? "给" : "来自") \(item.peer.name)")
+                    Text("· \(item.direction == .outgoing ? MD("liveActivity.to") : MD("liveActivity.from")) \(item.peer.name)")
                         .font(MeshDropFont.body(13))
                         .foregroundStyle(scheme == .dark ? Color.white.opacity(0.6) : MeshDropColor.ink60)
                 }
@@ -105,8 +105,8 @@ struct LiveActivityController: View {
                 MeshDropMark(size: 22)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("无活动传输").font(MeshDropFont.body(13, weight: .semibold))
-                Text("发起一次传输看锁屏 / 灵动岛实际样式")
+                Text(MD("liveActivity.idle.title")).font(MeshDropFont.body(13, weight: .semibold))
+                Text(MD("liveActivity.idle.subtitle"))
                     .font(MeshDropFont.mono(10.5))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
             }
@@ -156,7 +156,7 @@ struct LiveActivityController: View {
                     MeshDropMark(size: 22).colorScheme(.dark)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("MeshDrop · \(item.direction == .outgoing ? "传输中" : "接收中")")
+                    Text("MeshDrop · \(item.direction == .outgoing ? MD("liveActivity.transferring") : MD("liveActivity.receiving"))")
                         .font(MeshDropFont.body(13, weight: .semibold))
                     Text(name)
                         .font(MeshDropFont.mono(10.5))

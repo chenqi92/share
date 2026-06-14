@@ -31,7 +31,7 @@ struct MsgBubble<Content: View>: View {
                         .font(MeshDropFont.mono(size: 10))
                         .foregroundStyle(MeshDropColor.textMuted)
                     if delivered && side == .outgoing {
-                        Text("· 已送达")
+                        Text("msg.delivered")
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }

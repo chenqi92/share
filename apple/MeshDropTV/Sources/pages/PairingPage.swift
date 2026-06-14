@@ -39,7 +39,7 @@ struct PairingPage: View {
                         .stroke(MeshDropColor.lime.opacity(0.4), lineWidth: 2)
                 )
 
-            MeshAsciiDivider(label: "指纹 · FINGERPRINT · 比对一致才允许")
+            MeshAsciiDivider(label: L10n.pairingDividerFingerprint)
 
             Text(fullFingerprint)
                 .font(.system(size: 28, weight: .bold, design: .monospaced))
@@ -49,7 +49,7 @@ struct PairingPage: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if engine.pendingPairings.isEmpty {
-                Text("当前没有待审请求 · 等手机端发起连接")
+                Text(L10n.pairingNoPending)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(MeshDropColor.dpaperMute)
                     .padding(.top, 8)
@@ -66,9 +66,9 @@ struct PairingPage: View {
             MeshQRCode(content: pairURL, size: 320)
 
             VStack(spacing: 4) {
-                Text("扫码 · SCAN")
+                Text(L10n.pairingScanTag)
                     .monoTag()
-                Text("用对方手机相机即可")
+                Text(L10n.pairingScanHint)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(MeshDropColor.dpaperDim)
             }
@@ -76,9 +76,9 @@ struct PairingPage: View {
             Spacer(minLength: 0)
 
             VStack(alignment: .leading, spacing: 10) {
-                stepLine("1", "对方打开 MeshDrop")
-                stepLine("2", "选「扫码加入」或输代码")
-                stepLine("3", "两端指纹一致 → 允许")
+                stepLine("1", L10n.pairingStep1)
+                stepLine("2", L10n.pairingStep2)
+                stepLine("3", L10n.pairingStep3)
             }
             .padding(18)
             .background(
@@ -99,7 +99,7 @@ struct PairingPage: View {
                     Text(req.peer.name)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(MeshDropColor.dpaper)
-                    Text("指纹: \(req.peer.humanFingerprint)")
+                    Text(L10n.pairingPeerFingerprint(req.peer.humanFingerprint))
                         .font(.system(size: 14, weight: .semibold, design: .monospaced))
                         .foregroundStyle(MeshDropColor.dpaperMute)
                         .lineLimit(1)
@@ -108,10 +108,10 @@ struct PairingPage: View {
             }
 
             HStack(spacing: 12) {
-                pairingCTA(.accept(req.id), title: "允许并信任", tone: .lime) {
+                pairingCTA(.accept(req.id), title: L10n.pairingTrust, tone: .lime) {
                     engine.respondToPairing(req.id, decision: .trust)
                 }
-                pairingCTA(.reject(req.id), title: "拒绝", tone: .mute) {
+                pairingCTA(.reject(req.id), title: L10n.pairingReject, tone: .mute) {
                     engine.respondToPairing(req.id, decision: .reject)
                 }
             }

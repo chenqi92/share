@@ -39,7 +39,7 @@ struct MeshDropLiveActivityWidget: Widget {
                 // Expanded
                 DynamicIslandExpandedRegion(.leading) {
                     Label {
-                        Text(context.attributes.isOutgoing ? "发送" : "接收")
+                        Text(context.attributes.isOutgoing ? MDW("liveActivity.expanded.send") : MDW("liveActivity.expanded.receive"))
                             .font(.caption2)
                     } icon: {
                         Image(systemName: context.attributes.isOutgoing
@@ -118,13 +118,13 @@ struct MeshDropLiveActivityWidget: Widget {
 
     private func subtitle(_ ctx: ActivityViewContext<MeshDropTransferActivityAttributes>) -> String {
         switch ctx.state.phase {
-        case .completed: return "已完成"
-        case .failed:    return "失败"
+        case .completed: return MDW("liveActivity.completed")
+        case .failed:    return MDW("liveActivity.failed")
         case .transferring:
             if let bps = ctx.state.bytesPerSec, bps > 1 {
                 return ByteCountFormatter.string(fromByteCount: Int64(bps), countStyle: .file) + "/s"
             }
-            return "传输中"
+            return MDW("liveActivity.transferring")
         }
     }
 }
@@ -181,9 +181,9 @@ private struct LockScreenView: View {
     private var headline: String {
         let who = context.attributes.peerName
         switch context.state.phase {
-        case .completed: return context.attributes.isOutgoing ? "已发送给 \(who)" : "已接收自 \(who)"
-        case .failed:    return "传输失败 · \(who)"
-        case .transferring: return context.attributes.isOutgoing ? "正在发送给 \(who)" : "正在接收自 \(who)"
+        case .completed: return context.attributes.isOutgoing ? MDW("liveActivity.headline.sent", who) : MDW("liveActivity.headline.received", who)
+        case .failed:    return MDW("liveActivity.headline.failed", who)
+        case .transferring: return context.attributes.isOutgoing ? MDW("liveActivity.headline.sending", who) : MDW("liveActivity.headline.receiving", who)
         }
     }
 }

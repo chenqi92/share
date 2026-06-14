@@ -55,72 +55,72 @@ struct TVRoot: View {
         case .receive:
             if let offer = engine.pendingFileOffers.first {
                 PageHeader(
-                    tag: "接收 · RECEIVE · 来自 \(offer.peer.name)",
-                    title: "\(offer.peer.name) 想发给你 ",
+                    tag: L10n.headerReceiveTag(offer.peer.name),
+                    title: L10n.headerReceiveTitle(offer.peer.name),
                     titleAccentSuffix: offer.fileName
                 ) {
                     HStack(spacing: 10) {
                         Chip(text: "● LAN", tone: .lime, mono: true, size: 14)
-                        Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 14)
+                        Chip(text: L10n.chipPlaintext, tone: .outline, mono: true, size: 14)
                     }
                 }
             } else {
                 PageHeader(
-                    tag: "接收 · RECEIVE · 等候中",
-                    title: "等手机推过来 ",
+                    tag: L10n.headerReceiveWaitingTag,
+                    title: L10n.headerReceiveWaitingTitle,
                     titleAccentSuffix: "Ready."
                 ) {
                     HStack(spacing: 10) {
                         Chip(text: engineNetTag, tone: .lime, mono: true, size: 14)
-                        Chip(text: "\(engine.devices.count) 台可见", tone: .outline, mono: true, size: 14)
+                        Chip(text: L10n.chipVisibleCount(engine.devices.count), tone: .outline, mono: true, size: 14)
                     }
                 }
             }
         case .nearby:
             PageHeader(
-                tag: "附近 · NEARBY · \(engine.devices.isEmpty ? "扫描中" : "READY 待机")",
-                title: "这台电视，谁都能 ",
+                tag: engine.devices.isEmpty ? L10n.headerNearbyScan : L10n.headerNearbyReady,
+                title: L10n.headerNearbyTitle,
                 titleAccentSuffix: "ping."
             ) {
                 HStack(spacing: 10) {
                     Chip(text: engineNetTag, tone: .lime, mono: true, size: 14)
-                    Chip(text: "\(engine.devices.count) 台可见", tone: .outline, mono: true, size: 14)
+                    Chip(text: L10n.chipVisibleCount(engine.devices.count), tone: .outline, mono: true, size: 14)
                 }
             }
         case .gallery:
             let inbox = engine.history.filter { $0.isInboxFile }
             PageHeader(
-                tag: "收件箱 · LIBRARY · \(inbox.count) 件",
-                title: "收件箱 ",
+                tag: L10n.headerGalleryTag(inbox.count),
+                title: L10n.headerGalleryTitle,
                 titleAccentSuffix: "\(inbox.count)"
             ) {
                 HStack(spacing: 12) {
-                    Chip(text: "全部 · ALL", tone: .lime, mono: true, size: 14)
-                    Chip(text: "图片 · PHOTOS", tone: .outline, mono: true, size: 14)
-                    Chip(text: "文件 · FILES", tone: .outline, mono: true, size: 14)
+                    Chip(text: "\(L10n.galleryFilterAll) · ALL", tone: .lime, mono: true, size: 14)
+                    Chip(text: "\(L10n.galleryFilterPhotos) · PHOTOS", tone: .outline, mono: true, size: 14)
+                    Chip(text: "\(L10n.galleryFilterFiles) · FILES", tone: .outline, mono: true, size: 14)
                 }
             }
         case .pairing:
             PageHeader(
-                tag: "待配对 · PAIRING · 比对指纹",
-                title: "把代码发给 ",
-                titleAccentSuffix: "对方"
+                tag: L10n.headerPairingTag,
+                title: L10n.headerPairingTitle,
+                titleAccentSuffix: L10n.headerPairingAccent
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "ED25519 指纹", tone: .outline, mono: true, size: 14)
-                    Chip(text: "\(engine.pendingPairings.count) 待审", tone: .outline, mono: true, size: 14)
+                    Chip(text: "ED25519", tone: .outline, mono: true, size: 14)
+                    Chip(text: L10n.chipPendingCount(engine.pendingPairings.count), tone: .outline, mono: true, size: 14)
                 }
             }
         case .settings:
             PageHeader(
-                tag: "设置 · SETTINGS · 可见性 · 安全 · 行为",
-                title: "设置 ",
+                tag: L10n.headerSettingsTag,
+                title: L10n.headerSettingsTitle,
                 titleAccentSuffix: "Settings"
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 14)
+                    Chip(text: L10n.chipPlaintext, tone: .outline, mono: true, size: 14)
                     Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 14)
                 }
             }
@@ -128,6 +128,6 @@ struct TVRoot: View {
     }
 
     private var engineNetTag: String {
-        engine.devices.isEmpty ? "● 扫描中" : "● 客厅 LAN"
+        engine.devices.isEmpty ? L10n.netTagScanning : L10n.netTagLivingRoom
     }
 }

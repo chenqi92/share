@@ -37,7 +37,7 @@ struct TransferRow: View {
                                 .foregroundStyle(MeshDropColor.flame)
                         }
                         .buttonStyle(.plain)
-                        .help("取消传输 · Cancel")
+                        .help("transfer.cancel.help")
                     }
                     if let onRetry, item.state == .failed {
                         Button(action: onRetry) {
@@ -56,23 +56,23 @@ struct TransferRow: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .help("重试发送 · Retry")
+                        .help("transfer.retry.help")
                     }
-                    if let savedURL, item.state == .done, item.to == "我" {
+                    if let savedURL, item.state == .done, item.to == String(localized: "common.me") {
                         Button(action: { NSWorkspace.shared.activateFileViewerSelecting([savedURL]) }) {
                             Image(systemName: "magnifyingglass.circle")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textSecondary)
                         }
                         .buttonStyle(.plain)
-                        .help("在 Finder 中显示 · Reveal in Finder")
+                        .help("transfer.reveal.help")
                         Button(action: { NSWorkspace.shared.open(savedURL) }) {
                             Image(systemName: "arrow.up.forward.app")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(MeshDropColor.textSecondary)
                         }
                         .buttonStyle(.plain)
-                        .help("打开 · Open")
+                        .help("transfer.open.help")
                     }
                 }
 

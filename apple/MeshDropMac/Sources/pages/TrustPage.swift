@@ -7,26 +7,26 @@ struct TrustPage: View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Text("已配对")
+                    Text("trust.title")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("· Trust Manager")
+                    Text("trust.title.suffix")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
-                    Chip(text: "Ed25519 指纹", tone: .lime, mono: true)
-                    Chip(text: "+ 配对新设备 ⌥⇧P", tone: .outline, mono: false)
+                    Chip(text: String(localized: "trust.tag.fingerprint"), tone: .lime, mono: true)
+                    Chip(text: String(localized: "trust.tag.pairNew"), tone: .outline, mono: false)
                 }
-                Text("已与本机配对的设备会在此显示。指纹（fingerprint）应与对端目视核对一致才能信任。")
+                Text("trust.intro")
                     .font(MeshDropFont.body(size: 12))
                     .foregroundStyle(MeshDropColor.textSecondary)
 
-                AsciiDivider(text: "PAIRED · 已配对 · \(state.engineTrusted.count) 台")
+                AsciiDivider(text: String(format: String(localized: "trust.divider.paired"), state.engineTrusted.count))
 
                 if state.engineTrusted.isEmpty {
-                    Text("还没有已配对的设备。和别人互发第一份内容会触发配对。")
+                    Text("trust.empty")
                         .font(MeshDropFont.body(size: 12))
                         .foregroundStyle(MeshDropColor.textMuted)
                         .frame(maxWidth: .infinity)
@@ -63,10 +63,10 @@ struct TrustPage: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            cell("设备 · DEVICE", width: 240)
-            cell("指纹 · FINGERPRINT (Ed25519)", width: 280)
-            cell("配对日期",                    width: 110)
-            cell("最近在线",                    width: 110)
+            cell(String(localized: "trust.col.device"), width: 240)
+            cell(String(localized: "trust.col.fingerprint"), width: 280)
+            cell(String(localized: "trust.col.pairedAt"),     width: 110)
+            cell(String(localized: "trust.col.lastSeen"),     width: 110)
             cell("",                            width: 100)
         }
         .font(MeshDropFont.divider(10))
@@ -122,7 +122,7 @@ struct TrustPage: View {
             .frame(width: 110, alignment: .leading)
 
             Button { state.revokeTrust(fingerprint: t.id) } label: {
-                Text("撤销 · Revoke")
+                Text("trust.revoke")
                     .font(MeshDropFont.body(size: 11, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)

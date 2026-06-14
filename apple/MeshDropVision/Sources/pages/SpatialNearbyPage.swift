@@ -48,7 +48,7 @@ struct SpatialNearbyPage: View {
                         .contextMenu {
                             contextMenuButtons(for: dev)
                         }
-                        .accessibilityLabel("设备 \(dev.who) — pinch 一次锁定，二次发送文件")
+                        .accessibilityLabel(L10n.nearbyOrbA11y(dev.who))
                 }
 
                 // 飞行 payload：从中央 self 出发飞向 gaze 锁定的 peer
@@ -76,7 +76,7 @@ struct SpatialNearbyPage: View {
                 if let f = focusedDevice {
                     GazeReticle(
                         radius: 70,
-                        label: "看向 \(f.who.uppercased()) · 准备捏合发送"
+                        label: L10n.nearbyGazeLabel(f.who.uppercased())
                     )
                     .position(reticlePosition(for: f, canvas: canvas))
                     .zIndex(25)
@@ -112,12 +112,10 @@ struct SpatialNearbyPage: View {
     @ViewBuilder
     private func emptyHint(scanning: Bool) -> some View {
         VStack(spacing: 8) {
-            Text(scanning ? "扫描中…" : "等待身边的设备…")
+            Text(scanning ? L10n.nearbyScanning : L10n.nearbyWaiting)
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(MD.dpaper)
-            Text(scanning
-                 ? "SCANNING · mDNS · _meshdrop._tcp"
-                 : "EMPTY · 让朋友打开 MeshDrop")
+            Text(scanning ? L10n.nearbyScanningSub : L10n.nearbyEmptySub)
                 .font(MDFont.microHi).tracking(1.6)
                 .foregroundStyle(MD.lime)
         }
@@ -130,12 +128,12 @@ struct SpatialNearbyPage: View {
 
     @ViewBuilder
     private func contextMenuButtons(for dev: MockDevice) -> some View {
-        Button("发送文件 → \(dev.who)") {
+        Button(L10n.nearbySendFileTo(dev.who)) {
             sendTargetId = dev.id
             showFileImporter = true
         }
         if let real = engine.devices.first(where: { $0.id == dev.id }) {
-            Button("撤销信任") {
+            Button(L10n.nearbyRevokeTrust) {
                 engine.revokeTrust(fingerprint: real.fingerprint)
             }
         }

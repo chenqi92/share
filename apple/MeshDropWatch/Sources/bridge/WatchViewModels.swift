@@ -102,11 +102,11 @@ struct WatchOfferVM {
         )).os
         self.deviceName = "\(o.peerName) · \(kindLabel)"
         let first = o.files.first
-        self.fileName = first?.name ?? (o.kind == "text" ? "（文本）" : "—")
+        self.fileName = first?.name ?? (o.kind == "text" ? L10n.vmTextLabel : "—")
         self.fileSize = Self.formatBytes(first?.sizeBytes ?? 0)
         self.ext = (first?.name as NSString?)?.pathExtension ?? ""
         self.note = o.noteText ?? ""
-        self.receivedAt = "刚刚"
+        self.receivedAt = L10n.vmJustNow
     }
 
     init(mock m: MockFileOffer) {
@@ -144,7 +144,7 @@ struct WatchTransferVM {
     let state: MockTransfer.State
 
     init(bridge p: BridgeTransferProgress,
-         offerName: String = "传输中",
+         offerName: String = L10n.transferDefaultName,
          peerName: String = "",
          direction: MockTransfer.Direction = .outgoing) {
         self.id = p.id

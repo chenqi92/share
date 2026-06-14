@@ -12,13 +12,13 @@ struct TransfersPage: View {
                 HStack(alignment: .top, spacing: 14) {
                     SpeedChart(bars: displayBars(state.uploadBars, mock: { MockSpeed.uploadBars }),
                                color: MeshDropColor.flame,
-                               title: "上行 · UP",
+                               title: String(localized: "transfers.chart.up"),
                                subtitle: Self.formatSpeed(state.currentUploadBps),
                                arrow: "↑")
                         .frame(maxWidth: .infinity)
                     SpeedChart(bars: displayBars(state.downloadBars, mock: { MockSpeed.downloadBars }),
                                color: MeshDropColor.sky,
-                               title: "下行 · DOWN",
+                               title: String(localized: "transfers.chart.down"),
                                subtitle: Self.formatSpeed(state.currentDownloadBps),
                                arrow: "↓")
                         .frame(maxWidth: .infinity)
@@ -27,7 +27,10 @@ struct TransfersPage: View {
                 }
 
                 let transfers = engineTransfers
-                AsciiDivider(text: "TASKS · \(transfers.count) 任务 · \(transfers.filter { $0.state == .sending || $0.state == .receiving }.count) 进行 · \(transfers.filter { $0.state == .done }.count) 完成")
+                AsciiDivider(text: String(format: String(localized: "transfers.divider.tasks"),
+                                          transfers.count,
+                                          transfers.filter { $0.state == .sending || $0.state == .receiving }.count,
+                                          transfers.filter { $0.state == .done }.count))
 
                 if transfers.isEmpty {
                     emptyView
@@ -37,7 +40,7 @@ struct TransfersPage: View {
                             TransferRow(
                                 item: item,
                                 onCancel: { state.cancelTransfer(item.id) },
-                                onRetry: item.from == "我" ? { state.retryTransfer(item.id) } : nil,
+                                onRetry: item.from == String(localized: "common.me") ? { state.retryTransfer(item.id) } : nil,
                                 savedURL: savedURL(for: item),
                             )
                         }
@@ -67,9 +70,11 @@ struct TransfersPage: View {
     private var engineTransfers: [MockTransfer] {
         state.engineHistory.compactMap { h in
             guard h.kind == .file, let name = h.name, let size = h.size else { return nil }
+            // "我" 既作显示也作内部 from/to 比较标记，统一走 common.me 保证两端一致
+            let me = String(localized: "common.me")
             let fromTo: (from: String, to: String) = h.dir == .outgoing
-                ? ("我", h.peer)
-                : (h.peer, "我")
+                ? (me, h.peer)
+                : (h.peer, me)
             let prog = h.progress ?? 0
             let st: TransferState
             switch h.status {
@@ -92,7 +97,7 @@ struct TransfersPage: View {
                       let uuid = UUID(uuidString: h.id),
                       let item = state.engineHistoryItems.first(where: { $0.id == uuid }) else { return nil }
                 if case .failed(let reason) = item.status { return reason }
-                if case .canceled = item.status { return "已取消" }
+                if case .canceled = item.status { return String(localized: "common.canceled") }
                 return nil
             }()
             return MockTransfer(
@@ -135,7 +140,7 @@ struct TransfersPage: View {
     /// 已完成接收项的本地保存路径 —— 给 TransferRow 的 Reveal / Open 按钮用。
     /// 仅对 done && incoming && kind=.file 的项返回 URL；其余返回 nil。
     private func savedURL(for transfer: MockTransfer) -> URL? {
-        guard transfer.state == .done, transfer.to == "我" else { return nil }
+        guard transfer.state == .done, transfer.to == String(localized: "common.me") else { return nil }
         guard let item = state.engineHistoryItems.first(where: { $0.id == transfer.id }),
               case .file(_, _, let url) = item.kind else { return nil }
         return url
@@ -157,10 +162,10 @@ struct TransfersPage: View {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 36, weight: .light))
                 .foregroundStyle(MeshDropColor.textMuted)
-            Text("当前没有传输")
+            Text("transfers.empty.title")
                 .font(MeshDropFont.body(size: 14, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textPrimary)
-            Text("拖文件到设备头像即可开始")
+            Text("transfers.empty.detail")
                 .font(MeshDropFont.body(size: 12))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
@@ -176,22 +181,25 @@ struct TransfersPage: View {
         VStack(alignment: .leading, spacing: 12) {
             let transfers = engineTransfers
             HStack {
-                Text("传输")
+                Text("transfers.title")
                     .font(MeshDropFont.hero(34))
                     .tracking(-1)
                     .foregroundStyle(MeshDropColor.textPrimary)
-                Text("· Transfers")
+                Text("transfers.title.suffix")
                     .font(MeshDropFont.hero(34))
                     .tracking(-1)
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
-                filterChip(text: "全部", count: transfers.count, active: state.transferFilter == nil) { state.transferFilter = nil }
-                filterChip(text: "进行中", count: transfers.filter { $0.state == .sending || $0.state == .receiving }.count, active: state.transferFilter == .sending) { state.transferFilter = .sending }
-                filterChip(text: "已完成", count: transfers.filter { $0.state == .done }.count, active: state.transferFilter == .done) { state.transferFilter = .done }
-                filterChip(text: "失败",   count: transfers.filter { $0.state == .failed }.count, active: state.transferFilter == .failed) { state.transferFilter = .failed }
+                filterChip(text: String(localized: "transfers.filter.all"), count: transfers.count, active: state.transferFilter == nil) { state.transferFilter = nil }
+                filterChip(text: String(localized: "transfers.filter.active"), count: transfers.filter { $0.state == .sending || $0.state == .receiving }.count, active: state.transferFilter == .sending) { state.transferFilter = .sending }
+                filterChip(text: String(localized: "transfers.filter.done"), count: transfers.filter { $0.state == .done }.count, active: state.transferFilter == .done) { state.transferFilter = .done }
+                filterChip(text: String(localized: "transfers.filter.failed"),   count: transfers.filter { $0.state == .failed }.count, active: state.transferFilter == .failed) { state.transferFilter = .failed }
             }
             HStack(spacing: 8) {
-                Text("\(transfers.count) 个任务 · \(transfers.filter { $0.state == .sending || $0.state == .receiving }.count) 进行中 · \(transfers.filter { $0.state == .done }.count) 已完成")
+                Text(String(format: String(localized: "transfers.summary"),
+                            transfers.count,
+                            transfers.filter { $0.state == .sending || $0.state == .receiving }.count,
+                            transfers.filter { $0.state == .done }.count))
                     .font(MeshDropFont.mono(size: 11))
                     .foregroundStyle(MeshDropColor.textMuted)
             }
@@ -228,7 +236,7 @@ struct TransfersPage: View {
         let total = state.sessionUploadBytes + state.sessionDownloadBytes
         let (num, unit) = Self.formatTotal(total)
         return VStack(alignment: .leading, spacing: 8) {
-            Text("本会话总计")
+            Text("transfers.sessionTotal")
                 .meshTag()
                 .foregroundStyle(MeshDropColor.textMuted)
             HStack(alignment: .firstTextBaseline, spacing: 4) {

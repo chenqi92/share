@@ -27,7 +27,7 @@ public struct MsgBubble: View {
                         .font(MeshDropFont.mono(10))
                         .foregroundStyle(timeColor)
                     if message.dir == .outgoing {
-                        Text("· 已送达")
+                        Text("· \(MD("chat.message.delivered"))")
                             .font(MeshDropFont.mono(10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }

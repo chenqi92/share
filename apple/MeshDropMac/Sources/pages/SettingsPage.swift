@@ -13,11 +13,11 @@ struct SettingsPage: View {
         PageScroll {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
-                    Text("设置")
+                    Text("settings.title")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("· Settings")
+                    Text("settings.title.suffix")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
@@ -25,9 +25,9 @@ struct SettingsPage: View {
                     Chip(text: "v 0.1.0", tone: .outline, mono: true)
                 }
 
-                section("可见性 · Visibility") {
+                section(String(localized: "settings.section.visibility")) {
                     HStack {
-                        Text("显示名称")
+                        Text("settings.displayName")
                             .font(MeshDropFont.body(size: 12.5))
                             .foregroundStyle(MeshDropColor.textPrimary)
                         Spacer(minLength: 12)
@@ -41,17 +41,17 @@ struct SettingsPage: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
                     // 尚未接 engine 持久化/生效逻辑，禁用并标注，避免给「已设置」错觉。
-                    disabledToggle("局域网可见 · Visible on LAN", on: true)
-                    disabledToggle("仅显示已配对设备", on: false)
-                    field("设备类型", trailing:
+                    disabledToggle(String(localized: "settings.visibleOnLan"), on: true)
+                    disabledToggle(String(localized: "settings.pairedOnly"), on: false)
+                    field(String(localized: "settings.deviceType"), trailing:
                         Text("MAC · macOS")
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
                 }
 
-                section("安全 · Security") {
-                    field("指纹（Ed25519）", trailing:
+                section(String(localized: "settings.section.security")) {
+                    field(String(localized: "settings.security.fingerprint"), trailing:
                         Text(state.localFingerprintFull)
                             .font(MeshDropFont.mono(size: 11))
                             .foregroundStyle(MeshDropColor.textSecondary)
@@ -59,9 +59,9 @@ struct SettingsPage: View {
                             .multilineTextAlignment(.trailing)
                     )
                     // 安全开关：engine 暂未提供持久化入口，禁用并标注，避免安全预期落空。
-                    disabledToggle("接收前必须验证对方指纹", on: true)
-                    disabledToggle("陌生设备首次配对要求确认", on: true)
-                    Button("复制完整指纹 · Copy fingerprint") {
+                    disabledToggle(String(localized: "settings.security.verifyBeforeReceive"), on: true)
+                    disabledToggle(String(localized: "settings.security.confirmStranger"), on: true)
+                    Button("settings.security.copyFingerprint") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(state.localFingerprintFull, forType: .string)
                     }
@@ -74,7 +74,7 @@ struct SettingsPage: View {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(MeshDropColor.divider, lineWidth: 1)
                     )
-                    Button("重置身份…") {
+                    Button("settings.security.resetIdentity") {
                         confirmingReset = true
                     }
                     .buttonStyle(.plain)
@@ -87,63 +87,63 @@ struct SettingsPage: View {
                             .stroke(MeshDropColor.flame.opacity(0.4), lineWidth: 1)
                     )
                     .confirmationDialog(
-                        "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+                        "settings.security.resetIdentity.confirm.title",
                         isPresented: $confirmingReset,
                         titleVisibility: .visible
                     ) {
-                        Button("重置身份", role: .destructive) {
+                        Button("settings.security.resetIdentity.confirm.button", role: .destructive) {
                             ShareEngine.shared.resetIdentity()
                         }
-                        Button("取消", role: .cancel) {}
+                        Button("common.cancel", role: .cancel) {}
                     }
                 }
 
-                section("Web 访问 · Web Gateway") {
+                section(String(localized: "settings.section.webGateway")) {
                     PairingCodeView()
                 }
 
-                section("接收 · Receive") {
-                    toggle("已配对设备自动接受", on: $engine.autoAcceptFromTrusted)
+                section(String(localized: "settings.section.receive")) {
+                    toggle(String(localized: "settings.receive.autoAcceptTrusted"), on: $engine.autoAcceptFromTrusted)
                     // 安全相关开关，engine 暂无对应能力 —— 禁用并标注，避免误以为已开启自动接受。
-                    disabledToggle("陌生设备自动接受（不建议）", on: false)
-                    field("默认存放路径", trailing:
+                    disabledToggle(String(localized: "settings.receive.autoAcceptStranger"), on: false)
+                    field(String(localized: "settings.receive.defaultPath"), trailing:
                         Text("~/Documents/MeshDrop/")
                             .font(MeshDropFont.mono(size: 12))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
                 }
 
-                section("剪贴板 · Clipboard") {
-                    disabledToggle("启用跨设备剪贴板同步", on: true)
-                    field("保留时间", trailing:
-                        Text("24 小时 · 自动清理")
+                section(String(localized: "settings.section.clipboard")) {
+                    disabledToggle(String(localized: "settings.clipboard.enableSync"), on: true)
+                    field(String(localized: "settings.clipboard.keepDuration"), trailing:
+                        Text("settings.clipboard.keepDuration.value")
                             .font(MeshDropFont.mono(size: 12))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
                 }
 
-                section("行为 · Behavior") {
-                    disabledToggle("登录时启动", on: true)
-                    disabledToggle("显示在菜单栏", on: true)
-                    field("历史保留天数", trailing:
-                        Text("\(keepHistoryDays) 天")
+                section(String(localized: "settings.section.behavior")) {
+                    disabledToggle(String(localized: "settings.behavior.launchAtLogin"), on: true)
+                    disabledToggle(String(localized: "settings.behavior.showInMenuBar"), on: true)
+                    field(String(localized: "settings.behavior.keepHistoryDays"), trailing:
+                        Text(String(format: String(localized: "settings.behavior.keepHistoryDays.value"), keepHistoryDays))
                             .font(MeshDropFont.mono(size: 12, weight: .semibold))
                             .foregroundStyle(MeshDropColor.textSecondary)
                     )
                 }
 
-                section("关于 · About") {
+                section(String(localized: "settings.section.about")) {
                     HStack(alignment: .top, spacing: 14) {
                         MeshDropMark(size: 56)
                         VStack(alignment: .leading, spacing: 4) {
                             MeshDropWordmark(size: 26)
-                            Text("Space Grotesk · Geist · Geist Mono")
+                            Text("about.fonts")
                                 .font(MeshDropFont.mono(size: 11))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            Text("局域网分享 · Ed25519 身份 · 明文 LAN · v0.1")
+                            Text("about.tagline")
                                 .font(MeshDropFont.mono(size: 11))
                                 .foregroundStyle(MeshDropColor.textMuted)
-                            Text("© 2026 MeshDrop · v 0.1.0")
+                            Text("about.copyright")
                                 .font(MeshDropFont.mono(size: 10))
                                 .foregroundStyle(MeshDropColor.textMuted)
                         }
@@ -211,7 +211,7 @@ struct SettingsPage: View {
             Text(label)
                 .font(MeshDropFont.body(size: 12.5))
                 .foregroundStyle(MeshDropColor.textMuted)
-            Text("即将支持 · SOON")
+            Text("settings.soon")
                 .font(MeshDropFont.mono(size: 9, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textMuted)
                 .padding(.horizontal, 5)

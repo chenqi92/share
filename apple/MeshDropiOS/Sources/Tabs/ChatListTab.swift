@@ -60,14 +60,14 @@ struct ChatListTab: View {
                         let active = recents.filter { $0.lastMsg != nil }
                         let rest = recents.filter { $0.lastMsg == nil }
                         if !active.isEmpty {
-                            AsciiDivider("ACTIVE · 进行中 · \(active.count)")
+                            AsciiDivider(MD("chatList.section.active", active.count))
                             ForEach(active, id: \.device.id) { r in
                                 chatRow(r.device, unread: r.unread,
                                         last: r.lastMsg ?? "—", lastTime: r.lastTime ?? "")
                             }
                         }
                         if !rest.isEmpty {
-                            AsciiDivider("RECENT · 最近")
+                            AsciiDivider(MD("chatList.section.recent"))
                             ForEach(rest, id: \.device.id) { r in
                                 chatRow(r.device, unread: 0, last: "—", lastTime: "")
                             }
@@ -100,9 +100,9 @@ struct ChatListTab: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("发送")
+            Text(MD("chatList.title"))
                 .font(MeshDropFont.display(28, weight: .bold))
-            Text("Text, clipboard, files.")
+            Text(MD("chatList.subtitle"))
                 .font(MeshDropFont.display(18, weight: .semibold))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink60)
         }
@@ -110,9 +110,9 @@ struct ChatListTab: View {
 
     private var emptyCard: some View {
         VStack(spacing: 8) {
-            Text("附近没有 MeshDrop 设备")
+            Text(MD("chatList.empty.title"))
                 .font(MeshDropFont.body(14, weight: .semibold))
-            Text("发现设备后此处会显示对话")
+            Text(MD("chatList.empty.subtitle"))
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
         }

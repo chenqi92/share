@@ -8,18 +8,18 @@ struct HistoryPage: View {
         PageScroll {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Text("历史")
+                    Text("history.title")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("· History")
+                    Text("history.title.suffix")
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
                     if !state.engineHistory.isEmpty {
                         Button { confirmingClear = true } label: {
-                            Text("清空 · Clear")
+                            Text("history.clear")
                                 .font(MeshDropFont.body(size: 12, weight: .semibold))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
@@ -31,21 +31,21 @@ struct HistoryPage: View {
                         }
                         .buttonStyle(.plain)
                         .confirmationDialog(
-                            "清空全部历史记录？此操作不可撤销。",
+                            "history.clear.confirm.title",
                             isPresented: $confirmingClear,
                             titleVisibility: .visible
                         ) {
-                            Button("清空历史", role: .destructive) { state.clearHistory() }
-                            Button("取消", role: .cancel) {}
+                            Button("history.clear.confirm.button", role: .destructive) { state.clearHistory() }
+                            Button("common.cancel", role: .cancel) {}
                         }
                     }
-                    Chip(text: "\(state.engineHistory.count) ITEMS", tone: .outline, mono: true)
+                    Chip(text: String(format: String(localized: "history.items"), state.engineHistory.count), tone: .outline, mono: true)
                 }
 
                 if state.engineHistory.isEmpty {
                     emptyView
                 } else {
-                    AsciiDivider(text: "RECENT · 最近 · \(state.engineHistory.count) 件")
+                    AsciiDivider(text: String(format: String(localized: "history.divider.recent"), state.engineHistory.count))
 
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         ForEach(state.engineHistory) { h in
@@ -66,10 +66,10 @@ struct HistoryPage: View {
             Image(systemName: "tray")
                 .font(.system(size: 42, weight: .light))
                 .foregroundStyle(MeshDropColor.textMuted)
-            Text("还没有历史记录")
+            Text("history.empty.title")
                 .font(MeshDropFont.body(size: 14, weight: .semibold))
                 .foregroundStyle(MeshDropColor.textPrimary)
-            Text("发出去 / 收到的传输会显示在这里")
+            Text("history.empty.detail")
                 .font(MeshDropFont.body(size: 12))
                 .foregroundStyle(MeshDropColor.textMuted)
         }
@@ -145,7 +145,7 @@ struct HistoryPage: View {
             Button(role: .destructive) {
                 state.removeHistoryItem(h.id)
             } label: {
-                Label("删除这条记录", systemImage: "trash")
+                Label("history.deleteItem", systemImage: "trash")
             }
         }
     }

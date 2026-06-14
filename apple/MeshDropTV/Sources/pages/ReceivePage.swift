@@ -27,7 +27,7 @@ struct ReceivePage: View {
                     placeholderHero
                     Spacer(minLength: 0)
                     RemoteHint(items: [
-                        .init(glyph: "TV", label: "返回主屏"),
+                        .init(glyph: "TV", label: L10n.hintBack),
                     ])
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -49,7 +49,7 @@ struct ReceivePage: View {
                         .font(.system(size: 22, weight: .bold, design: .monospaced))
                         .tracking(3)
                         .foregroundStyle(MeshDropColor.dpaperMute)
-                    Text("等手机推过来…")
+                    Text(L10n.receiveWaitingHero)
                         .font(.system(size: 30, weight: .semibold))
                         .foregroundStyle(MeshDropColor.dpaperDim)
                 }
@@ -63,18 +63,18 @@ struct ReceivePage: View {
 
     private var waitingPanel: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("空闲 · IDLE")
+            Text(L10n.receiveIdleTag)
                 .monoTag()
-            Text("没有正在传入的内容。\n在你手机上打开 MeshDrop，把照片或文件推到「\(engine.displayName)」。")
+            Text(L10n.receiveIdleBody(engine.displayName))
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(MeshDropColor.dpaper)
                 .lineSpacing(6)
 
-            MeshAsciiDivider(label: "附近 · NEARBY · \(engine.devices.count) 台")
+            MeshAsciiDivider(label: L10n.receiveNearbyDivider(engine.devices.count))
 
             VStack(alignment: .leading, spacing: 12) {
                 if engine.devices.isEmpty {
-                    Text("附近还没有 MeshDrop 设备。")
+                    Text(L10n.receiveNearbyEmpty)
                         .font(.system(size: 18))
                         .foregroundStyle(MeshDropColor.dpaperMute)
                 } else {
@@ -123,9 +123,9 @@ struct ReceivePage: View {
                 offerHero(offer)
                 Spacer(minLength: 0)
                 RemoteHint(items: [
-                    .init(glyph: "OK",  label: "接收并保存"),
-                    .init(glyph: "▶︎", label: "拒绝"),
-                    .init(glyph: "TV",  label: "返回"),
+                    .init(glyph: "OK",  label: L10n.hintAcceptSave),
+                    .init(glyph: "▶︎", label: L10n.hintReject),
+                    .init(glyph: "TV",  label: L10n.hintReturn),
                 ])
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,7 +164,7 @@ struct ReceivePage: View {
 
     private func sidePanel(_ offer: PendingFileOffer) -> some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("来自 · FROM")
+            Text(L10n.receiveFrom)
                 .monoTag()
 
             HStack(spacing: 18) {
@@ -187,15 +187,15 @@ struct ReceivePage: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 ctaButton(.ctaPrimary,
-                          title: "接收并保存",
-                          subtitle: "OK · ACCEPT",
+                          title: L10n.receiveAcceptSave,
+                          subtitle: L10n.receiveAcceptSaveSub,
                           tone: .lime,
                           fillWidth: true) {
                     engine.respondToFileOffer(offer.id, accept: true)
                 }
                 ctaButton(.ctaReject,
-                          title: "不接收",
-                          subtitle: "REJECT",
+                          title: L10n.receiveDecline,
+                          subtitle: L10n.receiveDeclineSub,
                           tone: .mute,
                           fillWidth: true) {
                     engine.respondToFileOffer(offer.id, accept: false)
@@ -292,7 +292,7 @@ struct ReceivePage: View {
                     .foregroundStyle(MeshDropColor.dpaperMute)
                 HStack(spacing: 8) {
                     Chip(text: "● LAN", tone: .lime, mono: true, size: 13)
-                    Chip(text: "明文 · v0.1", tone: .outline, mono: true, size: 13)
+                    Chip(text: L10n.receivePlaintextTag, tone: .outline, mono: true, size: 13)
                 }
                 .padding(.top, 4)
             }

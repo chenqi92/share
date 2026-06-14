@@ -17,11 +17,11 @@ struct FileOfferSheet: View {
                         VStack(alignment: .leading, spacing: 18) {
                             header(offer, peer: real.peer)
 
-                            AsciiDivider("FILE · 文件")
+                            AsciiDivider(MD("offer.fileSection"))
                             fileCard(offer)
 
                             if let note = offer.note {
-                                AsciiDivider("NOTE · 文字便签")
+                                AsciiDivider(MD("offer.noteSection"))
                                 Text(note)
                                     .font(MeshDropFont.body(14))
                                     .foregroundStyle(scheme == .dark ? MeshDropColor.dpaper : MeshDropColor.ink)
@@ -33,14 +33,14 @@ struct FileOfferSheet: View {
                                     )
                             }
 
-                            AsciiDivider("VERIFY · 验证")
+                            AsciiDivider(MD("offer.verifySection"))
                             verify(real)
                             Spacer()
                             buttons(real)
                         }
                         .padding(20)
                     }
-                    .navigationTitle("收件 · Incoming")
+                    .navigationTitle(MD("offer.title"))
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
@@ -52,9 +52,9 @@ struct FileOfferSheet: View {
             } else {
                 NavigationStack {
                     VStack(spacing: 10) {
-                        Text("没有待审的收件")
+                        Text(MD("offer.empty.title"))
                             .font(MeshDropFont.body(14, weight: .semibold))
-                        Button("关闭") { dismiss() }
+                        Button(MD("common.close")) { dismiss() }
                             .padding(.top, 8)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,7 +70,7 @@ struct FileOfferSheet: View {
             Avatar(initials: Device.initials(peer.name),
                    color: peer.displayMock.color, size: 44, ring: .flame, online: true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("来自 \(offer.peer)")
+                Text(MD("offer.fromPeer", offer.peer))
                     .font(MeshDropFont.body(15, weight: .semibold))
                 Text(offer.deviceName)
                     .font(MeshDropFont.mono(10.5))
@@ -125,7 +125,7 @@ struct FileOfferSheet: View {
                 .font(MeshDropFont.body(15, weight: .semibold))
                 .lineLimit(1)
                 .truncationMode(.middle)
-            Text(offer.isImage ? "\(offer.fileSize) · 图片" : offer.fileSize)
+            Text(offer.isImage ? "\(offer.fileSize) · \(MD("offer.image"))" : offer.fileSize)
                 .font(MeshDropFont.mono(11))
                 .foregroundStyle(offer.isImage ? .white.opacity(0.75) : (scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60))
         }
@@ -146,7 +146,7 @@ struct FileOfferSheet: View {
                     .font(MeshDropFont.mono(10, weight: .bold))
                     .tracking(1.5)
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
-                Text("\(offer.sha256.prefix(16))… · 校验通过后保存 ✓")
+                Text(MD("offer.verify.savedAfterCheck", String(offer.sha256.prefix(16))))
                     .font(MeshDropFont.mono(11))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.7) : MeshDropColor.ink80)
             }
@@ -159,7 +159,7 @@ struct FileOfferSheet: View {
                 engine.respondToFileOffer(offer.id, accept: false)
                 dismiss()
             } label: {
-                Text("拒绝")
+                Text(MD("common.reject"))
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -172,7 +172,7 @@ struct FileOfferSheet: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.down")
-                    Text("接收")
+                    Text(MD("common.accept"))
                 }
                 .font(MeshDropFont.body(15, weight: .semibold))
                 .frame(maxWidth: .infinity)

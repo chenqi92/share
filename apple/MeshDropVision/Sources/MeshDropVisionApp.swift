@@ -88,7 +88,7 @@ struct ConversationsPage: View {
                 snippet = body
             case .file(let name, let bytes, _):
                 let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(bytes), countStyle: .file)
-                snippet = "[文件 · \(name) · \(sizeStr)]"
+                snippet = L10n.convFileSnippet(name, sizeStr)
             }
             return Conversation(
                 id: latest.peer.id,
@@ -109,7 +109,7 @@ struct ConversationsPage: View {
 
                 VStack(spacing: 14) {
                     HStack {
-                        Text("对话 · CONVERSATIONS")
+                        Text(L10n.convTitle)
                             .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(MD.dpaper)
                         Spacer()
@@ -166,9 +166,9 @@ struct ConversationsPage: View {
 
     private var emptyHint: some View {
         VStack(spacing: 6) {
-            Text("还没有对话")
+            Text(L10n.convEmptyTitle)
                 .font(MDFont.cardTitle).foregroundStyle(MD.dpaper)
-            Text("EMPTY · 发一段文本或文件来开始")
+            Text(L10n.convEmptySub)
                 .font(MDFont.microHi).tracking(1.6)
                 .foregroundStyle(MD.dpaper.opacity(0.6))
         }

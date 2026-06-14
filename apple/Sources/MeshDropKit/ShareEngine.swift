@@ -375,7 +375,7 @@ public final class ShareEngine: ObservableObject {
                     if needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
                     let msg = error.localizedDescription
                     await MainActor.run { [weak engineRef] in
-                        engineRef?.updateHistoryStatus(historyID, status: .failed("无法读取文件: \(msg)"))
+                        engineRef?.updateHistoryStatus(historyID, status: .failed(L10n.failReadFile(msg)))
                     }
                     return
                 }
@@ -637,7 +637,7 @@ public final class ShareEngine: ObservableObject {
         case (.awaitingFileAccept, MessageType.fileReject):
             if let hid = ctx.historyID {
                 let reason = (try? MessageCodec.decode(FileRejectMessage.self, from: body).reason) ?? "rejected"
-                updateHistoryStatus(hid, status: .failed("对方拒收: \(reason)"))
+                updateHistoryStatus(hid, status: .failed(L10n.failPeerRejected(reason)))
             }
             await closeContext(id: contextID, error: nil)
 
@@ -1087,7 +1087,7 @@ public final class ShareEngine: ObservableObject {
         // 单帧 data 硬上限 4 MiB（messages.md）：超限视为协议错误关连接。
         if payload.count > Self.maxChunkBytes {
             log.error("FILE_CHUNK over 4MiB (\(payload.count)); closing")
-            if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed("协议错误：分块过大")) }
+            if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed(L10n.failChunkTooLarge)) }
             await closeContext(id: contextID, error: nil)
             return
         }
@@ -1148,7 +1148,7 @@ public final class ShareEngine: ObservableObject {
                 let actual = (try? Self.sha256OfFile(at: saved)) ?? ""
                 if actual != expected {
                     if let hid = ctx.historyID {
-                        updateHistoryStatus(hid, status: .failed("校验失败"))
+                        updateHistoryStatus(hid, status: .failed(L10n.failChecksum))
                     }
                     try? FileManager.default.removeItem(at: saved)
                     if let peer = ctx.peer {
@@ -1213,13 +1213,13 @@ public final class ShareEngine: ObservableObject {
                 await resumeStore.upsert(record)
             }
             if let hid = ctx.historyID {
-                updateHistoryStatus(hid, status: .failed("连接中断 · 等待续传"))
+                updateHistoryStatus(hid, status: .failed(L10n.failDisconnectedResumable))
             }
         } else if case .sendingFile = ctx.state,
                   ctx.sentBytes < ctx.fileSize,
                   let hid = ctx.historyID {
             // 发送态意外断开 — 让 UI 显示失败，用户可从历史重新发起。
-            updateHistoryStatus(hid, status: .failed("连接中断"))
+            updateHistoryStatus(hid, status: .failed(L10n.failDisconnected))
         }
         // 释放 security scope
         if case .client(_, .file(let url, _, _, let needsAccess)) = ctx.role, needsAccess {

@@ -60,9 +60,9 @@ struct ReceiveCardScreen: View {
     private var waitingPlaceholder: some View {
         GlassCard(corner: 28) {
             VStack(spacing: 12) {
-                Text("没有待审的文件")
+                Text(L10n.receiveNoPending)
                     .font(MDFont.heroSmall).foregroundStyle(MD.dpaper)
-                Text("WAITING · 等朋友捏合发送")
+                Text(L10n.receiveNoPendingSub)
                     .font(MDFont.microHi).tracking(1.6)
                     .foregroundStyle(MD.dpaper.opacity(0.55))
             }
@@ -97,14 +97,14 @@ struct ReceiveCardScreen: View {
                     Text(offer.fileName)
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundStyle(MD.ink)
-                    Text("发送方：\(offer.peer.name)")
+                    Text(L10n.receiveSenderLabel(offer.peer.name))
                         .font(MDFont.bodyEmph)
                         .foregroundStyle(MD.ink.opacity(0.85))
-                    Text("接收后会保存到 ~/Documents/MeshDrop/\(offer.peer.name)/")
+                    Text(L10n.receiveSavePath(offer.peer.name))
                         .font(MDFont.body)
                         .foregroundStyle(MD.ink.opacity(0.72))
                     Spacer().frame(height: 4)
-                    Text("校验 · CHECKSUM")
+                    Text(L10n.receiveChecksumLabel)
                         .font(MDFont.bodyEmph)
                         .foregroundStyle(MD.ink.opacity(0.85))
                     Text(formattedFingerprint(offer.sha256))
@@ -122,7 +122,7 @@ struct ReceiveCardScreen: View {
                     Chip(text: ext.isEmpty ? "FILE" : ext, tone: .outline, mono: true)
                     Chip(text: offer.formattedSize, tone: .outline, mono: true)
                     Spacer()
-                    Text("已校验 · 待你接收")
+                    Text(L10n.receiveVerifiedHint)
                         .font(MDFont.micro)
                         .foregroundStyle(MD.dpaper.opacity(0.55))
                 }
@@ -162,7 +162,7 @@ struct ReceiveCardScreen: View {
         GlassCard(corner: 32) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
-                    Chip(text: "INCOMING · 接收", tone: .sky, mono: true, leadingDot: Color.white)
+                    Chip(text: L10n.receiveIncomingTag, tone: .sky, mono: true, leadingDot: Color.white)
                     Spacer()
                     Text(receivedAtLabel(offer.receivedAt))
                         .font(MDFont.micro).tracking(1.4)
@@ -170,10 +170,10 @@ struct ReceiveCardScreen: View {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("看一眼，捏合，")
+                    Text(L10n.receiveHeroLine1)
                         .font(MDFont.hero)
                         .foregroundStyle(MD.dpaper)
-                    Text("就收到。")
+                    Text(L10n.receiveHeroLine2)
                         .font(MDFont.hero)
                         .foregroundStyle(MD.lime)
                 }
@@ -204,7 +204,7 @@ struct ReceiveCardScreen: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 6) {
                         Image(systemName: "doc.fill").font(.system(size: 10, weight: .semibold))
-                        Text("文件 · FILE").font(MDFont.chipMono).tracking(1.6)
+                        Text(L10n.receiveFileTag).font(MDFont.chipMono).tracking(1.6)
                     }
                     .foregroundStyle(MD.dpaper.opacity(0.55))
 
@@ -226,19 +226,19 @@ struct ReceiveCardScreen: View {
                     Button {
                         engine.respondToFileOffer(offer.id, accept: false)
                     } label: {
-                        ctaLabel(label: "不接收", subtitle: "DECLINE", tone: .ghost)
+                        ctaLabel(label: L10n.receiveDeclineTitle, subtitle: L10n.receiveDeclineSub, tone: .ghost)
                     }
                     .buttonStyle(.plain)
 
                     Button {
                         engine.respondToFileOffer(offer.id, accept: true)
                     } label: {
-                        ctaLabel(label: "捏合接收", subtitle: "PINCH · ACCEPT", tone: .accent)
+                        ctaLabel(label: L10n.receiveAcceptTitle, subtitle: L10n.receiveAcceptSub, tone: .accent)
                     }
                     .buttonStyle(.plain)
                     .hoverEffect(.lift)
                 }
-                Text("或:看着这张卡片说\u{201C}接收\u{201D}")
+                Text(L10n.receiveVoiceHint)
                     .font(MDFont.micro).mdMonoTracking()
                     .foregroundStyle(MD.dpaper.opacity(0.45))
             }
@@ -273,9 +273,9 @@ struct ReceiveCardScreen: View {
 
     private func receivedAtLabel(_ date: Date) -> String {
         let delta = max(0, Int(Date().timeIntervalSince(date)))
-        if delta < 5 { return "JUST NOW" }
-        if delta < 60 { return "\(delta)S AGO" }
-        return "\(delta / 60)M AGO"
+        if delta < 5 { return L10n.receiveReceivedJustNow }
+        if delta < 60 { return L10n.receiveReceivedSeconds(delta) }
+        return L10n.receiveReceivedMinutes(delta / 60)
     }
 
     private func formattedFingerprint(_ hex: String) -> String {

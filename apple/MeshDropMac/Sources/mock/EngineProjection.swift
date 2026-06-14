@@ -227,12 +227,12 @@ private func stableRtt(_ id: String) -> Int {
 
 private func shortAgo(from date: Date) -> String {
     let s = max(0, Int(Date().timeIntervalSince(date)))
-    if s < 60 { return "\(s)s 前" }
+    if s < 60 { return String(format: String(localized: "time.ago.seconds"), s) }
     let m = s / 60
-    if m < 60 { return "\(m) 分钟前" }
+    if m < 60 { return String(format: String(localized: "time.ago.minutes"), m) }
     let h = m / 60
-    if h < 24 { return "\(h) 小时前" }
-    return "\(h / 24) 天前"
+    if h < 24 { return String(format: String(localized: "time.ago.hours"), h) }
+    return String(format: String(localized: "time.ago.days"), h / 24)
 }
 
 private func humanize(_ fp: String) -> String {

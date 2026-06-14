@@ -9,7 +9,7 @@ struct StatusOrnament: View {
     var body: some View {
         HStack(spacing: 14) {
             HStack(spacing: 10) {
-                Avatar(initials: "我", color: MD.lime, size: 28)
+                Avatar(initials: L10n.selfInitial, color: MD.lime, size: 28)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(engine.displayName)
                         .font(MDFont.label)
@@ -23,20 +23,20 @@ struct StatusOrnament: View {
             Rectangle().fill(Color.white.opacity(0.12)).frame(width: 0.6, height: 22)
 
             if engine.isStarting {
-                Chip(text: "SCANNING · 192.168 · 房间",
+                Chip(text: L10n.statusScanning,
                      tone: .outline, mono: true, leadingDot: MD.lime)
             } else if engine.devices.isEmpty {
-                Chip(text: "VISIBLE · 等待设备",
+                Chip(text: L10n.statusWaiting,
                      tone: .outline, mono: true, leadingDot: MD.lime)
             } else {
-                Chip(text: "VISIBLE · \(engine.devices.count) 台",
+                Chip(text: L10n.statusVisibleCount(engine.devices.count),
                      tone: .lime, mono: true, leadingDot: MD.limeDeep)
             }
             if let err = engine.lastError {
                 Chip(text: "ERR · \(err.prefix(28))",
                      tone: .flame, mono: true, leadingDot: MD.flame)
             }
-            Chip(text: "LAN · 明文", tone: .outline, mono: true)
+            Chip(text: L10n.statusLanPlaintext, tone: .outline, mono: true)
             Chip(text: "v0.1", tone: .outline, mono: true)
 
             Spacer().frame(width: 8)
@@ -53,7 +53,7 @@ struct StatusOrnament: View {
                 Button(role: .destructive) {
                     confirmingReset = true
                 } label: {
-                    Label("重置身份…", systemImage: "arrow.counterclockwise")
+                    Label(L10n.resetMenu, systemImage: "arrow.counterclockwise")
                 }
             }
         }
@@ -61,12 +61,12 @@ struct StatusOrnament: View {
         .padding(.vertical, 10)
         .glassBackgroundEffect(in: Capsule())
         .confirmationDialog(
-            "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？",
+            L10n.resetConfirm,
             isPresented: $confirmingReset,
             titleVisibility: .visible
         ) {
-            Button("重置身份", role: .destructive) { engine.resetIdentity() }
-            Button("取消", role: .cancel) {}
+            Button(L10n.resetAction, role: .destructive) { engine.resetIdentity() }
+            Button(L10n.commonCancel, role: .cancel) {}
         }
     }
 
