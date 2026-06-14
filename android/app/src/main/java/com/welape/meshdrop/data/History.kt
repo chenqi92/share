@@ -1,8 +1,11 @@
 package com.welape.meshdrop.data
 
 import android.net.Uri
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
+// @Serializable：作为 HistoryRecord 的字段落盘（history.json）。注解仅影响序列化，不改变枚举行为。
+@Serializable
 enum class TransferDirection { OUTGOING, INCOMING }
 
 sealed interface HistoryKind {

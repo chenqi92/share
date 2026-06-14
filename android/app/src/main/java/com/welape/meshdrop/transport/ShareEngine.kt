@@ -82,8 +82,12 @@ class ShareEngine(private val context: Context) {
 
     private val trustStore = TrustStore(context)
     private val resumeStore = ResumeStore.forContext(context)
+    private val historyStore = HistoryStore.forContext(context)
     private val discovery = MdnsDiscovery(context, identity, displayName, model)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** 历史只在引擎首次 start 时从盘里 load 一次，避免重复 start 时把会话内已插入的条目冲掉。 */
+    @Volatile private var historyLoaded = false
 
     private val _devices = MutableStateFlow<List<Device>>(emptyList())
     val devices: StateFlow<List<Device>> = _devices.asStateFlow()
@@ -170,6 +174,17 @@ class ShareEngine(private val context: Context) {
         _isStarting.value = true
         _lastError.value = null
         scope.launch {
+            // 引擎首次启动：把上次进程的历史从盘里 load 进内存（最新在前）。
+            // 进行中态会被 normalize 成「连接中断」失败态（见 HistoryStore.toStatus）。
+            if (!historyLoaded) {
+                historyLoaded = true
+                val persisted = historyStore.load(context.getString(R.string.engine_conn_lost))
+                if (persisted.isNotEmpty()) {
+                    // 会话内可能已先插入条目；保持「本会话新条目在前 + 历史快照在后」，按 id 去重。
+                    val liveIds = _history.value.map { it.id }.toSet()
+                    _history.value = _history.value + persisted.filter { it.id !in liveIds }
+                }
+            }
             try {
                 val sock = ServerSocket(0)
                 listener = sock
@@ -233,9 +248,19 @@ class ShareEngine(private val context: Context) {
 
     fun removeHistoryItem(id: UUID) {
         _history.value = _history.value.filter { it.id != id }
+        saveHistory()
     }
 
-    fun clearHistory() { _history.value = emptyList() }
+    fun clearHistory() {
+        _history.value = emptyList()
+        saveHistory()
+    }
+
+    /** 后台整表覆盖写 history.json。每次历史新增 / 状态更新 / 删除后调用。 */
+    private fun saveHistory() {
+        val snapshot = _history.value
+        scope.launch { historyStore.save(snapshot) }
+    }
 
     // MARK: - 出方：文本
 
@@ -996,6 +1021,7 @@ class ShareEngine(private val context: Context) {
 
     private fun insertHistory(item: HistoryItem) {
         _history.value = listOf(item) + _history.value
+        saveHistory()
     }
 
     private fun updateHistoryStatus(id: UUID, status: TransferStatus) {
@@ -1009,6 +1035,9 @@ class ShareEngine(private val context: Context) {
         if (terminal && _transferMetrics.value.containsKey(id)) {
             _transferMetrics.value = _transferMetrics.value - id
         }
+        // Transferring 是高频进度刷新（每 chunk 一次），且落盘后 load 会被 normalize 成「中断」，
+        // 逐 chunk 写盘纯属 IO 浪费。仅在非进行中态（terminal / Pending / WaitingApproval）持久化。
+        if (status !is TransferStatus.Transferring) saveHistory()
     }
 
     /**

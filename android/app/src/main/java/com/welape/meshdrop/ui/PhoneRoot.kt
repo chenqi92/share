@@ -213,11 +213,14 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     }
                 }
             }
-            BottomNavBar(state = state, chatUnread = chatUnread, activeTransfers = activeTransfers, onPickTab = {
-                state.tab = it
-                inChatDetail = false
-                inHistory = false
-            })
+            // 进入单设备对话时隐藏底部导航，给 composer 让出全宽（对话是详情页）。
+            if (!inChatDetail) {
+                BottomNavBar(state = state, chatUnread = chatUnread, activeTransfers = activeTransfers, onPickTab = {
+                    state.tab = it
+                    inChatDetail = false
+                    inHistory = false
+                })
+            }
         }
 
         var pendingDraft by remember { mutableStateOf("") }
