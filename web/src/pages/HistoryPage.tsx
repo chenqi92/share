@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { FileCard } from '../components/FileCard'
@@ -8,14 +10,15 @@ import {
 } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
 
-function statusChip(item: HistoryEntry) {
-  if (item.status === 'transferring') return <Chip tone="flame" mono>↑ {item.progress}% · 进行中</Chip>
-  if (item.status === 'queued') return <Chip tone="outline" mono>· 排队中</Chip>
-  if (item.status === 'failed') return <Chip tone="outline" mono>✕ 失败</Chip>
-  return <Chip tone="lime" mono>✓ 已完成</Chip>
+function statusChip(item: HistoryEntry, t: TFunction) {
+  if (item.status === 'transferring') return <Chip tone="flame" mono>{t('history.transferring', { progress: item.progress })}</Chip>
+  if (item.status === 'queued') return <Chip tone="outline" mono>{t('history.queued')}</Chip>
+  if (item.status === 'failed') return <Chip tone="outline" mono>{t('history.failed')}</Chip>
+  return <Chip tone="lime" mono>{t('history.done')}</Chip>
 }
 
 function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?: string }) {
+  const { t } = useTranslation()
   const isImage = item.kind === 'image'
   const isText = item.kind === 'text'
 
@@ -42,7 +45,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
         }}
       >
         <span style={{ color: item.dir === 'incoming' ? 'var(--sky)' : 'var(--flame)' }}>
-          {item.dir === 'incoming' ? '↓ FROM' : '↑ TO'} {item.peer}
+          {item.dir === 'incoming' ? t('history.fromPeer', { peer: item.peer }) : t('history.toPeer', { peer: item.peer })}
         </span>
         <span>{item.time}</span>
       </div>
@@ -102,7 +105,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
               fontWeight: 700,
             }}
           >
-            {item.count} 张 · HEIC
+            {t('history.imageCount', { n: item.count })}
           </div>
         </div>
       )}
@@ -133,13 +136,13 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
       )}
 
       <div className="flex items-center justify-between" style={{ marginTop: 'auto' }}>
-        {statusChip(item)}
+        {statusChip(item, t)}
         <div className="flex items-center gap-2">
           {downloadHref && (
             <a
               href={downloadHref}
               download={item.name}
-              title="下载 · Download"
+              title={t('history.download')}
               style={{
                 textDecoration: 'none',
                 border: '1px solid var(--sky)',
@@ -164,7 +167,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
               textTransform: 'uppercase',
             }}
           >
-            {item.dir === 'incoming' ? 'INCOMING · 收到' : 'OUTGOING · 发出'}
+            {item.dir === 'incoming' ? t('history.incoming') : t('history.outgoing')}
           </span>
         </div>
       </div>
@@ -173,6 +176,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
 }
 
 export function HistoryPage() {
+  const { t } = useTranslation()
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const liveHistory = useEngine((s) => s.history)
@@ -220,19 +224,19 @@ export function HistoryPage() {
                 marginBottom: 6,
               }}
             >
-              历史 · HISTORY
+              {t('history.eyebrow')}
             </div>
             <h1 className="font-display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}>
-              这台浏览器上发生过的 {total} 件事
+              {t('history.headline', { total })}
             </h1>
             <p style={{ marginTop: 8, color: 'var(--text-mute)', fontSize: 13.5, maxWidth: 600 }}>
-              访客身份下，历史只保留在内存里 — 关掉浏览器即清空。永久记录请在 native 端开启。
+              {t('history.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Chip tone="ink" mono>● 仅本会话</Chip>
-            <Chip tone="outline" mono>{incoming} 收 / {outgoing} 发</Chip>
-            <Chip tone="outline" mono>{failed} 失败</Chip>
+            <Chip tone="ink" mono>● {t('common.sessionOnly')}</Chip>
+            <Chip tone="outline" mono>{t('history.recvSendCount', { recv: incoming, send: outgoing })}</Chip>
+            <Chip tone="outline" mono>{t('history.failedCount', { n: failed })}</Chip>
           </div>
         </header>
 
@@ -241,12 +245,17 @@ export function HistoryPage() {
             padding: '40px 20px', textAlign: 'center', color: 'var(--text-faint)',
             fontFamily: '"Geist Mono", monospace', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase',
           }}>
-            还没有任何收发 · NO HISTORY YET
+            {t('history.empty')}
           </div>
         )}
-        {history.map((day) => (
-          <section key={day.label} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <AsciiDivider label={`—— ${day.label} ——`} />
+        {history.map((day, di) => {
+          // 优先用结构化 dayKey + count 走 i18n；自定义分组回退到 label。
+          const dayLabel = day.dayKey
+            ? t(`history.day.${day.dayKey}`, { n: day.count ?? day.items.length })
+            : (day.label ?? '')
+          return (
+          <section key={day.dayKey ?? day.label ?? di} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <AsciiDivider label={`—— ${dayLabel} ——`} />
             <div
               style={{
                 display: 'grid',
@@ -259,7 +268,8 @@ export function HistoryPage() {
               ))}
             </div>
           </section>
-        ))}
+          )
+        })}
       </div>
 
       <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />

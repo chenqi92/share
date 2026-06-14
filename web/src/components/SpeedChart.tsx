@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 interface Props {
   upBars: number[]
   downBars: number[]
@@ -5,6 +7,7 @@ interface Props {
 }
 
 export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
+  const { t } = useTranslation()
   const count = Math.max(upBars.length, downBars.length, 1)
   const bars = Array.from({ length: count }, (_, i) => ({
     up: upBars[i] ?? 0,
@@ -31,7 +34,7 @@ export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
           className="font-display"
           style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}
         >
-          实时吞吐 · LIVE THROUGHPUT
+          {t('speedChart.title')}
         </div>
         <div
           className="flex items-center gap-4"
@@ -44,10 +47,10 @@ export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
           }}
         >
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, background: 'var(--flame)', borderRadius: 2 }} /> ↑ 上行
+            <span style={{ width: 8, height: 8, background: 'var(--flame)', borderRadius: 2 }} /> {t('speedChart.up')}
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, background: 'var(--sky)', borderRadius: 2 }} /> ↓ 下行
+            <span style={{ width: 8, height: 8, background: 'var(--sky)', borderRadius: 2 }} /> {t('speedChart.down')}
           </span>
         </div>
       </div>
@@ -98,9 +101,9 @@ export function SpeedChart({ upBars, downBars, height = 96 }: Props) {
           textTransform: 'uppercase',
         }}
       >
-        <span>peak ↑ {formatBps(peakUp)}</span>
-        <span>peak ↓ {formatBps(peakDown)}</span>
-        <span>{bars.some((b) => b.up > 0 || b.down > 0) ? 'live samples' : 'waiting for samples'}</span>
+        <span>{t('speedChart.peakUp', { value: formatBps(peakUp) })}</span>
+        <span>{t('speedChart.peakDown', { value: formatBps(peakDown) })}</span>
+        <span>{bars.some((b) => b.up > 0 || b.down > 0) ? t('speedChart.liveSamples') : t('speedChart.waitingSamples')}</span>
       </div>
     </div>
   )

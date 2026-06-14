@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Chip } from './Chip'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function StatusBar({ peerCount, connected = true, guestMode = true, hostIp = '192.168.1.42', modeLabel }: Props) {
+  const { t } = useTranslation()
   return (
     <div
       style={{
@@ -37,18 +39,18 @@ export function StatusBar({ peerCount, connected = true, guestMode = true, hostI
             boxShadow: connected ? '0 0 0 3px rgba(168,200,0,0.15)' : 'none',
           }}
         />
-        {connected ? 'CONNECTED' : 'OFFLINE'}
+        {connected ? t('statusBar.connected') : t('statusBar.offline')}
       </span>
       <span style={{ opacity: 0.4 }}>·</span>
-      <span>GATEWAY · WSS</span>
+      <span>{t('statusBar.gatewayWss')}</span>
       <span style={{ opacity: 0.4 }}>·</span>
-      <span>{peerCount} peers</span>
+      <span>{t('statusBar.peers', { n: peerCount })}</span>
       <span style={{ opacity: 0.4 }}>·</span>
       <span style={{ textTransform: 'none', letterSpacing: '0.02em' }}>{hostIp}</span>
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
         {modeLabel && <Chip tone="outline" mono>{modeLabel}</Chip>}
-        {guestMode && <Chip tone="outline" mono>访客身份 · GUEST</Chip>}
-        <Chip tone="outline" mono>关页即销毁</Chip>
+        {guestMode && <Chip tone="outline" mono>{t('common.guestDuo')}</Chip>}
+        <Chip tone="outline" mono>{t('common.destroyOnClose')}</Chip>
       </span>
     </div>
   )

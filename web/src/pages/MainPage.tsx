@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { HeroBand } from '../components/HeroBand'
 import { DropZone } from '../components/DropZone'
 import { PeerRow } from '../components/PeerRow'
@@ -11,6 +12,7 @@ import { useEngine } from '../hooks/useEngine'
 import { formatBytes } from '../lib/format'
 
 export function MainPage() {
+  const { t } = useTranslation()
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const selectedPeerId = useEngine((s) => s.selectedPeerId)
@@ -35,8 +37,8 @@ export function MainPage() {
   // 没有任何字节信息时只显示件数，不再写死 62.8 MB。
   const sessionBytes = session.reduce((sum, t) => sum + (t.totalBytes ?? 0), 0)
   const sessionLabel = sessionBytes > 0
-    ? `${session.length} 件 · ${formatBytes(sessionBytes)}`
-    : `${session.length} 件`
+    ? `${t('common.count', { n: session.length })} · ${formatBytes(sessionBytes)}`
+    : t('common.count', { n: session.length })
 
   const fireToast = (msg: string) => {
     setToast(msg)
@@ -60,9 +62,9 @@ export function MainPage() {
     if (!files.length) return
     try {
       await sendFiles(peerId, files)
-      fireToast(`已发送 ${files.length} 个文件给 ${devices.find((d) => d.id === peerId)?.who ?? peerId}`)
+      fireToast(t('toast.filesSent', { count: files.length, who: devices.find((d) => d.id === peerId)?.who ?? peerId }))
     } catch (e) {
-      fireToast(`发送失败：${(e as Error).message}`)
+      fireToast(t('toast.sendFailed', { error: (e as Error).message }))
     }
   }
 
@@ -70,14 +72,14 @@ export function MainPage() {
     const text = pasteText.trim()
     if (!text) { setPasteOpen(false); return }
     const peerId = selectedPeerId ?? devices[0]?.id
-    if (!peerId) { fireToast('没有可发送的设备'); setPasteOpen(false); return }
+    if (!peerId) { fireToast(t('toast.noDevice')); setPasteOpen(false); return }
     setPasteOpen(false)
     setPasteText('')
     try {
       await sendText(peerId, text)
-      fireToast(`已发送文字给 ${devices.find((d) => d.id === peerId)?.who ?? peerId}`)
+      fireToast(t('toast.textSent', { who: devices.find((d) => d.id === peerId)?.who ?? peerId }))
     } catch (e) {
-      fireToast(`发送失败：${(e as Error).message}`)
+      fireToast(t('toast.sendFailed', { error: (e as Error).message }))
     }
   }
 
@@ -129,7 +131,7 @@ export function MainPage() {
                 className="font-display"
                 style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}
               >
-                附近 · NEARBY
+                {t('discovery.nearby')}
               </div>
               <Chip tone="outline" mono>{peerCount}</Chip>
             </div>
@@ -149,7 +151,7 @@ export function MainPage() {
                     if (files.length) {
                       void handleDropFiles(d.id, files)
                     } else {
-                      fireToast(`已选中 ${d.who}，拖文件或粘贴文字发送`)
+                      fireToast(t('discovery.selectedHint', { who: d.who }))
                     }
                   }}
                 />
@@ -157,7 +159,7 @@ export function MainPage() {
             </div>
 
             <div style={{ marginTop: 6 }}>
-              <AsciiDivider label="—— 你是谁 · WHO ARE YOU" />
+              <AsciiDivider label={`—— ${t('discovery.whoAreYou')}`} />
             </div>
 
             <div
@@ -182,7 +184,7 @@ export function MainPage() {
                 }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--lime-deep)' }} />
-                {me.visibility}
+                {t('discovery.visibleStatus')}
               </div>
               <div
                 className="font-display"
@@ -210,7 +212,7 @@ export function MainPage() {
                 <br />
                 {me.ip}
                 <br />
-                匿名访客 · 关浏览器即下线
+                {t('discovery.anonymousVisitor')}
               </div>
             </div>
           </aside>
@@ -220,7 +222,7 @@ export function MainPage() {
             selectedPeerName={selected?.who}
             onFiles={(files) => {
               const peerId = selectedPeerId ?? devices[0]?.id
-              if (!peerId) { fireToast('请先选择一台设备'); return }
+              if (!peerId) { fireToast(t('toast.selectDeviceFirst')); return }
               void handleDropFiles(peerId, files)
             }}
             onPasteText={() => setPasteOpen(true)}
@@ -240,7 +242,7 @@ export function MainPage() {
           <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
             <div className="flex items-center gap-3">
               <div className="font-display" style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.005em' }}>
-                本次会话 · SESSION
+                {t('session.title')}
               </div>
               <Chip tone="outline" mono>{sessionLabel}</Chip>
             </div>
@@ -295,13 +297,13 @@ export function MainPage() {
 
       <Modal
         open={pasteOpen}
-        title="贴文字 / 链接 · Paste"
+        title={t('paste.title')}
         onClose={() => setPasteOpen(false)}
       >
         <textarea
           value={pasteText}
           onChange={(e) => setPasteText(e.target.value)}
-          placeholder="粘贴文字、链接、代码片段，发给当前选中的设备…"
+          placeholder={t('paste.placeholder')}
           style={{
             width: '100%',
             minHeight: 140,
@@ -327,7 +329,7 @@ export function MainPage() {
               fontSize: 12.5,
             }}
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={() => { void handleSendText() }}
@@ -340,7 +342,7 @@ export function MainPage() {
               fontSize: 12.5,
             }}
           >
-            发送 →
+            {t('paste.sendArrow')}
           </button>
         </div>
       </Modal>

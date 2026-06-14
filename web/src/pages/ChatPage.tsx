@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import {
@@ -9,6 +10,7 @@ import {
 import { useEngine } from '../hooks/useEngine'
 
 export function ChatPage() {
+  const { t } = useTranslation()
   const liveDevices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const liveHistory = useEngine((s) => s.history)
@@ -72,10 +74,10 @@ export function ChatPage() {
               padding: '4px 6px 8px',
             }}
           >
-            设备 · PEERS
+            {t('chat.peers')}
           </div>
           {devices.length === 0 && (
-            <div style={{ padding: 8, color: 'var(--text-faint)', fontSize: 12 }}>无在线设备</div>
+            <div style={{ padding: 8, color: 'var(--text-faint)', fontSize: 12 }}>{t('common.noOnlineDevices')}</div>
           )}
           {devices.map((d) => {
             const active = selected?.id === d.id
@@ -118,7 +120,7 @@ export function ChatPage() {
                     {d.who}
                   </div>
                   <div style={{ fontFamily: '"Geist Mono", monospace', fontSize: 9.5, color: d.online ? 'var(--lime-deep, #8AB400)' : 'var(--text-faint)' }}>
-                    {d.online ? '● 在线' : '○ 离线'}
+                    {d.online ? `● ${t('common.online')}` : `○ ${t('common.offline')}`}
                   </div>
                 </span>
               </button>
@@ -134,7 +136,7 @@ export function ChatPage() {
           >
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>
-                {selected ? selected.who : '选择设备开始对话'}
+                {selected ? selected.who : t('chat.selectToStart')}
               </div>
               {selected && (
                 <div style={{ fontFamily: '"Geist Mono", monospace', fontSize: 10.5, color: 'var(--text-faint)' }}>
@@ -142,7 +144,7 @@ export function ChatPage() {
                 </div>
               )}
             </div>
-            <Chip tone="ink" mono>● 仅本会话</Chip>
+            <Chip tone="ink" mono>● {t('common.sessionOnly')}</Chip>
           </header>
 
           <div
@@ -154,7 +156,7 @@ export function ChatPage() {
                 margin: 'auto', textAlign: 'center', color: 'var(--text-faint)',
                 fontFamily: '"Geist Mono", monospace', fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
               }}>
-                还没有文字消息 · NO MESSAGES YET
+                {t('chat.noMessages')}
               </div>
             ) : (
               messages.map((m) => {
@@ -194,7 +196,7 @@ export function ChatPage() {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              placeholder={selected ? '写一条消息… · Enter 发送' : '先选一个设备'}
+              placeholder={selected ? t('chat.composerPlaceholder') : t('chat.composerSelectFirst')}
               disabled={!selected}
               style={{
                 flex: 1,
@@ -223,7 +225,7 @@ export function ChatPage() {
                 cursor: !draft.trim() || !selected || busy ? 'default' : 'pointer',
               }}
             >
-              {busy ? '…' : '发送'}
+              {busy ? '…' : t('common.send')}
             </button>
           </div>
         </div>

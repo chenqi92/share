@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import type { TransferRow as Row } from '../lib/mockData'
 import { FileCard } from './FileCard'
 import { ProgressBar } from './ProgressBar'
@@ -10,24 +12,26 @@ interface Props {
   onRetry?: () => void
 }
 
-function stateLabel(state: Row['state']): { label: string; symbol: string; color: string } {
+// 文案走 i18n（transfer.state.*），这里只保留符号 / 配色等视觉常量。
+function stateVisual(state: Row['state'], t: TFunction): { label: string; symbol: string; color: string } {
   switch (state) {
     case 'sending':
-      return { label: '发送中 · SENDING', symbol: '↑', color: 'var(--flame)' }
+      return { label: t('transfer.state.sending'), symbol: '↑', color: 'var(--flame)' }
     case 'receiving':
-      return { label: '接收中 · RECEIVING', symbol: '↓', color: 'var(--sky)' }
+      return { label: t('transfer.state.receiving'), symbol: '↓', color: 'var(--sky)' }
     case 'done':
-      return { label: '已完成 · DONE', symbol: '✓', color: 'var(--lime-deep)' }
+      return { label: t('transfer.state.done'), symbol: '✓', color: 'var(--lime-deep)' }
     case 'failed':
-      return { label: '失败 · FAILED', symbol: '×', color: 'var(--error)' }
+      return { label: t('transfer.state.failed'), symbol: '×', color: 'var(--error)' }
     case 'queued':
     default:
-      return { label: '排队中 · QUEUED', symbol: '·', color: 'var(--text-faint)' }
+      return { label: t('transfer.state.queued'), symbol: '·', color: 'var(--text-faint)' }
   }
 }
 
 export function TransferRow({ row, onCancel, onRetry }: Props) {
-  const s = stateLabel(row.state)
+  const { t } = useTranslation()
+  const s = stateVisual(row.state, t)
   const isActive = row.state === 'sending' || row.state === 'receiving'
   const isFailed = row.state === 'failed'
   return (
@@ -64,8 +68,8 @@ export function TransferRow({ row, onCancel, onRetry }: Props) {
           <button
             type="button"
             onClick={onCancel}
-            title="取消传输 · Cancel"
-            aria-label="取消传输"
+            title={t('transfer.cancel')}
+            aria-label={t('transfer.cancel')}
             style={{
               marginLeft: 'auto',
               background: 'transparent',
@@ -87,8 +91,8 @@ export function TransferRow({ row, onCancel, onRetry }: Props) {
           <button
             type="button"
             onClick={onRetry}
-            title="重试发送 · Retry"
-            aria-label="重试发送"
+            title={t('transfer.retry')}
+            aria-label={t('transfer.retry')}
             style={{
               marginLeft: 'auto',
               background: 'transparent',
@@ -122,7 +126,7 @@ export function TransferRow({ row, onCancel, onRetry }: Props) {
         <span style={{ color: 'var(--text-mute)' }}>{row.progress}%</span>
         <span>
           {row.speed ? `${row.speed} · ` : ''}
-          {row.eta ? `ETA ${row.eta}` : row.state === 'queued' ? '等待发送' : ''}
+          {row.eta ? `ETA ${row.eta}` : row.state === 'queued' ? t('transfer.waitingToSend') : ''}
         </span>
       </div>
     </div>

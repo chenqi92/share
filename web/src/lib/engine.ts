@@ -9,6 +9,7 @@
  *   - GET  /api/v1/download/<offerId> 接受 offer 后下载文件
  */
 
+import i18n from '../i18n'
 import type { ClipboardItem, DeviceKind, HistoryEntry, MeIdentity, MeshDevice, PendingOffer, PendingPairing, TransferRow, TransferState } from './mockData'
 
 // ---------- wire types (protocol/companion-bridges.md §3) ----------
@@ -198,7 +199,7 @@ export function adaptOffer(o: WireOffer): PendingOffer {
     id: o.id,
     peer: o.peerName,
     deviceName: o.peerName,
-    fileName: f?.name ?? '(文本)',
+    fileName: f?.name ?? i18n.t('engine.textPayload'),
     fileSize: formatBytes(f?.sizeBytes),
     ext: extOf(f?.name),
     note: o.noteText,
@@ -293,12 +294,12 @@ function detectBrowserOS(): string {
  */
 export function adaptMe(me?: StateSnapshot['payload']['me']): MeIdentity {
   return {
-    name: me?.displayName || '本机 · This device',
+    name: me?.displayName || i18n.t('engine.thisDevice'),
     fingerprint: me?.fingerprint || '—',
-    ip: me?.ip || 'LAN（host 未上报）',
+    ip: me?.ip || i18n.t('engine.lanNotReported'),
     hostIp: me?.hostIp || '—',
     os: detectBrowserOS(),
-    visibility: '访客可见',
+    visibility: i18n.t('discovery.visibleStatus'),
     pairingCode: '—',
   }
 }
@@ -563,10 +564,10 @@ export function setGatewayEndpoint(raw: string): void {
   try {
     url = new URL(value)
   } catch {
-    throw new Error('gateway URL 无效')
+    throw new Error(i18n.t('pairing.gateway.urlInvalid'))
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error('gateway URL 必须以 http:// 或 https:// 开头')
+    throw new Error(i18n.t('pairing.gateway.urlScheme'))
   }
   try { localStorage.setItem('meshdrop.gateway', url.toString().replace(/\/$/, '')) } catch { /* ignore */ }
   _client = undefined

@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from 'react-i18next'
 import { Chip } from './Chip'
 import { MeshDropLockup } from './MeshDropLogo'
 
@@ -6,6 +7,7 @@ interface Props {
 }
 
 export function HeroBand({ peerCount }: Props) {
+  const { t } = useTranslation()
   return (
     <section
       className="hero-grad"
@@ -20,9 +22,9 @@ export function HeroBand({ peerCount }: Props) {
       <div className="flex items-start justify-between gap-6">
         <MeshDropLockup size={30} />
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <Chip tone="lime" mono>● {peerCount} 在线 · {peerCount} ONLINE</Chip>
-          <Chip tone="outline" mono>无需安装 · NO INSTALL</Chip>
-          <Chip tone="outline" mono>访客模式 · GUEST</Chip>
+          <Chip tone="lime" mono>● {t('hero.onlineCount', { n: peerCount })}</Chip>
+          <Chip tone="outline" mono>{t('hero.noInstall')}</Chip>
+          <Chip tone="outline" mono>{t('hero.guest')}</Chip>
         </div>
       </div>
 
@@ -37,7 +39,7 @@ export function HeroBand({ peerCount }: Props) {
           color: 'var(--text)',
         }}
       >
-        你的浏览器,
+        {t('hero.titleLine1')}
         <br />
         <span
           style={{
@@ -47,7 +49,7 @@ export function HeroBand({ peerCount }: Props) {
             WebkitTextFillColor: 'transparent',
           }}
         >
-          已经是一个 MeshDrop 设备.
+          {t('hero.titleLine2')}
         </span>
       </h1>
 
@@ -60,9 +62,14 @@ export function HeroBand({ peerCount }: Props) {
           color: 'var(--text-mute)',
         }}
       >
-        Linux / Chromebook / 临时同事的笔记本 —— 任何浏览器进 <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }}>192.168.1.42</span>,
-        直接收发文件。身份用 <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }}>Ed25519 · SHA-256</span> 指纹核对,
-        关页就销毁。
+        {/* host / idScheme 用 mono 高亮，是协议常量按原文显示，不进语言文件。 */}
+        <Trans
+          i18nKey="hero.body"
+          values={{ host: '192.168.1.42', idScheme: 'Ed25519 · SHA-256' }}
+          components={{
+            mono: <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }} />,
+          }}
+        />
       </p>
 
       <div
@@ -77,10 +84,10 @@ export function HeroBand({ peerCount }: Props) {
           letterSpacing: '0.18em',
         }}
       >
-        <span>⤓ DRAG-TO-SEND</span>
-        <span>● LAN · 明文 v0.1</span>
-        <span>● LAN ONLY · 零云</span>
-        <span>● PASTE-TO-SHARE</span>
+        <span>⤓ {t('hero.dragToSend')}</span>
+        <span>● {t('common.lanPlaintext')}</span>
+        <span>● {t('hero.lanZeroCloud')}</span>
+        <span>● {t('hero.pasteToShare')}</span>
       </div>
     </section>
   )

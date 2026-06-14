@@ -1,0 +1,317 @@
+{
+  "common": {
+    "accept": "Accept",
+    "cancel": "Cancel",
+    "reject": "Reject",
+    "send": "Send",
+    "online": "Online",
+    "offline": "Offline",
+    "retry": "Retry",
+    "delete": "Delete",
+    "me": "Me",
+    "sessionOnly": "This session only",
+    "guest": "Guest",
+    "guestDuo": "Guest",
+    "destroyOnClose": "Destroyed on close",
+    "lanPlaintext": "LAN · plaintext v0.1",
+    "lanOnly": "LAN ONLY",
+    "sha256Verify": "SHA-256 verified",
+    "count": "{{n}} items",
+    "noOnlineDevices": "No devices online"
+  },
+  "app": {
+    "previewBanner": "MESHDROP · WEB FALLBACK PREVIEW",
+    "roomLiving": "Living Room",
+    "nav": {
+      "main": "Main",
+      "chat": "Chat",
+      "receive": "Receive",
+      "transfer": "Transfer",
+      "clipboard": "Clipboard",
+      "history": "History",
+      "pairing": "Pairing",
+      "settings": "Settings"
+    },
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "statusBar": {
+    "connected": "Connected",
+    "offline": "Offline",
+    "gatewayWss": "GATEWAY · WSS",
+    "peers": "{{n}} peers"
+  },
+  "browserChrome": {
+    "roomHint": "ROOM · {{room}}"
+  },
+  "hero": {
+    "onlineCount": "{{n}} online",
+    "noInstall": "No install",
+    "guest": "Guest mode",
+    "titleLine1": "Your browser",
+    "titleLine2": "is already a MeshDrop device.",
+    "body": "Linux / Chromebook / a colleague's laptop — any browser at <mono>{{host}}</mono> can send and receive files directly. Identities are verified with <mono>{{idScheme}}</mono> fingerprints, and everything is destroyed when you close the tab.",
+    "dragToSend": "Drag to send",
+    "lanZeroCloud": "LAN ONLY · zero cloud",
+    "pasteToShare": "Paste to share"
+  },
+  "discovery": {
+    "nearby": "Nearby",
+    "whoAreYou": "Who are you",
+    "visibleStatus": "Visible to guests",
+    "anonymousVisitor": "Anonymous visitor · offline when you close the tab",
+    "selectedHint": "Selected {{who}} — drag files or paste text to send"
+  },
+  "session": {
+    "title": "Session",
+    "open": "session #4f2a · open"
+  },
+  "dropZone": {
+    "dropToSend": "Release to send",
+    "dragZone": "Drag to send",
+    "dropAnything": "Drop anything here",
+    "dragAnythingHere": "Drag anything here",
+    "toPeer": "→ {{who}}",
+    "targetHint": "Target: {{who}} · drag files / folders to send directly",
+    "defaultHint": "⤓ Folders work too · single file up to 4 GB · text / links accepted",
+    "chooseFiles": "Choose files…",
+    "pasteTextLink": "Paste text / link"
+  },
+  "paste": {
+    "title": "Paste text / link",
+    "placeholder": "Paste text, a link, or a code snippet to send to the selected device…",
+    "sendArrow": "Send →"
+  },
+  "toast": {
+    "filesSent": "Sent {{count}} files to {{who}}",
+    "sendFailed": "Send failed: {{error}}",
+    "noDevice": "No device to send to",
+    "textSent": "Sent text to {{who}}",
+    "selectDeviceFirst": "Select a device first"
+  },
+  "chat": {
+    "peers": "Peers",
+    "selectToStart": "Select a device to start chatting",
+    "noMessages": "No messages yet",
+    "composerPlaceholder": "Write a message… · Enter to send",
+    "composerSelectFirst": "Select a device first"
+  },
+  "receive": {
+    "noPendingOffer": "No pending offer",
+    "mainPaused": "MainPage paused",
+    "incomingWantsToSend": "Incoming · {{who}} wants to send to you",
+    "paired": "Paired",
+    "noteLabel": "Note",
+    "confirmAccept": "Accept this?",
+    "reject": "× Decline",
+    "acceptAndOpen": "Accept and open →",
+    "fileMeta": "{{pages}} pages · LAN · plaintext v0.1"
+  },
+  "transfer": {
+    "eyebrow": "Transfers",
+    "headline": "{{total}} tasks{{progress}} · <done>{{done}}</done>",
+    "headlineProgressSuffix": " in flight",
+    "headlineDone": "{{n}} done",
+    "queue": "Queue · {{n}}",
+    "active": "ACTIVE · in progress · {{n}}",
+    "waitingToSend": "Waiting to send",
+    "cancel": "Cancel transfer",
+    "retry": "Retry send",
+    "filter": {
+      "all": "All",
+      "send": "Send",
+      "recv": "Recv",
+      "done": "Done",
+      "fail": "Fail"
+    },
+    "state": {
+      "sending": "Sending",
+      "receiving": "Receiving",
+      "done": "Done",
+      "failed": "Failed",
+      "queued": "Queued"
+    }
+  },
+  "speedChart": {
+    "title": "Live throughput",
+    "up": "↑ Up",
+    "down": "↓ Down",
+    "peakUp": "peak ↑ {{value}}",
+    "peakDown": "peak ↓ {{value}}",
+    "liveSamples": "live samples",
+    "waitingSamples": "waiting for samples"
+  },
+  "clipboard": {
+    "eyebrow": "Clipboard",
+    "headline": "Push a snippet of text to nearby devices",
+    "subtitle": "Explicit push — it only sends when you tap, not a silent background sync. Links / code / plain text are auto-categorized.",
+    "itemCount": "{{n}} items",
+    "pushTo": "Push to",
+    "readSystem": "⎘ Read system clipboard",
+    "composerPlaceholder": "Paste or type what you want to push…",
+    "pushing": "Pushing…",
+    "push": "↑ Push",
+    "inbox": "Received clipboard",
+    "empty": "Nothing received yet",
+    "fromMe": "↑ Me",
+    "fromPeer": "↓ {{who}}",
+    "copy": "⌘C COPY"
+  },
+  "history": {
+    "eyebrow": "History",
+    "headline": "{{total}} things happened on this browser",
+    "subtitle": "As a guest, history lives only in memory — closing the browser clears it. For permanent records, enable it on the native side.",
+    "recvSendCount": "{{recv}} recv / {{send}} sent",
+    "failedCount": "{{n}} failed",
+    "empty": "No transfers yet",
+    "transferring": "↑ {{progress}}% · in progress",
+    "queued": "· queued",
+    "failed": "✕ failed",
+    "done": "✓ done",
+    "imageCount": "{{n}} photos · HEIC",
+    "download": "Download",
+    "fromPeer": "↓ FROM {{peer}}",
+    "toPeer": "↑ TO {{peer}}",
+    "incoming": "INCOMING",
+    "outgoing": "OUTGOING",
+    "day": {
+      "today": "Today · {{n}} items",
+      "yesterday": "Yesterday · {{n}} items",
+      "earlier": "Earlier · {{n}} items"
+    }
+  },
+  "pairing": {
+    "eyebrow": "Pairing",
+    "titleLine1": "Add this browser",
+    "titleLine2": "to your MeshDrop network",
+    "intro": "Anonymous guest transfers don't need pairing. You only pair this browser to your MeshDrop device when you want it to become \"long-term trusted\" — so next time it won't prompt you to accept.",
+    "gateway": {
+      "notConfigured": "No native Web Gateway configured. Enter the address of a running MeshDrop native client before pairing.",
+      "placeholder": "https://192.168.1.12:7384",
+      "save": "Save gateway",
+      "saved": "gateway · {{endpoint}}",
+      "example": "e.g. https://192.168.1.12:7384 or http://127.0.0.1:7384",
+      "online": "● ONLINE · gateway connected",
+      "unpaired": "○ Unpaired · UNPAIRED",
+      "connecting": "◌ Connecting · CONNECTING",
+      "controlPath": "WEB GATEWAY · /api/v1/control",
+      "unpair": "Unpair · UNPAIR",
+      "needGateway": "Set the native Web Gateway address first",
+      "urlInvalid": "Invalid gateway URL",
+      "urlScheme": "Gateway URL must start with http:// or https://"
+    },
+    "code": {
+      "placeholder": "LR · 4K7M",
+      "pairing": "Pairing…",
+      "submit": "Pair →",
+      "invalid": "Code invalid or expired",
+      "hint": "Find the 6-character code at the top of the native app and enter it here",
+      "label": "● 6-char code · 30s",
+      "sessionLimited": "This session only"
+    },
+    "pending": {
+      "title": "Pending pairing · {{who}}",
+      "reject": "Reject",
+      "trust": "Trust and remember"
+    },
+    "fingerprint": "FINGERPRINT · full 32 chars",
+    "fingerprintPeerSame": "Peer should see the same 8 groups",
+    "scanWithApp": "Scan with native app",
+    "qrAlt": "Pairing QR code",
+    "steps": {
+      "title": "3-step guide",
+      "step": "STEP {{idx}} / 3",
+      "s1": {
+        "title": "Same local network",
+        "body": "Make sure both devices are on the same Wi-Fi or switch, with no client isolation."
+      },
+      "s2": {
+        "title": "Scan / enter code",
+        "body": "In the native app, tap \"Add device\", scan the QR on the right, or manually enter the 6-character code below."
+      },
+      "s3": {
+        "title": "Check the fingerprint",
+        "body": "Both ends show the same 32-char fingerprint. Confirm they match, then tap \"Trust and remember\"."
+      }
+    }
+  },
+  "settings": {
+    "eyebrow": "Settings",
+    "titleLead": "Ready in the browser,",
+    "titleTail": " yet still tunable.",
+    "subtitle": "Guest preferences apply only to the current tab. For preferences that sync across devices, configure them on the native side.",
+    "visibility": {
+      "section": "Visibility",
+      "showInRadar": "Show up on others' radar",
+      "showInRadarHint": "Local preference only · the actual mDNS broadcast is controlled by the native side. Turning it off only remembers the choice in this browser.",
+      "scope": "Who can connect",
+      "scopeHint": "Local preference only · real access control must be set on the native side; this just persists across refreshes.",
+      "rememberBrowser": "Remember browser as guest",
+      "rememberBrowserHint": "Off means cleared on close (recommended). On keeps the session token so auto-reconnect works; turning it off clears it immediately.",
+      "scopeOptions": {
+        "lanAll": "Everyone on LAN",
+        "paired": "Paired devices",
+        "inviteLink": "Invite link"
+      }
+    },
+    "security": {
+      "section": "Security",
+      "mockSession": "● MOCK SESSION",
+      "fingerprintVerify": "SHA-256 fingerprint check",
+      "gatewayWss": "GATEWAY · WSS",
+      "fingerprintLabel": "fingerprint · {{fingerprint}}",
+      "autoAccept": "Auto-accept file offers from unpaired devices",
+      "autoAcceptHint": "Not recommended · only enable when you fully control the LAN.",
+      "notify": "Notify when files / clipboard arrive",
+      "notifyHint": "Requires browser notification permission; off means no popup even if permission is granted."
+    },
+    "session": {
+      "section": "Session",
+      "gatewayLabel": "gateway · {{endpoint}}",
+      "reconnect": "Disconnect / re-pair",
+      "confirmText": "Disconnecting clears the local session token; next visit requires re-entering the 6-character pairing code. Continue?",
+      "confirmDisconnect": "Confirm disconnect",
+      "conn": {
+        "open": "Connected",
+        "connecting": "Connecting…",
+        "closed": "Disconnected",
+        "unpaired": "Unpaired",
+        "idle": "Idle"
+      }
+    },
+    "receiveBehavior": {
+      "section": "Receive behavior",
+      "defaultPath": "Default save to",
+      "defaultPathHint": "Local preference only · the browser can only write to the Downloads folder; for other paths use the native side.",
+      "keepHistory": "Keep session history until tab closes",
+      "keepHistoryHint": "Local preference only · history stays in memory and is never written to disk; cleared on close.",
+      "pathOptions": {
+        "browserDownloads": "Browser Downloads",
+        "sandbox": "Current-origin sandbox",
+        "askEveryTime": "Ask every time"
+      }
+    },
+    "about": {
+      "section": "About",
+      "engine": "engine · Native Web Gateway · LAN plaintext v0.1 · {{mode}}",
+      "modeLive": "LIVE MODE",
+      "modeMock": "MOCK MODE"
+    }
+  },
+  "fileCard": {
+    "pageUnit": "pages"
+  },
+  "engine": {
+    "thisDevice": "This device",
+    "lanNotReported": "LAN (not reported by host)",
+    "textPayload": "(text)"
+  },
+  "notify": {
+    "from": "From {{who}}",
+    "fileFallback": "File",
+    "clipboardPushed": "{{who}} pushed a clipboard item"
+  }
+}

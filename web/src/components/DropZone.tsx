@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   selectedPeerName?: string
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighlight, children }: Props) {
+  const { t } = useTranslation()
   const [active, setActive] = useState(false)
   const counter = useRef(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -88,7 +90,7 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
           letterSpacing: '0.22em',
         }}
       >
-        {highlight ? '放手即发 · DROP TO SEND' : 'DRAG ZONE · 拖即发'}
+        {highlight ? t('dropZone.dropToSend') : t('dropZone.dragZone')}
       </div>
 
       <div
@@ -103,9 +105,9 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
       >
         {highlight
           ? selectedPeerName
-            ? `→ ${selectedPeerName}`
-            : '把任何东西拖进来'
-          : '把任何东西拖到这里'}
+            ? t('dropZone.toPeer', { who: selectedPeerName })
+            : t('dropZone.dropAnything')
+          : t('dropZone.dragAnythingHere')}
       </div>
 
       <p
@@ -117,8 +119,8 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
         }}
       >
         {selectedPeerName
-          ? `当前目标：${selectedPeerName} · 拖文件 / 文件夹直接发送`
-          : '⤓ 文件夹也行 · 单文件最大 4 GB · 文字 / 链接也接受'}
+          ? t('dropZone.targetHint', { who: selectedPeerName })
+          : t('dropZone.defaultHint')}
       </p>
 
       <div className="flex flex-wrap gap-3 justify-center" style={{ marginTop: 6 }}>
@@ -134,7 +136,7 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
             letterSpacing: '-0.005em',
           }}
         >
-          选择文件… · Choose files
+          {t('dropZone.chooseFiles')}
         </button>
         <button
           onClick={onPasteText}
@@ -148,7 +150,7 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
             border: '1px solid var(--border)',
           }}
         >
-          贴文字 / 链接 · Paste
+          {t('dropZone.pasteTextLink')}
         </button>
       </div>
 

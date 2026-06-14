@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import { AsciiDivider } from '../components/AsciiDivider'
@@ -18,6 +19,7 @@ const KIND_TONE: Record<ClipboardItem['kind'], 'sky' | 'flame' | 'outline'> = {
 }
 
 function ClipboardCell({ item, onCopy }: { item: ClipboardItem; onCopy: (body: string) => void }) {
+  const { t } = useTranslation()
   const isCode = item.kind === 'code'
   return (
     <div
@@ -42,7 +44,7 @@ function ClipboardCell({ item, onCopy }: { item: ClipboardItem; onCopy: (body: s
         }}
       >
         <span style={{ color: item.who === '我' ? 'var(--flame)' : 'var(--sky)' }}>
-          {item.who === '我' ? '↑ 我' : `↓ ${item.who}`}
+          {item.who === '我' ? t('clipboard.fromMe') : t('clipboard.fromPeer', { who: item.who })}
         </span>
         <span>{item.ago}</span>
       </div>
@@ -86,7 +88,7 @@ function ClipboardCell({ item, onCopy }: { item: ClipboardItem; onCopy: (body: s
             cursor: 'pointer',
           }}
         >
-          ⌘C COPY
+          {t('clipboard.copy')}
         </button>
       </div>
     </div>
@@ -94,6 +96,7 @@ function ClipboardCell({ item, onCopy }: { item: ClipboardItem; onCopy: (body: s
 }
 
 export function ClipboardPage() {
+  const { t } = useTranslation()
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const inbox = useEngine((s) => s.clipboardInbox)
@@ -158,18 +161,18 @@ export function ClipboardPage() {
                 marginBottom: 6,
               }}
             >
-              剪贴板 · CLIPBOARD
+              {t('clipboard.eyebrow')}
             </div>
             <h1 className="font-display" style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}>
-              推送一段文字到附近设备
+              {t('clipboard.headline')}
             </h1>
             <p style={{ marginTop: 8, color: 'var(--text-mute)', fontSize: 13.5, maxWidth: 600 }}>
-              显式推送 —— 由你点一下才发送，不是后台静默同步。链接 / 代码 / 普通文本会自动归类。
+              {t('clipboard.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Chip tone="ink" mono>● 仅本会话</Chip>
-            <Chip tone="outline" mono>{inbox.length} 条</Chip>
+            <Chip tone="ink" mono>● {t('common.sessionOnly')}</Chip>
+            <Chip tone="outline" mono>{t('clipboard.itemCount', { n: inbox.length })}</Chip>
           </div>
         </header>
 
@@ -195,7 +198,7 @@ export function ClipboardPage() {
                 textTransform: 'uppercase',
               }}
             >
-              推送到
+              {t('clipboard.pushTo')}
             </span>
             <select
               value={target}
@@ -209,7 +212,7 @@ export function ClipboardPage() {
                 fontSize: 12.5,
               }}
             >
-              {online.length === 0 && <option value="">无在线设备</option>}
+              {online.length === 0 && <option value="">{t('common.noOnlineDevices')}</option>}
               {online.map((d) => (
                 <option key={d.id} value={d.id}>{d.who} · {d.name}</option>
               ))}
@@ -230,14 +233,14 @@ export function ClipboardPage() {
                 cursor: 'pointer',
               }}
             >
-              ⎘ 读取系统剪贴板
+              {t('clipboard.readSystem')}
             </button>
           </div>
 
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="粘贴或输入要推送的内容…"
+            placeholder={t('clipboard.composerPlaceholder')}
             rows={4}
             style={{
               width: '100%',
@@ -271,20 +274,20 @@ export function ClipboardPage() {
                 cursor: !draft.trim() || !target || busy ? 'default' : 'pointer',
               }}
             >
-              {busy ? '推送中…' : '↑ 推送 · PUSH'}
+              {busy ? t('clipboard.pushing') : t('clipboard.push')}
             </button>
           </div>
         </section>
 
         {/* 收件 */}
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <AsciiDivider label="—— 收到的剪贴板 · INBOX ——" />
+          <AsciiDivider label={`—— ${t('clipboard.inbox')} ——`} />
           {inbox.length === 0 ? (
             <div style={{
               padding: '40px 20px', textAlign: 'center', color: 'var(--text-faint)',
               fontFamily: '"Geist Mono", monospace', fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase',
             }}>
-              还没有收到剪贴板 · NOTHING YET
+              {t('clipboard.empty')}
             </div>
           ) : (
             <div

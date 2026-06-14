@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { Chip } from '../components/Chip'
 import { SpeedChart } from '../components/SpeedChart'
 import { StatusBar } from '../components/StatusBar'
@@ -11,10 +12,13 @@ import {
 } from '../lib/mockData'
 import { useEngine } from '../hooks/useEngine'
 
-const FILTERS = ['全部 · ALL', '发送 · SEND', '接收 · RECV', '完成 · DONE', '失败 · FAIL'] as const
+// 过滤项按稳定 key 存储，可见标签由 i18n 给（transfer.filter.*）。
+const FILTERS = ['all', 'send', 'recv', 'done', 'fail'] as const
+type FilterKey = (typeof FILTERS)[number]
 
 export function TransferPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>('全部 · ALL')
+  const { t } = useTranslation()
+  const [filter, setFilter] = useState<FilterKey>('all')
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const transfers = useEngine((s) => s.transfers)
@@ -30,11 +34,11 @@ export function TransferPage() {
   const chartUp = mode === 'live' ? (uploadBars.length ? uploadBars : idleBars) : MESHDROP_UPLOAD_BARS
   const chartDown = mode === 'live' ? (downBars.length ? downBars : idleBars) : MESHDROP_DOWNLOAD_BARS
 
-  const rows = source.filter((t) => {
-    if (filter === '发送 · SEND') return t.state === 'sending' || t.state === 'queued'
-    if (filter === '接收 · RECV') return t.state === 'receiving'
-    if (filter === '完成 · DONE') return t.state === 'done'
-    if (filter === '失败 · FAIL') return t.state === 'failed'
+  const rows = source.filter((r) => {
+    if (filter === 'send') return r.state === 'sending' || r.state === 'queued'
+    if (filter === 'recv') return r.state === 'receiving'
+    if (filter === 'done') return r.state === 'done'
+    if (filter === 'fail') return r.state === 'failed'
     return true
   })
 
@@ -82,19 +86,28 @@ export function TransferPage() {
                 marginBottom: 6,
               }}
             >
-              传输 · TRANSFERS
+              {t('transfer.eyebrow')}
             </div>
             <h1
               className="font-display"
               style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}
             >
-              {totalCount} 个任务{inProgressCount > 0 && '在路上'} · <span style={{ color: 'var(--lime-deep)' }}>{doneCount} 已完成</span>
+              {/* 已完成数标 lime 高亮，用 <done> 标记包住做行内着色。 */}
+              <Trans
+                i18nKey="transfer.headline"
+                values={{
+                  total: totalCount,
+                  progress: inProgressCount > 0 ? t('transfer.headlineProgressSuffix') : '',
+                  done: t('transfer.headlineDone', { n: doneCount }),
+                }}
+                components={{ done: <span style={{ color: 'var(--lime-deep)' }} /> }}
+              />
             </h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Chip tone="lime" mono>↑ {formatBps(uploadBps)}</Chip>
             <Chip tone="sky" mono>↓ {formatBps(downloadBps)}</Chip>
-            <Chip tone="outline" mono>队列 · {queuedCount} 件</Chip>
+            <Chip tone="outline" mono>{t('transfer.queue', { n: queuedCount })}</Chip>
             <Chip tone="outline" mono>SESSION {sessionDuration}</Chip>
             <Chip tone="outline" mono>{formatTotal(sessionTotalBytes)}</Chip>
           </div>
@@ -125,13 +138,13 @@ export function TransferPage() {
                   textTransform: 'uppercase',
                 }}
               >
-                {f}
+                {t(`transfer.filter.${f}`)}
               </button>
             )
           })}
         </div>
 
-        <AsciiDivider label={`—— ACTIVE · 进行中 · ${rows.length} 件 ——`} />
+        <AsciiDivider label={`—— ${t('transfer.active', { n: rows.length })} ——`} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rows.map((r) => (

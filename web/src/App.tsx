@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useEngineConnection } from './hooks/useEngine'
 import { BrowserChrome } from './components/BrowserChrome'
 import { MainPage } from './pages/MainPage'
@@ -12,15 +13,16 @@ import { SettingsPage } from './pages/SettingsPage'
 import { useTheme, type ThemeMode } from './hooks/useTheme'
 import { MeshDropMark } from './components/MeshDropLogo'
 
+// label 的可见文案由 i18n 提供（app.nav.<id>），这里只保留稳定的页面 id。
 const PAGES = [
-  { id: 'main', label: '主页 · MAIN' },
-  { id: 'chat', label: '聊天 · CHAT' },
-  { id: 'receive', label: '接收 · RECEIVE' },
-  { id: 'transfer', label: '传输 · TRANSFER' },
-  { id: 'clipboard', label: '剪贴板 · CLIPBOARD' },
-  { id: 'history', label: '历史 · HISTORY' },
-  { id: 'pairing', label: '配对 · PAIRING' },
-  { id: 'settings', label: '设置 · SETTINGS' },
+  { id: 'main' },
+  { id: 'chat' },
+  { id: 'receive' },
+  { id: 'transfer' },
+  { id: 'clipboard' },
+  { id: 'history' },
+  { id: 'pairing' },
+  { id: 'settings' },
 ] as const
 
 type PageId = (typeof PAGES)[number]['id']
@@ -33,8 +35,11 @@ function initialPage(): PageId {
 
 export function App() {
   useEngineConnection()
+  const { t, i18n } = useTranslation()
   const { mode, setMode } = useTheme()
   const [page, setPage] = useState<PageId>(() => initialPage())
+  // URL 里房间名保持原文（属可演示数据），但 hint 里的可读部分走 i18n。
+  const room = t('app.roomLiving')
 
   const url =
     page === 'main' ? 'http://192.168.1.42/room/客厅' :
@@ -90,7 +95,7 @@ export function App() {
               color: 'var(--text-faint)',
             }}
           >
-            MESHDROP · WEB FALLBACK PREVIEW
+            {t('app.previewBanner')}
           </span>
         </span>
         <nav
@@ -120,11 +125,33 @@ export function App() {
                 color: page === p.id ? 'var(--paper)' : 'var(--text-mute)',
               }}
             >
-              {p.label}
+              {t(`app.nav.${p.id}`)}
             </button>
           ))}
         </nav>
+        {/* 语言切换：zh-CN ↔ en，写回 localStorage（见 i18n/index.ts）。 */}
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 999, padding: 4 }}>
+          {(['zh-CN', 'en'] as const).map((lng) => (
+            <button
+              key={lng}
+              onClick={() => { void i18n.changeLanguage(lng) }}
+              style={{
+                padding: '6px 11px',
+                borderRadius: 999,
+                fontFamily: '"Geist Mono", monospace',
+                fontSize: 10.5,
+                fontWeight: 600,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                background: i18n.language === lng ? 'var(--ink)' : 'transparent',
+                color: i18n.language === lng ? 'var(--paper)' : 'var(--text-mute)',
+              }}
+            >
+              {lng === 'zh-CN' ? '中' : 'EN'}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 999, padding: 4 }}>
           {(['light', 'dark', 'system'] as ThemeMode[]).map((m) => (
             <button
               key={m}
@@ -141,14 +168,14 @@ export function App() {
                 color: mode === m ? 'var(--ink)' : 'var(--text-mute)',
               }}
             >
-              {m}
+              {t(`app.theme.${m}`)}
             </button>
           ))}
         </div>
       </header>
 
       <main style={{ flex: 1, padding: 18, display: 'flex' }}>
-        <BrowserChrome url={url} hint={`${page.toUpperCase()} · ROOM 客厅`}>
+        <BrowserChrome url={url} hint={`${page.toUpperCase()} · ${t('browserChrome.roomHint', { room })}`}>
           {pageNode}
         </BrowserChrome>
       </main>

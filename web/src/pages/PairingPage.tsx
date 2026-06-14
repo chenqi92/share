@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
 import { useEngine } from '../hooks/useEngine'
 import { getGatewayEndpoint, isGatewayConfigured, setGatewayEndpoint } from '../lib/engine'
 
-function FakeQr({ size = 220 }: { size?: number }) {
+function FakeQr({ size = 220, alt }: { size?: number; alt: string }) {
   // 21×21 deterministic-looking pattern with the three locator squares.
   const cells = 21
   const m: boolean[][] = []
@@ -32,7 +33,7 @@ function FakeQr({ size = 220 }: { size?: number }) {
 
   const cell = size / cells
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label="pairing QR code">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-label={alt}>
       <rect width={size} height={size} fill="var(--card)" />
       {m.flatMap((row, y) =>
         row.map((on, x) =>
@@ -59,6 +60,7 @@ function FakeQr({ size = 220 }: { size?: number }) {
 }
 
 export function PairingPage() {
+  const { t } = useTranslation()
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
@@ -89,13 +91,13 @@ export function PairingPage() {
   const submitCode = async () => {
     setPairErr(undefined)
     if (!gatewayReady) {
-      setPairErr('请先设置 native Web Gateway 地址')
+      setPairErr(t('pairing.gateway.needGateway'))
       return
     }
     setPairing(true)
     try {
       const ok = await pair(code.trim())
-      if (!ok) setPairErr('代码无效或已过期')
+      if (!ok) setPairErr(t('pairing.code.invalid'))
       else setCode('')
     } catch (e) {
       setPairErr((e as Error).message)
@@ -104,9 +106,9 @@ export function PairingPage() {
     }
   }
   const steps: { idx: string; title: string; body: string }[] = [
-    { idx: '1', title: '同一局域网', body: '确认两台设备连在同一 Wi-Fi 或交换机下，没有客户端隔离。' },
-    { idx: '2', title: '扫一扫 / 输入代码', body: '原生 App 里点 "添加设备"，扫描右侧 QR 或手动输入下方 6 字符代码。' },
-    { idx: '3', title: '指纹对一遍', body: '两端会显示同一组 32 位指纹，确认一致后点 "信任并记住"。' },
+    { idx: '1', title: t('pairing.steps.s1.title'), body: t('pairing.steps.s1.body') },
+    { idx: '2', title: t('pairing.steps.s2.title'), body: t('pairing.steps.s2.body') },
+    { idx: '3', title: t('pairing.steps.s3.title'), body: t('pairing.steps.s3.body') },
   ]
 
   return (
@@ -144,7 +146,7 @@ export function PairingPage() {
                 color: 'var(--text)',
                 lineHeight: 1.5,
               }}>
-                当前未配置 native Web Gateway。输入运行 MeshDrop native 端的地址后再配对。
+                {t('pairing.gateway.notConfigured')}
               </div>
             )}
             <div className="flex items-center gap-3" style={{ flexWrap: 'wrap' }}>
@@ -155,7 +157,7 @@ export function PairingPage() {
                   setGatewayReady(false)
                 }}
                 onKeyDown={(e) => { if (e.key === 'Enter') saveGateway() }}
-                placeholder="https://192.168.1.12:7384"
+                placeholder={t('pairing.gateway.placeholder')}
                 spellCheck={false}
                 style={{
                   flex: '1 1 260px',
@@ -181,7 +183,7 @@ export function PairingPage() {
                   cursor: 'pointer',
                 }}
               >
-                保存 gateway
+                {t('pairing.gateway.save')}
               </button>
               <div style={{
                 flex: '1 1 100%',
@@ -190,21 +192,21 @@ export function PairingPage() {
                 fontSize: 10.5,
                 letterSpacing: '0.04em',
               }}>
-                {gatewayErr ?? (gatewayReady ? `gateway · ${getGatewayEndpoint()}` : '例: https://192.168.1.12:7384 或 http://127.0.0.1:7384')}
+                {gatewayErr ?? (gatewayReady ? t('pairing.gateway.saved', { endpoint: getGatewayEndpoint() }) : t('pairing.gateway.example'))}
               </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Chip tone={conn === 'open' ? 'lime' : 'outline'} mono>
-                  {conn === 'open' ? '● ONLINE · 已连接 gateway'
-                    : conn === 'unpaired' ? '○ 未配对 · UNPAIRED'
-                    : conn === 'connecting' ? '◌ 连接中 · CONNECTING'
+                  {conn === 'open' ? t('pairing.gateway.online')
+                    : conn === 'unpaired' ? t('pairing.gateway.unpaired')
+                    : conn === 'connecting' ? t('pairing.gateway.connecting')
                     : `● ${conn.toUpperCase()}`}
                 </Chip>
                 <span style={{
                   fontFamily: '"Geist Mono", monospace', fontSize: 10.5,
                   color: 'var(--text-mute)', letterSpacing: '0.08em', textTransform: 'uppercase',
-                }}>WEB GATEWAY · /api/v1/control</span>
+                }}>{t('pairing.gateway.controlPath')}</span>
               </div>
               {conn === 'open' && (
                 <button
@@ -215,7 +217,7 @@ export function PairingPage() {
                     fontFamily: '"Geist Mono", monospace', letterSpacing: '0.08em', textTransform: 'uppercase',
                   }}
                 >
-                  解配 · UNPAIR
+                  {t('pairing.gateway.unpair')}
                 </button>
               )}
             </div>
@@ -225,7 +227,7 @@ export function PairingPage() {
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9·-]/g, ''))}
                   onKeyDown={(e) => { if (e.key === 'Enter') void submitCode() }}
-                  placeholder="LR · 4K7M"
+                  placeholder={t('pairing.code.placeholder')}
                   spellCheck={false}
                   style={{
                     flex: '1 1 220px', minWidth: 200,
@@ -245,13 +247,13 @@ export function PairingPage() {
                     cursor: pairing || !code.trim() ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {pairing ? '配对中…' : '配对 →'}
+                  {pairing ? t('pairing.code.pairing') : t('pairing.code.submit')}
                 </button>
                 <div style={{
                   flex: '1 1 100%', color: pairErr ? 'var(--error)' : 'var(--text-faint)',
                   fontFamily: '"Geist Mono", monospace', fontSize: 11, letterSpacing: '0.04em',
                 }}>
-                  {pairErr ?? '在 native app 顶部找到 6 字符代码，输入这里'}
+                  {pairErr ?? t('pairing.code.hint')}
                 </div>
               </div>
             )}
@@ -264,7 +266,7 @@ export function PairingPage() {
                   fontFamily: '"Geist Mono", monospace', fontSize: 10.5,
                   color: 'var(--flame)', letterSpacing: '0.18em', textTransform: 'uppercase',
                 }}>
-                  待审配对 · {pendingPairing.peer}
+                  {t('pairing.pending.title', { who: pendingPairing.peer })}
                 </div>
                 <div style={{ marginTop: 6, fontSize: 12.5, color: 'var(--text)', fontFamily: '"Geist Mono", monospace', lineHeight: 1.5 }}>
                   {pendingPairing.fingerprint}
@@ -272,11 +274,11 @@ export function PairingPage() {
                 <div className="flex gap-2" style={{ marginTop: 10 }}>
                   <button onClick={() => { void rejectPairing() }}
                     style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', fontSize: 12 }}>
-                    拒绝
+                    {t('pairing.pending.reject')}
                   </button>
                   <button onClick={() => { void acceptPairing(true) }}
                     style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--lime)', color: 'var(--ink)', fontSize: 12, fontWeight: 700 }}>
-                    信任并记住
+                    {t('pairing.pending.trust')}
                   </button>
                 </div>
               </div>
@@ -295,7 +297,7 @@ export function PairingPage() {
               marginBottom: 6,
             }}
           >
-            配对 · PAIRING
+            {t('pairing.eyebrow')}
           </div>
           <h1
             className="font-display"
@@ -306,13 +308,12 @@ export function PairingPage() {
               lineHeight: 1.04,
             }}
           >
-            把这台浏览器,
+            {t('pairing.titleLine1')}
             <br />
-            <span style={{ color: 'var(--lime-deep)' }}>加入你的 MeshDrop 网</span>
+            <span style={{ color: 'var(--lime-deep)' }}>{t('pairing.titleLine2')}</span>
           </h1>
           <p style={{ marginTop: 10, color: 'var(--text-mute)', fontSize: 14, maxWidth: 720 }}>
-            访客匿名收发不需要配对；只有当你希望这台浏览器变成"长期信任"——下次进来不再弹接收确认——
-            才需要把它配对到你的 MeshDrop 设备上。
+            {t('pairing.intro')}
           </p>
         </header>
 
@@ -336,8 +337,8 @@ export function PairingPage() {
             }}
           >
             <div className="flex items-center gap-2">
-              <Chip tone="lime" mono>● 6 字符代码 · 30s</Chip>
-              <Chip tone="outline" mono>限本会话</Chip>
+              <Chip tone="lime" mono>{t('pairing.code.label')}</Chip>
+              <Chip tone="outline" mono>{t('pairing.code.sessionLimited')}</Chip>
             </div>
 
             <div
@@ -371,7 +372,7 @@ export function PairingPage() {
               ))}
             </div>
 
-            <AsciiDivider label="—— 指纹 · FINGERPRINT · 完整 32 位 ——" />
+            <AsciiDivider label={`—— ${t('pairing.fingerprint')} ——`} />
 
             <div
               style={{
@@ -393,7 +394,7 @@ export function PairingPage() {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              <Chip tone="outline" mono>对方应看到同样 8 组</Chip>
+              <Chip tone="outline" mono>{t('pairing.fingerprintPeerSame')}</Chip>
               <Chip tone="outline" mono>ED25519 PUBLIC KEY</Chip>
               <Chip tone="outline" mono>SHA-256 FINGERPRINT</Chip>
             </div>
@@ -412,7 +413,7 @@ export function PairingPage() {
               textAlign: 'center',
             }}
           >
-            <FakeQr size={210} />
+            <FakeQr size={210} alt={t('pairing.qrAlt')} />
             <div
               style={{
                 fontFamily: '"Geist Mono", monospace',
@@ -424,12 +425,12 @@ export function PairingPage() {
             >
               meshdrop://pair?code=XJ9-LM4
             </div>
-            <Chip tone="lime" mono>用 native app 扫码</Chip>
+            <Chip tone="lime" mono>{t('pairing.scanWithApp')}</Chip>
           </aside>
         </div>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <AsciiDivider label="—— 三步说明 · 3-STEP GUIDE ——" />
+          <AsciiDivider label={`—— ${t('pairing.steps.title')} ——`} />
           <div
             style={{
               display: 'grid',
@@ -460,7 +461,7 @@ export function PairingPage() {
                     fontFamily: '"Geist Mono", monospace',
                   }}
                 >
-                  STEP {s.idx} / 3
+                  {t('pairing.steps.step', { idx: s.idx })}
                 </div>
                 <div
                   className="font-display"

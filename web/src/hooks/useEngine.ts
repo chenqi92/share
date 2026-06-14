@@ -10,6 +10,7 @@
 
 import { useEffect } from 'react'
 import { create } from 'zustand'
+import i18n from '../i18n'
 import {
   MESHDROP_DEVICES,
   MESHDROP_HISTORY_BY_DAY,
@@ -90,7 +91,8 @@ function isMock(): boolean {
 
 function buildHistoryDays(items: HistoryEntry[]): HistoryDay[] {
   if (!items.length) return []
-  return [{ label: `TODAY · 今天 · ${items.length} 件`, items }]
+  // live 模式当前不按日期分桶，统一归到「今天」组；可见标签由 HistoryPage 走 i18n 渲染。
+  return [{ dayKey: 'today', count: items.length, items }]
 }
 
 /** 收到对端内容时弹一条浏览器通知（需用户已授权 + 设置里开启通知）。无权限 / 不支持时静默。 */
@@ -334,14 +336,14 @@ export function useEngineConnection() {
         const items = day ? [item, ...day.items] : [item]
         useEngine.setState({ history: buildHistoryDays(items) })
         if (h.direction === 'received') {
-          const body = h.kind === 'text' ? (h.text ?? '') : (h.files?.[0]?.name ?? '文件')
-          notifyIncoming(`来自 ${h.peerName}`, body)
+          const body = h.kind === 'text' ? (h.text ?? '') : (h.files?.[0]?.name ?? i18n.t('notify.fileFallback'))
+          notifyIncoming(i18n.t('notify.from', { who: h.peerName }), body)
         }
       },
       onClipboardReceived: (c) => {
         const inbox = useEngine.getState().clipboardInbox
         useEngine.setState({ clipboardInbox: [adaptClipboard(c), ...inbox].slice(0, 50) })
-        notifyIncoming(`${c.peerName} 推送了剪贴板`, c.content)
+        notifyIncoming(i18n.t('notify.clipboardPushed', { who: c.peerName }), c.content)
       },
     })
     c.connect()

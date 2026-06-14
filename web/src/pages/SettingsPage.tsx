@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AsciiDivider } from '../components/AsciiDivider'
 import { Chip } from '../components/Chip'
 import { StatusBar } from '../components/StatusBar'
@@ -66,11 +67,17 @@ function ToggleRow({ label, hint, value, onChange }: ToggleRowProps) {
   )
 }
 
+interface SelectOption {
+  value: string
+  label: string
+}
+
 interface SelectRowProps {
   label: string
   hint?: string
   value: string
-  options: string[]
+  // value 是持久化的稳定 key，label 是 i18n 后的可见文案。
+  options: SelectOption[]
   onChange: (v: string) => void
 }
 
@@ -95,11 +102,11 @@ function SelectRow({ label, hint, value, options, onChange }: SelectRowProps) {
       </div>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => {
-          const active = value === o
+          const active = value === o.value
           return (
             <button
-              key={o}
-              onClick={() => onChange(o)}
+              key={o.value}
+              onClick={() => onChange(o.value)}
               style={{
                 padding: '6px 12px',
                 borderRadius: 999,
@@ -110,7 +117,7 @@ function SelectRow({ label, hint, value, options, onChange }: SelectRowProps) {
                 fontWeight: 600,
               }}
             >
-              {o}
+              {o.label}
             </button>
           )
         })}
@@ -120,6 +127,7 @@ function SelectRow({ label, hint, value, options, onChange }: SelectRowProps) {
 }
 
 export function SettingsPage() {
+  const { t } = useTranslation()
   // 自动接收 / 通知：持久化到 localStorage，engine 的 onOfferPending / notifyIncoming 会读取，
   // 不再是「关页即丢、且 live 模式不生效」的纯本地 state。
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings())
@@ -146,11 +154,11 @@ export function SettingsPage() {
 
   const connLabel = (() => {
     switch (conn) {
-      case 'open': return '已连接'
-      case 'connecting': return '连接中…'
-      case 'closed': return '已断开'
-      case 'unpaired': return '未配对'
-      case 'idle': return '空闲'
+      case 'open': return t('settings.session.conn.open')
+      case 'connecting': return t('settings.session.conn.connecting')
+      case 'closed': return t('settings.session.conn.closed')
+      case 'unpaired': return t('settings.session.conn.unpaired')
+      case 'idle': return t('settings.session.conn.idle')
     }
   })()
   const connTone: 'lime' | 'flame' | 'outline' = conn === 'open' ? 'lime' : conn === 'connecting' ? 'outline' : 'flame'
@@ -179,44 +187,48 @@ export function SettingsPage() {
               marginBottom: 6,
             }}
           >
-            设置 · SETTINGS
+            {t('settings.eyebrow')}
           </div>
           <h1
             className="font-display"
             style={{ fontSize: 30, fontWeight: 700, letterSpacing: '-0.025em', lineHeight: 1 }}
           >
-            浏览器即用,<span style={{ color: 'var(--text-mute)' }}> 但仍然可以调.</span>
+            {t('settings.titleLead')}<span style={{ color: 'var(--text-mute)' }}>{t('settings.titleTail')}</span>
           </h1>
           <p style={{ marginTop: 8, color: 'var(--text-mute)', fontSize: 13.5, maxWidth: 720 }}>
-            访客身份下的偏好只对当前标签页生效；想跨设备同步的偏好请在 native 端配置。
+            {t('settings.subtitle')}
           </p>
         </header>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <AsciiDivider label="—— 可见性 · VISIBILITY ——" />
+          <AsciiDivider label={`—— ${t('settings.visibility.section')} ——`} />
           <ToggleRow
-            label="在他人雷达里露脸"
-            hint="仅本端偏好 · 实际 mDNS 广播由 native 端控制。关闭只在本浏览器记住选择。"
+            label={t('settings.visibility.showInRadar')}
+            hint={t('settings.visibility.showInRadarHint')}
             value={settings.showInRadar}
             onChange={(v) => updateSettings({ showInRadar: v })}
           />
           <SelectRow
-            label="可被谁连接"
-            hint="仅本端偏好 · 真正的接入控制需在 native 端设置；这里只跨刷新记住。"
+            label={t('settings.visibility.scope')}
+            hint={t('settings.visibility.scopeHint')}
             value={settings.scope}
-            options={['LAN 内全部', '已配对设备', '邀请链接']}
-            onChange={(v) => updateSettings({ scope: v })}
+            options={[
+              { value: 'lanAll', label: t('settings.visibility.scopeOptions.lanAll') },
+              { value: 'paired', label: t('settings.visibility.scopeOptions.paired') },
+              { value: 'inviteLink', label: t('settings.visibility.scopeOptions.inviteLink') },
+            ]}
+            onChange={(v) => updateSettings({ scope: v as AppSettings['scope'] })}
           />
           <ToggleRow
-            label="访客身份记住浏览器"
-            hint="关闭即关页清空（推荐）。打开后保留 session token 让自动重连工作；关闭会立即清掉。"
+            label={t('settings.visibility.rememberBrowser')}
+            hint={t('settings.visibility.rememberBrowserHint')}
             value={mode === 'live' && conn !== 'unpaired'}
             onChange={(on) => { if (!on) forgetSession() }}
           />
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <AsciiDivider label="—— 安全 · SECURITY ——" />
+          <AsciiDivider label={`—— ${t('settings.security.section')} ——`} />
           <div
             style={{
               background: 'var(--surface)',
@@ -230,10 +242,10 @@ export function SettingsPage() {
             }}
           >
             <Chip tone={mode === 'live' ? 'lime' : 'outline'} mono>
-              {mode === 'live' ? '● LAN · 明文 v0.1' : '● MOCK SESSION'}
+              {mode === 'live' ? `● ${t('common.lanPlaintext')}` : t('settings.security.mockSession')}
             </Chip>
-            <Chip tone="outline" mono>SHA-256 指纹校验</Chip>
-            <Chip tone="outline" mono>GATEWAY · WSS</Chip>
+            <Chip tone="outline" mono>{t('settings.security.fingerprintVerify')}</Chip>
+            <Chip tone="outline" mono>{t('settings.security.gatewayWss')}</Chip>
             <span
               style={{
                 marginLeft: 'auto',
@@ -243,18 +255,18 @@ export function SettingsPage() {
                 letterSpacing: '0.02em',
               }}
             >
-              fingerprint · {me.fingerprint}
+              {t('settings.security.fingerprintLabel', { fingerprint: me.fingerprint })}
             </span>
           </div>
           <ToggleRow
-            label="未配对设备的文件 offer 自动接收"
-            hint="不推荐 · 仅在你完全控制 LAN 时打开。"
+            label={t('settings.security.autoAccept')}
+            hint={t('settings.security.autoAcceptHint')}
             value={settings.autoAccept}
             onChange={(v) => updateSettings({ autoAccept: v })}
           />
           <ToggleRow
-            label="收到文件 / 剪贴板时弹通知"
-            hint="需要浏览器通知权限；关闭后即使有权限也不弹。"
+            label={t('settings.security.notify')}
+            hint={t('settings.security.notifyHint')}
             value={settings.notifications}
             onChange={(v) => {
               updateSettings({ notifications: v })
@@ -269,7 +281,7 @@ export function SettingsPage() {
 
         {mode === 'live' && (
           <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <AsciiDivider label="—— 会话 · SESSION ——" />
+            <AsciiDivider label={`—— ${t('settings.session.section')} ——`} />
             <div
               style={{
                 background: 'var(--surface)',
@@ -291,7 +303,7 @@ export function SettingsPage() {
                   letterSpacing: '0.02em',
                 }}
               >
-                gateway · {getGatewayEndpoint() || window.location.host}
+                {t('settings.session.gatewayLabel', { endpoint: getGatewayEndpoint() || window.location.host })}
               </span>
               <button
                 onClick={() => setConfirmingForget(true)}
@@ -309,7 +321,7 @@ export function SettingsPage() {
                   cursor: 'pointer',
                 }}
               >
-                断开 / 重新配对
+                {t('settings.session.reconnect')}
               </button>
             </div>
             {confirmingForget && (
@@ -326,7 +338,7 @@ export function SettingsPage() {
                 }}
               >
                 <span style={{ fontSize: 12.5, color: 'var(--text-mute)', flex: 1, minWidth: 240 }}>
-                  断开会清掉本地 session token；下次访问需要重新输入 6 字符配对码。继续？
+                  {t('settings.session.confirmText')}
                 </span>
                 <button
                   onClick={() => setConfirmingForget(false)}
@@ -340,7 +352,7 @@ export function SettingsPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleForget}
@@ -356,7 +368,7 @@ export function SettingsPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  确认断开
+                  {t('settings.session.confirmDisconnect')}
                 </button>
               </div>
             )}
@@ -364,24 +376,28 @@ export function SettingsPage() {
         )}
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <AsciiDivider label="—— 接收行为 · RECEIVE BEHAVIOR ——" />
+          <AsciiDivider label={`—— ${t('settings.receiveBehavior.section')} ——`} />
           <SelectRow
-            label="默认保存到"
-            hint="仅本端偏好 · 浏览器只能写到下载文件夹；要其他路径请走 native。"
+            label={t('settings.receiveBehavior.defaultPath')}
+            hint={t('settings.receiveBehavior.defaultPathHint')}
             value={settings.defaultPath}
-            options={['浏览器下载', '当前域名 sandbox', '弹窗每次询问']}
-            onChange={(v) => updateSettings({ defaultPath: v })}
+            options={[
+              { value: 'browserDownloads', label: t('settings.receiveBehavior.pathOptions.browserDownloads') },
+              { value: 'sandbox', label: t('settings.receiveBehavior.pathOptions.sandbox') },
+              { value: 'askEveryTime', label: t('settings.receiveBehavior.pathOptions.askEveryTime') },
+            ]}
+            onChange={(v) => updateSettings({ defaultPath: v as AppSettings['defaultPath'] })}
           />
           <ToggleRow
-            label="本会话历史保留到关页"
-            hint="仅本端偏好 · 历史只在内存里，永远不会写盘；关页即清空。"
+            label={t('settings.receiveBehavior.keepHistory')}
+            hint={t('settings.receiveBehavior.keepHistoryHint')}
             value={settings.keepHistory}
             onChange={(v) => updateSettings({ keepHistory: v })}
           />
         </section>
 
         <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <AsciiDivider label="—— 关于 · ABOUT ——" />
+          <AsciiDivider label={`—— ${t('settings.about.section')} ——`} />
           <div
             style={{
               background: 'var(--surface)',
@@ -398,7 +414,7 @@ export function SettingsPage() {
             meshdrop-web · v0.1.0-ui<br />
             host · {me.hostIp}<br />
             session · {mode === 'live' ? conn.toUpperCase() : '—'}<br />
-            engine · Native Web Gateway · LAN 明文 v0.1 · {mode === 'live' ? 'LIVE MODE' : 'MOCK MODE'}
+            {t('settings.about.engine', { mode: mode === 'live' ? t('settings.about.modeLive') : t('settings.about.modeMock') })}
           </div>
         </section>
       </div>

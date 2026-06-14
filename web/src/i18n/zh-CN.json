@@ -1,0 +1,317 @@
+{
+  "common": {
+    "accept": "接受",
+    "cancel": "取消",
+    "reject": "拒绝",
+    "send": "发送",
+    "online": "在线",
+    "offline": "离线",
+    "retry": "重试",
+    "delete": "删除",
+    "me": "我",
+    "sessionOnly": "仅本会话",
+    "guest": "访客身份",
+    "guestDuo": "访客身份 · GUEST",
+    "destroyOnClose": "关页即销毁",
+    "lanPlaintext": "LAN · 明文 v0.1",
+    "lanOnly": "LAN ONLY",
+    "sha256Verify": "SHA-256 校验",
+    "count": "{{n}} 件",
+    "noOnlineDevices": "无在线设备"
+  },
+  "app": {
+    "previewBanner": "MESHDROP · WEB FALLBACK PREVIEW",
+    "roomLiving": "客厅",
+    "nav": {
+      "main": "主页",
+      "chat": "聊天",
+      "receive": "接收",
+      "transfer": "传输",
+      "clipboard": "剪贴板",
+      "history": "历史",
+      "pairing": "配对",
+      "settings": "设置"
+    },
+    "theme": {
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    }
+  },
+  "statusBar": {
+    "connected": "已连接",
+    "offline": "离线",
+    "gatewayWss": "GATEWAY · WSS",
+    "peers": "{{n}} 台设备"
+  },
+  "browserChrome": {
+    "roomHint": "房间 · {{room}}"
+  },
+  "hero": {
+    "onlineCount": "{{n}} 在线",
+    "noInstall": "无需安装",
+    "guest": "访客模式",
+    "titleLine1": "你的浏览器,",
+    "titleLine2": "已经是一个 MeshDrop 设备.",
+    "body": "Linux / Chromebook / 临时同事的笔记本 —— 任何浏览器进 <mono>{{host}}</mono>，直接收发文件。身份用 <mono>{{idScheme}}</mono> 指纹核对，关页就销毁。",
+    "dragToSend": "拖即发",
+    "lanZeroCloud": "LAN ONLY · 零云",
+    "pasteToShare": "粘贴即分享"
+  },
+  "discovery": {
+    "nearby": "附近",
+    "whoAreYou": "你是谁",
+    "visibleStatus": "访客可见",
+    "anonymousVisitor": "匿名访客 · 关浏览器即下线",
+    "selectedHint": "已选中 {{who}}，拖文件或粘贴文字发送"
+  },
+  "session": {
+    "title": "本次会话",
+    "open": "session #4f2a · open"
+  },
+  "dropZone": {
+    "dropToSend": "放手即发",
+    "dragZone": "拖即发",
+    "dropAnything": "把任何东西拖进来",
+    "dragAnythingHere": "把任何东西拖到这里",
+    "toPeer": "→ {{who}}",
+    "targetHint": "当前目标：{{who}} · 拖文件 / 文件夹直接发送",
+    "defaultHint": "⤓ 文件夹也行 · 单文件最大 4 GB · 文字 / 链接也接受",
+    "chooseFiles": "选择文件…",
+    "pasteTextLink": "贴文字 / 链接"
+  },
+  "paste": {
+    "title": "贴文字 / 链接",
+    "placeholder": "粘贴文字、链接、代码片段，发给当前选中的设备…",
+    "sendArrow": "发送 →"
+  },
+  "toast": {
+    "filesSent": "已发送 {{count}} 个文件给 {{who}}",
+    "sendFailed": "发送失败：{{error}}",
+    "noDevice": "没有可发送的设备",
+    "textSent": "已发送文字给 {{who}}",
+    "selectDeviceFirst": "请先选择一台设备"
+  },
+  "chat": {
+    "peers": "设备",
+    "selectToStart": "选择设备开始对话",
+    "noMessages": "还没有文字消息",
+    "composerPlaceholder": "写一条消息… · Enter 发送",
+    "composerSelectFirst": "先选一个设备"
+  },
+  "receive": {
+    "noPendingOffer": "没有待审项",
+    "mainPaused": "MainPage 已暂停 · paused",
+    "incomingWantsToSend": "对方想发给你 · {{who}}",
+    "paired": "已配对",
+    "noteLabel": "文字便签",
+    "confirmAccept": "你确认接收吗？",
+    "reject": "× 不接收",
+    "acceptAndOpen": "接收并打开 →",
+    "fileMeta": "{{pages}} 页 · LAN · 明文 v0.1"
+  },
+  "transfer": {
+    "eyebrow": "传输",
+    "headline": "{{total}} 个任务{{progress}} · <done>{{done}}</done>",
+    "headlineProgressSuffix": "在路上",
+    "headlineDone": "{{n}} 已完成",
+    "queue": "队列 · {{n}} 件",
+    "active": "ACTIVE · 进行中 · {{n}} 件",
+    "waitingToSend": "等待发送",
+    "cancel": "取消传输",
+    "retry": "重试发送",
+    "filter": {
+      "all": "全部",
+      "send": "发送",
+      "recv": "接收",
+      "done": "完成",
+      "fail": "失败"
+    },
+    "state": {
+      "sending": "发送中",
+      "receiving": "接收中",
+      "done": "已完成",
+      "failed": "失败",
+      "queued": "排队中"
+    }
+  },
+  "speedChart": {
+    "title": "实时吞吐",
+    "up": "↑ 上行",
+    "down": "↓ 下行",
+    "peakUp": "peak ↑ {{value}}",
+    "peakDown": "peak ↓ {{value}}",
+    "liveSamples": "live samples",
+    "waitingSamples": "waiting for samples"
+  },
+  "clipboard": {
+    "eyebrow": "剪贴板",
+    "headline": "推送一段文字到附近设备",
+    "subtitle": "显式推送 —— 由你点一下才发送，不是后台静默同步。链接 / 代码 / 普通文本会自动归类。",
+    "itemCount": "{{n}} 条",
+    "pushTo": "推送到",
+    "readSystem": "⎘ 读取系统剪贴板",
+    "composerPlaceholder": "粘贴或输入要推送的内容…",
+    "pushing": "推送中…",
+    "push": "↑ 推送 · PUSH",
+    "inbox": "收到的剪贴板",
+    "empty": "还没有收到剪贴板",
+    "fromMe": "↑ 我",
+    "fromPeer": "↓ {{who}}",
+    "copy": "⌘C COPY"
+  },
+  "history": {
+    "eyebrow": "历史",
+    "headline": "这台浏览器上发生过的 {{total}} 件事",
+    "subtitle": "访客身份下，历史只保留在内存里 — 关掉浏览器即清空。永久记录请在 native 端开启。",
+    "recvSendCount": "{{recv}} 收 / {{send}} 发",
+    "failedCount": "{{n}} 失败",
+    "empty": "还没有任何收发",
+    "transferring": "↑ {{progress}}% · 进行中",
+    "queued": "· 排队中",
+    "failed": "✕ 失败",
+    "done": "✓ 已完成",
+    "imageCount": "{{n}} 张 · HEIC",
+    "download": "下载",
+    "fromPeer": "↓ FROM {{peer}}",
+    "toPeer": "↑ TO {{peer}}",
+    "incoming": "INCOMING · 收到",
+    "outgoing": "OUTGOING · 发出",
+    "day": {
+      "today": "今天 · {{n}} 件",
+      "yesterday": "昨天 · {{n}} 件",
+      "earlier": "早些时候 · {{n}} 件"
+    }
+  },
+  "pairing": {
+    "eyebrow": "配对",
+    "titleLine1": "把这台浏览器,",
+    "titleLine2": "加入你的 MeshDrop 网",
+    "intro": "访客匿名收发不需要配对；只有当你希望这台浏览器变成“长期信任”——下次进来不再弹接收确认——才需要把它配对到你的 MeshDrop 设备上。",
+    "gateway": {
+      "notConfigured": "当前未配置 native Web Gateway。输入运行 MeshDrop native 端的地址后再配对。",
+      "placeholder": "https://192.168.1.12:7384",
+      "save": "保存 gateway",
+      "saved": "gateway · {{endpoint}}",
+      "example": "例: https://192.168.1.12:7384 或 http://127.0.0.1:7384",
+      "online": "● ONLINE · 已连接 gateway",
+      "unpaired": "○ 未配对 · UNPAIRED",
+      "connecting": "◌ 连接中 · CONNECTING",
+      "controlPath": "WEB GATEWAY · /api/v1/control",
+      "unpair": "解配 · UNPAIR",
+      "needGateway": "请先设置 native Web Gateway 地址",
+      "urlInvalid": "gateway URL 无效",
+      "urlScheme": "gateway URL 必须以 http:// 或 https:// 开头"
+    },
+    "code": {
+      "placeholder": "LR · 4K7M",
+      "pairing": "配对中…",
+      "submit": "配对 →",
+      "invalid": "代码无效或已过期",
+      "hint": "在 native app 顶部找到 6 字符代码，输入这里",
+      "label": "● 6 字符代码 · 30s",
+      "sessionLimited": "限本会话"
+    },
+    "pending": {
+      "title": "待审配对 · {{who}}",
+      "reject": "拒绝",
+      "trust": "信任并记住"
+    },
+    "fingerprint": "指纹 · FINGERPRINT · 完整 32 位",
+    "fingerprintPeerSame": "对方应看到同样 8 组",
+    "scanWithApp": "用 native app 扫码",
+    "qrAlt": "配对二维码",
+    "steps": {
+      "title": "三步说明 · 3-STEP GUIDE",
+      "step": "STEP {{idx}} / 3",
+      "s1": {
+        "title": "同一局域网",
+        "body": "确认两台设备连在同一 Wi-Fi 或交换机下，没有客户端隔离。"
+      },
+      "s2": {
+        "title": "扫一扫 / 输入代码",
+        "body": "原生 App 里点 “添加设备”，扫描右侧 QR 或手动输入下方 6 字符代码。"
+      },
+      "s3": {
+        "title": "指纹对一遍",
+        "body": "两端会显示同一组 32 位指纹，确认一致后点 “信任并记住”。"
+      }
+    }
+  },
+  "settings": {
+    "eyebrow": "设置",
+    "titleLead": "浏览器即用,",
+    "titleTail": " 但仍然可以调.",
+    "subtitle": "访客身份下的偏好只对当前标签页生效；想跨设备同步的偏好请在 native 端配置。",
+    "visibility": {
+      "section": "可见性 · VISIBILITY",
+      "showInRadar": "在他人雷达里露脸",
+      "showInRadarHint": "仅本端偏好 · 实际 mDNS 广播由 native 端控制。关闭只在本浏览器记住选择。",
+      "scope": "可被谁连接",
+      "scopeHint": "仅本端偏好 · 真正的接入控制需在 native 端设置；这里只跨刷新记住。",
+      "rememberBrowser": "访客身份记住浏览器",
+      "rememberBrowserHint": "关闭即关页清空（推荐）。打开后保留 session token 让自动重连工作；关闭会立即清掉。",
+      "scopeOptions": {
+        "lanAll": "LAN 内全部",
+        "paired": "已配对设备",
+        "inviteLink": "邀请链接"
+      }
+    },
+    "security": {
+      "section": "安全 · SECURITY",
+      "mockSession": "● MOCK SESSION",
+      "fingerprintVerify": "SHA-256 指纹校验",
+      "gatewayWss": "GATEWAY · WSS",
+      "fingerprintLabel": "指纹 · {{fingerprint}}",
+      "autoAccept": "未配对设备的文件 offer 自动接收",
+      "autoAcceptHint": "不推荐 · 仅在你完全控制 LAN 时打开。",
+      "notify": "收到文件 / 剪贴板时弹通知",
+      "notifyHint": "需要浏览器通知权限；关闭后即使有权限也不弹。"
+    },
+    "session": {
+      "section": "会话 · SESSION",
+      "gatewayLabel": "gateway · {{endpoint}}",
+      "reconnect": "断开 / 重新配对",
+      "confirmText": "断开会清掉本地 session token；下次访问需要重新输入 6 字符配对码。继续？",
+      "confirmDisconnect": "确认断开",
+      "conn": {
+        "open": "已连接",
+        "connecting": "连接中…",
+        "closed": "已断开",
+        "unpaired": "未配对",
+        "idle": "空闲"
+      }
+    },
+    "receiveBehavior": {
+      "section": "接收行为 · RECEIVE BEHAVIOR",
+      "defaultPath": "默认保存到",
+      "defaultPathHint": "仅本端偏好 · 浏览器只能写到下载文件夹；要其他路径请走 native。",
+      "keepHistory": "本会话历史保留到关页",
+      "keepHistoryHint": "仅本端偏好 · 历史只在内存里，永远不会写盘；关页即清空。",
+      "pathOptions": {
+        "browserDownloads": "浏览器下载",
+        "sandbox": "当前域名 sandbox",
+        "askEveryTime": "弹窗每次询问"
+      }
+    },
+    "about": {
+      "section": "关于 · ABOUT",
+      "engine": "engine · Native Web Gateway · LAN 明文 v0.1 · {{mode}}",
+      "modeLive": "LIVE MODE",
+      "modeMock": "MOCK MODE"
+    }
+  },
+  "fileCard": {
+    "pageUnit": "页"
+  },
+  "engine": {
+    "thisDevice": "本机",
+    "lanNotReported": "局域网（host 未上报）",
+    "textPayload": "（文本）"
+  },
+  "notify": {
+    "from": "来自 {{who}}",
+    "fileFallback": "文件",
+    "clipboardPushed": "{{who}} 推送了剪贴板"
+  }
+}

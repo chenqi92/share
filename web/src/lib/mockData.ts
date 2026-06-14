@@ -160,18 +160,27 @@ export const MESHDROP_ME: MeIdentity = {
   pairingCode: 'XJ9-LM4',
 }
 
+export type HistoryDayKey = 'today' | 'yesterday' | 'earlier'
+
 export interface HistoryDay {
-  label: string
+  /** 分组语义 key（i18n 渲染用 history.day.<key>）；自定义分组可缺省，回退到 label。 */
+  dayKey?: HistoryDayKey
+  /** 该分组件数（i18n 插值 {{n}}）。 */
+  count?: number
+  /** 兼容旧用法 / 自定义分组的兜底文案；有 dayKey 时不再读取。 */
+  label?: string
   items: HistoryEntry[]
 }
 
 export const MESHDROP_HISTORY_BY_DAY: HistoryDay[] = [
   {
-    label: 'TODAY · 今天 · 6 件',
+    dayKey: 'today',
+    count: 6,
     items: MESHDROP_HISTORY,
   },
   {
-    label: 'YESTERDAY · 昨天 · 4 件',
+    dayKey: 'yesterday',
+    count: 4,
     items: [
       { id: 'y1', dir: 'incoming', peer: '李莉', time: '昨 22:14', kind: 'file',  name: 'meeting-notes.md', size: '8.2 KB',  ext: 'md',  status: 'done' },
       { id: 'y2', dir: 'outgoing', peer: '坤',   time: '昨 19:31', kind: 'image', count: 3, status: 'done' },
@@ -180,7 +189,8 @@ export const MESHDROP_HISTORY_BY_DAY: HistoryDay[] = [
     ],
   },
   {
-    label: 'EARLIER · 早些时候 · 3 件',
+    dayKey: 'earlier',
+    count: 3,
     items: [
       { id: 'e1', dir: 'incoming', peer: '孟茜', time: '周三 16:20', kind: 'file', name: '团队合影.heic', size: '4.1 MB',  ext: 'heic', status: 'done' },
       { id: 'e2', dir: 'outgoing', peer: 'DEV-01', time: '周二 14:08', kind: 'file', name: 'build.exe', size: '92 MB',  ext: 'exe', status: 'failed' },

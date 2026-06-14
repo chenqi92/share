@@ -9,14 +9,19 @@
  * 主题（深 / 浅 / 跟随系统）已由 hooks/useTheme.ts 单独管理，不在此重复。
  */
 
+/** 可见性接入范围（持久化为稳定 key，显示文案由 i18n 给）。 */
+export type ScopeKey = 'lanAll' | 'paired' | 'inviteLink'
+/** 默认保存位置（持久化为稳定 key，显示文案由 i18n 给）。 */
+export type DefaultPathKey = 'browserDownloads' | 'sandbox' | 'askEveryTime'
+
 export interface AppSettings {
   autoAccept: boolean
   notifications: boolean
   /** 以下为「仅本端偏好」：浏览器无法直接改 native 端的雷达/可见性/落盘路径，
    *  这里只跨刷新记住选择，真正的可见性/接入控制需在 native 端配置。 */
   showInRadar: boolean
-  scope: string
-  defaultPath: string
+  scope: ScopeKey
+  defaultPath: DefaultPathKey
   keepHistory: boolean
 }
 
@@ -26,9 +31,21 @@ const DEFAULTS: AppSettings = {
   autoAccept: false,
   notifications: true,
   showInRadar: true,
-  scope: 'LAN 内全部',
-  defaultPath: '浏览器下载',
+  scope: 'lanAll',
+  defaultPath: 'browserDownloads',
   keepHistory: false,
+}
+
+/** 兼容旧版本里存的中文枚举值，迁移到稳定 key。 */
+const LEGACY_SCOPE: Record<string, ScopeKey> = {
+  'LAN 内全部': 'lanAll',
+  '已配对设备': 'paired',
+  '邀请链接': 'inviteLink',
+}
+const LEGACY_PATH: Record<string, DefaultPathKey> = {
+  '浏览器下载': 'browserDownloads',
+  '当前域名 sandbox': 'sandbox',
+  '弹窗每次询问': 'askEveryTime',
 }
 
 export function loadSettings(): AppSettings {
@@ -37,7 +54,11 @@ export function loadSettings(): AppSettings {
     const raw = localStorage.getItem(KEY)
     if (!raw) return { ...DEFAULTS }
     const parsed = JSON.parse(raw) as Partial<AppSettings>
-    return { ...DEFAULTS, ...parsed }
+    const merged = { ...DEFAULTS, ...parsed }
+    // 把旧版本存的中文枚举迁移成稳定 key，避免下拉项对不上。
+    merged.scope = LEGACY_SCOPE[merged.scope as string] ?? merged.scope
+    merged.defaultPath = LEGACY_PATH[merged.defaultPath as string] ?? merged.defaultPath
+    return merged
   } catch {
     return { ...DEFAULTS }
   }

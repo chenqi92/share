@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useEngine } from '../hooks/useEngine'
 import { MESHDROP_PENDING_OFFER } from '../lib/mockData'
 import { Avatar } from '../components/Avatar'
@@ -8,6 +9,7 @@ import { StatusBar } from '../components/StatusBar'
 import { AsciiDivider } from '../components/AsciiDivider'
 
 export function ReceivePage() {
+  const { t } = useTranslation()
   const devices = useEngine((s) => s.devices)
   const me = useEngine((s) => s.me)
   const mode = useEngine((s) => s.mode)
@@ -30,7 +32,7 @@ export function ReceivePage() {
           color: 'var(--text-faint)', fontFamily: '"Geist Mono", monospace',
           fontSize: 13, letterSpacing: '0.1em', textTransform: 'uppercase',
         }}>
-          没有待审项 · NO PENDING OFFER
+          {t('receive.noPendingOffer')}
         </div>
         <StatusBar peerCount={peerCount} hostIp={me.hostIp} connected={mode === 'live' ? conn === 'open' : true} />
       </div>
@@ -74,7 +76,7 @@ export function ReceivePage() {
             textTransform: 'uppercase',
           }}
         >
-          MainPage 已暂停 · paused
+          {t('receive.mainPaused')}
         </div>
       </div>
 
@@ -111,7 +113,7 @@ export function ReceivePage() {
             }}
           >
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime-deep)' }} />
-            INCOMING · {offer.peer} 想发给你
+            {t('receive.incomingWantsToSend', { who: offer.peer })}
             <span style={{ color: 'var(--text-faint)', marginLeft: 'auto' }}>{offer.receivedAt}</span>
           </div>
 
@@ -137,7 +139,7 @@ export function ReceivePage() {
                 }}
               >
                 <KindGlyph kind={peer.kind} size={9} />
-                {peer.os} · {peer.rtt} ms · 已配对
+                {peer.os} · {peer.rtt} ms · {t('receive.paired')}
               </div>
             </div>
           </div>
@@ -155,7 +157,7 @@ export function ReceivePage() {
               ext={offer.ext ?? 'file'}
               name={offer.fileName}
               size={offer.fileSize}
-              meta={`${offer.pages ?? '—'} 页 · LAN · 明文 v0.1`}
+              meta={t('receive.fileMeta', { pages: offer.pages ?? '—' })}
             />
           </div>
 
@@ -182,20 +184,20 @@ export function ReceivePage() {
                   marginBottom: 4,
                 }}
               >
-                ¶ 文字便签 · NOTE
+                ¶ {t('receive.noteLabel')}
               </div>
               "{offer.note}"
             </div>
           )}
 
           <div style={{ marginTop: 18 }}>
-            <AsciiDivider label="—— 你确认接收吗？ · ACCEPT?" />
+            <AsciiDivider label={`—— ${t('receive.confirmAccept')}`} />
           </div>
 
           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: 14 }}>
-            <Chip tone="outline" mono>● LAN · 明文 v0.1</Chip>
-            <Chip tone="outline" mono>SHA-256 校验</Chip>
-            <Chip tone="outline" mono>LAN ONLY</Chip>
+            <Chip tone="outline" mono>● {t('common.lanPlaintext')}</Chip>
+            <Chip tone="outline" mono>{t('common.sha256Verify')}</Chip>
+            <Chip tone="outline" mono>{t('common.lanOnly')}</Chip>
             <Chip tone="outline" mono>{offer.fileSize}</Chip>
           </div>
 
@@ -213,7 +215,7 @@ export function ReceivePage() {
                 fontSize: 13.5,
               }}
             >
-              × 不接收
+              {t('receive.reject')}
             </button>
             <button
               onClick={() => { void acceptOffer() }}
@@ -227,7 +229,7 @@ export function ReceivePage() {
                 fontSize: 13.5,
               }}
             >
-              接收并打开 →
+              {t('receive.acceptAndOpen')}
             </button>
           </div>
         </div>
