@@ -78,8 +78,12 @@ settings:
   behavior_divider: "BEHAVIOR · 行为"
   hint_display_name: "  change: :set displayName=Alice"
   hint_revoke: "  change: :revoke <fingerprint>"
+  hint_trusted_only: "          :set trustedOnly=on"
+  hint_verify: "          :set verifyBeforeReceive=off"
   hint_save_dir: "  change: :set saveDir=~/dl"
   hint_auto_accept: "          :set autoAccept=on"
+  hint_clipboard: "          :set clipboardSync=on"
+  hint_launch_login: "          :set launchAtLogin=on"
   hint_radar: "          :set radar=pulse"
 
 help:

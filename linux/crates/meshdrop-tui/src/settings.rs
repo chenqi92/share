@@ -7,7 +7,16 @@ use std::path::PathBuf;
 pub struct Settings {
     pub display_name: String,
     pub save_dir: PathBuf,
+    /// save_dir 是否为用户覆盖（true）还是默认派生（false）。用于决定是否下发 engine。
+    pub save_dir_custom: bool,
     pub auto_accept_trusted: bool,
+    // 附加式开关（默认安全值，与 engine 同口径）。
+    pub visible_on_lan: bool,
+    pub trusted_only: bool,
+    pub verify_before_receive: bool,
+    pub auto_accept_stranger: bool,
+    pub clipboard_sync: bool,
+    pub launch_at_login: bool,
     pub radar: Variant,
 }
 
@@ -18,7 +27,14 @@ impl Default for Settings {
         Self {
             display_name: String::new(), // 启动时由 App::new 用 hostname 填
             save_dir: save,
+            save_dir_custom: false,
             auto_accept_trusted: false,
+            visible_on_lan: true,
+            trusted_only: false,
+            verify_before_receive: true,
+            auto_accept_stranger: false,
+            clipboard_sync: false,
+            launch_at_login: false,
             radar: Variant::Sweep,
         }
     }
@@ -53,8 +69,51 @@ impl Settings {
                     return SetResult::BadValue { key: "saveDir", value: v.into() };
                 }
                 self.save_dir = expand_home(v);
+                self.save_dir_custom = true;
                 SetResult::Ok { key: "saveDir", value: self.save_dir.display().to_string() }
             }
+            "visibleOnLan" | "visible_on_lan" | "visible" => match parse_bool(v) {
+                Some(b) => {
+                    self.visible_on_lan = b;
+                    SetResult::Ok { key: "visibleOnLan", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "visibleOnLan", value: v.into() },
+            },
+            "trustedOnly" | "trusted_only" => match parse_bool(v) {
+                Some(b) => {
+                    self.trusted_only = b;
+                    SetResult::Ok { key: "trustedOnly", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "trustedOnly", value: v.into() },
+            },
+            "verifyBeforeReceive" | "verify_before_receive" | "verify" => match parse_bool(v) {
+                Some(b) => {
+                    self.verify_before_receive = b;
+                    SetResult::Ok { key: "verifyBeforeReceive", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "verifyBeforeReceive", value: v.into() },
+            },
+            "autoAcceptStranger" | "auto_accept_stranger" => match parse_bool(v) {
+                Some(b) => {
+                    self.auto_accept_stranger = b;
+                    SetResult::Ok { key: "autoAcceptStranger", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "autoAcceptStranger", value: v.into() },
+            },
+            "clipboardSync" | "clipboard_sync" | "clipboard" => match parse_bool(v) {
+                Some(b) => {
+                    self.clipboard_sync = b;
+                    SetResult::Ok { key: "clipboardSync", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "clipboardSync", value: v.into() },
+            },
+            "launchAtLogin" | "launch_at_login" | "autostart" => match parse_bool(v) {
+                Some(b) => {
+                    self.launch_at_login = b;
+                    SetResult::Ok { key: "launchAtLogin", value: on_off(b) }
+                }
+                None => SetResult::BadValue { key: "launchAtLogin", value: v.into() },
+            },
             "autoAccept" | "auto_accept" | "autoaccept" => {
                 let lower = v.to_ascii_lowercase();
                 match lower.as_str() {
@@ -79,6 +138,19 @@ impl Settings {
             other => SetResult::UnknownKey(other.to_string()),
         }
     }
+}
+
+/// 解析布尔值：on/true/yes/1 → true；off/false/no/0 → false；其余 None。
+fn parse_bool(v: &str) -> Option<bool> {
+    match v.to_ascii_lowercase().as_str() {
+        "on" | "true" | "yes" | "1" => Some(true),
+        "off" | "false" | "no" | "0" => Some(false),
+        _ => None,
+    }
+}
+
+fn on_off(b: bool) -> String {
+    if b { "on".into() } else { "off".into() }
 }
 
 fn expand_home(s: &str) -> PathBuf {

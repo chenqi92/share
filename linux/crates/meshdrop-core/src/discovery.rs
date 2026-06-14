@@ -13,7 +13,38 @@ use tokio::sync::watch;
 pub struct DiscoveryHandle {
     daemon: ServiceDaemon,
     fullname: String,
+    /// 缓存注册信息，供 `set_advertising(true)` 重新广告时复用（避免重建 daemon）。
+    service_info: ServiceInfo,
+    /// 当前是否在广告 mDNS。关广告只 unregister 服务，daemon / browse 不动，
+    /// 已建连接也不强断（仅"不再被发现"）。
+    advertising: bool,
     pub devices_rx: watch::Receiver<Vec<Device>>,
+}
+
+impl DiscoveryHandle {
+    /// 局域网可见开关：true=广告 mDNS（可被发现）；false=停止广告（不再被发现，
+    /// 但 browse 仍在、已建连接不强断）。幂等：重复设同值无副作用。
+    /// 见 desktop SOON「局域网可见 visibleOnLan」。
+    pub fn set_advertising(&mut self, enabled: bool) {
+        if enabled == self.advertising {
+            return;
+        }
+        if enabled {
+            // 重新注册：复用启动时构造的 ServiceInfo。
+            if self.daemon.register(self.service_info.clone()).is_ok() {
+                self.advertising = true;
+                info!("mDNS advertising resumed: {}", self.fullname);
+            }
+        } else {
+            let _ = self.daemon.unregister(&self.fullname);
+            self.advertising = false;
+            info!("mDNS advertising paused: {}", self.fullname);
+        }
+    }
+
+    pub fn is_advertising(&self) -> bool {
+        self.advertising
+    }
 }
 
 impl Drop for DiscoveryHandle {
@@ -45,7 +76,7 @@ pub fn start(
     .enable_addr_auto();
 
     let fullname = format!("{}.{}", identity.id, txt::SERVICE_TYPE);
-    daemon.register(info).context("register mDNS")?;
+    daemon.register(info.clone()).context("register mDNS")?;
     info!("registered mDNS service: {} on port {}", fullname, port);
 
     let (devices_tx, devices_rx) = watch::channel(Vec::<Device>::new());
@@ -81,7 +112,7 @@ pub fn start(
         }
     });
 
-    Ok(DiscoveryHandle { daemon, fullname, devices_rx })
+    Ok(DiscoveryHandle { daemon, fullname, service_info: info, advertising: true, devices_rx })
 }
 
 fn push_sorted(tx: &watch::Sender<Vec<Device>>, map: &HashMap<String, Device>) {

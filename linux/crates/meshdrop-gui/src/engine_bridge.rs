@@ -141,6 +141,20 @@ impl AppHandle {
 
     pub fn clear_history(&self) { self.engine.clear_history(); }
 
+    // ── 设置开关透传（接 core 真后端，全部已持久化）────────────────────
+    pub fn visible_on_lan(&self) -> bool { self.engine.visible_on_lan() }
+    pub fn set_visible_on_lan(&self, v: bool) { self.engine.set_visible_on_lan(v); }
+    pub fn trusted_only(&self) -> bool { self.engine.trusted_only() }
+    pub fn set_trusted_only(&self, v: bool) { self.engine.set_trusted_only(v); }
+    pub fn verify_before_receive(&self) -> bool { self.engine.verify_before_receive() }
+    pub fn set_verify_before_receive(&self, v: bool) { self.engine.set_verify_before_receive(v); }
+    pub fn auto_accept_stranger(&self) -> bool { self.engine.auto_accept_stranger() }
+    pub fn set_auto_accept_stranger(&self, v: bool) { self.engine.set_auto_accept_stranger(v); }
+    pub fn clipboard_sync(&self) -> bool { self.engine.clipboard_sync() }
+    pub fn set_clipboard_sync(&self, v: bool) { self.engine.set_clipboard_sync(v); }
+    pub fn save_dir(&self) -> Option<PathBuf> { self.engine.save_dir() }
+    pub fn set_save_dir(&self, dir: Option<PathBuf>) { self.engine.set_save_dir(dir); }
+
     /// 重置身份（security.md §设备身份）。
     /// 删除磁盘上的 id / 私钥文件；当前 engine 仍持旧身份运行，需要 app 重启
     /// 才能让新身份生效。UI 应在 Settings 里点完后提示用户重启。

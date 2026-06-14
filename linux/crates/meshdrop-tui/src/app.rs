@@ -153,6 +153,16 @@ impl App {
         settings.display_name = me.name.clone();
         // 用 engine 持久化的真实开关初始化 Settings，避免 TUI 显示与实际不符。
         settings.auto_accept_trusted = engine.auto_accept_from_trusted();
+        settings.visible_on_lan = engine.visible_on_lan();
+        settings.trusted_only = engine.trusted_only();
+        settings.verify_before_receive = engine.verify_before_receive();
+        settings.auto_accept_stranger = engine.auto_accept_stranger();
+        settings.clipboard_sync = engine.clipboard_sync();
+        settings.launch_at_login = meshdrop_core::autostart::is_enabled();
+        if let Some(dir) = engine.save_dir() {
+            settings.save_dir = dir;
+            settings.save_dir_custom = true;
+        }
         let mut device_state = ListState::default();
         device_state.select(Some(0));
         let mut history_state = ListState::default();
@@ -397,11 +407,47 @@ impl App {
                             self.status = t!("status.set_ok", key = key, value = value).to_string();
                         }
                         "saveDir" => {
-                            // core 按对端名固定派生下载目录，暂不支持热改：提示仅本地记录。
-                            if self.engine.is_some() {
-                                self.status = t!("status.set_save_dir_pending", key = key, value = value).to_string();
-                            } else {
-                                self.status = t!("status.set_ok", key = key, value = value).to_string();
+                            // 真正下发 engine.set_save_dir（已是真后端），并由 core 持久化。
+                            if let Some(engine) = &self.engine {
+                                engine.set_save_dir(Some(self.settings.save_dir.clone()));
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "visibleOnLan" => {
+                            if let Some(engine) = &self.engine {
+                                engine.set_visible_on_lan(self.settings.visible_on_lan);
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "trustedOnly" => {
+                            if let Some(engine) = &self.engine {
+                                engine.set_trusted_only(self.settings.trusted_only);
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "verifyBeforeReceive" => {
+                            if let Some(engine) = &self.engine {
+                                engine.set_verify_before_receive(self.settings.verify_before_receive);
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "autoAcceptStranger" => {
+                            if let Some(engine) = &self.engine {
+                                engine.set_auto_accept_stranger(self.settings.auto_accept_stranger);
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "clipboardSync" => {
+                            if let Some(engine) = &self.engine {
+                                engine.set_clipboard_sync(self.settings.clipboard_sync);
+                            }
+                            self.status = t!("status.set_ok", key = key, value = value).to_string();
+                        }
+                        "launchAtLogin" => {
+                            // 写 / 删 ~/.config/autostart/meshdrop.desktop（状态即文件存在性）。
+                            match meshdrop_core::autostart::set_enabled(self.settings.launch_at_login) {
+                                Ok(()) => self.status = t!("status.set_ok", key = key, value = value).to_string(),
+                                Err(e) => self.status = t!("status.set_bad_value", key = key, value = e.to_string()).to_string(),
                             }
                         }
                         _ => self.status = t!("status.set_ok", key = key, value = value).to_string(),

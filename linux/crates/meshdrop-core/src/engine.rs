@@ -4,7 +4,7 @@
 use crate::connection::{ConnEvent, Connection};
 use crate::device::{Device, DeviceOS};
 use crate::discovery::{self, DiscoveryHandle};
-use crate::history::{format_bytes, HistoryItem, HistoryKind, TransferDirection, TransferStatus};
+use crate::history::{format_bytes, HistoryItem, HistoryKind, HistoryStore, HISTORY_LIMIT, TransferDirection, TransferStatus};
 use crate::identity::Identity;
 use crate::protocol::*;
 use crate::resume::{ResumeRecord, ResumeStore};
@@ -16,7 +16,7 @@ use std::collections::HashMap;
 use std::io::SeekFrom;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
@@ -87,6 +87,38 @@ pub struct ShareEngine {
     throughput_rx: watch::Receiver<SessionThroughput>,
     /// 设置：收到已信任设备的文件 offer 时自动接受。句柄与主任务共享，持久化到配置文件。
     auto_accept: Arc<AtomicBool>,
+    /// 附加式安全开关，全部默认安全值，不改变现有默认收发 / 配对行为。
+    /// 见 desktop SOON 2/3/4/5。句柄与主任务共享（Arc），变更后持久化到 settings.json。
+    flags: EngineFlags,
+    /// 下载根目录覆盖。None=按对端名派生到 ~/Downloads/MeshDrop/<peer>（现状）。
+    save_dir: Arc<Mutex<Option<PathBuf>>>,
+    /// 局域网可见（mDNS 广告）状态。与主任务共享，set 时通过 UserCmd 驱动 discovery。
+    visible_on_lan: Arc<AtomicBool>,
+}
+
+/// 引擎附加式开关集合。全部默认安全值：
+/// - trusted_only: false（现状 = 未知 fp 走配对确认）
+/// - auto_accept_stranger: false（现状 = 陌生 offer 不自动接受）
+/// - verify_before_receive: true（更安全 = 禁用一切自动接受）
+/// - confirm_stranger: 始终 true（TOFU 不可关；保留字段仅为持久化展示一致）
+#[derive(Clone)]
+struct EngineFlags {
+    trusted_only: Arc<AtomicBool>,
+    auto_accept_stranger: Arc<AtomicBool>,
+    verify_before_receive: Arc<AtomicBool>,
+    clipboard_sync: Arc<AtomicBool>,
+}
+
+impl EngineFlags {
+    fn load() -> Self {
+        let cfg = load_engine_config();
+        Self {
+            trusted_only: Arc::new(AtomicBool::new(cfg.trusted_only)),
+            auto_accept_stranger: Arc::new(AtomicBool::new(cfg.auto_accept_stranger)),
+            verify_before_receive: Arc::new(AtomicBool::new(cfg.verify_before_receive)),
+            clipboard_sync: Arc::new(AtomicBool::new(cfg.clipboard_sync)),
+        }
+    }
 }
 
 /// 会话级吞吐时间序列：每秒一个桶，上行 / 下行 bytes/sec。最旧在前，最新在后，
@@ -130,18 +162,31 @@ impl ShareEngine {
         let port = listener.local_addr()?.port();
         info!("ShareEngine listening on port {}", port);
 
-        let discovery = discovery::start(identity.clone(), display_name.clone(), model.clone(), port)?;
+        let mut discovery = discovery::start(identity.clone(), display_name.clone(), model.clone(), port)?;
         let devices_rx = discovery.devices_rx.clone();
 
         let (cmd_tx, cmd_rx) = mpsc::unbounded_channel::<UserCmd>();
         let (internal_tx, internal_rx) = mpsc::unbounded_channel::<InternalCmd>();
-        let (history_tx, history_rx) = watch::channel(Vec::new());
+        // 启动即从 history.json load 进内存（重启后历史不丢）；用加载结果初始化
+        // watch，订阅者拿到的第一帧就是磁盘历史而非空表。
+        let history_store = HistoryStore::new();
+        let initial_history = history_store.load();
+        let (history_tx, history_rx) = watch::channel(initial_history.clone());
         let (pp_tx, pp_rx) = watch::channel(Vec::new());
         let (po_tx, po_rx) = watch::channel(Vec::new());
         let (tm_tx, tm_rx) = watch::channel(HashMap::<Uuid, TransferMetrics>::new());
         let (clip_tx, clip_rx) = watch::channel(Vec::<ClipboardEntry>::new());
         let (tp_tx, tp_rx) = watch::channel(SessionThroughput::default());
         let auto_accept = Arc::new(AtomicBool::new(load_auto_accept()));
+        // 附加式开关 + 下载目录覆盖（全部默认安全值）。
+        let engine_cfg = load_engine_config();
+        let flags = EngineFlags::load();
+        let save_dir = Arc::new(Mutex::new(engine_cfg.save_dir.clone()));
+        // 启动即套用持久化的可见性：配置为隐藏则停止广告（不被发现），其余照常。
+        if !engine_cfg.visible_on_lan {
+            discovery.set_advertising(false);
+        }
+        let visible_on_lan = Arc::new(AtomicBool::new(engine_cfg.visible_on_lan));
 
         // 入站 accept 转发器
         let internal_tx_accept = internal_tx.clone();
@@ -165,7 +210,7 @@ impl ShareEngine {
             display_name: display_name.clone(),
             model: model.clone(),
             trust_store: trust_store.clone(),
-            history: Vec::new(),
+            history: initial_history,
             pending_pairings: Vec::new(),
             pending_offers: Vec::new(),
             contexts: HashMap::new(),
@@ -179,10 +224,14 @@ impl ShareEngine {
             tp_tx,
             throughput: SessionThroughput::default(),
             auto_accept: auto_accept.clone(),
+            flags: flags.clone(),
+            save_dir: save_dir.clone(),
+            visible_on_lan: visible_on_lan.clone(),
             resume_store: ResumeStore::new(),
+            history_store,
             internal_tx,
             seen_messages: HashMap::new(),
-            _discovery: discovery,
+            discovery,
         };
         tokio::spawn(run_main_loop(state, cmd_rx, internal_rx));
 
@@ -201,6 +250,9 @@ impl ShareEngine {
             clipboard_rx: clip_rx,
             throughput_rx: tp_rx,
             auto_accept,
+            flags,
+            save_dir,
+            visible_on_lan,
         })
     }
 
@@ -223,6 +275,62 @@ impl ShareEngine {
     pub fn set_auto_accept(&self, value: bool) {
         self.auto_accept.store(value, Ordering::Relaxed);
         let _ = save_auto_accept(value);
+    }
+
+    // ── 附加式开关（全部默认安全值，持久化到 settings.json）──────────────
+
+    /// 局域网可见（mDNS 广告）。true=正常广告；false=停止广告（不再被发现，
+    /// 已建连接不强断）。变更经 UserCmd 下发到主任务驱动 discovery，并持久化。
+    pub fn visible_on_lan(&self) -> bool { self.visible_on_lan.load(Ordering::Relaxed) }
+    pub fn set_visible_on_lan(&self, value: bool) {
+        self.visible_on_lan.store(value, Ordering::Relaxed);
+        let _ = self.cmd_tx.send(UserCmd::SetAdvertising(value));
+    }
+
+    /// 仅信任设备可见：开=未知 fp 的 HELLO 直接关连接（不回 HELLO_ACK / 不弹配对）；
+    /// 关=现状（未知走配对确认）。默认关。
+    pub fn trusted_only(&self) -> bool { self.flags.trusted_only.load(Ordering::Relaxed) }
+    pub fn set_trusted_only(&self, value: bool) {
+        self.flags.trusted_only.store(value, Ordering::Relaxed);
+        self.persist_flags();
+    }
+
+    /// 接收前必须验证对方指纹：开=禁用一切自动接受（offer 一律待确认）；关=允许
+    /// 自动接受逻辑。默认开（更安全）。
+    pub fn verify_before_receive(&self) -> bool { self.flags.verify_before_receive.load(Ordering::Relaxed) }
+    pub fn set_verify_before_receive(&self, value: bool) {
+        self.flags.verify_before_receive.store(value, Ordering::Relaxed);
+        self.persist_flags();
+    }
+
+    /// 陌生设备自动接受（危险）：开=对未信任对端 offer 也自动接受。默认关。
+    pub fn auto_accept_stranger(&self) -> bool { self.flags.auto_accept_stranger.load(Ordering::Relaxed) }
+    pub fn set_auto_accept_stranger(&self, value: bool) {
+        self.flags.auto_accept_stranger.store(value, Ordering::Relaxed);
+        self.persist_flags();
+    }
+
+    /// 跨设备剪贴板同步：关=不发不收剪贴板。默认关（不主动同步，保护隐私）。
+    pub fn clipboard_sync(&self) -> bool { self.flags.clipboard_sync.load(Ordering::Relaxed) }
+    pub fn set_clipboard_sync(&self, value: bool) {
+        self.flags.clipboard_sync.store(value, Ordering::Relaxed);
+        self.persist_flags();
+    }
+
+    /// 陌生设备首次配对要求确认（TOFU）。始终开且不可关——关闭语义即"自动信任
+    /// 陌生设备"，危险；保持锁定，仅作真状态展示。
+    pub fn confirm_stranger(&self) -> bool { true }
+
+    /// 下载根目录覆盖。None=按对端名派生（现状）。
+    pub fn save_dir(&self) -> Option<PathBuf> { self.save_dir.lock().unwrap().clone() }
+    /// 设置下载根目录并持久化。传入的目录下仍按对端名建子目录。None 恢复默认。
+    pub fn set_save_dir(&self, dir: Option<PathBuf>) {
+        *self.save_dir.lock().unwrap() = dir;
+        self.persist_flags();
+    }
+
+    fn persist_flags(&self) {
+        persist_engine_config(&self.flags, &self.save_dir, self.visible_on_lan.load(Ordering::Relaxed));
     }
 
     pub fn devices_rx(&self) -> watch::Receiver<Vec<Device>> { self.devices_rx.clone() }
@@ -297,6 +405,8 @@ enum UserCmd {
     RetryTransfer { history_id: Uuid },
     RemoveHistory(Uuid),
     ClearHistory,
+    /// 局域网可见开关 —— 在主任务里驱动 discovery 广告并持久化。
+    SetAdvertising(bool),
 }
 
 enum InternalCmd {
@@ -341,11 +451,17 @@ struct State {
     tp_tx: watch::Sender<SessionThroughput>,
     throughput: SessionThroughput,
     auto_accept: Arc<AtomicBool>,
+    flags: EngineFlags,
+    /// 下载根目录覆盖（与 engine 句柄共享）。
+    save_dir: Arc<Mutex<Option<PathBuf>>>,
+    /// 局域网可见（mDNS 广告）状态（与 engine 句柄共享，变更后驱动 discovery）。
+    visible_on_lan: Arc<AtomicBool>,
     resume_store: ResumeStore,
+    history_store: HistoryStore,
     internal_tx: mpsc::UnboundedSender<InternalCmd>,
     /// 重放去重：(peer_fp, message_id) → 首次见到的时刻。超 5 分钟窗口的条目惰性清除。
     seen_messages: HashMap<(String, String), Instant>,
-    _discovery: DiscoveryHandle,
+    discovery: DiscoveryHandle,
 }
 
 impl State {
@@ -514,11 +630,16 @@ async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
         UserCmd::RetryTransfer { history_id } => retry_transfer(state, history_id).await,
         UserCmd::RemoveHistory(id) => {
             state.history.retain(|h| h.id != id);
-            let _ = state.history_tx.send(state.history.clone());
+            publish_history(state);
         }
         UserCmd::ClearHistory => {
             state.history.clear();
-            let _ = state.history_tx.send(state.history.clone());
+            publish_history(state);
+        }
+        UserCmd::SetAdvertising(enabled) => {
+            state.discovery.set_advertising(enabled);
+            state.visible_on_lan.store(enabled, Ordering::Relaxed);
+            persist_engine_config(&state.flags, &state.save_dir, enabled);
         }
     }
 }
@@ -604,7 +725,7 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
     let item = HistoryItem::new(peer.clone(), TransferDirection::Outgoing,
         HistoryKind::Text(content.clone()), TransferStatus::Pending);
     state.history.insert(0, item.clone());
-    let _ = state.history_tx.send(state.history.clone());
+    publish_history(state);
 
     let Some(host) = peer.host.clone() else {
         update_status(state, item.id, TransferStatus::Failed("无可用 IP".into()));
@@ -624,6 +745,11 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
 /// 显式推送剪贴板：建客户端连接，HELLO/ACK 后发 CLIPBOARD，不留 history。
 async fn start_push_clipboard(state: &mut State, peer: Device, content: String, kind: String) {
     if content.is_empty() { return; }
+    // 剪贴板同步关闭时不发送（门控已有能力，默认关）。
+    if !state.flags.clipboard_sync.load(Ordering::Relaxed) {
+        debug!("clipboard sync 关闭，跳过推送");
+        return;
+    }
     let Some(host) = peer.host.clone() else { return };
     let conn = Connection::connect(host, peer.port);
     let ctx_id = Uuid::new_v4();
@@ -664,7 +790,7 @@ async fn start_send_file(state: &mut State, peer: Device, path: PathBuf) {
         HistoryKind::File { name: name.clone(), size, path: Some(path.clone()) },
         TransferStatus::Pending);
     state.history.insert(0, item.clone());
-    let _ = state.history_tx.send(state.history.clone());
+    publish_history(state);
 
     // 后台算 sha256，算完通过 InternalCmd::FileHashReady 回主循环建连。
     // 这样大文件（几 GiB）哈希期间主循环仍能处理别的 UserCmd / InternalCmd。
@@ -775,8 +901,8 @@ async fn respond_offer(state: &mut State, offer_id: Uuid, accept: bool) {
         return;
     }
 
-    // 准备保存路径 + 打开 file handle
-    let save_dir = default_save_dir(&offer.peer);
+    // 准备保存路径 + 打开 file handle。下载根目录优先用用户覆盖，其次按现状派生。
+    let save_dir = resolve_save_dir(state, &offer.peer);
     let _ = tokio::fs::create_dir_all(&save_dir).await;
     let save_path = unique_file_path(&save_dir, &offer.file_name);
     let file_out = match OpenOptions::new().create(true).write(true).truncate(true).open(&save_path).await {
@@ -793,7 +919,7 @@ async fn respond_offer(state: &mut State, offer_id: Uuid, accept: bool) {
         HistoryKind::File { name: offer.file_name.clone(), size: offer.file_size, path: Some(save_path.clone()) },
         TransferStatus::Transferring { done: 0, total: offer.file_size });
     state.history.insert(0, item.clone());
-    let _ = state.history_tx.send(state.history.clone());
+    publish_history(state);
 
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
         ctx.file_output = Some(file_out);
@@ -929,6 +1055,11 @@ async fn server_recv_hello(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     if state.trust_store.is_trusted(&peer.fingerprint) {
         state.trust_store.touch(&peer.fingerprint);
         send_ack_and_ready(state, ctx_id, peer).await;
+    } else if state.flags.trusted_only.load(Ordering::Relaxed) {
+        // 仅信任设备可见：未知 fp 不回 HELLO_ACK、不弹配对，直接关连接
+        // （security.md「仅信任设备可见」）。默认关，开启才生效。
+        debug!("trusted-only: 拒绝未知设备 {} 的 HELLO", peer.fingerprint);
+        close_ctx(state, ctx_id, None).await;
     } else {
         let req = PendingPairing { id: Uuid::new_v4(), peer: peer.clone() };
         if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
@@ -1146,10 +1277,14 @@ async fn handle_received_text(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     }
     state.history.insert(0, HistoryItem::new(peer, TransferDirection::Incoming,
         HistoryKind::Text(text.content), TransferStatus::Completed));
-    let _ = state.history_tx.send(state.history.clone());
+    publish_history(state);
 }
 
 async fn handle_received_clipboard(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
+    // 剪贴板同步关闭时不接收（默认关）。
+    if !state.flags.clipboard_sync.load(Ordering::Relaxed) {
+        return;
+    }
     let msg: ClipboardMessage = match serde_json::from_slice(&body) {
         Ok(m) => m, Err(_) => return,
     };
@@ -1219,8 +1354,15 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
     }
     state.pending_offers.push(pending);
     let _ = state.po_tx.send(state.pending_offers.clone());
-    // 设置开启且对端已信任 → 自动接受（复用标准流程，会把该项移出 pending）。
-    if trusted && state.auto_accept.load(Ordering::Relaxed) {
+    // 自动接受判定（复用标准流程，会把该项移出 pending）：
+    // - verify_before_receive 开（默认）→ 禁用一切自动接受，offer 一律待确认；
+    // - 否则：(已信任 && auto_accept_trusted) || (陌生 && auto_accept_stranger)。
+    let verify = state.flags.verify_before_receive.load(Ordering::Relaxed);
+    let auto_trusted = state.auto_accept.load(Ordering::Relaxed);
+    let auto_stranger = state.flags.auto_accept_stranger.load(Ordering::Relaxed);
+    let may_auto = !verify
+        && ((trusted && auto_trusted) || (!trusted && auto_stranger));
+    if may_auto {
         respond_offer(state, tid, true).await;
     }
 }
@@ -1275,7 +1417,7 @@ async fn start_auto_resume_receive(
         HistoryKind::File { name: meta.name.clone(), size: meta.size, path: Some(record.saved_path.clone()) },
         TransferStatus::Transferring { done: record.bytes_done, total: meta.size });
     state.history.insert(0, item.clone());
-    let _ = state.history_tx.send(state.history.clone());
+    publish_history(state);
 
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
         ctx.file_output = Some(file_out);
@@ -1506,6 +1648,19 @@ fn history_is_terminal(state: &State, history_id: Uuid) -> bool {
     })
 }
 
+/// 历史变更后统一出口：截断到上限 → 推 watch → 持久化到 history.json。
+/// 所有改动 `state.history` 的地方都应走这里，保证 UI 与磁盘一致。
+fn publish_history(state: &mut State) {
+    // 上限保护：最新在前（insert(0,..)），超出截断最旧。
+    if state.history.len() > HISTORY_LIMIT {
+        state.history.truncate(HISTORY_LIMIT);
+    }
+    let _ = state.history_tx.send(state.history.clone());
+    if let Err(e) = state.history_store.save(&state.history) {
+        warn!("history persist failed: {}", e);
+    }
+}
+
 fn update_status(state: &mut State, history_id: Uuid, status: TransferStatus) {
     let terminal = matches!(
         status,
@@ -1514,7 +1669,9 @@ fn update_status(state: &mut State, history_id: Uuid, status: TransferStatus) {
     for it in state.history.iter_mut() {
         if it.id == history_id { it.status = status; break; }
     }
-    let _ = state.history_tx.send(state.history.clone());
+    // 状态更新（含 Transferring 进度推进、终态）都随之持久化，
+    // 让磁盘历史与内存一致；不把进行中态写死成完成。
+    publish_history(state);
     // 终态：清掉对应速率条目，UI 上 speed/ETA 立即消失。
     if terminal && state.transfer_metrics.remove(&history_id).is_some() {
         let _ = state.tm_tx.send(state.transfer_metrics.clone());
@@ -1579,6 +1736,16 @@ async fn compute_sha256_async(path: &PathBuf) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
+/// 接收文件落盘目录：有用户覆盖（set_save_dir）则在其下按对端名建子目录；
+/// 否则保持现状（~/Downloads/MeshDrop/<peer>）。
+fn resolve_save_dir(state: &State, peer: &Device) -> PathBuf {
+    let name = if peer.name.is_empty() { &peer.id } else { &peer.name };
+    if let Some(base) = state.save_dir.lock().unwrap().clone() {
+        return base.join(name);
+    }
+    default_save_dir(peer)
+}
+
 fn default_save_dir(peer: &Device) -> PathBuf {
     let base = dirs::download_dir()
         .or_else(dirs::home_dir)
@@ -1637,6 +1804,79 @@ fn save_auto_accept(value: bool) -> std::io::Result<()> {
         std::fs::write(p, if value { "1" } else { "0" })?;
     }
     Ok(())
+}
+
+// ─── 设置持久化（附加式开关 + 下载目录）────────────────────────────────
+//
+// settings.json 与 trust.json / history.json 同目录。全部字段 serde 默认值即安全值，
+// 缺字段（旧文件 / 首次启动）不改变现有默认收发 / 配对行为。
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(default)]
+struct EngineConfig {
+    /// 仅信任设备可见：未知 fp 直接关连接（不回 HELLO_ACK）。默认 false=现状。
+    trusted_only: bool,
+    /// 陌生设备 offer 自动接受（危险）。默认 false。
+    auto_accept_stranger: bool,
+    /// 接收前必须验证对方指纹：开=禁用一切自动接受。默认 true（更安全）。
+    verify_before_receive: bool,
+    /// 跨设备剪贴板同步：关=不发不收剪贴板。默认 false（不主动同步，保护隐私）。
+    clipboard_sync: bool,
+    /// 局域网可见（mDNS 广告）。默认 true=正常广告（现状）。
+    visible_on_lan: bool,
+    /// 下载根目录覆盖。None=按对端名派生（现状）。
+    save_dir: Option<PathBuf>,
+}
+
+impl Default for EngineConfig {
+    fn default() -> Self {
+        Self {
+            trusted_only: false,
+            auto_accept_stranger: false,
+            verify_before_receive: true,
+            clipboard_sync: false,
+            visible_on_lan: true,
+            save_dir: None,
+        }
+    }
+}
+
+fn engine_config_path() -> Option<PathBuf> {
+    dirs::data_local_dir().map(|d| d.join("MeshDrop").join("settings.json"))
+}
+
+fn load_engine_config() -> EngineConfig {
+    engine_config_path()
+        .and_then(|p| std::fs::read(p).ok())
+        .and_then(|data| serde_json::from_slice(&data).ok())
+        .unwrap_or_default()
+}
+
+fn save_engine_config(cfg: &EngineConfig) -> std::io::Result<()> {
+    if let Some(p) = engine_config_path() {
+        if let Some(dir) = p.parent() { std::fs::create_dir_all(dir)?; }
+        let data = serde_json::to_vec_pretty(cfg)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        let tmp = p.with_extension("json.tmp");
+        std::fs::write(&tmp, data)?;
+        std::fs::rename(tmp, &p)?;
+    }
+    Ok(())
+}
+
+/// 从当前 flags + save_dir 读出整份配置并整表覆盖写。
+fn persist_engine_config(flags: &EngineFlags, save_dir: &Arc<Mutex<Option<PathBuf>>>, visible_on_lan: bool) {
+    let cfg = EngineConfig {
+        trusted_only: flags.trusted_only.load(Ordering::Relaxed),
+        auto_accept_stranger: flags.auto_accept_stranger.load(Ordering::Relaxed),
+        verify_before_receive: flags.verify_before_receive.load(Ordering::Relaxed),
+        clipboard_sync: flags.clipboard_sync.load(Ordering::Relaxed),
+        visible_on_lan,
+        save_dir: save_dir.lock().unwrap().clone(),
+    };
+    if let Err(e) = save_engine_config(&cfg) {
+        warn!("settings persist failed: {}", e);
+    }
 }
 
 // ─── ConnCtx 构造 ─────────────────────────────────────────────────────

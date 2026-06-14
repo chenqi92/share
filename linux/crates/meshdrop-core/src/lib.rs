@@ -2,6 +2,7 @@
 //!
 //! GUI / TUI 都依赖这个 crate。
 
+pub mod autostart;
 pub mod device;
 pub mod identity;
 pub mod paths;
@@ -17,7 +18,7 @@ mod resume;
 
 pub use device::{Device, DeviceOS};
 pub use identity::{compute_fingerprint, Identity};
-pub use history::{HistoryItem, HistoryKind, TransferDirection, TransferStatus};
+pub use history::{HistoryItem, HistoryKind, HistoryStore, TransferDirection, TransferStatus};
 pub use trust::{TrustRecord, TrustStore};
 pub use engine::{ShareEngine, PendingPairing, PendingFileOffer, PairingDecision, TransferMetrics, ClipboardEntry, SessionThroughput};
 pub use gateway::{GatewayHandle, DEFAULT_PORT as GATEWAY_DEFAULT_PORT};

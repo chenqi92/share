@@ -46,7 +46,7 @@ pub fn render(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, settings:
         .split(inner);
 
     section_visibility(f, cols[0], theme, me, settings);
-    section_security(f, cols[1], theme, me);
+    section_security(f, cols[1], theme, me, settings);
     section_behavior(f, cols[2], theme, settings);
 }
 
@@ -75,17 +75,23 @@ fn section_visibility(
         settings.display_name.clone()
     };
 
+    // 可见性随 visible_on_lan 真实反映：关时不再广告（不被发现）。
+    let (vis_chip, vis_tone) = if settings.visible_on_lan {
+        ("BROADCASTING", chip::Tone::Lime)
+    } else {
+        ("HIDDEN", chip::Tone::Outline)
+    };
     let lines = vec![
         Line::from(""),
         kv(theme, "display name ", &name, true),
-        kv(theme, "visibility   ", &me.visibility, false),
+        kv(theme, "visible LAN  ", on_off(settings.visible_on_lan), true),
         kv(theme, "service      ", "_meshdrop._tcp", false),
         kv(theme, "port         ", "auto", false),
         Line::from(vec![
             Span::raw("  "),
             chip::chip(theme, "ONLINE", chip::Tone::Lime),
             Span::raw("  "),
-            chip::chip(theme, "BROADCASTING", chip::Tone::Outline),
+            chip::chip(theme, vis_chip, vis_tone),
         ]),
     ];
     f.render_widget(Paragraph::new(lines), rows[3]);
@@ -97,40 +103,50 @@ fn section_visibility(
     f.render_widget(hint, rows[4]);
 }
 
-fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard) {
+fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, settings: &Settings) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1),
             Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Length(7),
+            Constraint::Length(8),
             Constraint::Min(0),
         ])
         .split(area);
     ascii_divider::render(f, rows[0], theme, &t!("settings.security_divider"));
 
     // v0.1 局域网传输为明文 TCP；身份用 Ed25519 + SHA-256 指纹做 TOFU。不宣称 E2E。
+    // 安全开关随 settings 真实反映（:set 可改，engine 持久化）。
     let lines = vec![
         Line::from(""),
-        kv(theme, "identity    ", "Ed25519 + SHA-256 fp", true),
-        kv(theme, "fingerprint ", &me.fingerprint, true),
-        kv(theme, "trust mode  ", "TOFU + manual revoke", false),
-        kv(theme, "transport   ", "LAN plaintext (v0.1)", false),
+        kv(theme, "fingerprint   ", &me.fingerprint, true),
+        kv(theme, "TOFU confirm  ", "on · locked", false),
+        kv(theme, "trusted only  ", on_off(settings.trusted_only), true),
+        kv(theme, "verify recv   ", on_off(settings.verify_before_receive), true),
+        kv(theme, "auto stranger ", on_off(settings.auto_accept_stranger), true),
+        kv(theme, "transport     ", "LAN plaintext (v0.1)", false),
         Line::from(vec![
             Span::raw("  "),
             chip::chip(theme, "TLS 1.3 mTLS · PLANNED", chip::Tone::Outline),
-            Span::raw("  "),
-            chip::chip(theme, "LAN ONLY", chip::Tone::Outline),
         ]),
     ];
-    f.render_widget(Paragraph::new(lines), rows[3]);
+    f.render_widget(Paragraph::new(lines), rows[2]);
 
-    let hint = Paragraph::new(Line::from(Span::styled(
-        t!("settings.hint_revoke"),
-        Style::default().fg(theme.muted()),
-    )));
-    f.render_widget(hint, rows[4]);
+    let hint = Paragraph::new(vec![
+        Line::from(Span::styled(
+            t!("settings.hint_revoke"),
+            Style::default().fg(theme.muted()),
+        )),
+        Line::from(Span::styled(
+            t!("settings.hint_trusted_only"),
+            Style::default().fg(theme.muted()),
+        )),
+        Line::from(Span::styled(
+            t!("settings.hint_verify"),
+            Style::default().fg(theme.muted()),
+        )),
+    ]);
+    f.render_widget(hint, rows[3]);
 }
 
 fn section_behavior(f: &mut Frame, area: Rect, theme: &Theme, settings: &Settings) {
@@ -162,8 +178,9 @@ fn section_behavior(f: &mut Frame, area: Rect, theme: &Theme, settings: &Setting
         Line::from(""),
         kv(theme, "save dir    ", &save_dir, true),
         kv(theme, "auto accept ", auto_label, true),
+        kv(theme, "clipboard   ", on_off(settings.clipboard_sync), true),
+        kv(theme, "launch login", on_off(settings.launch_at_login), true),
         kv(theme, "radar       ", settings.radar.label(), true),
-        Line::from(""),
         Line::from(vec![
             Span::raw("  "),
             chip::chip(theme, "AUTO ACCEPT", auto_tone),
@@ -179,16 +196,21 @@ fn section_behavior(f: &mut Frame, area: Rect, theme: &Theme, settings: &Setting
             Style::default().fg(theme.muted()),
         )),
         Line::from(Span::styled(
-            t!("settings.hint_auto_accept"),
+            t!("settings.hint_clipboard"),
             Style::default().fg(theme.muted()),
         )),
         Line::from(Span::styled(
-            t!("settings.hint_radar"),
+            t!("settings.hint_launch_login"),
             Style::default().fg(theme.muted()),
         )),
     ])
     .alignment(Alignment::Left);
     f.render_widget(hint, rows[4]);
+}
+
+/// 布尔值的 on/off 展示文本。
+fn on_off(b: bool) -> &'static str {
+    if b { "on" } else { "off" }
 }
 
 fn kv<'a>(theme: &Theme, k: &'a str, v: &'a str, primary: bool) -> Line<'a> {
