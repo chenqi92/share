@@ -34,6 +34,7 @@ pub struct MockDevice {
     pub rtt_ms: u32,
     pub ip: &'static str,
     pub fp_short: &'static str,
+    pub online: bool,
 }
 
 pub fn devices() -> Vec<MockDevice> {
@@ -41,23 +42,23 @@ pub fn devices() -> Vec<MockDevice> {
         MockDevice { id: "lily",   name: "Lily's MacBook",   who: "李莉",   kind: DeviceKind::Mac,
                      dist: 0.55, angle: 35.0,  color: "#FFB4A1", initials: "LL",
                      os: "macOS", model: "MacBook Pro 14", rtt_ms: 18,
-                     ip: "192.168.1.21", fp_short: "ZX8K · L72M" },
+                     ip: "192.168.1.21", fp_short: "ZX8K · L72M", online: true },
         MockDevice { id: "kun",    name: "Kun · Pixel 8",    who: "坤",     kind: DeviceKind::Android,
                      dist: 0.78, angle: 110.0, color: "#B7E5C8", initials: "K",
                      os: "Pixel",  model: "Pixel 8 Pro", rtt_ms: 32,
-                     ip: "192.168.1.34", fp_short: "P3R7 · 9NQK" },
+                     ip: "192.168.1.34", fp_short: "P3R7 · 9NQK", online: true },
         MockDevice { id: "jiawei", name: "Jiawei · iPad",    who: "嘉伟",   kind: DeviceKind::Ipad,
                      dist: 0.40, angle: 200.0, color: "#C7B8FF", initials: "JW",
                      os: "iPadOS", model: "iPad Pro 13", rtt_ms: 14,
-                     ip: "192.168.1.47", fp_short: "T8XW · M3KL" },
+                     ip: "192.168.1.47", fp_short: "T8XW · M3KL", online: true },
         MockDevice { id: "mengxi", name: "Meng Xi · iPhone", who: "孟茜",   kind: DeviceKind::Ios,
                      dist: 0.62, angle: 265.0, color: "#FFD970", initials: "MX",
                      os: "iOS",    model: "iPhone 16", rtt_ms: 26,
-                     ip: "192.168.1.51", fp_short: "QA8N · KZ9R" },
+                     ip: "192.168.1.51", fp_short: "QA8N · KZ9R", online: true },
         MockDevice { id: "dev01",  name: "DEV-01 · Win 11",  who: "工位机", kind: DeviceKind::Win,
                      dist: 0.88, angle: 320.0, color: "#9AD0FF", initials: "D1",
                      os: "Win 11", model: "ThinkPad X1", rtt_ms: 41,
-                     ip: "192.168.1.88", fp_short: "X3WF · L19Q" },
+                     ip: "192.168.1.88", fp_short: "X3WF · L19Q", online: false },
     ]
 }
 

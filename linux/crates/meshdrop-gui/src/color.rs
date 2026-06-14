@@ -15,6 +15,8 @@ pub const LIME_DEEP: &str = "#A8C800";
 pub const FLAME: &str = "#FF5A2C";
 pub const SKY: &str = "#4DB8FF";
 pub const FAILED: &str = "#C4322B";
+/// 离线状态点用的中性灰（≈ ink45 的不透明等效），供 status dot 在离线时着色。
+pub const MUTED: &str = "#8C887E";
 
 /// 把 `#RRGGBB` 解析成 cairo 用的 0..1 浮点 RGB。非法输入回退黑色。
 pub const fn rgb_of(hex: &str) -> (f64, f64, f64) {

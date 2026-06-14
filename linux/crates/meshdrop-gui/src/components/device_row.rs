@@ -47,7 +47,9 @@ pub fn build_with_handle(
 
     row.append(&col);
 
-    let online_dot = dot("#A8C800", 8);
+    // 按设备真实 online 状态着色：在线=lime_deep，离线=中性灰，不再恒为在线色。
+    let dot_color = if d.online { crate::color::LIME_DEEP } else { crate::color::MUTED };
+    let online_dot = dot(dot_color, 8);
     online_dot.set_valign(gtk::Align::Center);
     online_dot.set_halign(gtk::Align::Center);
     row.append(&online_dot);

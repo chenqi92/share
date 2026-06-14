@@ -48,10 +48,12 @@ pub fn render(
                 .border_style(Style::default().fg(border))
                 .title(title),
         )
+        // 选中态：lime 实底 + paper 文字 + 粗体，与 device_list.rs 统一。
         .highlight_style(
             Style::default()
-                .add_modifier(Modifier::BOLD)
-                .add_modifier(Modifier::REVERSED),
+                .bg(theme.lime())
+                .fg(theme.paper())
+                .add_modifier(Modifier::BOLD),
         )
         .highlight_symbol(if focused { "▶ " } else { "  " });
 

@@ -299,13 +299,17 @@ toolbarview > .bottom-bar { background: transparent; box-shadow: none; }
 .meshdrop-nav-row:hover { background: alpha(#0A0A0A, 0.05); }
 .meshdrop-dark .meshdrop-nav-row { color: @meshdrop_dpaper60; }
 .meshdrop-dark .meshdrop-nav-row:hover { background: alpha(#FFFFFF, 0.06); }
+/* 选中态统一规范：lime@32%(light)/16%(dark) 填充 + inset 1px lime 描边，
+   选中文字回主文字色——与 .meshdrop-device-row.selected 一致，不再用 ink 实底。 */
 .meshdrop-nav-row.active {
-  background: @meshdrop_ink;
-  color: @meshdrop_paper;
+  background: @meshdrop_lime_soft;
+  box-shadow: inset 0 0 0 1px @meshdrop_lime;
+  color: @meshdrop_ink;
 }
 .meshdrop-dark .meshdrop-nav-row.active {
-  background: @meshdrop_dpaper;
-  color: @meshdrop_dink;
+  background: alpha(#DDF94B, 0.16);
+  box-shadow: inset 0 0 0 1px @meshdrop_lime;
+  color: @meshdrop_dpaper;
 }
 
 /* ───── IconBtn ───────────────────────────────────────── */

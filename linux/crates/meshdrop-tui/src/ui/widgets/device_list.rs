@@ -37,11 +37,13 @@ pub fn render(
 
     let mut list = List::new(items)
         .block(block)
+        // 选中态：lime 实底 + paper 文字 + 粗体，与 history.rs 统一。
+        // 不再用 REVERSED（它会反转前后景，与显式 fg 自相矛盾）。
         .highlight_style(
             Style::default()
-                .fg(theme.ink())
-                .add_modifier(Modifier::BOLD)
-                .add_modifier(Modifier::REVERSED),
+                .bg(theme.lime())
+                .fg(theme.paper())
+                .add_modifier(Modifier::BOLD),
         )
         .highlight_symbol(if focused { "▶ " } else { "  " });
 

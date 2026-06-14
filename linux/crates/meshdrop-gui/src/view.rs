@@ -27,6 +27,8 @@ pub struct ViewDevice {
     pub rtt_ms: u32,
     pub ip: String,
     pub fp_short: String,
+    /// 设备当前是否在线（在线点用 lime_deep，离线用灰）。
+    pub online: bool,
 }
 
 impl ViewDevice {
@@ -37,6 +39,7 @@ impl ViewDevice {
             color: m.color.to_string(), initials: m.initials.to_string(),
             os: m.os.to_string(), model: m.model.to_string(),
             rtt_ms: m.rtt_ms, ip: m.ip.to_string(), fp_short: m.fp_short.to_string(),
+            online: m.online,
         }
     }
 
@@ -67,6 +70,8 @@ impl ViewDevice {
             rtt_ms: 0,
             ip: host,
             fp_short,
+            // 出现在 mDNS 发现列表里的真实设备即视为当前在线。
+            online: true,
         }
     }
 }
