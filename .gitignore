@@ -21,6 +21,7 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
 build/
+build-ios/
 .build/
 .swiftpm/
 Package.resolved
