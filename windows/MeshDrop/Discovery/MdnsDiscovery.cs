@@ -32,7 +32,11 @@ public sealed class MdnsDiscovery : IDisposable
         _model = model;
     }
 
-    public void Start(ushort port, string? displayName = null)
+    /// <param name="advertise">
+    /// true=正常对外广告本机服务（被他人发现）；false=只 browse 不广告（「局域网可见」关闭，
+    /// 不再被发现，但仍能主动发现别人、已建连不受影响）。
+    /// </param>
+    public void Start(ushort port, string? displayName = null, bool advertise = true)
     {
         if (!string.IsNullOrEmpty(displayName)) _displayName = displayName;
 
@@ -40,15 +44,19 @@ public sealed class MdnsDiscovery : IDisposable
         _sd.ServiceInstanceDiscovered += OnInstanceDiscovered;
         _sd.ServiceInstanceShutdown += OnInstanceShutdown;
 
-        var profile = new ServiceProfile(
-            instanceName: _identity.Id,
-            serviceName: TXTRecord.ServiceType,
-            port: port);
-        foreach (var (k, v) in TXTRecord.Encode(_identity, _displayName, DeviceOS.Windows, _model, port))
-            profile.AddProperty(k, v);
+        if (advertise)
+        {
+            var profile = new ServiceProfile(
+                instanceName: _identity.Id,
+                serviceName: TXTRecord.ServiceType,
+                port: port);
+            foreach (var (k, v) in TXTRecord.Encode(_identity, _displayName, DeviceOS.Windows, _model, port))
+                profile.AddProperty(k, v);
 
-        _sd.Advertise(profile);
-        _sd.Announce(profile);
+            _sd.Advertise(profile);
+            _sd.Announce(profile);
+        }
+
         _sd.QueryServiceInstances(TXTRecord.ServiceType);
     }
 

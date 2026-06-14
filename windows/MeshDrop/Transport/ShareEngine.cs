@@ -41,7 +41,11 @@ public sealed partial class ShareEngine : ObservableObject
     private readonly DispatcherQueue _ui;
     private readonly TrustStore _trustStore = new();
     private readonly ResumeStore _resumeStore = new();
+    private readonly HistoryStore _historyStore = new();
     private readonly MdnsDiscovery _discovery;
+
+    // 设置开关（持久化在 settings.json）。在握手 / 接受判断处读取，默认值复刻现有行为。
+    private readonly AppSettings _settings = AppSettings.Current;
     private readonly ConcurrentDictionary<Guid, ConnectionContext> _contexts = new();
 
     // 协议不变量（security.md §重放）：TEXT / FILE_OFFER 带 UUID id，接收侧按
@@ -108,31 +112,64 @@ public sealed partial class ShareEngine : ObservableObject
 
         _discovery = new MdnsDiscovery(Identity, DisplayName, Model);
         _discovery.DevicesChanged += OnDevicesChanged;
-        _autoAcceptFromTrusted = LoadAutoAccept();
+
+        // 自动接受（已信任）旧入口仍保留，但真相统一到 settings.json。
+        // 兼容旧版独立 auto_accept 文件：若它存在且为 1，迁移进设置后行为不变——
+        // 旧版没有「接收前验证指纹」总开关，auto_accept 一开就真的自动收；为不回归该
+        // 行为，迁移时同时把 verifyBeforeReceive 置 false（否则会被新默认的 ON 压制）。
+        var legacyAutoAccept = LoadLegacyAutoAccept();
+        _autoAcceptFromTrusted = _settings.AutoAcceptTrusted || legacyAutoAccept;
+        if (_autoAcceptFromTrusted != _settings.AutoAcceptTrusted)
+        {
+            _settings.AutoAcceptTrusted = _autoAcceptFromTrusted;
+            if (legacyAutoAccept) _settings.VerifyBeforeReceive = false;
+            _settings.Save();
+        }
 
         foreach (var r in _trustStore.Snapshot()) Trusted.Add(r);
+
+        // 启动时把磁盘历史读回内存（最新在前）。load 失败 / 空文件返回空列表。
+        foreach (var item in _historyStore.Load()) History.Add(item);
+
+        // 内存历史变化后落盘。订阅放在 load 之后，避免回放历史触发无谓写。
+        // 节流：纯进度（Transferring/Pending）的 Replace 跳过——这些是瞬时态、重启会被
+        // 降级为 interrupted，无持久价值，且大文件每 chunk 都写会造成无谓 I/O。
+        // 新增(Add/Insert)、删除(Remove)、清空(Reset)、进入 terminal 的 Replace 都落盘。
+        History.CollectionChanged += OnHistoryCollectionChanged;
     }
 
-    partial void OnAutoAcceptFromTrustedChanged(bool value) => SaveAutoAccept(value);
+    private void OnHistoryCollectionChanged(object? sender,
+        System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Replace)
+        {
+            // 只在替换后的状态是 terminal 时落盘，过滤掉高频进度刷新。
+            var changedToTransient = e.NewItems?.Count > 0
+                && e.NewItems[0] is HistoryItem hi
+                && hi.Status is TransferStatus.Transferring or TransferStatus.Pending or TransferStatus.WaitingApproval;
+            if (changedToTransient) return;
+        }
+        PersistHistory();
+    }
 
+    partial void OnAutoAcceptFromTrustedChanged(bool value)
+    {
+        if (_settings.AutoAcceptTrusted == value) return;
+        _settings.AutoAcceptTrusted = value;
+        _settings.Save();
+    }
+
+    /// <summary>历史整表覆盖落盘（HistoryStore 内部截断到 500 条）。</summary>
+    private void PersistHistory() => _historyStore.Save(History);
+
+    // 旧版独立 auto_accept 标志文件（一次性迁移用，不再写入）。
     private static string AutoAcceptPath() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MeshDrop", "auto_accept");
 
-    private static bool LoadAutoAccept()
+    private static bool LoadLegacyAutoAccept()
     {
         try { return File.Exists(AutoAcceptPath()) && File.ReadAllText(AutoAcceptPath()).Trim() == "1"; }
         catch { return false; }
-    }
-
-    private static void SaveAutoAccept(bool value)
-    {
-        try
-        {
-            var p = AutoAcceptPath();
-            Directory.CreateDirectory(Path.GetDirectoryName(p)!);
-            File.WriteAllText(p, value ? "1" : "0");
-        }
-        catch { }
     }
 
     public void SetDisplayName(string name)
@@ -140,17 +177,33 @@ public sealed partial class ShareEngine : ObservableObject
         var trimmed = (name ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(trimmed) || trimmed == DisplayName) return;
         DisplayName = trimmed;
-        // mdns advertise 已经起来时，重启发现广告以新名字 announce
+        // mdns advertise 已经起来时，重启发现广告以新名字 announce（沿用当前可见性）。
         if (IsRunning && _listenPort > 0)
         {
             try
             {
                 _discovery.Stop();
-                _discovery.Start(_listenPort, DisplayName);
+                _discovery.Start(_listenPort, DisplayName, advertise: _settings.VisibleOnLan);
             }
             catch (Exception ex) { LastError = ex.Message; }
         }
         OnPropertyChanged(nameof(SelfDevice));
+    }
+
+    /// <summary>
+    /// 「局域网可见」开关（settings.visibleOnLan）：enabled=true 重新 Advertise mDNS（被发现）；
+    /// false 停止广告（不再被发现，但已建连不强断、listener 仍在、能继续主动发现别人）。
+    /// 复用现有 listener，仅重起 discovery 的广告面。
+    /// </summary>
+    public void SetAdvertising(bool enabled)
+    {
+        if (!IsRunning || _listenPort == 0) return;
+        try
+        {
+            _discovery.Stop();
+            _discovery.Start(_listenPort, DisplayName, advertise: enabled);
+        }
+        catch (Exception ex) { LastError = ex.Message; }
     }
 
     // ─── 生命周期 ───────────────────────────────────────────────────────
@@ -170,7 +223,9 @@ public sealed partial class ShareEngine : ObservableObject
             LocalIp = ResolveLocalIp();
 
             _cts = new CancellationTokenSource();
-            _discovery.Start(port, DisplayName);
+            // 始终启动 listener + browse（已建连不强断、能继续发现对端）；mDNS 广告则
+            // 受「局域网可见」开关门控：关时不 Advertise/Announce，不再被别人发现。
+            _discovery.Start(port, DisplayName, advertise: _settings.VisibleOnLan);
 
             _ = AcceptLoopAsync(_cts.Token);
 
@@ -284,6 +339,8 @@ public sealed partial class ShareEngine : ObservableObject
     /// </summary>
     public void PushClipboard(Device device, string content, string kind)
     {
+        // 「跨设备剪贴板同步」关闭 → 不发剪贴板（门控发送面）。默认开。
+        if (!_settings.ClipboardSync) return;
         if (string.IsNullOrEmpty(content) || string.IsNullOrEmpty(device.Host)) return;
         var conn = Connection.ForOutgoing(device.Host, device.Port);
         var ctx = new ConnectionContext(conn,
@@ -643,6 +700,12 @@ public sealed partial class ShareEngine : ObservableObject
             _ui.TryEnqueue(RefreshTrusted);
             await SendAckAndReadyAsync(ctx, peer);
         }
+        else if (_settings.TrustedOnly)
+        {
+            // 「仅显示已配对设备」开启：未知 fp 不回 HELLO_ACK，直接关连接（不弹配对）。
+            // security.md「仅信任设备可见」。默认关，开启才生效。
+            await CloseContextAsync(ctx.Id, null);
+        }
         else
         {
             var req = PendingPairing.Create(peer);
@@ -862,6 +925,8 @@ public sealed partial class ShareEngine : ObservableObject
     private void HandleReceivedClipboard(ConnectionContext ctx, byte[] body)
     {
         if (ctx.Peer is null) return;
+        // 「跨设备剪贴板同步」关闭 → 丢弃收到的剪贴板推送（门控接收面）。默认开。
+        if (!_settings.ClipboardSync) return;
         ClipboardMessage? msg = null;
         try { msg = MessageCodec.Decode<ClipboardMessage>(body); } catch { }
         if (msg is null) return;
@@ -902,8 +967,17 @@ public sealed partial class ShareEngine : ObservableObject
             ctx.PendingOfferId = pending.Id;
             PendingFileOffers.Add(pending);
             RaiseEvent(new EngineEvent.OfferPending(pending));
-            // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
-            if (AutoAcceptFromTrusted && trusted) RespondToFileOffer(pending.Id, true);
+
+            // 自动接受判定（settings.json）：
+            //   verifyBeforeReceive=ON  → 禁用一切自动接受，一律进待确认（默认，更安全）。
+            //   否则 (trusted && autoAcceptTrusted) || (!trusted && autoAcceptStranger)。
+            // autoAcceptStranger 危险，默认关；对未信任对端只有显式开它才会自动收。
+            if (!_settings.VerifyBeforeReceive)
+            {
+                var auto = (trusted && _settings.AutoAcceptTrusted)
+                           || (!trusted && _settings.AutoAcceptStranger);
+                if (auto) RespondToFileOffer(pending.Id, true);
+            }
         });
     }
 
@@ -1151,6 +1225,8 @@ public sealed partial class ShareEngine : ObservableObject
             or TransferStatus.Canceled;
         if (terminal)
         {
+            // 终态落盘由 History 的 CollectionChanged(Replace→terminal) 统一处理（见
+            // OnHistoryCollectionChanged）；这里不再重复写盘。
             if (TransferMetrics.Remove(id))
                 TransferMetricsChanged?.Invoke(id, null);
 

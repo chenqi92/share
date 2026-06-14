@@ -1,5 +1,9 @@
 using System;
+using System.Linq;
 using H.NotifyIcon;
+using MeshDrop.Models;
+using MeshDrop.Transport;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -17,11 +21,15 @@ public sealed class TrayIconHost : IDisposable
     private TrayFlyout? _flyoutContent;
     private Flyout? _flyout;
 
+    private ShareEngine? _engine;
+    private DispatcherQueue? _ui;
+
     public event EventHandler? OpenMainRequested;
     public event EventHandler? OpenSettingsRequested;
 
     public void Initialize()
     {
+        _ui = DispatcherQueue.GetForCurrentThread();
         _flyoutContent = new TrayFlyout();
         _flyoutContent.OpenMainRequested += (s, e) => OpenMainRequested?.Invoke(s, e);
         _flyoutContent.OpenSettingsRequested += (s, e) => OpenSettingsRequested?.Invoke(s, e);
@@ -35,7 +43,7 @@ public sealed class TrayIconHost : IDisposable
 
         _icon = new TaskbarIcon
         {
-            ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 5),
+            ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 0),
             ContextFlyout = _flyout,
             // H.NotifyIcon 2.x: IconSource 类型从 IconSource 改为 ImageSource，
             // 用 BitmapImage 直接喂 PNG URI
@@ -44,6 +52,47 @@ public sealed class TrayIconHost : IDisposable
             LeftClickCommand = new RelayCommand(_ => OpenMainRequested?.Invoke(this, EventArgs.Empty)),
         };
         _icon.ForceCreate();
+        RefreshTooltip();
+    }
+
+    /// <summary>
+    /// 绑定引擎：托盘 tooltip 随「活跃传输数」更新（受 settings.trayBadge 门控）。
+    /// 徽标关闭时只显示「附近 N 台」，开启时显示「活跃 N」。订阅 History 变化 +
+    /// AppSettings.Changed，回 UI 线程刷新（H.NotifyIcon 属性须 UI 线程改）。
+    /// </summary>
+    public void Attach(ShareEngine engine)
+    {
+        _engine = engine;
+        engine.History.CollectionChanged += (_, _) => RefreshTooltip();
+        engine.Devices.CollectionChanged += (_, _) => RefreshTooltip();
+        AppSettings.Changed += RefreshTooltip;
+        RefreshTooltip();
+    }
+
+    private void RefreshTooltip()
+    {
+        if (_icon is null) return;
+        void Apply()
+        {
+            if (_icon is null) return;
+            string tip;
+            if (AppSettings.Current.TrayBadge && _engine is not null)
+            {
+                var active = _engine.History.Count(h =>
+                    h.Status is Models.TransferStatus.Transferring
+                        or Models.TransferStatus.Pending
+                        or Models.TransferStatus.WaitingApproval);
+                tip = MeshDrop.I18n.T("tray.activeFormat", active);
+            }
+            else
+            {
+                tip = MeshDrop.I18n.T("tray.tooltipFormat", _engine?.Devices.Count ?? 0);
+            }
+            try { _icon.ToolTipText = tip; } catch { }
+        }
+        // 可能从引擎后台线程触发，切回 UI 线程。
+        if (_ui is { } ui && !ui.HasThreadAccess) ui.TryEnqueue(Apply);
+        else Apply();
     }
 
     /// <summary>对外暴露：从全局热键 WIN+S 触发展开。</summary>
@@ -55,6 +104,7 @@ public sealed class TrayIconHost : IDisposable
 
     public void Dispose()
     {
+        AppSettings.Changed -= RefreshTooltip;
         _icon?.Dispose();
         _icon = null;
     }

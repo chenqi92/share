@@ -181,10 +181,9 @@
   <data name="settings/visibilityTag.Text"><value>VISIBILITY</value></data>
   <data name="settings/visibilityHint.Text"><value>Who can see you in Nearby</value></data>
   <data name="settings/displayName.Text"><value>Display name</value></data>
-  <data name="settings/visibleToggle.Header"><value>Visible on LAN · coming soon</value></data>
-  <data name="settings/visibleToggle.OffContent"><value>OFF · only you</value></data>
-  <data name="settings/visibleToggle.OnContent"><value>ON · everyone on LAN</value></data>
-  <data name="settings/hideIdleToggle.Header"><value>Auto-hide after 10 min idle · coming soon</value></data>
+  <data name="settings/visibleToggle.Header"><value>Visible on LAN</value></data>
+  <data name="settings/visibleToggle.OffContent"><value>OFF · stop advertising</value></data>
+  <data name="settings/visibleToggle.OnContent"><value>ON · discoverable on LAN</value></data>
   <data name="settings/securityTag.Text"><value>SECURITY</value></data>
   <data name="settings/securityHint.Text"><value>Ed25519 identity · SHA-256 fingerprint · LAN plaintext v0.1</value></data>
   <data name="settings/fingerprintLabel.Text"><value>Fingerprint</value></data>
@@ -192,6 +191,12 @@
   <data name="settings/transportHint.Text"><value>LAN · plaintext TCP · v0.1. Identity and pairing are protected by Ed25519 + SHA-256 fingerprint.</value></data>
   <data name="settings/tofuToggle.Header"><value>Confirm fingerprint on first pairing · TOFU</value></data>
   <data name="settings/tofuToggle.OnContent"><value>ON · always enabled</value></data>
+  <data name="settings/trustedOnlyToggle.Header"><value>Only paired devices can connect</value></data>
+  <data name="settings/trustedOnlyToggle.OnContent"><value>ON · unknown devices rejected</value></data>
+  <data name="settings/trustedOnlyToggle.OffContent"><value>OFF · unknown devices can pair</value></data>
+  <data name="settings/verifyReceiveToggle.Header"><value>Verify fingerprint before receiving</value></data>
+  <data name="settings/verifyReceiveToggle.OnContent"><value>ON · always confirm offers</value></data>
+  <data name="settings/verifyReceiveToggle.OffContent"><value>OFF · allow auto-accept</value></data>
   <data name="settings/resetIdentity.Content"><value>Reset identity…</value></data>
   <data name="settings/behaviorTag.Text"><value>BEHAVIOR</value></data>
   <data name="settings/behaviorHint.Text"><value>Receive path, sound, launch at login</value></data>
@@ -200,11 +205,18 @@
   <data name="settings/autoAcceptTrusted.Header"><value>Auto-accept from paired devices</value></data>
   <data name="settings/autoAcceptTrusted.OnContent"><value>ON · no prompt for paired devices</value></data>
   <data name="settings/autoAcceptTrusted.OffContent"><value>OFF · confirm each time</value></data>
-  <data name="settings/autoAcceptAny.Header"><value>Auto-accept any file · coming soon</value></data>
-  <data name="settings/autoAcceptAny.OffContent"><value>OFF · confirm each time</value></data>
-  <data name="settings/ringIncoming.Header"><value>Sound on receive · coming soon</value></data>
-  <data name="settings/launchAtLogin.Header"><value>Launch to tray at login · coming soon</value></data>
-  <data name="settings/trayBadge.Header"><value>Show active count on taskbar icon · coming soon</value></data>
+  <data name="settings/autoAcceptStranger.Header"><value>Auto-accept from unknown devices · risky</value></data>
+  <data name="settings/autoAcceptStranger.OnContent"><value>ON · accept without pairing</value></data>
+  <data name="settings/autoAcceptStranger.OffContent"><value>OFF · confirm each time</value></data>
+  <data name="settings/clipboardSync.Header"><value>Cross-device clipboard sync</value></data>
+  <data name="settings/clipboardSync.OnContent"><value>ON · send and receive clipboard</value></data>
+  <data name="settings/clipboardSync.OffContent"><value>OFF · clipboard disabled</value></data>
+  <data name="settings/launchAtLogin.Header"><value>Launch at login</value></data>
+  <data name="settings/launchAtLogin.OnContent"><value>ON · starts with Windows</value></data>
+  <data name="settings/launchAtLogin.OffContent"><value>OFF</value></data>
+  <data name="settings/trayBadge.Header"><value>Show active count on tray icon</value></data>
+  <data name="settings/trayBadge.OnContent"><value>ON</value></data>
+  <data name="settings/trayBadge.OffContent"><value>OFF</value></data>
   <data name="settings/webAccessTag.Text"><value>WEB ACCESS</value></data>
   <data name="settings/webAccessHint.Text"><value>Browser access via the LAN gateway</value></data>
   <data name="settings/webGatewayToggle.Header"><value>Enable Web Gateway</value></data>
@@ -276,6 +288,7 @@
   <data name="tray/send.Text"><value>Send</value></data>
   <data name="tray/openApp.Text"><value>Open meshdrop</value></data>
   <data name="tray/tooltipFormat"><value>meshdrop · {0} nearby</value></data>
+  <data name="tray/activeFormat"><value>meshdrop · {0} active</value></data>
 
   <!-- ── notifications / toast ── -->
   <data name="toast/incomingFileTitleFormat"><value>{0} wants to send you a file</value></data>

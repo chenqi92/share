@@ -57,13 +57,9 @@
                                          CornerRadius="6"
                                          FontFamily="{StaticResource MdBodyFontFamily}"/>
                             </StackPanel>
-                            <!-- 可见性与空闲隐藏尚未接 mDNS 广告开关，禁用并标注。 -->
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.Visible, Mode=TwoWay}" IsEnabled="False"
+                            <!-- 局域网可见：真开关，停/启 mDNS 广告（引擎复用现有 listener）。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.Visible, Mode=TwoWay}"
                                           x:Uid="settings/visibleToggle"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.HideAfterIdle, Mode=TwoWay}" IsEnabled="False"
-                                          x:Uid="settings/hideIdleToggle"
-                                          OffContent="OFF"
-                                          OnContent="ON"/>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -108,10 +104,19 @@
                                            FontFamily="{StaticResource MdMonoFontFamily}"
                                            FontSize="10" Opacity="0.6" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <!-- TOFU 首次配对始终需双向确认指纹，不可关闭 → 锁定 ON 的只读状态。 -->
+                            <!-- TOFU 首次配对始终需双向确认指纹，不可关闭 → 锁定 ON 的只读状态。
+                                 关闭语义危险（自动信任陌生设备），故保持开 + 锁定。 -->
                             <ToggleSwitch IsOn="True" IsEnabled="False"
                                           x:Uid="settings/tofuToggle"
                                           OffContent="OFF"/>
+                            <!-- 仅显示已配对设备：开=未知 fp 直接关连接，不弹配对。默认关。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.TrustedOnly, Mode=TwoWay}"
+                                          x:Uid="settings/trustedOnlyToggle"
+                                          OnContent="ON" OffContent="OFF"/>
+                            <!-- 接收前必须验证对方指纹：开=禁用一切自动接受，offer 一律待确认。默认开。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.VerifyBeforeReceive, Mode=TwoWay}"
+                                          x:Uid="settings/verifyReceiveToggle"
+                                          OnContent="ON" OffContent="OFF"/>
                             <!-- 危险动作：基于项目统一的 MdAccentButtonStyle 派生 flame 实底，
                                  不再用内置 AccentButtonStyle（其 hover/press 会落回 lime accent）。 -->
                             <Button x:Name="ResetIdentityButton"
@@ -166,20 +171,23 @@
                                     </Button>
                                 </Grid>
                             </StackPanel>
-                            <!-- 已接线：自动接收来自已配对设备的文件（engine.AutoAcceptFromTrusted）。 -->
+                            <!-- 自动接收来自已配对设备的文件（受「接收前验证指纹」总开关压制）。 -->
                             <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAcceptTrusted, Mode=TwoWay}"
                                           x:Uid="settings/autoAcceptTrusted"/>
-                            <!-- 以下为尚未接线的占位项，禁用并标注，避免给出虚假预期。 -->
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAccept, Mode=TwoWay}" IsEnabled="False"
-                                          x:Uid="settings/autoAcceptAny"
-                                          OnContent="ON"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.RingOnIncoming, Mode=TwoWay}" IsEnabled="False"
-                                          x:Uid="settings/ringIncoming"
+                            <!-- 自动接收陌生（未信任）设备的文件：危险，默认关。仍受「接收前验证指纹」压制。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAcceptStranger, Mode=TwoWay}"
+                                          x:Uid="settings/autoAcceptStranger"
                                           OnContent="ON" OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}" IsEnabled="False"
+                            <!-- 跨设备剪贴板同步：门控 0x11 推送的收/发。默认开。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ClipboardSync, Mode=TwoWay}"
+                                          x:Uid="settings/clipboardSync"
+                                          OnContent="ON" OffContent="OFF"/>
+                            <!-- 登录时启动：真正写 HKCU Run 键。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}"
                                           x:Uid="settings/launchAtLogin"
                                           OnContent="ON" OffContent="OFF"/>
-                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayBadge, Mode=TwoWay}" IsEnabled="False"
+                            <!-- 任务栏图标活跃数徽标：tray host 订阅设置变化刷新 tooltip。 -->
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayBadge, Mode=TwoWay}"
                                           x:Uid="settings/trayBadge"
                                           OnContent="ON" OffContent="OFF"/>
                         </StackPanel>

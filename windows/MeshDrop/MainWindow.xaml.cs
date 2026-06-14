@@ -51,6 +51,8 @@ public sealed partial class MainWindow : Window
         try
         {
             _tray.Initialize();
+            // 托盘 tooltip 随活跃传输数刷新（受 settings.trayBadge 门控）。
+            _tray.Attach(ShareEngine.Shared);
         }
         catch
         {

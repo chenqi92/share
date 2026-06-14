@@ -188,10 +188,9 @@
   <data name="settings/visibilityTag.Text"><value>可见性</value></data>
   <data name="settings/visibilityHint.Text"><value>谁能在附近看见你</value></data>
   <data name="settings/displayName.Text"><value>设备名</value></data>
-  <data name="settings/visibleToggle.Header"><value>对局域网可见 · 即将支持</value></data>
-  <data name="settings/visibleToggle.OffContent"><value>OFF · 仅自己看到</value></data>
-  <data name="settings/visibleToggle.OnContent"><value>ON · 局域网内全部</value></data>
-  <data name="settings/hideIdleToggle.Header"><value>空闲 10 分钟后自动隐藏 · 即将支持</value></data>
+  <data name="settings/visibleToggle.Header"><value>对局域网可见</value></data>
+  <data name="settings/visibleToggle.OffContent"><value>OFF · 停止广告</value></data>
+  <data name="settings/visibleToggle.OnContent"><value>ON · 可被局域网发现</value></data>
   <data name="settings/securityTag.Text"><value>安全</value></data>
   <data name="settings/securityHint.Text"><value>Ed25519 身份 · SHA-256 指纹 · 局域网明文 v0.1</value></data>
   <data name="settings/fingerprintLabel.Text"><value>本机指纹</value></data>
@@ -199,6 +198,12 @@
   <data name="settings/transportHint.Text"><value>局域网 · 明文 TCP · v0.1。身份与配对由 Ed25519 + SHA-256 指纹保护。</value></data>
   <data name="settings/tofuToggle.Header"><value>首次配对需确认指纹 · TOFU</value></data>
   <data name="settings/tofuToggle.OnContent"><value>ON · 始终启用</value></data>
+  <data name="settings/trustedOnlyToggle.Header"><value>仅允许已配对设备连接</value></data>
+  <data name="settings/trustedOnlyToggle.OnContent"><value>ON · 未知设备直接拒绝</value></data>
+  <data name="settings/trustedOnlyToggle.OffContent"><value>OFF · 未知设备可发起配对</value></data>
+  <data name="settings/verifyReceiveToggle.Header"><value>接收前必须验证对方指纹</value></data>
+  <data name="settings/verifyReceiveToggle.OnContent"><value>ON · 一律手动确认</value></data>
+  <data name="settings/verifyReceiveToggle.OffContent"><value>OFF · 允许自动接收</value></data>
   <data name="settings/resetIdentity.Content"><value>重置身份…</value></data>
   <data name="settings/behaviorTag.Text"><value>行为</value></data>
   <data name="settings/behaviorHint.Text"><value>接收路径、声音、开机自启</value></data>
@@ -207,11 +212,18 @@
   <data name="settings/autoAcceptTrusted.Header"><value>自动接收已配对设备</value></data>
   <data name="settings/autoAcceptTrusted.OnContent"><value>ON · 已配对设备不再弹窗</value></data>
   <data name="settings/autoAcceptTrusted.OffContent"><value>OFF · 每次确认</value></data>
-  <data name="settings/autoAcceptAny.Header"><value>自动接收任何文件 · 即将支持</value></data>
-  <data name="settings/autoAcceptAny.OffContent"><value>OFF · 每次确认</value></data>
-  <data name="settings/ringIncoming.Header"><value>接收时发声 · 即将支持</value></data>
-  <data name="settings/launchAtLogin.Header"><value>开机自启动到托盘 · 即将支持</value></data>
-  <data name="settings/trayBadge.Header"><value>任务栏图标显示活跃数 · 即将支持</value></data>
+  <data name="settings/autoAcceptStranger.Header"><value>自动接收陌生设备 · 危险</value></data>
+  <data name="settings/autoAcceptStranger.OnContent"><value>ON · 未配对也自动接收</value></data>
+  <data name="settings/autoAcceptStranger.OffContent"><value>OFF · 每次确认</value></data>
+  <data name="settings/clipboardSync.Header"><value>启用跨设备剪贴板同步</value></data>
+  <data name="settings/clipboardSync.OnContent"><value>ON · 收发剪贴板</value></data>
+  <data name="settings/clipboardSync.OffContent"><value>OFF · 不收不发</value></data>
+  <data name="settings/launchAtLogin.Header"><value>登录时启动</value></data>
+  <data name="settings/launchAtLogin.OnContent"><value>ON · 随 Windows 启动</value></data>
+  <data name="settings/launchAtLogin.OffContent"><value>OFF</value></data>
+  <data name="settings/trayBadge.Header"><value>托盘图标显示活跃数</value></data>
+  <data name="settings/trayBadge.OnContent"><value>ON</value></data>
+  <data name="settings/trayBadge.OffContent"><value>OFF</value></data>
   <data name="settings/webAccessTag.Text"><value>Web 访问</value></data>
   <data name="settings/webAccessHint.Text"><value>浏览器走局域网网关访问</value></data>
   <data name="settings/webGatewayToggle.Header"><value>启用 Web Gateway</value></data>
@@ -283,6 +295,7 @@
   <data name="tray/send.Text"><value>发送</value></data>
   <data name="tray/openApp.Text"><value>打开 meshdrop</value></data>
   <data name="tray/tooltipFormat"><value>meshdrop · 附近 {0} 台</value></data>
+  <data name="tray/activeFormat"><value>meshdrop · 活跃 {0}</value></data>
 
   <!-- ── 通知 Toast ── -->
   <data name="toast/incomingFileTitleFormat"><value>{0} 想发文件给你</value></data>
