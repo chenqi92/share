@@ -14,6 +14,8 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <WindowsPackageType>None</WindowsPackageType>
+    <!-- 默认语言 zh-Hans：缺失某语言时回退到该 resw；PRI 资源选择的兜底语言 -->
+    <DefaultLanguage>zh-Hans</DefaultLanguage>
     <!-- 我们在 App.xaml.cs 自己写了 Program.Main 来设置 SynchronizationContext；
          禁用 XAML 编译器自动生成的 Program.Main 避免重复 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
@@ -43,5 +45,11 @@
   <ItemGroup>
     <None Remove="Assets\**" />
     <Content Include="Assets\**" />
+  </ItemGroup>
+
+  <!-- i18n 资源：两份 .resw 作为 PRIResource 打进 resources.pri，运行时按系统语言选择 -->
+  <ItemGroup>
+    <PRIResource Include="Strings\zh-Hans\Resources.resw" />
+    <PRIResource Include="Strings\en-US\Resources.resw" />
   </ItemGroup>
 </Project>

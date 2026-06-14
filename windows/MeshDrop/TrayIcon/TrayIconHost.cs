@@ -35,7 +35,7 @@ public sealed class TrayIconHost : IDisposable
 
         _icon = new TaskbarIcon
         {
-            ToolTipText = "meshdrop · 附近 5 台",
+            ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 5),
             ContextFlyout = _flyout,
             // H.NotifyIcon 2.x: IconSource 类型从 IconSource 改为 ImageSource，
             // 用 BitmapImage 直接喂 PNG URI

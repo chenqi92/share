@@ -11,6 +11,10 @@ public sealed partial class DiscoveryPage : Microsoft.UI.Xaml.Controls.UserContr
     {
         ViewModel = new DiscoveryViewModel();
         InitializeComponent();
+        // 自定义 ChipControl 的 Text DP 不走 x:Uid，在此设置本地化串。
+        LiveChip.Text = I18n.T("discovery.chipLive");
+        PlaintextChip.Text = I18n.T("discovery.chipPlaintext");
+        LanOnlyChip.Text = I18n.T("discovery.chipLanOnly");
         Loaded += (_, _) => { Refresh(); ViewModel.PropertyChanged += OnVmChanged; ViewModel.Devices.CollectionChanged += OnDevicesChanged; };
         Unloaded += (_, _) => { ViewModel.PropertyChanged -= OnVmChanged; ViewModel.Devices.CollectionChanged -= OnDevicesChanged; };
     }
@@ -32,7 +36,7 @@ public sealed partial class DiscoveryPage : Microsoft.UI.Xaml.Controls.UserContr
 
         if (ViewModel.LastError is { } err && !string.IsNullOrEmpty(err))
         {
-            ErrorText.Text = $"网络出错 — {err}";
+            ErrorText.Text = I18n.T("discovery.networkErrorFormat", err);
             ErrorBanner.Visibility = Visibility.Visible;
         }
         else
@@ -41,6 +45,7 @@ public sealed partial class DiscoveryPage : Microsoft.UI.Xaml.Controls.UserContr
         }
 
         EmptyCard.Visibility = ViewModel.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
-        FooterDivider.Label = $"── SWEEP 4.5s · PULSE 2.6s · {ViewModel.Devices.Count} PEERS ──";
+        // 雷达页脚分隔条：含可读词（扫描/脉冲/台数），整体走本地化模板，{0} 为设备数。
+        FooterDivider.Label = I18n.T("discovery.sweepFooterFormat", ViewModel.Devices.Count);
     }
 }

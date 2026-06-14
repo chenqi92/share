@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- English (en-US) resources. Keys mirror Strings/zh-Hans/Resources.resw exactly. -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ── common ── -->
+  <data name="common/reject.Text"><value>× Reject</value></data>
+  <data name="common/cancel.Text"><value>Cancel</value></data>
+  <data name="common/copy.Text"><value>Copy</value></data>
+  <data name="common/send.Text"><value>Send</value></data>
+  <data name="common/allowOnce.Text"><value>Allow once</value></data>
+  <data name="common/allowRemember.Text"><value>✓ Allow &amp; remember</value></data>
+  <data name="common/view.Text"><value>View…</value></data>
+  <data name="common/me"><value>Me</value></data>
+
+  <!-- ── shell ── -->
+  <data name="shell/search.PlaceholderText"><value>Search peers, files…</value></data>
+  <data name="shell/nav/nearby.Text"><value>Nearby</value></data>
+  <data name="shell/nav/messages.Text"><value>Messages</value></data>
+  <data name="shell/nav/transfers.Text"><value>Transfers</value></data>
+  <data name="shell/nav/transfersBadge.Text"><value>2 active</value></data>
+  <data name="shell/nav/history.Text"><value>History</value></data>
+  <data name="shell/nav/clipboard.Text"><value>Clipboard</value></data>
+  <data name="shell/nav/trust.Text"><value>Trust</value></data>
+  <data name="shell/nav/settings.Text"><value>Settings</value></data>
+  <data name="shell/pairedDivider"><value>── PAIRED · 5 ──</value></data>
+  <data name="shell/selfTag.Text"><value>DEV-01 · Me</value></data>
+
+  <!-- ── status bar ── -->
+  <data name="status/online"><value>Online</value></data>
+  <data name="status/scanning"><value>Scanning</value></data>
+  <data name="status/offline"><value>Offline</value></data>
+  <data name="status/peersFormat"><value>{0} peers</value></data>
+
+  <!-- ── discovery ── -->
+  <data name="discovery/title.Text"><value>Nearby</value></data>
+  <data name="discovery/subtitle.Text"><value>radar discovery</value></data>
+  <data name="discovery/sendFile.Text"><value>Send file…</value></data>
+  <data name="discovery/newSession.Text"><value>+ New session</value></data>
+  <data name="discovery/chipLive"><value>LIVE</value></data>
+  <data name="discovery/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
+  <data name="discovery/chipLanOnly"><value>LAN ONLY</value></data>
+  <data name="discovery/scanningBanner.Text"><value>scanning LAN…</value></data>
+  <data name="discovery/networkError.Text"><value>Network error</value></data>
+  <data name="discovery/networkErrorFormat"><value>Network error — {0}</value></data>
+  <data name="discovery/emptyTitle.Text"><value>No MeshDrop devices nearby</value></data>
+  <data name="discovery/emptyHint.Text"><value>open it on a peer</value></data>
+  <data name="discovery/actionSend.Text"><value>→ Send file</value></data>
+  <data name="discovery/actionChat.Text"><value>◌ Start chat</value></data>
+  <data name="discovery/actionClipboard.Text"><value>⌶ Sync clipboard</value></data>
+  <data name="discovery/dropTitle.Text"><value>Drop files here</value></data>
+  <data name="discovery/tipLabel.Text"><value>TIP</value></data>
+  <data name="discovery/tipText.Text"><value>WIN+S to summon tray · Ctrl+, for settings</value></data>
+  <data name="discovery/peerCountFormat"><value>Nearby · {0} peers</value></data>
+  <data name="discovery/sweepFooterFormat"><value>── SWEEP 4.5s · PULSE 2.6s · {0} PEERS ──</value></data>
+
+  <!-- ── chat ── -->
+  <data name="chat/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
+  <data name="chat/dropToSend.Text"><value>Drop to send</value></data>
+  <data name="chat/dropToSendCaption"><value>Drop to send</value></data>
+  <data name="chat/dropOverlayFormat"><value>Drop to send · → {0}</value></data>
+  <data name="chat/addFile.Text"><value>+ Add file</value></data>
+  <data name="chat/composer.PlaceholderText"><value>Type a message</value></data>
+  <data name="chat/noPeer"><value>No peer selected</value></data>
+  <data name="chat/peerFallback"><value>peer</value></data>
+  <data name="msg/delivered.Text"><value>· Delivered</value></data>
+
+  <!-- ── transfers ── -->
+  <data name="transfers/title.Text"><value>Transfers</value></data>
+  <data name="transfers/subtitle.Text"><value>6 tasks · 2 in progress</value></data>
+  <data name="transfers/filterAll.Text"><value>All</value></data>
+  <data name="transfers/filterActive.Text"><value>Active · 2</value></data>
+  <data name="transfers/filterDone.Text"><value>Done</value></data>
+  <data name="transfers/tileSession"><value>── SESSION TOTAL ──</value></data>
+  <data name="transfers/tileUp"><value>── UP ↑ ──</value></data>
+  <data name="transfers/tileDown"><value>── DOWN ↓ ──</value></data>
+  <data name="transfers/tasksDivider"><value>── TASKS · 6 ──</value></data>
+  <data name="transfers/peakFormat"><value>peak {0}</value></data>
+  <data name="transfers/cancel"><value>Cancel</value></data>
+  <data name="transfers/stateSending"><value>↑ Sending</value></data>
+  <data name="transfers/stateSendingFormat"><value>↑ {0}</value></data>
+  <data name="transfers/stateReceiving"><value>↓ Receiving</value></data>
+  <data name="transfers/stateReceivingFormat"><value>↓ {0}</value></data>
+  <data name="transfers/stateDone"><value>✓ Done</value></data>
+  <data name="transfers/stateFailed"><value>× Failed</value></data>
+  <data name="transfers/stateQueued"><value>· Queued</value></data>
+
+  <!-- ── history ── -->
+  <data name="history/title.Text"><value>History</value></data>
+  <data name="history/subtitle.Text"><value>6 today · 12 yesterday · 38 total</value></data>
+  <data name="history/filterAll.Text"><value>All</value></data>
+  <data name="history/filterFile.Text"><value>Files</value></data>
+  <data name="history/filterImage.Text"><value>Images</value></data>
+  <data name="history/filterText.Text"><value>Text</value></data>
+  <data name="history/clipboardDivider"><value>── CLIPBOARD SYNC · 5 ──</value></data>
+  <data name="history/todayDivider"><value>── TODAY · 6 ──</value></data>
+  <data name="history/todayLabelFormat"><value>── HISTORY · {0} ──</value></data>
+  <data name="history/earlierDivider"><value>── EARLIER ──</value></data>
+  <data name="history/clipboardLabelFormat"><value>── CLIPBOARD · {0} ──</value></data>
+  <data name="history/imageCountFormat"><value>{0} images</value></data>
+  <data name="history/imageSummaryFormat"><value>{0} images</value></data>
+  <data name="history/image"><value>Image</value></data>
+  <data name="history/active"><value>Active</value></data>
+
+  <!-- ── clipboard ── -->
+  <data name="clipboard/title.Text"><value>Clipboard</value></data>
+  <data name="clipboard/subtitle.Text"><value>Explicit push · sent only when you tap, never silent background sync</value></data>
+  <data name="clipboard/pushTo.Text"><value>Push to</value></data>
+  <data name="clipboard/selectDevice.PlaceholderText"><value>Select device</value></data>
+  <data name="clipboard/readClipboard.Text"><value>Read clipboard</value></data>
+  <data name="clipboard/editor.PlaceholderText"><value>Paste or type the content to push…</value></data>
+  <data name="clipboard/push.Text"><value>↑ Push</value></data>
+  <data name="clipboard/inboxLabelFormat"><value>── INBOX · {0} ──</value></data>
+
+  <!-- ── trust ── -->
+  <data name="trust/title.Text"><value>Trust manager</value></data>
+  <data name="trust/revoke.Text"><value>Revoke trust</value></data>
+  <data name="trust/subtitleFormat"><value>{0} devices verified by fingerprint. Revoking requires re-confirming on both ends next time.</value></data>
+  <data name="trust/pendingDividerFormat"><value>── PENDING · {0} ──</value></data>
+
+  <!-- ── settings ── -->
+  <data name="settings/title.Text"><value>Settings</value></data>
+  <data name="settings/subtitle.Text"><value>Local preferences · stored only on this device</value></data>
+  <data name="settings/visibilityTag.Text"><value>VISIBILITY</value></data>
+  <data name="settings/visibilityHint.Text"><value>Who can see you in Nearby</value></data>
+  <data name="settings/displayName.Text"><value>Display name</value></data>
+  <data name="settings/visibleToggle.Header"><value>Visible on LAN · coming soon</value></data>
+  <data name="settings/visibleToggle.OffContent"><value>OFF · only you</value></data>
+  <data name="settings/visibleToggle.OnContent"><value>ON · everyone on LAN</value></data>
+  <data name="settings/hideIdleToggle.Header"><value>Auto-hide after 10 min idle · coming soon</value></data>
+  <data name="settings/securityTag.Text"><value>SECURITY</value></data>
+  <data name="settings/securityHint.Text"><value>Ed25519 identity · SHA-256 fingerprint · LAN plaintext v0.1</value></data>
+  <data name="settings/fingerprintLabel.Text"><value>Fingerprint</value></data>
+  <data name="settings/transportLabel.Text"><value>TRANSPORT</value></data>
+  <data name="settings/transportHint.Text"><value>LAN · plaintext TCP · v0.1. Identity and pairing are protected by Ed25519 + SHA-256 fingerprint.</value></data>
+  <data name="settings/tofuToggle.Header"><value>Confirm fingerprint on first pairing · TOFU</value></data>
+  <data name="settings/tofuToggle.OnContent"><value>ON · always enabled</value></data>
+  <data name="settings/resetIdentity.Content"><value>Reset identity…</value></data>
+  <data name="settings/behaviorTag.Text"><value>BEHAVIOR</value></data>
+  <data name="settings/behaviorHint.Text"><value>Receive path, sound, launch at login</value></data>
+  <data name="settings/receiveDir.Text"><value>Receive folder · subfolder per peer</value></data>
+  <data name="settings/browse.Text"><value>Browse…</value></data>
+  <data name="settings/autoAcceptTrusted.Header"><value>Auto-accept from paired devices</value></data>
+  <data name="settings/autoAcceptTrusted.OnContent"><value>ON · no prompt for paired devices</value></data>
+  <data name="settings/autoAcceptTrusted.OffContent"><value>OFF · confirm each time</value></data>
+  <data name="settings/autoAcceptAny.Header"><value>Auto-accept any file · coming soon</value></data>
+  <data name="settings/autoAcceptAny.OffContent"><value>OFF · confirm each time</value></data>
+  <data name="settings/ringIncoming.Header"><value>Sound on receive · coming soon</value></data>
+  <data name="settings/launchAtLogin.Header"><value>Launch to tray at login · coming soon</value></data>
+  <data name="settings/trayBadge.Header"><value>Show active count on taskbar icon · coming soon</value></data>
+  <data name="settings/webAccessTag.Text"><value>WEB ACCESS</value></data>
+  <data name="settings/webAccessHint.Text"><value>Browser access via the LAN gateway</value></data>
+  <data name="settings/webGatewayToggle.Header"><value>Enable Web Gateway</value></data>
+  <data name="settings/webGatewayToggle.OnContent"><value>ON · LAN browsers can connect</value></data>
+  <data name="settings/webUrlLabel.Text"><value>URL</value></data>
+  <data name="settings/pairingCodeLabel.Text"><value>Pairing code · valid 24h</value></data>
+  <data name="settings/certHint.Text"><value>On first visit your browser will warn about the certificate; accept the meshdrop.local self-signed cert.</value></data>
+  <data name="settings/aboutTag.Text"><value>ABOUT</value></data>
+  <data name="settings/resetDialog/title"><value>Reset identity</value></data>
+  <data name="settings/resetDialog/body"><value>This deletes the current ID and Ed25519 private key. All paired peers will treat this device as new and need to re-pair. Restart MeshDrop after reset for the new identity to take effect.</value></data>
+  <data name="settings/resetDialog/confirm"><value>Reset</value></data>
+  <data name="settings/resetDone/title"><value>Reset done</value></data>
+  <data name="settings/resetDone/body"><value>Identity deleted. Please quit and restart MeshDrop for the new identity to take effect.</value></data>
+  <data name="settings/resetDone/ok"><value>OK</value></data>
+
+  <!-- ── onboarding ── -->
+  <data name="onboarding/tagline.Text"><value>An intranet drop · radar discovery · drag-to-send · LAN direct</value></data>
+  <data name="onboarding/skip"><value>Skip</value></data>
+  <data name="onboarding/start"><value>Get started →</value></data>
+  <data name="onboarding/headline1.Text"><value>One intranet, any device,</value></data>
+  <data name="onboarding/headline2.Text"><value>everyone can be pinged.</value></data>
+  <data name="onboarding/step1Tag.Text"><value>01 · DISCOVER</value></data>
+  <data name="onboarding/step1Title.Text"><value>See each other on the same Wi-Fi</value></data>
+  <data name="onboarding/step1Hint.Text"><value>Radar scan, 4.5s/sweep · periodic breathing</value></data>
+  <data name="onboarding/step2Tag.Text"><value>02 · DRAG TO SEND</value></data>
+  <data name="onboarding/step2Title.Text"><value>Drag files straight onto a device</value></data>
+  <data name="onboarding/step2Hint.Text"><value>No need to open the chat page</value></data>
+  <data name="onboarding/step3Tag.Text"><value>03 · DIRECT</value></data>
+  <data name="onboarding/step3Title.Text"><value>Never goes through any cloud</value></data>
+  <data name="onboarding/step3Hint.Text"><value>LAN direct · Ed25519 identity fingerprint</value></data>
+  <data name="onboarding/step4Tag.Text"><value>04 · TRAY</value></data>
+  <data name="onboarding/step4Title.Text"><value>Always in the taskbar</value></data>
+  <data name="onboarding/step4Hint.Text"><value>WIN+S to summon instantly</value></data>
+
+  <!-- ── send dialog ── -->
+  <data name="send/cancel"><value>Cancel</value></data>
+  <data name="send/send"><value>Send →</value></data>
+  <data name="send/toFormat.Text"><value>Send to · Lily</value></data>
+  <data name="send/chipPlaintext.Text"><value>LAN · plaintext · v0.1</value></data>
+  <data name="send/kindDivider"><value>── KIND ──</value></data>
+  <data name="send/kindText.Text"><value>Text</value></data>
+  <data name="send/kindFile.Text"><value>File</value></data>
+  <data name="send/kindNote.Text"><value>Note</value></data>
+  <data name="send/editor.PlaceholderText"><value>Type something…</value></data>
+  <data name="send/shortcutHint.Text"><value>Press Ctrl+Enter to send now · ESC to close</value></data>
+  <data name="send/securityNote.Text"><value>This message goes over LAN plaintext TCP directly to 192.168.1.31 (v0.1) · identity verified by Ed25519 fingerprint</value></data>
+
+  <!-- ── pairing dialog ── -->
+  <data name="pairing/title.Text"><value>New device requests pairing</value></data>
+  <data name="pairing/compareDivider"><value>── COMPARE FINGERPRINT · same string on their screen ──</value></data>
+  <data name="pairing/step1.Text"><value>The other device shows the same 8-group fingerprint</value></data>
+  <data name="pairing/step2.Text"><value>Compare group by group (first 4 + last 4)</value></data>
+  <data name="pairing/step3.Text"><value>Match → allow &amp; remember; mismatch → reject immediately (possible MITM)</value></data>
+
+  <!-- ── file offer dialog ── -->
+  <data name="fileOffer/titleFormat.Text"><value>Jiawei wants to send you a file</value></data>
+  <data name="fileOffer/noteLabel.Text"><value>note</value></data>
+  <data name="fileOffer/noteSample.Text"><value>Done with edits — please review chapter 2, especially §2.3</value></data>
+  <data name="fileOffer/saveToLabel.Text"><value>Will save to</value></data>
+  <data name="fileOffer/checksumLabel.Text"><value>Checksum · sha-256</value></data>
+  <data name="fileOffer/checksumHint.Text"><value>Auto-verified on completion</value></data>
+  <data name="fileOffer/acceptSize.Text"><value>✓ Accept · 3.4 MB</value></data>
+
+  <!-- ── tray ── -->
+  <data name="tray/sendClipboardTip"><value>Send the clipboard text / URL to this device immediately</value></data>
+  <data name="tray/onlineCountFormat"><value>{0} online</value></data>
+  <data name="tray/nearbyDividerFormat"><value>── NEARBY · {0} ──</value></data>
+  <data name="tray/actionsDivider"><value>── ACTIONS ──</value></data>
+  <data name="tray/send.Text"><value>Send</value></data>
+  <data name="tray/openApp.Text"><value>Open meshdrop</value></data>
+  <data name="tray/tooltipFormat"><value>meshdrop · {0} nearby</value></data>
+
+  <!-- ── notifications / toast ── -->
+  <data name="toast/incomingFileTitleFormat"><value>{0} wants to send you a file</value></data>
+  <data name="toast/attributionFormat"><value>meshdrop · {0}</value></data>
+  <data name="toast/accept"><value>Accept</value></data>
+  <data name="toast/reject"><value>Reject</value></data>
+  <data name="toast/view"><value>View</value></data>
+  <data name="toast/pairingTitleFormat"><value>{0} requests pairing</value></data>
+  <data name="toast/fingerprintFormat"><value>Fingerprint · {0}</value></data>
+  <data name="toast/pairingAttribution"><value>meshdrop · please compare the fingerprint with their screen</value></data>
+  <data name="toast/allowRemember"><value>Allow &amp; remember</value></data>
+  <data name="toast/allowOnce"><value>Allow once</value></data>
+  <data name="toast/copy"><value>Copy</value></data>
+  <data name="toast/reply"><value>Reply</value></data>
+  <data name="toast/clipboardPeerFormat"><value>{0} · clipboard</value></data>
+</root>

@@ -14,7 +14,7 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Padding="24,18,24,10" Spacing="6">
-            <TextBlock Text="已配对 · Trust manager"
+            <TextBlock x:Uid="trust/title"
                        FontFamily="{StaticResource MdDisplayFontFamily}"
                        FontWeight="Bold"
                        FontSize="28"
@@ -94,7 +94,7 @@
                                     <Button Grid.Column="5" Style="{StaticResource MdOutlineButtonStyle}" VerticalAlignment="Center"
                                             Command="{Binding ViewModel.RevokeCommand, ElementName=PageRoot}"
                                             CommandParameter="{x:Bind}">
-                                        <TextBlock Text="撤销信任"/>
+                                        <TextBlock x:Uid="trust/revoke"/>
                                     </Button>
                                 </Grid>
                             </Border>
@@ -140,17 +140,17 @@
                                         <Button Style="{StaticResource MdAccentButtonStyle}"
                                                 Command="{Binding ViewModel.AcceptAndRememberCommand, ElementName=PageRoot}"
                                                 CommandParameter="{x:Bind}">
-                                            <TextBlock Text="✓ 允许并记住"/>
+                                            <TextBlock x:Uid="common/allowRemember"/>
                                         </Button>
                                         <Button Style="{StaticResource MdOutlineButtonStyle}"
                                                 Command="{Binding ViewModel.AllowOnceCommand, ElementName=PageRoot}"
                                                 CommandParameter="{x:Bind}">
-                                            <TextBlock Text="允许一次"/>
+                                            <TextBlock x:Uid="common/allowOnce"/>
                                         </Button>
                                         <Button Style="{StaticResource MdOutlineButtonStyle}"
                                                 Command="{Binding ViewModel.RejectCommand, ElementName=PageRoot}"
                                                 CommandParameter="{x:Bind}">
-                                            <TextBlock Text="× 拒绝"/>
+                                            <TextBlock x:Uid="common/reject"/>
                                         </Button>
                                     </StackPanel>
                                 </StackPanel>

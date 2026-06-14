@@ -84,6 +84,8 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
     public TransferRowControl()
     {
         InitializeComponent();
+        // 取消按钮 ToolTip 是附加属性，不走 x:Uid，在此设置本地化串。
+        Microsoft.UI.Xaml.Controls.ToolTipService.SetToolTip(CancelButton, I18n.T("transfers.cancel"));
         Loaded += (_, _) => Apply();
     }
 
@@ -94,32 +96,32 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
         {
             case MockTransferState.Sending:
                 StateBrush = (Brush)res["MdFlameBrush"];
-                StateText = string.IsNullOrEmpty(Speed) ? "↑ 发送中" : $"↑ {Speed}";
+                StateText = string.IsNullOrEmpty(Speed) ? I18n.T("transfers.stateSending") : I18n.T("transfers.stateSendingFormat", Speed);
                 ProgressVisibility = Visibility.Visible;
                 CancelVisibility = Visibility.Visible;
                 break;
             case MockTransferState.Receiving:
                 StateBrush = (Brush)res["MdSkyBrush"];
-                StateText = string.IsNullOrEmpty(Speed) ? "↓ 接收中" : $"↓ {Speed}";
+                StateText = string.IsNullOrEmpty(Speed) ? I18n.T("transfers.stateReceiving") : I18n.T("transfers.stateReceivingFormat", Speed);
                 ProgressVisibility = Visibility.Visible;
                 CancelVisibility = Visibility.Visible;
                 break;
             case MockTransferState.Done:
                 StateBrush = (Brush)res["MdLimeDeepBrush"];
-                StateText = "✓ 已完成";
+                StateText = I18n.T("transfers.stateDone");
                 ProgressVisibility = Visibility.Collapsed;
                 CancelVisibility = Visibility.Collapsed;
                 break;
             case MockTransferState.Failed:
                 StateBrush = (Brush)res["MdErrorBrush"];
-                StateText = "× 失败";
+                StateText = I18n.T("transfers.stateFailed");
                 ProgressVisibility = Visibility.Collapsed;
                 CancelVisibility = Visibility.Collapsed;
                 break;
             case MockTransferState.Queued:
             default:
                 StateBrush = (Brush)res["MdInk45Brush"];
-                StateText = "· 排队";
+                StateText = I18n.T("transfers.stateQueued");
                 ProgressVisibility = Visibility.Collapsed;
                 CancelVisibility = Visibility.Collapsed;
                 break;

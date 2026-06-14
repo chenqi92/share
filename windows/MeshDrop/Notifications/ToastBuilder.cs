@@ -18,9 +18,9 @@ public static class ToastBuilder
         string? offerId = null)
     {
         var builder = new ToastContentBuilder()
-            .AddText($"{peer} 想发文件给你")
+            .AddText(I18n.T("toast.incomingFileTitleFormat", peer))
             .AddText(fileName)
-            .AddAttributionText($"meshdrop · {sizeText}");
+            .AddAttributionText(I18n.T("toast.attributionFormat", sizeText));
 
         if (!string.IsNullOrEmpty(note))
         {
@@ -28,11 +28,11 @@ public static class ToastBuilder
         }
 
         var oid = offerId ?? "po-1";
-        builder.AddButton(new ToastButton("接收", $"action=accept&offer={oid}")
+        builder.AddButton(new ToastButton(I18n.T("toast.accept"), $"action=accept&offer={oid}")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("拒绝", $"action=reject&offer={oid}")
+        builder.AddButton(new ToastButton(I18n.T("toast.reject"), $"action=reject&offer={oid}")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("查看", $"action=open&offer={oid}")
+        builder.AddButton(new ToastButton(I18n.T("toast.view"), $"action=open&offer={oid}")
             .SetBackgroundActivation());
 
         return builder.Content;
@@ -49,16 +49,16 @@ public static class ToastBuilder
         string pairingId)
     {
         var builder = new ToastContentBuilder()
-            .AddText($"{peer} 请求配对")
+            .AddText(I18n.T("toast.pairingTitleFormat", peer))
             .AddText(deviceSubtitle)
-            .AddText($"指纹 · {fingerprint}")
-            .AddAttributionText("meshdrop · 请与对方屏幕核对指纹");
+            .AddText(I18n.T("toast.fingerprintFormat", fingerprint))
+            .AddAttributionText(I18n.T("toast.pairingAttribution"));
 
-        builder.AddButton(new ToastButton("允许并记住", $"action=pair_trust&pairing={pairingId}")
+        builder.AddButton(new ToastButton(I18n.T("toast.allowRemember"), $"action=pair_trust&pairing={pairingId}")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("允许一次", $"action=pair_once&pairing={pairingId}")
+        builder.AddButton(new ToastButton(I18n.T("toast.allowOnce"), $"action=pair_once&pairing={pairingId}")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("拒绝", $"action=pair_reject&pairing={pairingId}")
+        builder.AddButton(new ToastButton(I18n.T("toast.reject"), $"action=pair_reject&pairing={pairingId}")
             .SetBackgroundActivation());
 
         return builder.Content;
@@ -70,11 +70,11 @@ public static class ToastBuilder
         var builder = new ToastContentBuilder()
             .AddText($"{peer} · {time}")
             .AddText(text);
-        builder.AddButton(new ToastButton("复制", "action=copy")
+        builder.AddButton(new ToastButton(I18n.T("toast.copy"), "action=copy")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("回复", "action=reply")
+        builder.AddButton(new ToastButton(I18n.T("toast.reply"), "action=reply")
             .SetBackgroundActivation());
-        builder.AddButton(new ToastButton("查看", "action=open")
+        builder.AddButton(new ToastButton(I18n.T("toast.view"), "action=open")
             .SetBackgroundActivation());
         return builder.Content;
     }

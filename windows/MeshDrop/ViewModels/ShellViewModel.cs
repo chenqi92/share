@@ -26,10 +26,10 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         get
         {
-            if (_engine.IsStarting) return "● SCANNING · 扫描中…";
+            if (_engine.IsStarting) return $"● {I18n.T("status.scanning")}";
             if (_engine.LastError is { } err) return $"● ERROR · {err}";
-            if (!_engine.IsRunning) return "● OFFLINE";
-            return $"● ONLINE · {_engine.LocalIp} · {Devices.Count} peers";
+            if (!_engine.IsRunning) return $"● {I18n.T("status.offline")}";
+            return $"● {I18n.T("status.online")} · {_engine.LocalIp} · {I18n.T("status.peersFormat", Devices.Count)}";
         }
     }
 

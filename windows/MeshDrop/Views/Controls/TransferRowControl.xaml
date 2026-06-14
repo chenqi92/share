@@ -81,9 +81,9 @@
                                Foreground="{ThemeResource MdInk45Brush}"
                                HorizontalAlignment="Right"/>
                 </StackPanel>
-                <Button Visibility="{x:Bind CancelVisibility, Mode=OneWay}"
+                <Button x:Name="CancelButton"
+                        Visibility="{x:Bind CancelVisibility, Mode=OneWay}"
                         Click="OnCancelClick"
-                        ToolTipService.ToolTip="取消传输 · Cancel"
                         Background="Transparent"
                         BorderThickness="0"
                         Padding="4"

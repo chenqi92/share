@@ -30,7 +30,7 @@ public sealed partial class ClipboardViewModel : ObservableObject
     [ObservableProperty]
     private string _draft = "";
 
-    public string InboxLabel => $"── INBOX · 收到的剪贴板 · {Inbox.Count} ──";
+    public string InboxLabel => I18n.T("clipboard.inboxLabelFormat", Inbox.Count);
 
     public ClipboardViewModel()
     {

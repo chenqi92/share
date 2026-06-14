@@ -19,20 +19,20 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Spacing="4">
-                <TextBlock Text="传输 · Transfers"
+                <TextBlock x:Uid="transfers/title"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="Bold"
                            FontSize="28"
                            CharacterSpacing="-25"/>
-                <TextBlock Text="6 个任务 · 2 进行中"
+                <TextBlock x:Uid="transfers/subtitle"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="11"
                            Opacity="0.65"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <ctrl:ChipControl Text="全部" Tone="Ink"/>
-                <ctrl:ChipControl Text="活跃 · 2" Tone="Outline"/>
-                <ctrl:ChipControl Text="已完成" Tone="Outline"/>
+                <ctrl:ChipControl x:Name="FilterAll" Tone="Ink"/>
+                <ctrl:ChipControl x:Name="FilterActive" Tone="Outline"/>
+                <ctrl:ChipControl x:Name="FilterDone" Tone="Outline"/>
             </StackPanel>
         </Grid>
 
@@ -46,26 +46,26 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <ctrl:DashTile Grid.Column="0"
-                                   Label="── SESSION · 传输总量 ──"
+                                   x:Name="SessionTile"
                                    Value="{x:Bind ViewModel.SessionValue, Mode=OneWay}"
                                    Hint="{x:Bind ViewModel.SessionHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdLimeDeepBrush}"
                                    Bars="{x:Bind ViewModel.SessionBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="1"
-                                   Label="── UP ↑ · 上行 ──"
+                                   x:Name="UpTile"
                                    Value="{x:Bind ViewModel.UpValue, Mode=OneWay}"
                                    Hint="{x:Bind ViewModel.UpHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdFlameBrush}"
                                    Bars="{x:Bind ViewModel.UploadBars, Mode=OneWay}"/>
                     <ctrl:DashTile Grid.Column="2"
-                                   Label="── DOWN ↓ · 下行 ──"
+                                   x:Name="DownTile"
                                    Value="{x:Bind ViewModel.DownValue, Mode=OneWay}"
                                    Hint="{x:Bind ViewModel.DownHint, Mode=OneWay}"
                                    AccentBrush="{ThemeResource MdSkyBrush}"
                                    Bars="{x:Bind ViewModel.DownloadBars, Mode=OneWay}"/>
                 </Grid>
 
-                <ctrl:AsciiDivider Label="── TASKS · 任务列表 · 6 ──"/>
+                <ctrl:AsciiDivider x:Name="TasksDivider"/>
 
                 <ItemsControl ItemsSource="{x:Bind ViewModel.All, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>

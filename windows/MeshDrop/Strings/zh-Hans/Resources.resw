@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    WinUI .resw 资源（默认语言 zh-Hans）。
+    为什么用 resw + x:Uid / ResourceLoader：WinUI 官方 i18n 通道，随 PRI 打包，运行时按系统语言自动选择。
+    key 采用点分命名空间，与 macOS/Android/iOS 等平台保持一致，便于跨端对照。
+    标准控件属性（Text/Content/Header/PlaceholderText/OnContent/OffContent）通过 x:Uid 绑定，
+    key 形如 "<Uid>.<Property>"；自定义控件属性（ChipControl.Text / AsciiDivider.Label 等）
+    与代码内动态文案通过 ResourceLoader.GetString 取（key 中的点替换为斜杠）。
+  -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- ── common 通用复用词 ── -->
+  <data name="common/reject.Text"><value>× 拒绝</value></data>
+  <data name="common/cancel.Text"><value>取消</value></data>
+  <data name="common/copy.Text"><value>复制</value></data>
+  <data name="common/send.Text"><value>发送</value></data>
+  <data name="common/allowOnce.Text"><value>允许一次</value></data>
+  <data name="common/allowRemember.Text"><value>✓ 允许并记住</value></data>
+  <data name="common/view.Text"><value>查看…</value></data>
+  <data name="common/me"><value>我</value></data>
+
+  <!-- ── shell 侧栏 / 导航 / 搜索 ── -->
+  <data name="shell/search.PlaceholderText"><value>搜索设备、文件…</value></data>
+  <data name="shell/nav/nearby.Text"><value>附近</value></data>
+  <data name="shell/nav/messages.Text"><value>消息</value></data>
+  <data name="shell/nav/transfers.Text"><value>传输</value></data>
+  <data name="shell/nav/transfersBadge.Text"><value>2 活跃</value></data>
+  <data name="shell/nav/history.Text"><value>历史</value></data>
+  <data name="shell/nav/clipboard.Text"><value>剪贴板</value></data>
+  <data name="shell/nav/trust.Text"><value>已配对</value></data>
+  <data name="shell/nav/settings.Text"><value>设置</value></data>
+  <data name="shell/pairedDivider"><value>── 已配对 · 5 ──</value></data>
+  <data name="shell/selfTag.Text"><value>DEV-01 · 我</value></data>
+
+  <!-- ── 状态栏 ── -->
+  <data name="status/online"><value>在线</value></data>
+  <data name="status/scanning"><value>扫描中</value></data>
+  <data name="status/offline"><value>离线</value></data>
+  <data name="status/peersFormat"><value>{0} 台</value></data>
+
+  <!-- ── discovery 发现页 ── -->
+  <data name="discovery/title.Text"><value>附近</value></data>
+  <data name="discovery/subtitle.Text"><value>雷达发现</value></data>
+  <data name="discovery/sendFile.Text"><value>发送文件…</value></data>
+  <data name="discovery/newSession.Text"><value>+ 新会话</value></data>
+  <data name="discovery/chipLive"><value>实时</value></data>
+  <data name="discovery/chipPlaintext"><value>LAN · 明文 · v0.1</value></data>
+  <data name="discovery/chipLanOnly"><value>仅局域网</value></data>
+  <data name="discovery/scanningBanner.Text"><value>正在扫描局域网…</value></data>
+  <data name="discovery/networkError.Text"><value>网络出错</value></data>
+  <data name="discovery/networkErrorFormat"><value>网络出错 — {0}</value></data>
+  <data name="discovery/emptyTitle.Text"><value>附近没有 MeshDrop 设备</value></data>
+  <data name="discovery/emptyHint.Text"><value>让朋友也打开 MeshDrop</value></data>
+  <data name="discovery/actionSend.Text"><value>→ 发送文件</value></data>
+  <data name="discovery/actionChat.Text"><value>◌ 开始聊天</value></data>
+  <data name="discovery/actionClipboard.Text"><value>⌶ 同步剪贴板</value></data>
+  <data name="discovery/dropTitle.Text"><value>拖文件到这里</value></data>
+  <data name="discovery/tipLabel.Text"><value>提示</value></data>
+  <data name="discovery/tipText.Text"><value>WIN+S 唤出托盘 · Ctrl+, 打开设置</value></data>
+  <data name="discovery/peerCountFormat"><value>附近设备 · {0} 台</value></data>
+  <data name="discovery/sweepFooterFormat"><value>── 扫描 4.5s · 脉冲 2.6s · {0} 台 ──</value></data>
+
+  <!-- ── chat 消息页 ── -->
+  <data name="chat/chipPlaintext"><value>LAN · 明文 · v0.1</value></data>
+  <data name="chat/dropToSend.Text"><value>放手即发</value></data>
+  <data name="chat/dropToSendCaption"><value>放手即发</value></data>
+  <data name="chat/dropOverlayFormat"><value>放手即发 · → {0}</value></data>
+  <data name="chat/addFile.Text"><value>+ 文件</value></data>
+  <data name="chat/composer.PlaceholderText"><value>说点什么…</value></data>
+  <data name="chat/noPeer"><value>未选择对端</value></data>
+  <data name="chat/peerFallback"><value>对端</value></data>
+  <data name="msg/delivered.Text"><value>· 已送达</value></data>
+
+  <!-- ── transfers 传输页 ── -->
+  <data name="transfers/title.Text"><value>传输</value></data>
+  <data name="transfers/subtitle.Text"><value>6 个任务 · 2 进行中</value></data>
+  <data name="transfers/filterAll.Text"><value>全部</value></data>
+  <data name="transfers/filterActive.Text"><value>活跃 · 2</value></data>
+  <data name="transfers/filterDone.Text"><value>已完成</value></data>
+  <data name="transfers/tileSession"><value>── 传输总量 ──</value></data>
+  <data name="transfers/tileUp"><value>── 上行 ↑ ──</value></data>
+  <data name="transfers/tileDown"><value>── 下行 ↓ ──</value></data>
+  <data name="transfers/tasksDivider"><value>── 任务列表 · 6 ──</value></data>
+  <data name="transfers/peakFormat"><value>峰值 {0}</value></data>
+  <data name="transfers/cancel"><value>取消传输</value></data>
+  <data name="transfers/stateSending"><value>↑ 发送中</value></data>
+  <data name="transfers/stateSendingFormat"><value>↑ {0}</value></data>
+  <data name="transfers/stateReceiving"><value>↓ 接收中</value></data>
+  <data name="transfers/stateReceivingFormat"><value>↓ {0}</value></data>
+  <data name="transfers/stateDone"><value>✓ 已完成</value></data>
+  <data name="transfers/stateFailed"><value>× 失败</value></data>
+  <data name="transfers/stateQueued"><value>· 排队</value></data>
+
+  <!-- ── history 历史页 ── -->
+  <data name="history/title.Text"><value>历史</value></data>
+  <data name="history/subtitle.Text"><value>6 件今天 · 12 件昨天 · 共 38 件</value></data>
+  <data name="history/filterAll.Text"><value>全部</value></data>
+  <data name="history/filterFile.Text"><value>文件</value></data>
+  <data name="history/filterImage.Text"><value>图片</value></data>
+  <data name="history/filterText.Text"><value>文字</value></data>
+  <data name="history/clipboardDivider"><value>── 剪贴板同步 · 5 件 ──</value></data>
+  <data name="history/todayDivider"><value>── 今天 · 6 件 ──</value></data>
+  <data name="history/todayLabelFormat"><value>── 历史 · {0} 件 ──</value></data>
+  <data name="history/earlierDivider"><value>── 早些时候 ──</value></data>
+  <data name="history/clipboardLabelFormat"><value>── 剪贴板 · {0} ──</value></data>
+  <data name="history/imageCountFormat"><value>{0} 张</value></data>
+  <data name="history/imageSummaryFormat"><value>{0} 张图片</value></data>
+  <data name="history/image"><value>图片</value></data>
+  <data name="history/active"><value>活跃</value></data>
+
+  <!-- ── clipboard 剪贴板页 ── -->
+  <data name="clipboard/title.Text"><value>剪贴板</value></data>
+  <data name="clipboard/subtitle.Text"><value>显式推送 · 由你点一下才发，不是后台静默同步</value></data>
+  <data name="clipboard/pushTo.Text"><value>推送到</value></data>
+  <data name="clipboard/selectDevice.PlaceholderText"><value>选择设备</value></data>
+  <data name="clipboard/readClipboard.Text"><value>读取剪贴板</value></data>
+  <data name="clipboard/editor.PlaceholderText"><value>粘贴或输入要推送的内容…</value></data>
+  <data name="clipboard/push.Text"><value>↑ 推送</value></data>
+  <data name="clipboard/inboxLabelFormat"><value>── 收到的剪贴板 · {0} ──</value></data>
+
+  <!-- ── trust 信任页 ── -->
+  <data name="trust/title.Text"><value>已配对</value></data>
+  <data name="trust/revoke.Text"><value>撤销信任</value></data>
+  <data name="trust/subtitleFormat"><value>{0} 台设备已通过指纹验证。撤销后下次连接需重新双向确认。</value></data>
+  <data name="trust/pendingDividerFormat"><value>── 待审 · {0} ──</value></data>
+
+  <!-- ── settings 设置页 ── -->
+  <data name="settings/title.Text"><value>设置</value></data>
+  <data name="settings/subtitle.Text"><value>本机偏好 · 仅保存在本机</value></data>
+  <data name="settings/visibilityTag.Text"><value>可见性</value></data>
+  <data name="settings/visibilityHint.Text"><value>谁能在附近看见你</value></data>
+  <data name="settings/displayName.Text"><value>设备名</value></data>
+  <data name="settings/visibleToggle.Header"><value>对局域网可见 · 即将支持</value></data>
+  <data name="settings/visibleToggle.OffContent"><value>OFF · 仅自己看到</value></data>
+  <data name="settings/visibleToggle.OnContent"><value>ON · 局域网内全部</value></data>
+  <data name="settings/hideIdleToggle.Header"><value>空闲 10 分钟后自动隐藏 · 即将支持</value></data>
+  <data name="settings/securityTag.Text"><value>安全</value></data>
+  <data name="settings/securityHint.Text"><value>Ed25519 身份 · SHA-256 指纹 · 局域网明文 v0.1</value></data>
+  <data name="settings/fingerprintLabel.Text"><value>本机指纹</value></data>
+  <data name="settings/transportLabel.Text"><value>传输安全</value></data>
+  <data name="settings/transportHint.Text"><value>局域网 · 明文 TCP · v0.1。身份与配对由 Ed25519 + SHA-256 指纹保护。</value></data>
+  <data name="settings/tofuToggle.Header"><value>首次配对需确认指纹 · TOFU</value></data>
+  <data name="settings/tofuToggle.OnContent"><value>ON · 始终启用</value></data>
+  <data name="settings/resetIdentity.Content"><value>重置身份…</value></data>
+  <data name="settings/behaviorTag.Text"><value>行为</value></data>
+  <data name="settings/behaviorHint.Text"><value>接收路径、声音、开机自启</value></data>
+  <data name="settings/receiveDir.Text"><value>接收文件夹 · 按对端分子目录</value></data>
+  <data name="settings/browse.Text"><value>浏览…</value></data>
+  <data name="settings/autoAcceptTrusted.Header"><value>自动接收已配对设备</value></data>
+  <data name="settings/autoAcceptTrusted.OnContent"><value>ON · 已配对设备不再弹窗</value></data>
+  <data name="settings/autoAcceptTrusted.OffContent"><value>OFF · 每次确认</value></data>
+  <data name="settings/autoAcceptAny.Header"><value>自动接收任何文件 · 即将支持</value></data>
+  <data name="settings/autoAcceptAny.OffContent"><value>OFF · 每次确认</value></data>
+  <data name="settings/ringIncoming.Header"><value>接收时发声 · 即将支持</value></data>
+  <data name="settings/launchAtLogin.Header"><value>开机自启动到托盘 · 即将支持</value></data>
+  <data name="settings/trayBadge.Header"><value>任务栏图标显示活跃数 · 即将支持</value></data>
+  <data name="settings/webAccessTag.Text"><value>Web 访问</value></data>
+  <data name="settings/webAccessHint.Text"><value>浏览器走局域网网关访问</value></data>
+  <data name="settings/webGatewayToggle.Header"><value>启用 Web Gateway</value></data>
+  <data name="settings/webGatewayToggle.OnContent"><value>ON · 局域网浏览器可连</value></data>
+  <data name="settings/webUrlLabel.Text"><value>访问地址</value></data>
+  <data name="settings/pairingCodeLabel.Text"><value>配对码 · 24 小时有效</value></data>
+  <data name="settings/certHint.Text"><value>首次访问会弹证书提示，请在浏览器接受 meshdrop.local 自签证书。</value></data>
+  <data name="settings/aboutTag.Text"><value>关于</value></data>
+  <data name="settings/resetDialog/title"><value>重置身份</value></data>
+  <data name="settings/resetDialog/body"><value>将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后需重启 MeshDrop 让新身份生效。</value></data>
+  <data name="settings/resetDialog/confirm"><value>重置</value></data>
+  <data name="settings/resetDone/title"><value>已重置</value></data>
+  <data name="settings/resetDone/body"><value>身份已删除。请退出并重启 MeshDrop 让新身份生效。</value></data>
+  <data name="settings/resetDone/ok"><value>好</value></data>
+
+  <!-- ── onboarding 引导对话框 ── -->
+  <data name="onboarding/tagline.Text"><value>内网投递 · 雷达发现 · 拖即发 · 局域网直连</value></data>
+  <data name="onboarding/skip"><value>跳过</value></data>
+  <data name="onboarding/start"><value>开始使用 →</value></data>
+  <data name="onboarding/headline1.Text"><value>一个内网，任何设备，</value></data>
+  <data name="onboarding/headline2.Text"><value>谁都能 ping 到。</value></data>
+  <data name="onboarding/step1Tag.Text"><value>01 · 发现</value></data>
+  <data name="onboarding/step1Title.Text"><value>同 Wi-Fi 即互见</value></data>
+  <data name="onboarding/step1Hint.Text"><value>雷达式扫描，4.5s/圈 · 周期呼吸</value></data>
+  <data name="onboarding/step2Tag.Text"><value>02 · 拖即发</value></data>
+  <data name="onboarding/step2Title.Text"><value>文件直接拖到设备</value></data>
+  <data name="onboarding/step2Hint.Text"><value>不需要打开聊天页</value></data>
+  <data name="onboarding/step3Tag.Text"><value>03 · 直连</value></data>
+  <data name="onboarding/step3Title.Text"><value>不经过任何云端</value></data>
+  <data name="onboarding/step3Hint.Text"><value>局域网直连 · Ed25519 身份指纹</value></data>
+  <data name="onboarding/step4Tag.Text"><value>04 · 托盘</value></data>
+  <data name="onboarding/step4Title.Text"><value>始终在任务栏</value></data>
+  <data name="onboarding/step4Hint.Text"><value>WIN+S 一键唤出</value></data>
+
+  <!-- ── send 发送对话框 ── -->
+  <data name="send/cancel"><value>取消</value></data>
+  <data name="send/send"><value>发送 →</value></data>
+  <data name="send/toFormat.Text"><value>发送到 · 李莉</value></data>
+  <data name="send/chipPlaintext.Text"><value>LAN · 明文 · v0.1</value></data>
+  <data name="send/kindDivider"><value>── 类型 ──</value></data>
+  <data name="send/kindText.Text"><value>文本</value></data>
+  <data name="send/kindFile.Text"><value>文件</value></data>
+  <data name="send/kindNote.Text"><value>文字便签</value></data>
+  <data name="send/editor.PlaceholderText"><value>说点什么…</value></data>
+  <data name="send/shortcutHint.Text"><value>按 Ctrl+Enter 立即发送 · ESC 关闭</value></data>
+  <data name="send/securityNote.Text"><value>该消息将经局域网明文 TCP 直连 192.168.1.31（v0.1）· 身份由 Ed25519 指纹核对</value></data>
+
+  <!-- ── pairing 配对对话框 ── -->
+  <data name="pairing/title.Text"><value>新设备请求配对</value></data>
+  <data name="pairing/compareDivider"><value>── 核对指纹 · 对方屏幕显示同一串 ──</value></data>
+  <data name="pairing/step1.Text"><value>对方设备会显示同样的 8 段指纹</value></data>
+  <data name="pairing/step2.Text"><value>逐组核对（首 4 组 + 末 4 组）</value></data>
+  <data name="pairing/step3.Text"><value>一致 → 允许并记住；不一致 → 立即拒绝（可能是中间人）</value></data>
+
+  <!-- ── file offer 文件接收对话框 ── -->
+  <data name="fileOffer/titleFormat.Text"><value>嘉伟 想发文件给你</value></data>
+  <data name="fileOffer/noteLabel.Text"><value>文字便签</value></data>
+  <data name="fileOffer/noteSample.Text"><value>改完了帮我看下第二章，特别是 §2.3 那段</value></data>
+  <data name="fileOffer/saveToLabel.Text"><value>将保存至</value></data>
+  <data name="fileOffer/checksumLabel.Text"><value>校验 · sha-256</value></data>
+  <data name="fileOffer/checksumHint.Text"><value>完成后自动核对</value></data>
+  <data name="fileOffer/acceptSize.Text"><value>✓ 接收 · 3.4 MB</value></data>
+
+  <!-- ── tray 托盘 ── -->
+  <data name="tray/sendClipboardTip"><value>把剪贴板里的文字 / URL 立即发给该设备</value></data>
+  <data name="tray/onlineCountFormat"><value>在线 {0} 台</value></data>
+  <data name="tray/nearbyDividerFormat"><value>── 附近 · {0} ──</value></data>
+  <data name="tray/actionsDivider"><value>── 操作 ──</value></data>
+  <data name="tray/send.Text"><value>发送</value></data>
+  <data name="tray/openApp.Text"><value>打开 meshdrop</value></data>
+  <data name="tray/tooltipFormat"><value>meshdrop · 附近 {0} 台</value></data>
+
+  <!-- ── 通知 Toast ── -->
+  <data name="toast/incomingFileTitleFormat"><value>{0} 想发文件给你</value></data>
+  <data name="toast/attributionFormat"><value>meshdrop · {0}</value></data>
+  <data name="toast/accept"><value>接收</value></data>
+  <data name="toast/reject"><value>拒绝</value></data>
+  <data name="toast/view"><value>查看</value></data>
+  <data name="toast/pairingTitleFormat"><value>{0} 请求配对</value></data>
+  <data name="toast/fingerprintFormat"><value>指纹 · {0}</value></data>
+  <data name="toast/pairingAttribution"><value>meshdrop · 请与对方屏幕核对指纹</value></data>
+  <data name="toast/allowRemember"><value>允许并记住</value></data>
+  <data name="toast/allowOnce"><value>允许一次</value></data>
+  <data name="toast/copy"><value>复制</value></data>
+  <data name="toast/reply"><value>回复</value></data>
+  <data name="toast/clipboardPeerFormat"><value>{0} · 剪贴板</value></data>
+</root>

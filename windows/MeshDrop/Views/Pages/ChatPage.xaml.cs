@@ -16,6 +16,7 @@ public sealed partial class ChatPage : Microsoft.UI.Xaml.Controls.UserControl
     {
         ViewModel = new ChatViewModel();
         InitializeComponent();
+        PlaintextChip.Text = I18n.T("chat.chipPlaintext");
     }
 
     /// <summary>composer 里按 Enter 直接发送（Shift+Enter 不拦，留给将来多行）。</summary>
@@ -41,7 +42,7 @@ public sealed partial class ChatPage : Microsoft.UI.Xaml.Controls.UserControl
             DropOverlay.Visibility = Visibility.Visible;
             if (e.DragUIOverride is { } o)
             {
-                o.Caption = "放手即发 · Drop to send";
+                o.Caption = I18n.T("chat.dropToSendCaption");
                 o.IsCaptionVisible = true;
                 o.IsGlyphVisible = true;
             }

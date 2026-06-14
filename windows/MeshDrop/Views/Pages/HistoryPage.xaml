@@ -18,27 +18,27 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <StackPanel Grid.Column="0" Spacing="4">
-                <TextBlock Text="历史 · History"
+                <TextBlock x:Uid="history/title"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="Bold"
                            FontSize="28"
                            CharacterSpacing="-25"/>
-                <TextBlock Text="6 件今天 · 12 件昨天 · 共 38 件"
+                <TextBlock x:Uid="history/subtitle"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="11"
                            Opacity="0.65"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <ctrl:ChipControl Text="全部" Tone="Ink"/>
-                <ctrl:ChipControl Text="文件" Tone="Outline"/>
-                <ctrl:ChipControl Text="图片" Tone="Outline"/>
-                <ctrl:ChipControl Text="文字" Tone="Outline"/>
+                <ctrl:ChipControl x:Name="FilterAll" Tone="Ink"/>
+                <ctrl:ChipControl x:Name="FilterFile" Tone="Outline"/>
+                <ctrl:ChipControl x:Name="FilterImage" Tone="Outline"/>
+                <ctrl:ChipControl x:Name="FilterText" Tone="Outline"/>
             </StackPanel>
         </Grid>
 
         <ScrollViewer Grid.Row="1" Padding="24,8,24,18">
             <StackPanel Spacing="14">
-                <ctrl:AsciiDivider Label="── CLIPBOARD · 剪贴板同步 · 5 件 ──"/>
+                <ctrl:AsciiDivider x:Name="ClipboardDivider"/>
                 <ItemsControl ItemsSource="{x:Bind ViewModel.Clipboard, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -73,7 +73,7 @@
                                         </TextBlock>
                                     </StackPanel>
                                     <Button Grid.Column="2" Style="{StaticResource MdOutlineButtonStyle}" VerticalAlignment="Center">
-                                        <TextBlock Text="复制"/>
+                                        <TextBlock x:Uid="common/copy"/>
                                     </Button>
                                 </Grid>
                             </Border>
@@ -81,7 +81,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <ctrl:AsciiDivider Label="── TODAY · 今天 · 6 件 ──" Margin="0,8,0,0"/>
+                <ctrl:AsciiDivider x:Name="TodayDivider" Margin="0,8,0,0"/>
 
                 <ItemsControl ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>

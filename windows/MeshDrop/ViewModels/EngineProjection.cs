@@ -136,8 +136,9 @@ internal static class EngineProjection
             HistoryKind.File f => System.IO.Path.GetExtension(f.Name).TrimStart('.'),
             _ => "txt",
         };
-        var from = h.Direction == TransferDirection.Outgoing ? "我" : h.Peer.Name;
-        var to = h.Direction == TransferDirection.Outgoing ? h.Peer.Name : "我";
+        var me = MeshDrop.I18n.T("common.me");
+        var from = h.Direction == TransferDirection.Outgoing ? me : h.Peer.Name;
+        var to = h.Direction == TransferDirection.Outgoing ? h.Peer.Name : me;
         var (state, progress, speed) = h.Status switch
         {
             TransferStatus.Pending => (MockTransferState.Queued, 0, (string?)null),

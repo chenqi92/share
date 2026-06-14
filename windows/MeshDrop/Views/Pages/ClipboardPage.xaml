@@ -13,12 +13,12 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Padding="24,18,24,8" Spacing="4">
-            <TextBlock Text="剪贴板 · Clipboard"
+            <TextBlock x:Uid="clipboard/title"
                        FontFamily="{StaticResource MdDisplayFontFamily}"
                        FontWeight="Bold"
                        FontSize="28"
                        CharacterSpacing="-25"/>
-            <TextBlock Text="显式推送 · 由你点一下才发，不是后台静默同步"
+            <TextBlock x:Uid="clipboard/subtitle"
                        FontFamily="{StaticResource MdMonoFontFamily}"
                        FontSize="11"
                        Opacity="0.65"/>
@@ -40,14 +40,14 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="推送到"
+                            <TextBlock Grid.Column="0" x:Uid="clipboard/pushTo"
                                        VerticalAlignment="Center"
                                        FontFamily="{StaticResource MdMonoFontFamily}"
                                        FontSize="11"
                                        Opacity="0.65"/>
                             <ComboBox Grid.Column="1"
                                       HorizontalAlignment="Stretch"
-                                      PlaceholderText="选择设备"
+                                      x:Uid="clipboard/selectDevice"
                                       ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}"
                                       DisplayMemberPath="Who"
                                       SelectedValuePath="Id"
@@ -55,12 +55,12 @@
                             <Button Grid.Column="2"
                                     Style="{StaticResource MdOutlineButtonStyle}"
                                     Command="{x:Bind ViewModel.ReadSystemClipboardCommand}">
-                                <TextBlock Text="读取剪贴板"/>
+                                <TextBlock x:Uid="clipboard/readClipboard"/>
                             </Button>
                         </Grid>
 
                         <TextBox Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="粘贴或输入要推送的内容…"
+                                 x:Uid="clipboard/editor"
                                  AcceptsReturn="True"
                                  TextWrapping="Wrap"
                                  MinHeight="90"
@@ -70,7 +70,7 @@
                         <Button HorizontalAlignment="Right"
                                 Style="{StaticResource MdAccentButtonStyle}"
                                 Command="{x:Bind ViewModel.PushCommand}">
-                            <TextBlock Text="↑ 推送 · Push"/>
+                            <TextBlock x:Uid="clipboard/push"/>
                         </Button>
                     </StackPanel>
                 </Border>
@@ -120,7 +120,7 @@
                                             Style="{StaticResource MdOutlineButtonStyle}"
                                             Tag="{x:Bind Content}"
                                             Click="OnCopy_Click">
-                                        <TextBlock Text="复制"/>
+                                        <TextBlock x:Uid="common/copy"/>
                                     </Button>
                                 </StackPanel>
                             </Border>

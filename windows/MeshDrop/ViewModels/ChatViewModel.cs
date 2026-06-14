@@ -22,7 +22,7 @@ public sealed partial class ChatViewModel : ObservableObject
     private string _peerDisplayName = "—";
 
     [ObservableProperty]
-    private string _peerSubtitle = "未选择对端";
+    private string _peerSubtitle = I18n.T("chat.noPeer");
 
     /// <summary>composer 输入草稿。SendText 后清空。</summary>
     [ObservableProperty]
@@ -39,8 +39,8 @@ public sealed partial class ChatViewModel : ObservableObject
     {
         get
         {
-            var name = string.IsNullOrEmpty(PeerDisplayName) ? "对端" : PeerDisplayName;
-            return $"放手即发 · Drop to send · → {name}";
+            var name = string.IsNullOrEmpty(PeerDisplayName) ? I18n.T("chat.peerFallback") : PeerDisplayName;
+            return I18n.T("chat.dropOverlayFormat", name);
         }
     }
 

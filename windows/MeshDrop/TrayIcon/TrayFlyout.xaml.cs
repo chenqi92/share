@@ -23,8 +23,18 @@ public sealed partial class TrayFlyout : Microsoft.UI.Xaml.Controls.UserControl
         Devices = new ProjectedCollection<MeshDrop.Models.Device, MockDevice>(
             ShareEngine.Shared.Devices, d => d.ToMock());
         InitializeComponent();
+        // 静态分隔条标签（无计数）走本地化串；NEARBY/ONLINE 带计数的在 UpdateOnlineCount 里设。
+        ActionsDivider.Label = I18n.T("tray.actionsDivider");
         Devices.CollectionChanged += OnDevicesChanged;
         UpdateOnlineCount();
+    }
+
+    // 每个设备行的「发送」按钮在 DataTemplate 内重复生成、无法 x:Name；
+    // 其 ToolTip 是附加属性也不走 x:Uid，统一在 Loaded 时设置本地化串。
+    private void SendButton_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b)
+            ToolTipService.SetToolTip(b, I18n.T("tray.sendClipboardTip"));
     }
 
     private void OpenMain_Click(object sender, RoutedEventArgs e) => OpenMainRequested?.Invoke(this, EventArgs.Empty);
@@ -35,8 +45,8 @@ public sealed partial class TrayFlyout : Microsoft.UI.Xaml.Controls.UserControl
     private void UpdateOnlineCount()
     {
         var n = Devices.Count;
-        OnlineCount.Text = $"{n} ONLINE";
-        NearbyDivider.Label = $"── NEARBY · {n} ──";
+        OnlineCount.Text = I18n.T("tray.onlineCountFormat", n);
+        NearbyDivider.Label = I18n.T("tray.nearbyDividerFormat", n);
     }
 
     /// <summary>

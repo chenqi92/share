@@ -56,7 +56,7 @@
                                Opacity="0.55"/>
                     <TextBlock x:Name="DeliveredText"
                                Visibility="Collapsed"
-                               Text="· 已送达"
+                               x:Uid="msg/delivered"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10"
                                Foreground="{ThemeResource MdLimeDeepBrush}"/>

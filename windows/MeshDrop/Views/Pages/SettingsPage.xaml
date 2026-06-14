@@ -12,12 +12,12 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Padding="24,18,24,10" Spacing="4">
-            <TextBlock Text="设置 · Settings"
+            <TextBlock x:Uid="settings/title"
                        FontFamily="{StaticResource MdDisplayFontFamily}"
                        FontWeight="Bold"
                        FontSize="28"
                        CharacterSpacing="-25"/>
-            <TextBlock Text="本机偏好 · 仅保存在本机"
+            <TextBlock x:Uid="settings/subtitle"
                        FontFamily="{StaticResource MdMonoFontFamily}"
                        FontSize="11"
                        Opacity="0.65"/>
@@ -33,10 +33,10 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="可见性 · VISIBILITY"
+                        <TextBlock x:Uid="settings/visibilityTag"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="谁能在 Nearby 看见你"
+                        <TextBlock x:Uid="settings/visibilityHint"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="12"
                                    Opacity="0.6"
@@ -50,7 +50,7 @@
                             Padding="16">
                         <StackPanel Spacing="14">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="设备名 · Display name" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/displayName" FontWeight="SemiBold" FontSize="12"/>
                                 <TextBox Text="{x:Bind ViewModel.DisplayName, Mode=TwoWay}"
                                          Background="{ThemeResource MdPaperBrush}"
                                          BorderBrush="{ThemeResource MdLineBrush}"
@@ -59,11 +59,9 @@
                             </StackPanel>
                             <!-- 可见性与空闲隐藏尚未接 mDNS 广告开关，禁用并标注。 -->
                             <ToggleSwitch IsOn="{x:Bind ViewModel.Visible, Mode=TwoWay}" IsEnabled="False"
-                                          Header="对 LAN 可见 · 即将支持"
-                                          OffContent="OFF · 仅自己看到"
-                                          OnContent="ON · LAN 内全部"/>
+                                          x:Uid="settings/visibleToggle"/>
                             <ToggleSwitch IsOn="{x:Bind ViewModel.HideAfterIdle, Mode=TwoWay}" IsEnabled="False"
-                                          Header="空闲 10 分钟后自动隐藏 · 即将支持"
+                                          x:Uid="settings/hideIdleToggle"
                                           OffContent="OFF"
                                           OnContent="ON"/>
                         </StackPanel>
@@ -77,10 +75,10 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="安全 · SECURITY"
+                        <TextBlock x:Uid="settings/securityTag"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="Ed25519 身份 · SHA-256 指纹 · LAN 明文 v0.1"
+                        <TextBlock x:Uid="settings/securityHint"
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    FontSize="10"
                                    Opacity="0.55"
@@ -94,7 +92,7 @@
                             Padding="16">
                         <StackPanel Spacing="14">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="本机指纹 · Fingerprint" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/fingerprintLabel" FontWeight="SemiBold" FontSize="12"/>
                                 <Border CornerRadius="6" Padding="10,8,10,8"
                                         Background="{ThemeResource MdTerminalBrush}">
                                     <TextBlock Text="{x:Bind ViewModel.Fingerprint}"
@@ -105,18 +103,17 @@
                             </StackPanel>
                             <!-- 诚实状态：v0.1 LAN 为明文 TCP（README 阶段取舍），不谎称 E2E。 -->
                             <StackPanel Spacing="2">
-                                <TextBlock Text="传输安全 · TRANSPORT" FontWeight="SemiBold" FontSize="12"/>
-                                <TextBlock Text="LAN · 明文 TCP · v0.1。身份与配对由 Ed25519 + SHA-256 指纹保护。"
+                                <TextBlock x:Uid="settings/transportLabel" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/transportHint"
                                            FontFamily="{StaticResource MdMonoFontFamily}"
                                            FontSize="10" Opacity="0.6" TextWrapping="Wrap"/>
                             </StackPanel>
                             <!-- TOFU 首次配对始终需双向确认指纹，不可关闭 → 锁定 ON 的只读状态。 -->
                             <ToggleSwitch IsOn="True" IsEnabled="False"
-                                          Header="首次配对需确认指纹 · TOFU"
-                                          OnContent="ON · 始终启用"
+                                          x:Uid="settings/tofuToggle"
                                           OffContent="OFF"/>
                             <Button x:Name="ResetIdentityButton"
-                                    Content="重置身份…"
+                                    x:Uid="settings/resetIdentity"
                                     Click="OnResetIdentityClick"
                                     Style="{StaticResource AccentButtonStyle}"
                                     Background="{ThemeResource MdFlameBrush}"
@@ -133,10 +130,10 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="行为 · BEHAVIOR"
+                        <TextBlock x:Uid="settings/behaviorTag"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="接收路径、声音、开机自启"
+                        <TextBlock x:Uid="settings/behaviorHint"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="12"
                                    Opacity="0.6"/>
@@ -149,7 +146,7 @@
                             Padding="16">
                         <StackPanel Spacing="14">
                             <StackPanel Spacing="4">
-                                <TextBlock Text="接收文件夹 · 按对端分子目录" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/receiveDir" FontWeight="SemiBold" FontSize="12"/>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -163,26 +160,25 @@
                                              CornerRadius="6"
                                              FontFamily="{StaticResource MdMonoFontFamily}"/>
                                     <Button Grid.Column="1" Style="{StaticResource MdOutlineButtonStyle}" IsEnabled="False">
-                                        <TextBlock Text="浏览…"/>
+                                        <TextBlock x:Uid="settings/browse"/>
                                     </Button>
                                 </Grid>
                             </StackPanel>
                             <!-- 已接线：自动接收来自已配对设备的文件（engine.AutoAcceptFromTrusted）。 -->
                             <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAcceptTrusted, Mode=TwoWay}"
-                                          Header="自动接收已配对设备"
-                                          OnContent="ON · 已配对设备不再弹窗" OffContent="OFF · 每次确认"/>
+                                          x:Uid="settings/autoAcceptTrusted"/>
                             <!-- 以下为尚未接线的占位项，禁用并标注，避免给出虚假预期。 -->
                             <ToggleSwitch IsOn="{x:Bind ViewModel.AutoAccept, Mode=TwoWay}" IsEnabled="False"
-                                          Header="自动接收任何文件 · 即将支持"
-                                          OnContent="ON" OffContent="OFF · 每次确认"/>
+                                          x:Uid="settings/autoAcceptAny"
+                                          OnContent="ON"/>
                             <ToggleSwitch IsOn="{x:Bind ViewModel.RingOnIncoming, Mode=TwoWay}" IsEnabled="False"
-                                          Header="接收时发声 · 即将支持"
+                                          x:Uid="settings/ringIncoming"
                                           OnContent="ON" OffContent="OFF"/>
                             <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtLogin, Mode=TwoWay}" IsEnabled="False"
-                                          Header="开机自启动到托盘 · 即将支持"
+                                          x:Uid="settings/launchAtLogin"
                                           OnContent="ON" OffContent="OFF"/>
                             <ToggleSwitch IsOn="{x:Bind ViewModel.ShowTrayBadge, Mode=TwoWay}" IsEnabled="False"
-                                          Header="任务栏图标显示活跃数 · 即将支持"
+                                          x:Uid="settings/trayBadge"
                                           OnContent="ON" OffContent="OFF"/>
                         </StackPanel>
                     </Border>
@@ -195,10 +191,10 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Web 访问 · WEB ACCESS"
+                        <TextBlock x:Uid="settings/webAccessTag"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="浏览器走 LAN 网关访问"
+                        <TextBlock x:Uid="settings/webAccessHint"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="12"
                                    Opacity="0.6"
@@ -212,11 +208,10 @@
                             Padding="16">
                         <StackPanel Spacing="14">
                             <ToggleSwitch IsOn="{x:Bind ViewModel.WebGatewayEnabled, Mode=TwoWay}"
-                                          Header="启用 Web Gateway"
-                                          OnContent="ON · LAN 浏览器可连"
+                                          x:Uid="settings/webGatewayToggle"
                                           OffContent="OFF"/>
                             <StackPanel Spacing="4">
-                                <TextBlock Text="访问地址 · URL" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/webUrlLabel" FontWeight="SemiBold" FontSize="12"/>
                                 <Border CornerRadius="6" Padding="10,8,10,8"
                                         Background="{ThemeResource MdTerminalBrush}">
                                     <TextBlock Text="{x:Bind ViewModel.WebGatewayUrl, Mode=OneWay}"
@@ -227,7 +222,7 @@
                                 </Border>
                             </StackPanel>
                             <StackPanel Spacing="4">
-                                <TextBlock Text="配对码 · 24 小时有效" FontWeight="SemiBold" FontSize="12"/>
+                                <TextBlock x:Uid="settings/pairingCodeLabel" FontWeight="SemiBold" FontSize="12"/>
                                 <Border CornerRadius="6" Padding="10,8,10,8"
                                         Background="{ThemeResource MdTerminalBrush}">
                                     <TextBlock Text="{x:Bind ViewModel.WebGatewayPairingCode, Mode=OneWay}"
@@ -237,7 +232,7 @@
                                                IsTextSelectionEnabled="True"/>
                                 </Border>
                             </StackPanel>
-                            <TextBlock Text="首次访问会弹证书提示，请在浏览器接受 meshdrop.local 自签证书。"
+                            <TextBlock x:Uid="settings/certHint"
                                        FontFamily="{StaticResource MdMonoFontFamily}"
                                        FontSize="10"
                                        Opacity="0.55"
@@ -253,7 +248,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="关于 · ABOUT"
+                        <TextBlock x:Uid="settings/aboutTag"
                                    Style="{StaticResource MdMonoTagStyle}"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"/>
                     </StackPanel>

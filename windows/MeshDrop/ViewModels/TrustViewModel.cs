@@ -23,10 +23,9 @@ public sealed partial class TrustViewModel : ObservableObject
     public int PendingCount => Pending.Count;
 
     /// <summary>标题副文案：真实设备数（不再写死 4 台）。</summary>
-    public string Subtitle =>
-        $"{Count} 台设备已通过指纹验证 · {Count} VERIFIED。撤销后下次连接需重新双向确认。";
+    public string Subtitle => I18n.T("trust.subtitleFormat", Count);
 
-    public string PendingDivider => $"── PENDING · 待审 · {PendingCount} ──";
+    public string PendingDivider => I18n.T("trust.pendingDividerFormat", PendingCount);
 
     /// <summary>无待审项时整段收起（项目约定：VM 直接出 Visibility，不引转换器）。</summary>
     public Microsoft.UI.Xaml.Visibility PendingVisibility =>

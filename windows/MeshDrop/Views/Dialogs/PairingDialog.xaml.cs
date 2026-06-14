@@ -16,6 +16,7 @@ public sealed partial class PairingDialog : ContentDialog
     public PairingDialog(PendingPairingVM pairing)
     {
         InitializeComponent();
+        CompareDivider.Label = I18n.T("pairing.compareDivider");
         PeerLine.Text = $"{pairing.Who} · {pairing.DeviceName}";
         FingerprintText.Text = pairing.Fingerprint;
     }

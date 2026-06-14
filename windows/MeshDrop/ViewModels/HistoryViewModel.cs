@@ -15,9 +15,9 @@ public sealed partial class HistoryViewModel : ObservableObject
     // 剪贴板历史：实时投影引擎收到的 ClipboardInbox（最新在前，引擎已在 UI 线程维护）。
     public ObservableCollection<MockClipboard> Clipboard { get; }
 
-    public string TodayLabel => $"── 历史 · HISTORY · {Items.Count} 件 ──";
-    public string YesterdayLabel => "── 早些时候 · EARLIER ──";
-    public string ClipboardLabel => $"── 剪贴板 · CLIPBOARD · {Clipboard.Count} ──";
+    public string TodayLabel => I18n.T("history.todayLabelFormat", Items.Count);
+    public string YesterdayLabel => I18n.T("history.earlierDivider");
+    public string ClipboardLabel => I18n.T("history.clipboardLabelFormat", Clipboard.Count);
 
     public HistoryViewModel()
     {

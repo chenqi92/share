@@ -39,7 +39,7 @@
 
             <!-- ─ Search ─ -->
             <TextBox Grid.Row="1"
-                     PlaceholderText="搜索 · Search peers, files…"
+                     x:Uid="shell/search"
                      Background="{ThemeResource MdCardBrush}"
                      BorderBrush="{ThemeResource MdLineBrush}"
                      BorderThickness="1"
@@ -58,7 +58,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◎" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Grid.Column="1" Text="附近 · Nearby" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/nearby" VerticalAlignment="Center"
                                    FontWeight="SemiBold" FontSize="13"/>
                         <ctrl:ChipControl Grid.Column="2" Text="5" Tone="Lime" VerticalAlignment="Center"/>
                     </Grid>
@@ -71,7 +71,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◌" FontSize="13"/>
-                        <TextBlock Grid.Column="1" Text="消息 · Messages" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/messages" VerticalAlignment="Center" FontSize="13"/>
                         <ctrl:ChipControl Grid.Column="2" Text="2" Tone="Flame" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
@@ -83,8 +83,8 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="↕" FontSize="13"/>
-                        <TextBlock Grid.Column="1" Text="传输 · Transfers" VerticalAlignment="Center" FontSize="13"/>
-                        <ctrl:ChipControl Grid.Column="2" Text="2 活跃" Tone="Sky" VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/transfers" VerticalAlignment="Center" FontSize="13"/>
+                        <ctrl:ChipControl Grid.Column="2" x:Name="TransfersBadge" Tone="Sky" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnHistory_Click">
@@ -95,7 +95,7 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◉" FontSize="13"/>
-                        <TextBlock Grid.Column="1" Text="历史 · History" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/history" VerticalAlignment="Center" FontSize="13"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnClipboard_Click">
@@ -105,7 +105,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="📋" FontSize="13"/>
-                        <TextBlock Grid.Column="1" Text="剪贴板 · Clipboard" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/clipboard" VerticalAlignment="Center" FontSize="13"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTrust_Click">
@@ -115,7 +115,7 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="✓" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Grid.Column="1" Text="已配对 · Trust" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/trust" VerticalAlignment="Center" FontSize="13"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnSettings_Click">
@@ -125,12 +125,12 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="⚙" FontSize="13"/>
-                        <TextBlock Grid.Column="1" Text="设置 · Settings" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Uid="shell/nav/settings" VerticalAlignment="Center" FontSize="13"/>
                     </Grid>
                 </Button>
 
                 <!-- Paired devices section -->
-                <ctrl:AsciiDivider Label="── PAIRED · 已配对 · 5 ──" Margin="4,12,4,4"/>
+                <ctrl:AsciiDivider x:Name="PairedDivider" Margin="4,12,4,4"/>
 
                 <ItemsControl ItemsSource="{x:Bind ViewModel.Devices, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>
@@ -197,7 +197,7 @@
                                         ColorHex="#DDF94B"
                                         ShowRing="Visible"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="-1">
-                        <TextBlock Text="DEV-01 · 我"
+                        <TextBlock x:Uid="shell/selfTag"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="12"
                                    FontWeight="SemiBold"/>

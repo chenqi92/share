@@ -88,7 +88,7 @@ public sealed record MockHistory(
     {
         MockHistoryKind.Text => "TEXT",
         MockHistoryKind.File => Ext is null ? "FILE" : $"FILE · {Ext.ToUpperInvariant()}",
-        MockHistoryKind.Image => Count is int n ? $"IMAGE · {n} 张" : "IMAGE",
+        MockHistoryKind.Image => Count is int n ? $"IMAGE · {MeshDrop.I18n.T("history.imageCountFormat", n)}" : "IMAGE",
         _ => "TEXT",
     };
 
@@ -96,14 +96,14 @@ public sealed record MockHistory(
     {
         MockHistoryKind.Text => Content ?? "",
         MockHistoryKind.File => $"{Name ?? "(unknown)"}  ·  {Size ?? ""}",
-        MockHistoryKind.Image => Count is int n ? $"{n} 张图片" : "图片",
+        MockHistoryKind.Image => Count is int n ? MeshDrop.I18n.T("history.imageSummaryFormat", n) : MeshDrop.I18n.T("history.image"),
         _ => "",
     };
 
     public string StatusLabel => Status switch
     {
         "done" => "DONE",
-        "transferring" => Progress is int p ? $"{p}%" : "活跃",
+        "transferring" => Progress is int p ? $"{p}%" : MeshDrop.I18n.T("history.active"),
         "queued" => "QUEUED",
         "failed" => "FAILED",
         _ => Status.ToUpperInvariant(),

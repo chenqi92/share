@@ -12,7 +12,7 @@
         <StackPanel Orientation="Horizontal" Spacing="10">
             <ctrl:AvatarControl Size="42" Initials="JW" ColorHex="#C7B8FF"/>
             <StackPanel VerticalAlignment="Center" Spacing="-1">
-                <TextBlock Text="嘉伟 想发文件给你"
+                <TextBlock x:Uid="fileOffer/titleFormat"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="SemiBold"
                            FontSize="18"/>
@@ -30,10 +30,10 @@
                 Background="{ThemeResource MdPaper2Brush}"
                 Padding="14,12,14,12">
             <StackPanel Spacing="6">
-                <TextBlock Text="文字便签 · note"
+                <TextBlock x:Uid="fileOffer/noteLabel"
                            Style="{StaticResource MdMonoTagStyle}"
                            Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                <TextBlock Text="改完了帮我看下第二章，特别是 §2.3 那段"
+                <TextBlock x:Uid="fileOffer/noteSample"
                            FontFamily="{StaticResource MdBodyFontFamily}"
                            FontSize="13"
                            TextWrapping="Wrap"/>
@@ -47,7 +47,7 @@
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" CornerRadius="8" Background="{ThemeResource MdInk06Brush}" Padding="10">
                 <StackPanel Spacing="2">
-                    <TextBlock Text="将保存至" Style="{StaticResource MdMonoTagStyle}"/>
+                    <TextBlock x:Uid="fileOffer/saveToLabel" Style="{StaticResource MdMonoTagStyle}"/>
                     <TextBlock Text="C:\Users\dev\Downloads\MeshDrop\嘉伟\"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10"
@@ -57,8 +57,8 @@
             </Border>
             <Border Grid.Column="1" CornerRadius="8" Background="{ThemeResource MdInk06Brush}" Padding="10">
                 <StackPanel Spacing="2">
-                    <TextBlock Text="校验 · sha-256" Style="{StaticResource MdMonoTagStyle}"/>
-                    <TextBlock Text="完成后自动核对"
+                    <TextBlock x:Uid="fileOffer/checksumLabel" Style="{StaticResource MdMonoTagStyle}"/>
+                    <TextBlock x:Uid="fileOffer/checksumHint"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10"
                                Opacity="0.75"/>
@@ -68,13 +68,13 @@
 
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
             <Button Style="{StaticResource MdOutlineButtonStyle}">
-                <TextBlock Text="× 拒绝"/>
+                <TextBlock x:Uid="common/reject"/>
             </Button>
             <Button Style="{StaticResource MdOutlineButtonStyle}">
-                <TextBlock Text="查看…"/>
+                <TextBlock x:Uid="common/view"/>
             </Button>
             <Button Style="{StaticResource MdAccentButtonStyle}">
-                <TextBlock Text="✓ 接收 · 3.4 MB"/>
+                <TextBlock x:Uid="fileOffer/acceptSize"/>
             </Button>
         </StackPanel>
     </StackPanel>

@@ -20,14 +20,14 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Spacing="4">
-                <TextBlock Text="附近 · Nearby"
+                <TextBlock x:Uid="discovery/title"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="Bold"
                            FontSize="28"
                            CharacterSpacing="-25"
                            Foreground="{ThemeResource MdInkBrush}"/>
                 <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="发现 · radar discovery"
+                    <TextBlock x:Uid="discovery/subtitle"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10"
                                CharacterSpacing="100"
@@ -44,11 +44,11 @@
                 <Button Style="{StaticResource MdOutlineButtonStyle}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="↑"/>
-                        <TextBlock Text="发送文件…"/>
+                        <TextBlock x:Uid="discovery/sendFile"/>
                     </StackPanel>
                 </Button>
                 <Button Style="{StaticResource MdAccentButtonStyle}">
-                    <TextBlock Text="+ 新会话"/>
+                    <TextBlock x:Uid="discovery/newSession"/>
                 </Button>
             </StackPanel>
         </Grid>
@@ -73,9 +73,9 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-                        <ctrl:ChipControl Text="LIVE" Tone="Lime" Mono="True"/>
-                        <ctrl:ChipControl Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True"/>
-                        <ctrl:ChipControl Text="LAN ONLY" Tone="Outline" Mono="True"/>
+                        <ctrl:ChipControl x:Name="LiveChip" Tone="Lime" Mono="True"/>
+                        <ctrl:ChipControl x:Name="PlaintextChip" Tone="Outline" Mono="True"/>
+                        <ctrl:ChipControl x:Name="LanOnlyChip" Tone="Outline" Mono="True"/>
                     </StackPanel>
 
                     <Grid Grid.Row="1">
@@ -96,7 +96,7 @@
                                 Padding="14,4,14,4">
                             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                                 <Ellipse Width="6" Height="6" Fill="{ThemeResource MdSkyBrush}"/>
-                                <TextBlock Text="扫描中 · scanning LAN…"
+                                <TextBlock x:Uid="discovery/scanningBanner"
                                            FontFamily="{StaticResource MdMonoFontFamily}"
                                            FontSize="11"
                                            Foreground="{ThemeResource MdSkyBrush}"/>
@@ -113,7 +113,7 @@
                                 CornerRadius="10"
                                 Padding="14,6,14,6">
                             <TextBlock x:Name="ErrorText"
-                                       Text="网络出错"
+                                       x:Uid="discovery/networkError"
                                        FontFamily="{StaticResource MdMonoFontFamily}"
                                        FontSize="11"
                                        Foreground="{ThemeResource MdFlameBrush}"/>
@@ -135,12 +135,12 @@
                                            FontSize="36"
                                            HorizontalAlignment="Center"
                                            Opacity="0.55"/>
-                                <TextBlock Text="附近没有 MeshDrop 设备"
+                                <TextBlock x:Uid="discovery/emptyTitle"
                                            FontFamily="{StaticResource MdDisplayFontFamily}"
                                            FontWeight="SemiBold"
                                            FontSize="14"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="让朋友也打开 MeshDrop · open it on a peer"
+                                <TextBlock x:Uid="discovery/emptyHint"
                                            Style="{StaticResource MdMonoTagStyle}"
                                            Opacity="0.7"
                                            HorizontalAlignment="Center"/>
@@ -252,13 +252,13 @@
                 <!-- Actions -->
                 <StackPanel Grid.Row="1" Spacing="6">
                     <Button Style="{StaticResource MdAccentButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                        <TextBlock Text="→ 发送文件 · Send file"/>
+                        <TextBlock x:Uid="discovery/actionSend"/>
                     </Button>
                     <Button Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                        <TextBlock Text="◌ 开始聊天 · Start chat"/>
+                        <TextBlock x:Uid="discovery/actionChat"/>
                     </Button>
                     <Button Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
-                        <TextBlock Text="⌶ 同步剪贴板 · Sync clipboard"/>
+                        <TextBlock x:Uid="discovery/actionClipboard"/>
                     </Button>
                 </StackPanel>
 
@@ -277,7 +277,7 @@
                                    FontWeight="Bold"
                                    Foreground="{ThemeResource MdLimeDeepBrush}"
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="拖文件到这里"
+                        <TextBlock x:Uid="discovery/dropTitle"
                                    FontFamily="{StaticResource MdDisplayFontFamily}"
                                    FontWeight="SemiBold"
                                    FontSize="14"
@@ -293,8 +293,8 @@
                         Background="{ThemeResource MdInk06Brush}"
                         Padding="10,6,10,6">
                     <StackPanel Orientation="Horizontal" Spacing="10">
-                        <TextBlock Text="TIP" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Text="WIN+S 唤出 tray · Ctrl+, 打开设置"
+                        <TextBlock x:Uid="discovery/tipLabel" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                        <TextBlock x:Uid="discovery/tipText"
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    FontSize="10"
                                    Opacity="0.7"/>

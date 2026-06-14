@@ -12,7 +12,7 @@
         <StackPanel Orientation="Horizontal" Spacing="10">
             <ctrl:AvatarControl Size="42" Initials="·" ColorHex="#DDF94B"/>
             <StackPanel VerticalAlignment="Center" Spacing="-1">
-                <TextBlock Text="新设备请求配对"
+                <TextBlock x:Uid="pairing/title"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="SemiBold"
                            FontSize="18"/>
@@ -23,7 +23,7 @@
             </StackPanel>
         </StackPanel>
 
-        <ctrl:AsciiDivider Label="── COMPARE FINGERPRINT · 对方屏幕显示同一串 ──"/>
+        <ctrl:AsciiDivider x:Name="CompareDivider"/>
 
         <Border CornerRadius="10"
                 Background="{ThemeResource MdTerminalBrush}"
@@ -44,7 +44,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="1." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                <TextBlock Grid.Column="1" Text="对方设备会显示同样的 8 段指纹"
+                <TextBlock Grid.Column="1" x:Uid="pairing/step1"
                            FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
             </Grid>
             <Grid ColumnSpacing="10">
@@ -53,7 +53,7 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="2." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                <TextBlock Grid.Column="1" Text="逐组核对（首 4 组 + 末 4 组）"
+                <TextBlock Grid.Column="1" x:Uid="pairing/step2"
                            FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
             </Grid>
             <Grid ColumnSpacing="10">
@@ -62,20 +62,20 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="3." FontFamily="{StaticResource MdMonoFontFamily}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                <TextBlock Grid.Column="1" Text="一致 → 允许并记住；不一致 → 立即拒绝（可能是中间人）"
+                <TextBlock Grid.Column="1" x:Uid="pairing/step3"
                            FontFamily="{StaticResource MdBodyFontFamily}" FontSize="13"/>
             </Grid>
         </StackPanel>
 
         <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
             <Button Style="{StaticResource MdOutlineButtonStyle}" Click="OnReject">
-                <TextBlock Text="× 拒绝"/>
+                <TextBlock x:Uid="common/reject"/>
             </Button>
             <Button Style="{StaticResource MdOutlineButtonStyle}" Click="OnAllowOnce">
-                <TextBlock Text="允许一次"/>
+                <TextBlock x:Uid="common/allowOnce"/>
             </Button>
             <Button Style="{StaticResource MdAccentButtonStyle}" Click="OnTrust">
-                <TextBlock Text="✓ 允许并记住"/>
+                <TextBlock x:Uid="common/allowRemember"/>
             </Button>
         </StackPanel>
     </StackPanel>

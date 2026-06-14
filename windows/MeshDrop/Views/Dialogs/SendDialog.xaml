@@ -5,8 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="using:MeshDrop.Views.Controls"
     Title=""
-    CloseButtonText="取消"
-    PrimaryButtonText="发送 →"
     DefaultButton="Primary"
     Background="{ThemeResource MdCardBrush}"
     Width="540">
@@ -21,7 +19,7 @@
             </Grid.ColumnDefinitions>
             <ctrl:AvatarControl Grid.Column="0" Size="42" Initials="LL" ColorHex="#FFB4A1" ShowRing="Visible"/>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="-1">
-                <TextBlock Text="发送到 · 李莉"
+                <TextBlock x:Uid="send/toFormat"
                            FontFamily="{StaticResource MdDisplayFontFamily}"
                            FontWeight="SemiBold"
                            FontSize="18"
@@ -31,19 +29,19 @@
                            FontSize="10"
                            Opacity="0.6"/>
             </StackPanel>
-            <ctrl:ChipControl Grid.Column="2" Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
+            <ctrl:ChipControl Grid.Column="2" x:Name="PlaintextChip" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
         </Grid>
 
-        <ctrl:AsciiDivider Label="── KIND · 类型 ──"/>
+        <ctrl:AsciiDivider x:Name="KindDivider"/>
 
         <SelectorBar x:Name="Modes">
-            <SelectorBarItem Text="文本 · Text" Tag="text" IsSelected="True"/>
-            <SelectorBarItem Text="文件 · File" Tag="file"/>
-            <SelectorBarItem Text="文字便签 · Note" Tag="note"/>
+            <SelectorBarItem x:Uid="send/kindText" Tag="text" IsSelected="True"/>
+            <SelectorBarItem x:Uid="send/kindFile" Tag="file"/>
+            <SelectorBarItem x:Uid="send/kindNote" Tag="note"/>
         </SelectorBar>
 
         <StackPanel x:Name="TextPanel" Spacing="6">
-            <TextBox PlaceholderText="说点什么…"
+            <TextBox x:Uid="send/editor"
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      Height="160"
@@ -52,7 +50,7 @@
                      Background="{ThemeResource MdPaperBrush}"
                      BorderBrush="{ThemeResource MdLineBrush}"
                      CornerRadius="8"/>
-            <TextBlock Text="按 Ctrl+Enter 立即发送 · ESC 关闭"
+            <TextBlock x:Uid="send/shortcutHint"
                        FontFamily="{StaticResource MdMonoFontFamily}"
                        FontSize="10"
                        Opacity="0.45"/>
@@ -65,7 +63,7 @@
                 Padding="10,8,10,8">
             <StackPanel Orientation="Horizontal" Spacing="8">
                 <TextBlock Text="✓" Foreground="{ThemeResource MdLimeDeepBrush}" FontWeight="Bold"/>
-                <TextBlock Text="该消息将经 LAN 明文 TCP 直连 192.168.1.31（v0.1）· 身份由 Ed25519 指纹核对"
+                <TextBlock x:Uid="send/securityNote"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="10"
                            Opacity="0.75"/>

@@ -91,9 +91,9 @@ public sealed partial class TransfersViewModel : ObservableObject
         UpValue = FmtBps(curUp);
         DownValue = FmtBps(curDown);
         SessionValue = FmtBps(curUp + curDown);
-        UpHint = _peakUp > 0 ? $"峰值 {FmtBps(_peakUp)}" : "";
-        DownHint = _peakDown > 0 ? $"峰值 {FmtBps(_peakDown)}" : "";
-        SessionHint = (_peakUp + _peakDown) > 0 ? $"峰值 {FmtBps(_peakUp + _peakDown)}" : "";
+        UpHint = _peakUp > 0 ? I18n.T("transfers.peakFormat", FmtBps(_peakUp)) : "";
+        DownHint = _peakDown > 0 ? I18n.T("transfers.peakFormat", FmtBps(_peakDown)) : "";
+        SessionHint = (_peakUp + _peakDown) > 0 ? I18n.T("transfers.peakFormat", FmtBps(_peakUp + _peakDown)) : "";
 
         static int ToBar(double v) => (int)Math.Min(Math.Round(v), int.MaxValue);
     }

@@ -41,7 +41,7 @@
                                Opacity="0.6"/>
                 </StackPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <ctrl:ChipControl Text="LAN · 明文 · v0.1" Tone="Outline" Mono="True"/>
+                    <ctrl:ChipControl x:Name="PlaintextChip" Tone="Outline" Mono="True"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -82,7 +82,7 @@
                                FontFamily="{StaticResource MdDisplayFontFamily}"
                                FontSize="64" FontWeight="Bold"
                                HorizontalAlignment="Center"/>
-                    <TextBlock Text="放手即发 · Drop to send"
+                    <TextBlock x:Uid="chat/dropToSend"
                                FontFamily="{StaticResource MdDisplayFontFamily}"
                                FontSize="22" FontWeight="Bold"
                                HorizontalAlignment="Center"/>
@@ -107,13 +107,13 @@
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Style="{StaticResource MdOutlineButtonStyle}"
                         Command="{x:Bind ViewModel.PickAndSendFileCommand}">
-                    <TextBlock Text="+ 文件 · Add file"
+                    <TextBlock x:Uid="chat/addFile"
                                FontFamily="{StaticResource MdBodyFontFamily}"/>
                 </Button>
                 <TextBox Grid.Column="1"
                          Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          KeyDown="OnComposerKeyDown"
-                         PlaceholderText="说点什么… · Type a message"
+                         x:Uid="chat/composer"
                          AcceptsReturn="False"
                          Background="Transparent"
                          BorderThickness="0"
@@ -123,7 +123,7 @@
                 <Button Grid.Column="2" Style="{StaticResource MdAccentButtonStyle}"
                         Command="{x:Bind ViewModel.SendTextCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="发送"/>
+                        <TextBlock x:Uid="common/send"/>
                         <TextBlock Text="→"/>
                     </StackPanel>
                 </Button>

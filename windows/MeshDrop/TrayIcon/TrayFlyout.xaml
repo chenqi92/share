@@ -103,15 +103,15 @@
                                     Padding="10,4,10,4"
                                     Tag="{x:Bind Id}"
                                     Click="SendClipboard_Click"
-                                    ToolTipService.ToolTip="把剪贴板里的文字 / URL 立即发给该设备">
-                                <TextBlock Text="发送" FontSize="11"/>
+                                    Loaded="SendButton_Loaded">
+                                <TextBlock x:Uid="tray/send" FontSize="11"/>
                             </Button>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <ctrl:AsciiDivider Label="── ACTIONS ──"/>
+            <ctrl:AsciiDivider x:Name="ActionsDivider"/>
 
             <Grid ColumnSpacing="8">
                 <Grid.ColumnDefinitions>
@@ -119,7 +119,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Style="{StaticResource MdAccentButtonStyle}" HorizontalAlignment="Stretch" Click="OpenMain_Click">
-                    <TextBlock Text="打开 meshdrop"/>
+                    <TextBlock x:Uid="tray/openApp"/>
                 </Button>
                 <Button Grid.Column="1" Style="{StaticResource MdOutlineButtonStyle}" Click="OpenSettings_Click">
                     <TextBlock Text="⚙"/>

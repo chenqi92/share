@@ -68,7 +68,7 @@ public static class ToastService
                     Show(ToastBuilder.BuildIncomingText(h.Item.Peer.Name, t.Content, h.Item.FormattedTime));
                     break;
                 case EngineEvent.ClipboardReceived c:
-                    Show(ToastBuilder.BuildIncomingText($"{c.Entry.PeerName} · 剪贴板", c.Entry.Content, ""));
+                    Show(ToastBuilder.BuildIncomingText(I18n.T("toast.clipboardPeerFormat", c.Entry.PeerName), c.Entry.Content, ""));
                     break;
             }
         }

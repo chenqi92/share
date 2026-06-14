@@ -5,8 +5,6 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="using:MeshDrop.Views.Controls"
     Title=""
-    CloseButtonText="跳过"
-    PrimaryButtonText="开始使用 →"
     DefaultButton="Primary"
     Background="{ThemeResource MdCardBrush}"
     Width="600">
@@ -33,16 +31,16 @@
         </StackPanel>
 
         <StackPanel Grid.Row="1" Spacing="6">
-            <TextBlock Text="一个内网，任何设备，"
+            <TextBlock x:Uid="onboarding/headline1"
                        FontFamily="{StaticResource MdDisplayFontFamily}"
                        FontWeight="Bold"
                        FontSize="24"/>
-            <TextBlock Text="谁都能 ping 到。"
+            <TextBlock x:Uid="onboarding/headline2"
                        FontFamily="{StaticResource MdDisplayFontFamily}"
                        FontWeight="Bold"
                        FontSize="24"
                        Foreground="{ThemeResource MdLimeDeepBrush}"/>
-            <TextBlock Text="An intranet drop · radar discovery · drag-to-send · LAN direct"
+            <TextBlock x:Uid="onboarding/tagline"
                        FontFamily="{StaticResource MdMonoFontFamily}"
                        FontSize="11"
                        Opacity="0.6"/>
@@ -57,40 +55,40 @@
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" CornerRadius="10" Background="{ThemeResource MdPaper2Brush}" Padding="12,10,12,10">
                 <StackPanel Spacing="6">
-                    <TextBlock Text="01 · 发现" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                    <TextBlock Text="同 Wi-Fi 即互见"
+                    <TextBlock x:Uid="onboarding/step1Tag" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                    <TextBlock x:Uid="onboarding/step1Title"
                                FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text="雷达式扫描，4.5s/圈 · 周期呼吸"
+                    <TextBlock x:Uid="onboarding/step1Hint"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10" Opacity="0.6"/>
                 </StackPanel>
             </Border>
             <Border Grid.Column="1" CornerRadius="10" Background="{ThemeResource MdPaper2Brush}" Padding="12,10,12,10">
                 <StackPanel Spacing="6">
-                    <TextBlock Text="02 · 拖即发" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                    <TextBlock Text="文件直接拖到设备"
+                    <TextBlock x:Uid="onboarding/step2Tag" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                    <TextBlock x:Uid="onboarding/step2Title"
                                FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text="不需要打开聊天页"
+                    <TextBlock x:Uid="onboarding/step2Hint"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10" Opacity="0.6"/>
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" CornerRadius="10" Background="{ThemeResource MdPaper2Brush}" Padding="12,10,12,10">
                 <StackPanel Spacing="6">
-                    <TextBlock Text="03 · 直连" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                    <TextBlock Text="不经过任何云端"
+                    <TextBlock x:Uid="onboarding/step3Tag" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                    <TextBlock x:Uid="onboarding/step3Title"
                                FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text="LAN 直连 · Ed25519 身份指纹"
+                    <TextBlock x:Uid="onboarding/step3Hint"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10" Opacity="0.6"/>
                 </StackPanel>
             </Border>
             <Border Grid.Column="3" CornerRadius="10" Background="{ThemeResource MdPaper2Brush}" Padding="12,10,12,10">
                 <StackPanel Spacing="6">
-                    <TextBlock Text="04 · 托盘" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                    <TextBlock Text="始终在任务栏"
+                    <TextBlock x:Uid="onboarding/step4Tag" Style="{StaticResource MdMonoTagStyle}" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                    <TextBlock x:Uid="onboarding/step4Title"
                                FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text="WIN+S 一键唤出"
+                    <TextBlock x:Uid="onboarding/step4Hint"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="10" Opacity="0.6"/>
                 </StackPanel>

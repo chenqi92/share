@@ -39,24 +39,25 @@ public sealed partial class ShellStatusBar : Microsoft.UI.Xaml.Controls.UserCont
     private void Refresh()
     {
         IpLabel.Text = _engine.LocalIp;
-        PeerCountLabel.Text = $"{_engine.Devices.Count} PEERS";
+        // 设备台数走本地化模板（status.peersFormat：「{0} 台」/「{0} peers」）。
+        PeerCountLabel.Text = I18n.T("status.peersFormat", _engine.Devices.Count);
         DisplayNameLabel.Text = _engine.DisplayName;
 
         if (_engine.IsStarting)
         {
-            StateLabel.Text = "SCANNING";
+            StateLabel.Text = I18n.T("status.scanning");
             StateLabel.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdSkyBrush"];
             StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdSkyBrush"];
         }
         else if (_engine.IsRunning)
         {
-            StateLabel.Text = "ONLINE";
+            StateLabel.Text = I18n.T("status.online");
             StateLabel.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdLimeDeepBrush"];
             StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdLimeDeepBrush"];
         }
         else
         {
-            StateLabel.Text = "OFFLINE";
+            StateLabel.Text = I18n.T("status.offline");
             StateLabel.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdFlameBrush"];
             StatusDot.Fill = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["MdFlameBrush"];
         }

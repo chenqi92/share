@@ -100,10 +100,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (xamlRoot is null) return;
         var confirm = new ContentDialog
         {
-            Title = "重置身份",
-            Content = "将删除当前 ID 与 Ed25519 私钥，所有已配对的对端会把本机视为新设备需要重新配对。重置后需重启 MeshDrop 让新身份生效。",
-            PrimaryButtonText = "重置",
-            CloseButtonText = "取消",
+            Title = I18n.T("settings.resetDialog.title"),
+            Content = I18n.T("settings.resetDialog.body"),
+            PrimaryButtonText = I18n.T("settings.resetDialog.confirm"),
+            CloseButtonText = I18n.T("common.cancel.Text"),
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = xamlRoot,
         };
@@ -114,9 +114,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         var done = new ContentDialog
         {
-            Title = "已重置",
-            Content = "身份已删除。请退出并重启 MeshDrop 让新身份生效。",
-            CloseButtonText = "好",
+            Title = I18n.T("settings.resetDone.title"),
+            Content = I18n.T("settings.resetDone.body"),
+            CloseButtonText = I18n.T("settings.resetDone.ok"),
             XamlRoot = xamlRoot,
         };
         await done.ShowAsync();

@@ -20,7 +20,7 @@ public sealed partial class DiscoveryViewModel : ObservableObject
 
     public MockDevice? Selected => Devices.FirstOrDefault(d => d.Id == SelectedId);
 
-    public string PeerCountText => $"附近设备 · Nearby · {Devices.Count} 台";
+    public string PeerCountText => I18n.T("discovery.peerCountFormat", Devices.Count);
 
     public bool IsEmpty => Devices.Count == 0 && !IsScanning;
 
