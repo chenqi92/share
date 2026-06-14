@@ -65,6 +65,8 @@ struct ChatDetailScreen: View {
             composer
         }
         .navigationBarTitleDisplayMode(.inline)
+        // 进入单设备对话是 push 出来的详情页，隐藏底部 tab bar，给 composer 让出全宽。
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 8) {
