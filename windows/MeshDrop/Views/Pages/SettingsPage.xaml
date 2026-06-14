@@ -112,10 +112,12 @@
                             <ToggleSwitch IsOn="True" IsEnabled="False"
                                           x:Uid="settings/tofuToggle"
                                           OffContent="OFF"/>
+                            <!-- 危险动作：基于项目统一的 MdAccentButtonStyle 派生 flame 实底，
+                                 不再用内置 AccentButtonStyle（其 hover/press 会落回 lime accent）。 -->
                             <Button x:Name="ResetIdentityButton"
                                     x:Uid="settings/resetIdentity"
                                     Click="OnResetIdentityClick"
-                                    Style="{StaticResource AccentButtonStyle}"
+                                    Style="{StaticResource MdAccentButtonStyle}"
                                     Background="{ThemeResource MdFlameBrush}"
                                     Foreground="{ThemeResource MdPaperBrush}"
                                     HorizontalAlignment="Left"/>

@@ -50,6 +50,8 @@
 
             <!-- ─ Nav buttons ─ -->
             <StackPanel Grid.Row="2" Spacing="2">
+                <!-- 选中态由 code-behind 的 SetActiveSection 驱动：lime@32%/16% 填充 + 1px lime 描边 + 选中标签用主文字色。
+                     未选中标签默认次文字色（MdInk60），靠字重/颜色区分；NavLabel 命名用于高亮时切换前景与字重。 -->
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnDiscovery_Click" x:Name="NavDiscovery">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
@@ -58,12 +60,12 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◎" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/nearby" VerticalAlignment="Center"
-                                   FontWeight="SemiBold" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavDiscoveryLabel" x:Uid="shell/nav/nearby" VerticalAlignment="Center"
+                                   FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" Text="5" Tone="Lime" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnChat_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnChat_Click" x:Name="NavChat">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -71,11 +73,12 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◌" FontSize="13"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/messages" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavChatLabel" x:Uid="shell/nav/messages" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" Text="2" Tone="Flame" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTransfers_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTransfers_Click" x:Name="NavTransfers">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -83,11 +86,12 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="↕" FontSize="13"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/transfers" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavTransfersLabel" x:Uid="shell/nav/transfers" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" x:Name="TransfersBadge" Tone="Sky" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnHistory_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnHistory_Click" x:Name="NavHistory">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -95,37 +99,41 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="◉" FontSize="13"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/history" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavHistoryLabel" x:Uid="shell/nav/history" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnClipboard_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnClipboard_Click" x:Name="NavClipboard">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="📋" FontSize="13"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/clipboard" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavClipboardLabel" x:Uid="shell/nav/clipboard" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTrust_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTrust_Click" x:Name="NavTrust">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="✓" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/trust" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavTrustLabel" x:Uid="shell/nav/trust" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
                 </Button>
-                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnSettings_Click">
+                <Button Style="{StaticResource MdNavButtonStyle}" Click="OnSettings_Click" x:Name="NavSettings">
                     <Grid ColumnSpacing="10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="⚙" FontSize="13"/>
-                        <TextBlock Grid.Column="1" x:Uid="shell/nav/settings" VerticalAlignment="Center" FontSize="13"/>
+                        <TextBlock Grid.Column="1" x:Name="NavSettingsLabel" x:Uid="shell/nav/settings" VerticalAlignment="Center"
+                                   FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
                 </Button>
 
