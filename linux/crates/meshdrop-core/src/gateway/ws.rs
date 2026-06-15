@@ -447,6 +447,18 @@ fn find_peer(engine: &ShareEngine, id: &str) -> Option<Device> {
     devs.into_iter().find(|d| d.id == id)
 }
 
+/// 本机主 LAN IP：用 UDP connect 选路技巧取出站源地址（不实际发包，无需依赖 / 联网）。
+/// 无默认路由（纯离线）时返回空串，由 web 端回退展示。
+fn local_lan_ip() -> String {
+    std::net::UdpSocket::bind("0.0.0.0:0")
+        .and_then(|s| {
+            s.connect("8.8.8.8:80")?;
+            s.local_addr()
+        })
+        .map(|a| a.ip().to_string())
+        .unwrap_or_default()
+}
+
 fn make_state_snapshot(engine: &ShareEngine) -> Value {
     let devs = engine.devices_rx().borrow().clone();
     let hist = engine.history_rx().borrow().clone();
@@ -464,18 +476,19 @@ fn make_state_snapshot_from(
     pps: &[PendingPairing],
     offs: &[PendingFileOffer],
 ) -> Value {
+    // web 端（浏览器沙箱）拿不到本机 LAN IP，完全依赖 host 补发，见 engine.ts adaptMe 注释。
+    let ip = local_lan_ip();
     json!({
         "v": 1, "type": "state_snapshot",
         "id": format!("evt-{}", Uuid::new_v4()),
         "payload": {
-            // web 端读 payload.me（engine.ts StateSnapshot.payload.me）；ip/hostIp 暂无来源置空。
             "me": {
                 "id": engine.identity.id,
                 "displayName": engine.display_name,
                 "kind": "linux",
                 "fingerprint": engine.identity.fingerprint,
-                "ip": "",
-                "hostIp": "",
+                "ip": ip.clone(),
+                "hostIp": ip,
             },
             "devices": devs.iter().map(|d| device_json(d, engine)).collect::<Vec<_>>(),
             "history": hist.iter().map(history_json).collect::<Vec<_>>(),

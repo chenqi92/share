@@ -311,16 +311,39 @@ public final class GatewayCommands {
 
     // MARK: - schema 编码（与 web/src/lib/engine.ts `Wire*` 对齐）
 
+    /// 本机主 LAN IPv4：遍历 getifaddrs 取首个 up、非回环、非 link-local 的 IPv4 地址。
+    /// POSIX，跨 Apple 平台可用；取不到返回空串（由 web 端回退展示）。
+    nonisolated static func localLanIp() -> String {
+        var ifaddr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddr) == 0 else { return "" }
+        defer { freeifaddrs(ifaddr) }
+        var ptr = ifaddr
+        while let p = ptr {
+            let ifa = p.pointee
+            ptr = ifa.ifa_next
+            let flags = Int32(ifa.ifa_flags)
+            guard (flags & IFF_UP) == IFF_UP, (flags & IFF_LOOPBACK) == 0 else { continue }
+            guard let sa = ifa.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET) else { continue }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, socklen_t(host.count),
+                              nil, 0, NI_NUMERICHOST) == 0 else { continue }
+            let ip = String(cString: host)
+            if !ip.isEmpty, !ip.hasPrefix("169.254.") { return ip }
+        }
+        return ""
+    }
+
     private func stateSnapshotPayload() -> [String: Any] {
+        // web 端（浏览器沙箱）拿不到本机 LAN IP，完全依赖 host 补发，见 engine.ts adaptMe 注释。
+        let ip = Self.localLanIp()
         return [
-            // web 端读 payload.me（engine.ts StateSnapshot.payload.me）；ip/hostIp 暂无来源置空。
             "me": [
                 "id": engine.identity.id,
                 "displayName": engine.displayName,
                 "kind": Self.kindString(for: DeviceOS.current),
                 "fingerprint": engine.identity.fingerprint,
-                "ip": "",
-                "hostIp": "",
+                "ip": ip,
+                "hostIp": ip,
             ] as [String: Any],
             "devices": engine.devices.map(deviceWire),
             "history": engine.history.map(historyWire),
