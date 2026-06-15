@@ -8,6 +8,7 @@ use crate::history::{HistoryItem, HistoryKind, TransferDirection, TransferStatus
 use crate::ClipboardEntry;
 use crate::Device;
 use crate::ShareEngine;
+use crate::{PendingFileOffer, PendingPairing};
 use anyhow::{Context, Result};
 use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use base64::Engine as _;
@@ -72,13 +73,14 @@ pub async fn accept(
     // 避免它们一直 park 在 changed().await 直到下次状态变更才退出（多次重连会累积泄漏）。
     let mut forwarders = tokio::task::JoinSet::new();
     let out_tx_d = out_tx.clone();
+    let engine_d = engine.clone();
     forwarders.spawn(async move {
         while devices_rx.changed().await.is_ok() {
             let v = devices_rx.borrow().clone();
             let payload = json!({
                 "v": 1, "type": "device_snapshot",
                 "id": format!("evt-{}", Uuid::new_v4()),
-                "payload": v.iter().map(device_json).collect::<Vec<_>>()
+                "payload": v.iter().map(|d| device_json(d, &engine_d)).collect::<Vec<_>>()
             });
             if out_tx_d.send(Message::Text(payload.to_string())).is_err() { break; }
         }
@@ -103,11 +105,7 @@ pub async fn accept(
                 let payload = json!({
                     "v": 1, "type": "pairing_pending",
                     "id": format!("evt-{}", Uuid::new_v4()),
-                    "payload": {
-                        "id": p.id.to_string(),
-                        "peerName": p.peer.name,
-                        "fingerprint": p.peer.human_fingerprint(),
-                    }
+                    "payload": pairing_json(p),
                 });
                 if out_tx_p.send(Message::Text(payload.to_string())).is_err() { return; }
             }
@@ -121,13 +119,7 @@ pub async fn accept(
                 let payload = json!({
                     "v": 1, "type": "offer_pending",
                     "id": format!("evt-{}", Uuid::new_v4()),
-                    "payload": {
-                        "id": o.id.to_string(),
-                        "peerId": o.peer.id,
-                        "peerName": o.peer.name,
-                        "kind": "file",
-                        "files": [{"name": o.file_name, "sizeBytes": o.file_size}],
-                    }
+                    "payload": offer_json(o),
                 });
                 if out_tx_o.send(Message::Text(payload.to_string())).is_err() { return; }
             }
@@ -156,6 +148,55 @@ pub async fn accept(
                 });
                 if out_tx_c.send(Message::Text(payload.to_string())).is_err() { return; }
             }
+        }
+    });
+
+    // 传输进度 / 完成：transfer_metrics 以 history id 为键。进度 ≥200ms 节流；某 id 从
+    // metrics 消失即视为完成，从 history 终态判 ok / error（companion-bridges.md §2）。
+    let out_tx_t = out_tx.clone();
+    let engine_t = engine.clone();
+    let mut tm_rx = engine.transfer_metrics_rx();
+    forwarders.spawn(async move {
+        let mut prev_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
+        let mut last_progress: Option<std::time::Instant> = None;
+        loop {
+            let metrics = tm_rx.borrow().clone();
+            let hist = engine_t.history_rx().borrow().clone();
+            let active: std::collections::HashSet<Uuid> = metrics.keys().copied().collect();
+
+            if last_progress.is_none_or(|t| t.elapsed() >= std::time::Duration::from_millis(200)) {
+                for (hid, m) in &metrics {
+                    if let Some(TransferStatus::Transferring { done, total }) =
+                        hist.iter().find(|h| &h.id == hid).map(|h| h.status.clone())
+                    {
+                        let payload = json!({
+                            "v": 1, "type": "transfer_progress",
+                            "id": format!("evt-{}", Uuid::new_v4()),
+                            "payload": { "id": hid.to_string(), "bytesSent": done, "totalBytes": total, "speedBps": m.bytes_per_sec as i64 },
+                        });
+                        if out_tx_t.send(Message::Text(payload.to_string())).is_err() { return; }
+                    }
+                }
+                last_progress = Some(std::time::Instant::now());
+            }
+
+            for hid in prev_ids.difference(&active) {
+                let (ok, error) = match hist.iter().find(|h| &h.id == hid).map(|h| h.status.clone()) {
+                    Some(TransferStatus::Completed) => (true, serde_json::Value::Null),
+                    Some(TransferStatus::Failed(e)) => (false, serde_json::Value::String(e)),
+                    Some(TransferStatus::Canceled) => (false, serde_json::Value::String("canceled".into())),
+                    _ => (false, serde_json::Value::Null),
+                };
+                let payload = json!({
+                    "v": 1, "type": "transfer_done",
+                    "id": format!("evt-{}", Uuid::new_v4()),
+                    "payload": { "id": hid.to_string(), "ok": ok, "error": error },
+                });
+                if out_tx_t.send(Message::Text(payload.to_string())).is_err() { return; }
+            }
+            prev_ids = active;
+
+            if tm_rx.changed().await.is_err() { break; }
         }
     });
 
@@ -233,7 +274,7 @@ fn handle_command(raw: &str, engine: &ShareEngine) -> Value {
     let (ok, error, result): (bool, Option<String>, Option<Value>) = match typ {
         "list_devices" => {
             let devs = engine.devices_rx().borrow().clone();
-            (true, None, Some(json!(devs.iter().map(device_json).collect::<Vec<_>>())))
+            (true, None, Some(json!(devs.iter().map(|d| device_json(d, engine)).collect::<Vec<_>>())))
         }
         "get_state" => {
             let snap = make_state_snapshot(engine);
@@ -376,6 +417,8 @@ fn find_peer(engine: &ShareEngine, id: &str) -> Option<Device> {
 fn make_state_snapshot(engine: &ShareEngine) -> Value {
     let devs = engine.devices_rx().borrow().clone();
     let hist = engine.history_rx().borrow().clone();
+    let pps = engine.pending_pairings_rx().borrow().clone();
+    let offs = engine.pending_offers_rx().borrow().clone();
     json!({
         "v": 1, "type": "state_snapshot",
         "id": format!("evt-{}", Uuid::new_v4()),
@@ -386,21 +429,52 @@ fn make_state_snapshot(engine: &ShareEngine) -> Value {
                 "kind": "linux",
                 "fingerprint": engine.identity.fingerprint,
             },
-            "devices": devs.iter().map(device_json).collect::<Vec<_>>(),
+            "devices": devs.iter().map(|d| device_json(d, engine)).collect::<Vec<_>>(),
             "history": hist.iter().map(history_json).collect::<Vec<_>>(),
+            "pendingPairings": pps.iter().map(pairing_json).collect::<Vec<_>>(),
+            "pendingOffers": offs.iter().map(offer_json).collect::<Vec<_>>(),
         }
     })
 }
 
-fn device_json(d: &Device) -> Value {
+fn device_json(d: &Device, engine: &ShareEngine) -> Value {
+    // trusted 查信任库；busy 由"该 peer 存在 Transferring 历史项"推导（companion-bridges.md §3.1）。
+    let trusted = engine.is_trusted(&d.fingerprint);
+    let busy = engine.history_rx().borrow().iter()
+        .any(|h| h.peer.id == d.id && matches!(h.status, TransferStatus::Transferring { .. }));
     json!({
         "id": d.id,
         "displayName": d.name,
         "kind": d.os.as_str(),
         "model": d.model,
         "ip": d.host,
+        "rttMs": 0,
         "fingerprint": d.fingerprint,
         "online": true,
+        "trusted": trusted,
+        "busy": busy,
+    })
+}
+
+fn pairing_json(p: &PendingPairing) -> Value {
+    json!({
+        "id": p.id.to_string(),
+        "peerName": p.peer.name,
+        "code": "",
+        "fingerprint": p.peer.human_fingerprint(),
+        "createdAt": 0,
+    })
+}
+
+fn offer_json(o: &PendingFileOffer) -> Value {
+    json!({
+        "id": o.id.to_string(),
+        "peerId": o.peer.id,
+        "peerName": o.peer.name,
+        "kind": "file",
+        "files": [{ "name": o.file_name, "sizeBytes": o.file_size, "mime": "application/octet-stream" }],
+        "noteText": null,
+        "createdAt": 0,
     })
 }
 
@@ -427,21 +501,28 @@ fn clip_kind(content: &str) -> String {
 }
 
 fn history_json(h: &HistoryItem) -> Value {
-    let (kind, name, size) = match &h.kind {
-        HistoryKind::Text(_) => ("text", None::<String>, 0u64),
-        HistoryKind::File { name, size, .. } => ("file", Some(name.clone()), *size),
+    let (kind, files) = match &h.kind {
+        HistoryKind::Text(_) => ("text", serde_json::json!([])),
+        HistoryKind::File { name, size, .. } => (
+            "file",
+            serde_json::json!([{ "name": name, "sizeBytes": size, "mime": "application/octet-stream" }]),
+        ),
     };
     let text = match &h.kind {
         HistoryKind::Text(t) => Some(t.clone()),
         _ => None,
     };
-    let status = match &h.status {
-        TransferStatus::Pending => "pending",
-        TransferStatus::WaitingApproval => "waiting_approval",
-        TransferStatus::Transferring { .. } => "transferring",
-        TransferStatus::Completed => "completed",
-        TransferStatus::Failed(_) => "failed",
-        TransferStatus::Canceled => "canceled",
+    // ok = 是否成功完成；bytesTransferred = 已传字节（传输中取 done，完成取总大小）。
+    let (status, ok, bytes_transferred) = match &h.status {
+        TransferStatus::Pending => ("pending", false, 0u64),
+        TransferStatus::WaitingApproval => ("waiting_approval", false, 0),
+        TransferStatus::Transferring { done, .. } => ("transferring", false, *done),
+        TransferStatus::Completed => {
+            let total = match &h.kind { HistoryKind::File { size, .. } => *size, _ => 0 };
+            ("completed", true, total)
+        }
+        TransferStatus::Failed(_) => ("failed", false, 0),
+        TransferStatus::Canceled => ("canceled", false, 0),
     };
     json!({
         "id": h.id.to_string(),
@@ -452,8 +533,10 @@ fn history_json(h: &HistoryItem) -> Value {
         "peerName": h.peer.name,
         "kind": kind,
         "text": text,
-        "fileName": name,
-        "sizeBytes": size,
+        "files": files,
+        "bytesTransferred": bytes_transferred,
+        "ok": ok,
+        // status 为本端附加（非 spec 字段），保留以便 web 区分进行中/待审等细分态。
         "status": status,
         "completedAt": h.created_at.unix_ms / 1000,
     })
