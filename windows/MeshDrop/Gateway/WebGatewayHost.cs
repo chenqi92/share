@@ -377,7 +377,7 @@ public sealed class WebGatewayHost
 
     private void OnEngineEvent(EngineEvent ev)
     {
-        var json = GatewayCommands.EncodeEvent(ev);
+        var json = _commands.EncodeEvent(ev);
         var bytes = Encoding.UTF8.GetBytes(json);
         foreach (var kv in _wsClients)
         {

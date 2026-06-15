@@ -896,7 +896,7 @@ public sealed partial class ShareEngine : ObservableObject
                                      .Select(kv => kv.Key).ToList();
             foreach (var k in stale) _seenMessages.Remove(k);
         }
-        var key = peerFp + " " + messageId;
+        var key = peerFp + "\0" + messageId;
         if (_seenMessages.TryGetValue(key, out var seenAt) && now - seenAt <= ReplayWindow)
             return false;
         _seenMessages[key] = now;

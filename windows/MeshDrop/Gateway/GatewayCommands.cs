@@ -30,12 +30,12 @@ internal sealed class GatewayCommands
             switch (cmd.Type)
             {
                 case "list_devices":
-                    return Reply(cmd.Id, true, null, new { devices = _engine.Devices.Select(BridgeDevice.From).ToArray() });
+                    return Reply(cmd.Id, true, null, new { devices = _engine.Devices.Select(d => BridgeDevice.From(d, _engine)).ToArray() });
                 case "get_state":
                     return Reply(cmd.Id, true, null, new
                     {
-                        self = BridgeDevice.From(_engine.SelfDevice),
-                        devices = _engine.Devices.Select(BridgeDevice.From).ToArray(),
+                        self = BridgeDevice.From(_engine.SelfDevice, _engine),
+                        devices = _engine.Devices.Select(d => BridgeDevice.From(d, _engine)).ToArray(),
                         history = _engine.History.Select(BridgeHistory.From).ToArray(),
                         pendingPairings = _engine.PendingPairings.Select(BridgePairing.From).ToArray(),
                         pendingOffers = _engine.PendingFileOffers.Select(BridgeOffer.From).ToArray(),
@@ -135,13 +135,13 @@ internal sealed class GatewayCommands
     /// <summary>
     /// 把 engine 事件转成 protocol/companion-bridges.md §2 的 event JSON。
     /// </summary>
-    public static string EncodeEvent(EngineEvent ev)
+    public string EncodeEvent(EngineEvent ev)
     {
         object? payload = ev switch
         {
-            EngineEvent.DeviceAdded a => BridgeDevice.From(a.Device),
+            EngineEvent.DeviceAdded a => BridgeDevice.From(a.Device, _engine),
             EngineEvent.DeviceRemoved r => new { id = r.Id },
-            EngineEvent.DeviceUpdated u => BridgeDevice.From(u.Device),
+            EngineEvent.DeviceUpdated u => BridgeDevice.From(u.Device, _engine),
             EngineEvent.PairingPending p => BridgePairing.From(p.Pairing),
             EngineEvent.OfferPending o => BridgeOffer.From(o.Offer),
             EngineEvent.TransferProgress t => new { id = t.Id.ToString(), bytesSent = t.BytesSent, totalBytes = t.TotalBytes, speedBps = t.SpeedBps },
@@ -236,7 +236,7 @@ internal sealed class GatewayCommands
 internal sealed record BridgeDevice(string Id, string DisplayName, string Kind, string Model,
                                     string Ip, int RttMs, bool Online, bool Trusted, bool Busy)
 {
-    public static BridgeDevice From(Device d) => new(
+    public static BridgeDevice From(Device d, ShareEngine engine) => new(
         d.Id, d.Name,
         d.Os switch
         {
@@ -249,7 +249,11 @@ internal sealed record BridgeDevice(string Id, string DisplayName, string Kind, 
         },
         d.Model ?? "",
         d.Host ?? "",
-        0, true, false, false);
+        0,
+        true,
+        // trusted 查信任库；busy 由"该 peer 存在进行中传输"推导（companion-bridges.md §3.1）。
+        engine.Trusted.Any(t => t.Fingerprint == d.Fingerprint),
+        engine.History.Any(h => h.Peer.Id == d.Id && h.Status is TransferStatus.Transferring));
 }
 
 internal sealed record BridgePairing(string Id, string PeerName, string Fingerprint, long CreatedAt)
