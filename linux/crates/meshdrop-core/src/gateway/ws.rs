@@ -75,26 +75,48 @@ pub async fn accept(
     let out_tx_d = out_tx.clone();
     let engine_d = engine.clone();
     forwarders.spawn(async move {
+        // 维护 id → 上次渲染的 device JSON，按 spec §2 发 device_added/updated/removed 增量事件。
+        let mut prev: std::collections::HashMap<String, Value> = devices_rx.borrow().iter()
+            .map(|d| (d.id.clone(), device_json(d, &engine_d))).collect();
         while devices_rx.changed().await.is_ok() {
-            let v = devices_rx.borrow().clone();
-            let payload = json!({
-                "v": 1, "type": "device_snapshot",
-                "id": format!("evt-{}", Uuid::new_v4()),
-                "payload": v.iter().map(|d| device_json(d, &engine_d)).collect::<Vec<_>>()
-            });
-            if out_tx_d.send(Message::Text(payload.to_string())).is_err() { break; }
+            let cur: std::collections::HashMap<String, Value> = devices_rx.borrow().iter()
+                .map(|d| (d.id.clone(), device_json(d, &engine_d))).collect();
+            for id in prev.keys() {
+                if !cur.contains_key(id) {
+                    let payload = json!({ "v": 1, "type": "device_removed",
+                        "id": format!("evt-{}", Uuid::new_v4()), "payload": { "id": id } });
+                    if out_tx_d.send(Message::Text(payload.to_string())).is_err() { return; }
+                }
+            }
+            for (id, dj) in &cur {
+                let typ = match prev.get(id) {
+                    None => Some("device_added"),
+                    Some(old) if old != dj => Some("device_updated"),
+                    _ => None,
+                };
+                if let Some(typ) = typ {
+                    let payload = json!({ "v": 1, "type": typ,
+                        "id": format!("evt-{}", Uuid::new_v4()), "payload": dj });
+                    if out_tx_d.send(Message::Text(payload.to_string())).is_err() { return; }
+                }
+            }
+            prev = cur;
         }
     });
     let out_tx_h = out_tx.clone();
     forwarders.spawn(async move {
+        // 已见过的 history id；新出现的按 spec 发 history_added（进度 / 完成走 transfer_* 事件）。
+        let mut seen: std::collections::HashSet<String> =
+            history_rx.borrow().iter().map(|h| h.id.to_string()).collect();
         while history_rx.changed().await.is_ok() {
-            let h = history_rx.borrow().clone();
-            let payload = json!({
-                "v": 1, "type": "history_snapshot",
-                "id": format!("evt-{}", Uuid::new_v4()),
-                "payload": h.iter().map(history_json).collect::<Vec<_>>()
-            });
-            if out_tx_h.send(Message::Text(payload.to_string())).is_err() { break; }
+            let cur = history_rx.borrow().clone();
+            for h in &cur {
+                if seen.insert(h.id.to_string()) {
+                    let payload = json!({ "v": 1, "type": "history_added",
+                        "id": format!("evt-{}", Uuid::new_v4()), "payload": history_json(h) });
+                    if out_tx_h.send(Message::Text(payload.to_string())).is_err() { return; }
+                }
+            }
         }
     });
     let out_tx_p = out_tx.clone();

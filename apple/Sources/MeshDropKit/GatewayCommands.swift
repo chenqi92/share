@@ -162,36 +162,51 @@ public final class GatewayCommands {
     /// 给一个 WS 连接订阅 engine 状态变化。
     /// 返回的 cancellables 集合一旦释放就停止推送。
     ///
-    /// 推送的事件 JSON 与 web client `engine.ts` 期望对齐：
-    /// - `state_snapshot` 首帧（含 self / devices / history）
-    /// - `device_snapshot`（devices 变化）
-    /// - `history_snapshot`（history 变化）
-    /// - `pairing_pending`（每个新增的 pairing）
-    /// - `offer_pending`（每个新增的 offer）
+    /// 推送的事件 JSON 与 protocol/companion-bridges.md §2 + web client `engine.ts` 对齐：
+    /// - `state_snapshot` 首帧（self / devices / history / pendingPairings / pendingOffers）
+    /// - `device_added` / `device_updated` / `device_removed`（devices 增量）
+    /// - `history_added`（history 新增）
+    /// - `pairing_pending` / `offer_pending`（每个新增的 pairing / offer）
+    /// - `transfer_progress` / `transfer_done`（进行中传输进度 / 完成）
+    /// - `clipboard_received`（剪贴板入站）
     public func subscribe(send: @escaping (Data) -> Void) -> Set<AnyCancellable> {
         var bag = Set<AnyCancellable>()
 
         // 首帧：完整状态快照
         send(Self.encodeEvent(type: "state_snapshot", payload: stateSnapshotPayload()))
 
-        // 后续 device 变化：去重避免初始重复推送
+        // 后续 device 变化：按 spec §2 发 device_added/updated/removed 增量事件。
+        // 用 scan 比对前后两帧，并以订阅时的快照作种子，避免首帧把已在 state_snapshot 里的设备重发。
+        let seedDevices = engine.devices
         engine.$devices
             .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] devices in
+            .scan((seedDevices, seedDevices)) { state, new in (state.1, new) }
+            .sink { [weak self] previous, current in
                 guard let self else { return }
-                let json = Self.encodeEvent(type: "device_snapshot", payload: devices.map(self.deviceWire))
-                send(json)
+                for old in previous where !current.contains(where: { $0.id == old.id }) {
+                    send(Self.encodeEvent(type: "device_removed", payload: ["id": old.id]))
+                }
+                for d in current {
+                    if let prev = previous.first(where: { $0.id == d.id }) {
+                        if prev != d { send(Self.encodeEvent(type: "device_updated", payload: self.deviceWire(d))) }
+                    } else {
+                        send(Self.encodeEvent(type: "device_added", payload: self.deviceWire(d)))
+                    }
+                }
             }
             .store(in: &bag)
 
+        // history 变化：按 spec 发 history_added（新增项）。进度 / 完成走 transfer_progress/done。
+        // 以订阅时快照作种子，避免首帧把已在 state_snapshot 里的历史项重发（web 端不去重）。
+        let seedHistory = engine.history
         engine.$history
             .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] history in
+            .scan((seedHistory, seedHistory)) { state, new in (state.1, new) }
+            .sink { [weak self] previous, current in
                 guard let self else { return }
-                let json = Self.encodeEvent(type: "history_snapshot", payload: history.map(self.historyWire))
-                send(json)
+                for h in current where !previous.contains(where: { $0.id == h.id }) {
+                    send(Self.encodeEvent(type: "history_added", payload: self.historyWire(h)))
+                }
             }
             .store(in: &bag)
 
