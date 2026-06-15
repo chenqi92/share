@@ -39,4 +39,4 @@ tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
 rcgen = "0.14"
 httparse = "1.9"
 futures-util = "0.3"
-sha1 = "0.10"
+sha1 = "0.11"
