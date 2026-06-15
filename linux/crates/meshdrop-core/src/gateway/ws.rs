@@ -445,11 +445,14 @@ fn make_state_snapshot(engine: &ShareEngine) -> Value {
         "v": 1, "type": "state_snapshot",
         "id": format!("evt-{}", Uuid::new_v4()),
         "payload": {
-            "self": {
+            // web 端读 payload.me（engine.ts StateSnapshot.payload.me）；ip/hostIp 暂无来源置空。
+            "me": {
                 "id": engine.identity.id,
                 "displayName": engine.display_name,
                 "kind": "linux",
                 "fingerprint": engine.identity.fingerprint,
+                "ip": "",
+                "hostIp": "",
             },
             "devices": devs.iter().map(|d| device_json(d, engine)).collect::<Vec<_>>(),
             "history": hist.iter().map(history_json).collect::<Vec<_>>(),

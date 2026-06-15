@@ -313,11 +313,14 @@ public final class GatewayCommands {
 
     private func stateSnapshotPayload() -> [String: Any] {
         return [
-            "self": [
+            // web 端读 payload.me（engine.ts StateSnapshot.payload.me）；ip/hostIp 暂无来源置空。
+            "me": [
                 "id": engine.identity.id,
                 "displayName": engine.displayName,
                 "kind": Self.kindString(for: DeviceOS.current),
                 "fingerprint": engine.identity.fingerprint,
+                "ip": "",
+                "hostIp": "",
             ] as [String: Any],
             "devices": engine.devices.map(deviceWire),
             "history": engine.history.map(historyWire),
