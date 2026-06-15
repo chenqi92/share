@@ -60,13 +60,19 @@ pub async fn accept(
 
     let mut ws = WebSocketStream::from_raw_socket(tls, Role::Server, None).await;
 
-    let snapshot = make_state_snapshot(&engine);
-    let _ = ws.send(Message::Text(snapshot.to_string())).await;
-
     let mut devices_rx = engine.devices_rx();
     let mut history_rx = engine.history_rx();
     let mut pp_rx = engine.pending_pairings_rx();
     let mut po_rx = engine.pending_offers_rx();
+    // 取基线并用 borrow_and_update 把当前版本标记为已读，使 state_snapshot 与各转发器 seed
+    // 共用同一份；之后 changed() 只交付此刻之后的变更，消除"快照发出与播种之间漏发 delta"的竞态。
+    let dev0 = devices_rx.borrow_and_update().clone();
+    let hist0 = history_rx.borrow_and_update().clone();
+    let pp0 = pp_rx.borrow_and_update().clone();
+    let po0 = po_rx.borrow_and_update().clone();
+    let snapshot = make_state_snapshot_from(&engine, &dev0, &hist0, &pp0, &po0);
+    let _ = ws.send(Message::Text(snapshot.to_string())).await;
+
     let (out_tx, mut out_rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
 
     // 用 JoinSet 收纳事件转发 task：函数返回（客户端断开）时 JoinSet drop 会 abort 全部，
@@ -76,7 +82,8 @@ pub async fn accept(
     let engine_d = engine.clone();
     forwarders.spawn(async move {
         // 维护 id → 上次渲染的 device JSON，按 spec §2 发 device_added/updated/removed 增量事件。
-        let mut prev: std::collections::HashMap<String, Value> = devices_rx.borrow().iter()
+        // 从与 snapshot 同一份基线 dev0 播种，避免漏发首次变更。
+        let mut prev: std::collections::HashMap<String, Value> = dev0.iter()
             .map(|d| (d.id.clone(), device_json(d, &engine_d))).collect();
         while devices_rx.changed().await.is_ok() {
             let cur: std::collections::HashMap<String, Value> = devices_rx.borrow().iter()
@@ -105,16 +112,39 @@ pub async fn accept(
     });
     let out_tx_h = out_tx.clone();
     forwarders.spawn(async move {
-        // 已见过的 history id；新出现的按 spec 发 history_added（进度 / 完成走 transfer_* 事件）。
+        // 从基线 hist0 播种：已见 id（发 history_added）与已上报 transfer_done 的文件传输 id。
+        // transfer_done 由 history 终态（持久态）驱动，抗 transfer_metrics watch 的合并丢失。
         let mut seen: std::collections::HashSet<String> =
-            history_rx.borrow().iter().map(|h| h.id.to_string()).collect();
+            hist0.iter().map(|h| h.id.to_string()).collect();
+        let mut done_reported: std::collections::HashSet<String> = hist0.iter()
+            .filter(|h| matches!(h.kind, HistoryKind::File { .. })
+                && matches!(h.status, TransferStatus::Completed | TransferStatus::Failed(_) | TransferStatus::Canceled))
+            .map(|h| h.id.to_string()).collect();
         while history_rx.changed().await.is_ok() {
             let cur = history_rx.borrow().clone();
             for h in &cur {
-                if seen.insert(h.id.to_string()) {
+                let id = h.id.to_string();
+                if seen.insert(id.clone()) {
                     let payload = json!({ "v": 1, "type": "history_added",
                         "id": format!("evt-{}", Uuid::new_v4()), "payload": history_json(h) });
                     if out_tx_h.send(Message::Text(payload.to_string())).is_err() { return; }
+                }
+                // 文件传输到达终态 → transfer_done（每 id 一次）。
+                if matches!(h.kind, HistoryKind::File { .. }) {
+                    let done = match &h.status {
+                        TransferStatus::Completed => Some((true, serde_json::Value::Null)),
+                        TransferStatus::Failed(e) => Some((false, serde_json::Value::String(e.clone()))),
+                        TransferStatus::Canceled => Some((false, serde_json::Value::String("canceled".into()))),
+                        _ => None,
+                    };
+                    if let Some((ok, error)) = done {
+                        if done_reported.insert(id.clone()) {
+                            let payload = json!({ "v": 1, "type": "transfer_done",
+                                "id": format!("evt-{}", Uuid::new_v4()),
+                                "payload": { "id": id, "ok": ok, "error": error } });
+                            if out_tx_h.send(Message::Text(payload.to_string())).is_err() { return; }
+                        }
+                    }
                 }
             }
         }
@@ -173,19 +203,17 @@ pub async fn accept(
         }
     });
 
-    // 传输进度 / 完成：transfer_metrics 以 history id 为键。进度 ≥200ms 节流；某 id 从
-    // metrics 消失即视为完成，从 history 终态判 ok / error（companion-bridges.md §2）。
+    // 传输进度：transfer_metrics 以 history id 为键，进度 ≥200ms 节流。
+    // transfer_done 不在此发——改由 history 终态驱动（见上 history 转发器），避免 transfer 在
+    // 单个 watch 合并窗口内"开始即结束"时漏发完成事件。
     let out_tx_t = out_tx.clone();
     let engine_t = engine.clone();
     let mut tm_rx = engine.transfer_metrics_rx();
     forwarders.spawn(async move {
-        let mut prev_ids: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
         let mut last_progress: Option<std::time::Instant> = None;
         loop {
             let metrics = tm_rx.borrow().clone();
             let hist = engine_t.history_rx().borrow().clone();
-            let active: std::collections::HashSet<Uuid> = metrics.keys().copied().collect();
-
             if last_progress.is_none_or(|t| t.elapsed() >= std::time::Duration::from_millis(200)) {
                 for (hid, m) in &metrics {
                     if let Some(TransferStatus::Transferring { done, total }) =
@@ -201,23 +229,6 @@ pub async fn accept(
                 }
                 last_progress = Some(std::time::Instant::now());
             }
-
-            for hid in prev_ids.difference(&active) {
-                let (ok, error) = match hist.iter().find(|h| &h.id == hid).map(|h| h.status.clone()) {
-                    Some(TransferStatus::Completed) => (true, serde_json::Value::Null),
-                    Some(TransferStatus::Failed(e)) => (false, serde_json::Value::String(e)),
-                    Some(TransferStatus::Canceled) => (false, serde_json::Value::String("canceled".into())),
-                    _ => (false, serde_json::Value::Null),
-                };
-                let payload = json!({
-                    "v": 1, "type": "transfer_done",
-                    "id": format!("evt-{}", Uuid::new_v4()),
-                    "payload": { "id": hid.to_string(), "ok": ok, "error": error },
-                });
-                if out_tx_t.send(Message::Text(payload.to_string())).is_err() { return; }
-            }
-            prev_ids = active;
-
             if tm_rx.changed().await.is_err() { break; }
         }
     });
@@ -441,6 +452,18 @@ fn make_state_snapshot(engine: &ShareEngine) -> Value {
     let hist = engine.history_rx().borrow().clone();
     let pps = engine.pending_pairings_rx().borrow().clone();
     let offs = engine.pending_offers_rx().borrow().clone();
+    make_state_snapshot_from(engine, &devs, &hist, &pps, &offs)
+}
+
+/// 用调用方已捕获的列表构建 state_snapshot。connect 路径用它，使快照与各转发器 seed
+/// 共用同一份基线（消除快照发送与播种之间的竞态）。
+fn make_state_snapshot_from(
+    engine: &ShareEngine,
+    devs: &[Device],
+    hist: &[HistoryItem],
+    pps: &[PendingPairing],
+    offs: &[PendingFileOffer],
+) -> Value {
     json!({
         "v": 1, "type": "state_snapshot",
         "id": format!("evt-{}", Uuid::new_v4()),
