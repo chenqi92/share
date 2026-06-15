@@ -267,6 +267,30 @@ public final class GatewayCommands {
             }
             .store(in: &bag)
 
+        // 传输完成：metrics 字典里某 id 消失即视为完成，从 history 终态判 ok/error
+        // （companion-bridges.md §2 transfer_done）。
+        engine.$transferMetrics
+            .dropFirst()
+            .scan(([:] as [UUID: TransferMetrics], [:] as [UUID: TransferMetrics])) { state, new in
+                (state.1, new)
+            }
+            .sink { [weak self] previous, current in
+                guard let self else { return }
+                for hid in previous.keys where current[hid] == nil {
+                    var ok = false
+                    var error: Any = NSNull()
+                    switch self.engine.history.first(where: { $0.id == hid })?.status {
+                    case .completed: ok = true
+                    case .failed(let e): ok = false; error = e
+                    case .canceled: ok = false; error = "canceled"
+                    default: break
+                    }
+                    let payload: [String: Any] = ["id": hid.uuidString, "ok": ok, "error": error]
+                    send(Self.encodeEvent(type: "transfer_done", payload: payload))
+                }
+            }
+            .store(in: &bag)
+
         return bag
     }
 
@@ -288,13 +312,21 @@ public final class GatewayCommands {
     }
 
     private func deviceWire(_ d: Device) -> [String: Any] {
+        // busy 由"该 peer 存在进行中传输"推导（companion-bridges.md §3.1）。
+        let busy = engine.history.contains { item in
+            if item.peer.id == d.id, case .transferring = item.status { return true }
+            return false
+        }
         var obj: [String: Any] = [
             "id": d.id,
             "displayName": d.name,
             "kind": Self.kindString(for: d.os),
+            "ip": "",
+            "rttMs": 0,
             "fingerprint": d.fingerprint,
             "online": true,
             "trusted": engine.trusted.contains(where: { $0.fingerprint == d.fingerprint }),
+            "busy": busy,
         ]
         if let m = d.model { obj["model"] = m }
         return obj
@@ -349,6 +381,7 @@ public final class GatewayCommands {
         return [
             "id": p.id.uuidString,
             "peerName": p.peer.name,
+            "code": "",
             "fingerprint": p.peer.humanFingerprint,
             "createdAt": Int(p.receivedAt.timeIntervalSince1970),
         ]
@@ -360,7 +393,8 @@ public final class GatewayCommands {
             "peerId": o.peer.id,
             "peerName": o.peer.name,
             "kind": "file",
-            "files": [["name": o.fileName, "sizeBytes": Int(o.fileSize)]],
+            "files": [["name": o.fileName, "sizeBytes": Int(o.fileSize), "mime": "application/octet-stream"]],
+            "noteText": NSNull(),
             "createdAt": Int(o.receivedAt.timeIntervalSince1970),
         ]
     }
