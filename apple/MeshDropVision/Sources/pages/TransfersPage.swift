@@ -151,20 +151,21 @@ struct TransfersPage: View {
     private func transferRow(_ tr: MockData.InFlightTransfer) -> some View {
         let isOut = (tr.direction == .outgoing)
         // 终态优先决定颜色：完成 = lime，失败 = error；进行中按方向 flame / sky。
-        let stateColor: Color
-        switch tr.state {
-        case .completed: stateColor = MD.limeDeep
-        case .failed:    stateColor = MD.error
-        case .active:    stateColor = isOut ? MD.flame : MD.sky
-        }
-        let statusLabel: String
-        let statusTone: ChipTone
-        switch tr.state {
-        case .completed: statusLabel = "DONE";              statusTone = .lime
-        case .failed:    statusLabel = "FAILED";            statusTone = .flame
-        case .active:    statusLabel = isOut ? "SENDING" : "RECEIVING"
-                         statusTone = isOut ? .flame : .sky
-        }
+        // 用闭包初始化而非裸 switch：@ViewBuilder 会把裸 switch 当 view 表达式。
+        let stateColor: Color = {
+            switch tr.state {
+            case .completed: return MD.limeDeep
+            case .failed:    return MD.error
+            case .active:    return isOut ? MD.flame : MD.sky
+            }
+        }()
+        let (statusLabel, statusTone): (String, ChipTone) = {
+            switch tr.state {
+            case .completed: return ("DONE", .lime)
+            case .failed:    return ("FAILED", .flame)
+            case .active:    return isOut ? ("SENDING", .flame) : ("RECEIVING", .sky)
+            }
+        }()
         HStack(spacing: 14) {
             fileIcon(ext: tr.ext, accent: stateColor)
                 .frame(width: 38, height: 46)
