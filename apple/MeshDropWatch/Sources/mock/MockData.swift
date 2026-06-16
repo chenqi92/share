@@ -40,34 +40,45 @@ struct MockTransfer: Identifiable {
 }
 
 enum Mock {
-    static let devices: [MockDevice] = [
-        MockDevice(id: "lily",   name: "Lily · MacBook",   who: "李莉",   kind: "mac",     os: "macOS",  rtt: 18, initials: "LL", color: Color(red: 1.00, green: 0.70, blue: 0.63), angle: 35,  dist: 0.55),
-        MockDevice(id: "kun",    name: "Kun · Pixel 8",    who: "坤",     kind: "android", os: "Pixel",  rtt: 32, initials: "K",  color: Color(red: 0.72, green: 0.90, blue: 0.78), angle: 110, dist: 0.78),
-        MockDevice(id: "jiawei", name: "Jiawei · iPad",    who: "嘉伟",   kind: "ipad",    os: "iPadOS", rtt: 14, initials: "JW", color: Color(red: 0.78, green: 0.72, blue: 1.00), angle: 200, dist: 0.40),
-        MockDevice(id: "mengxi", name: "Meng Xi · iPhone", who: "孟茜",   kind: "ios",     os: "iOS",    rtt: 26, initials: "MX", color: Color(red: 1.00, green: 0.85, blue: 0.44), angle: 265, dist: 0.62),
-        MockDevice(id: "dev01",  name: "DEV-01 · Win 11",  who: "工位机", kind: "win",     os: "Win 11", rtt: 41, initials: "D1", color: Color(red: 0.60, green: 0.82, blue: 1.00), angle: 320, dist: 0.88),
-    ]
+    /// 演示数据语言跟随 app 实际本地化（zh-Hans / en），与其它端截图保持一致。
+    private static var zh: Bool {
+        (Bundle.main.preferredLocalizations.first ?? "en").lowercased().hasPrefix("zh")
+    }
 
-    static let pendingOffer = MockFileOffer(
-        peer: "李莉",
-        deviceName: "Lily · MacBook",
-        fileName: "规划文档_v0.3.pages",
-        fileSize: "3.4 MB",
-        ext: "pages",
-        note: "改完了帮我看下 §2.3 那段",
-        receivedAt: "刚刚"
-    )
+    static var devices: [MockDevice] {
+        [
+            MockDevice(id: "lily",   name: "Lily's MacBook",                       who: zh ? "李莉" : "Lily",    kind: "mac",     os: "macOS",  rtt: 18, initials: "LL", color: Color(red: 1.00, green: 0.70, blue: 0.63), angle: 35,  dist: 0.55),
+            MockDevice(id: "kun",    name: zh ? "Kun · Pixel 8" : "Marco · Pixel 8",    who: zh ? "坤" : "Marco",     kind: "android", os: "Pixel",  rtt: 32, initials: "M",  color: Color(red: 0.72, green: 0.90, blue: 0.78), angle: 110, dist: 0.78),
+            MockDevice(id: "jiawei", name: zh ? "Jiawei · iPad" : "Ethan · iPad",       who: zh ? "嘉伟" : "Ethan",   kind: "ipad",    os: "iPadOS", rtt: 14, initials: "ET", color: Color(red: 0.78, green: 0.72, blue: 1.00), angle: 200, dist: 0.40),
+            MockDevice(id: "mengxi", name: zh ? "Meng Xi · iPhone" : "Sophia · iPhone", who: zh ? "孟茜" : "Sophia",  kind: "ios",     os: "iOS",    rtt: 26, initials: "SO", color: Color(red: 1.00, green: 0.85, blue: 0.44), angle: 265, dist: 0.62),
+            MockDevice(id: "dev01",  name: "DEV-01 · Win 11",                      who: zh ? "工位机" : "DEV-01", kind: "win",     os: "Win 11", rtt: 41, initials: "D1", color: Color(red: 0.60, green: 0.82, blue: 1.00), angle: 320, dist: 0.88),
+        ]
+    }
 
-    static let runningTransfer = MockTransfer(
-        id: "t1",
-        name: "iOS-mocks-final.zip",
-        size: "48.6 MB",
-        ext: "zip",
-        direction: .outgoing,
-        peer: "孟茜",
-        progress: 67,
-        speed: "8.4 MB/s",
-        eta: "00:02",
-        state: .sending
-    )
+    static var pendingOffer: MockFileOffer {
+        MockFileOffer(
+            peer: zh ? "李莉" : "Lily",
+            deviceName: "Lily's MacBook",
+            fileName: zh ? "规划文档_v0.3.pages" : "plan_v0.3.pages",
+            fileSize: "3.4 MB",
+            ext: "pages",
+            note: zh ? "改完了帮我看下 §2.3 那段" : "Done — take a look at §2.3",
+            receivedAt: zh ? "刚刚" : "now"
+        )
+    }
+
+    static var runningTransfer: MockTransfer {
+        MockTransfer(
+            id: "t1",
+            name: "iOS-mocks-final.zip",
+            size: "48.6 MB",
+            ext: "zip",
+            direction: .outgoing,
+            peer: zh ? "孟茜" : "Sophia",
+            progress: 67,
+            speed: "8.4 MB/s",
+            eta: "00:02",
+            state: .sending
+        )
+    }
 }

@@ -38,13 +38,13 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            NearbyPage()
+            NearbyPage(debugDevices: RootView.shotDevices)
                 .tag(0)
                 .containerBackground(MD.dink, for: .tabView)
-            ReceivePage()
+            ReceivePage(debugOffer: RootView.shotOffer)
                 .tag(1)
                 .containerBackground(MD.dink, for: .tabView)
-            TransferPage()
+            TransferPage(debugTransfer: RootView.shotTransfer)
                 .tag(2)
                 .containerBackground(MD.dink, for: .tabView)
             ComplicationPreviewView()
@@ -54,6 +54,18 @@ struct RootView: View {
         .tabViewStyle(.verticalPage)
         .preferredColorScheme(.dark)
     }
+
+    /// 截图模式（MESHDROP_SHOT=1）注入演示数据；否则 nil → 走真实 proxy。release 由 #if DEBUG 排除。
+    private static var isShot: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.environment["MESHDROP_SHOT"] == "1"
+        #else
+        return false
+        #endif
+    }
+    static var shotDevices: [WatchDeviceVM]? { isShot ? Mock.devices.map(WatchDeviceVM.init(mock:)) : nil }
+    static var shotOffer: WatchOfferVM? { isShot ? WatchOfferVM(mock: Mock.pendingOffer) : nil }
+    static var shotTransfer: WatchTransferVM? { isShot ? WatchTransferVM(mock: Mock.runningTransfer) : nil }
 }
 
 #Preview {
