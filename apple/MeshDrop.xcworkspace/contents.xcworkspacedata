@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Workspace
+   version = "1.0">
+   <FileRef location = "group:MeshDropMac/MeshDropMac.xcodeproj"></FileRef>
+   <FileRef location = "group:MeshDropiOS/MeshDropiOS.xcodeproj"></FileRef>
+   <FileRef location = "group:MeshDropTV/MeshDropTV.xcodeproj"></FileRef>
+   <FileRef location = "group:MeshDropVision/MeshDropVision.xcodeproj"></FileRef>
+   <FileRef location = "group:MeshDropWatch/MeshDropWatch.xcodeproj"></FileRef>
+</Workspace>
