@@ -31,7 +31,7 @@
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>com.welape.meshdrop</string>
+	<string>com.welape.landrop</string>
 	<key>WKSupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

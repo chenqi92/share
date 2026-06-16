@@ -162,7 +162,7 @@ struct SettingsScreen: View {
             .padding(14)
             divider
             HStack {
-                row(title: MD("settings.about.bundleId"), detail: "com.welape.meshdrop")
+                row(title: MD("settings.about.bundleId"), detail: "com.welape.landrop")
                 Spacer()
             }
             .padding(14)

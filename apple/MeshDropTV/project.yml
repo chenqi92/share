@@ -62,7 +62,7 @@ targets:
         NSHumanReadableCopyright: "© 2026 MeshDrop"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.tv
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
         PRODUCT_NAME: MeshDropTV
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic

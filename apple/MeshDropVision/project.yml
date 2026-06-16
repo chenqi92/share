@@ -45,7 +45,7 @@ targets:
           - arm64
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.vision
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
         PRODUCT_NAME: MeshDrop
         GENERATE_INFOPLIST_FILE: NO
         CODE_SIGN_STYLE: Automatic
