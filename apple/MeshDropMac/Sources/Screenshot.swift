@@ -1,5 +1,8 @@
 import SwiftUI
 import AppKit
+import ImageIO
+import UniformTypeIdentifiers
+import MeshDropKit
 
 /// 离线渲染 12 页 × light/dark → PNG。
 /// 在 `MeshDropMacApp.init()` 中检测 env var `MESHDROP_SCREENSHOT=1` 启动；
@@ -40,41 +43,65 @@ enum ScreenshotRunner {
 
         for (tab, pageSlug) in pages {
             for (scheme, themeSlug) in themes {
+                // 注入演示数据：设备 / 历史 / 信任 / 吞吐；receive / pairing 页注入对应待审项。
+                #if DEBUG
+                let seedRoute: String
+                switch tab {
+                case .receive: seedRoute = "receive"
+                case .pairing: seedRoute = "pairing"
+                default:       seedRoute = "discover"
+                }
+                ShareEngine.shared.seedPreviewData(route: seedRoute)
+                // 本机名默认取宿主机名（可能是中文），截图里统一成本地化演示名。
+                let zhUI = (Bundle.main.preferredLocalizations.first ?? "en").lowercased().hasPrefix("zh")
+                ShareEngine.shared.displayName = zhUI ? "我的 MacBook" : "My MacBook"
+                #endif
                 let state = AppState()
                 state.tab = tab
+                #if DEBUG
+                state.snapshotFromEngineForScreenshot()
+                #endif
                 let view = AppShell()
                     .environmentObject(state)
+                    .environmentObject(GatewayService())
                     .frame(width: width, height: height)
                     .environment(\.colorScheme, scheme)
                     .preferredColorScheme(scheme)
 
                 let renderer = ImageRenderer(content: view)
-                renderer.scale = 2  // @2x retina
                 renderer.proposedSize = ProposedViewSize(width: width, height: height)
-
-                guard let nsImage = renderer.nsImage else {
-                    fputs("ImageRenderer returned nil for \(pageSlug) \(themeSlug)\n", stderr)
-                    continue
-                }
 
                 let filename = "macos-\(pageSlug)-\(themeSlug).png"
                 let outPath = (outDir as NSString).appendingPathComponent(filename)
-                if writePNG(image: nsImage, to: outPath) {
-                    fputs("✓ \(filename)\n", stderr)
-                } else {
-                    fputs("✗ \(filename) write failed\n", stderr)
+                let scale: CGFloat = 2  // @2x retina → 2880×1800
+                var wrote = false
+                renderer.render { size, renderInContext in
+                    let pxW = Int(size.width * scale)
+                    let pxH = Int(size.height * scale)
+                    guard pxW > 0, pxH > 0,
+                          let ctx = CGContext(data: nil, width: pxW, height: pxH,
+                                              bitsPerComponent: 8, bytesPerRow: 0,
+                                              space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+                    else { return }
+                    ctx.scaleBy(x: scale, y: scale)
+                    renderInContext(ctx)
+                    if let cg = ctx.makeImage() {
+                        wrote = writePNG(cgImage: cg, to: outPath)
+                    }
                 }
+                fputs(wrote ? "✓ \(filename)\n" : "✗ \(filename) render/write failed\n", stderr)
             }
         }
 
         exit(0)
     }
 
-    private static func writePNG(image: NSImage, to path: String) -> Bool {
-        guard let tiff = image.tiffRepresentation,
-              let rep  = NSBitmapImageRep(data: tiff),
-              let data = rep.representation(using: .png, properties: [:])
-        else { return false }
-        return (try? data.write(to: URL(fileURLWithPath: path))) != nil
+    private static func writePNG(cgImage: CGImage, to path: String) -> Bool {
+        let url = URL(fileURLWithPath: path) as CFURL
+        guard let dest = CGImageDestinationCreateWithURL(
+            url, UTType.png.identifier as CFString, 1, nil) else { return false }
+        CGImageDestinationAddImage(dest, cgImage, nil)
+        return CGImageDestinationFinalize(dest)
     }
 }

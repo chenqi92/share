@@ -3,8 +3,24 @@ import MeshDropKit
 
 struct TVRoot: View {
     @EnvironmentObject private var engine: ShareEngine
-    @State private var tab: TVTab = .nearby
+    @State private var tab: TVTab = TVRoot.initialTab
     @State private var didAutoSwitchForOffer: UUID?
+
+    /// 截图预览：按 MESHDROP_PREVIEW_ROUTE 决定首屏 tab；release 由 #if DEBUG 排除。
+    static var initialTab: TVTab {
+        #if DEBUG
+        if let r = ProcessInfo.processInfo.environment["MESHDROP_PREVIEW_ROUTE"] {
+            switch r {
+            case "receive":              return .receive
+            case "gallery", "transfers": return .gallery
+            case "pairing":              return .pairing
+            case "settings":             return .settings
+            default:                     return .nearby
+            }
+        }
+        #endif
+        return .nearby
+    }
 
     var body: some View {
         ZStack {

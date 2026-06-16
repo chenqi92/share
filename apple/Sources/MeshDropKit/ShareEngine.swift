@@ -168,15 +168,21 @@ public final class ShareEngine: ObservableObject {
         func dev(_ id: String, who: String, model: String, _ os: DeviceOS, _ fp: String) -> Device {
             Device(id: id, name: who, os: os, model: model, fingerprint: fp, port: 9580)
         }
-        let lily   = dev("a1b2c3d4e5f60718293a4b5c6d7e8f90", who: "李莉",   model: "Lily's MacBook",  .macos,   "9f3a7c2e8b1d40563a9e7c3201ab77de")
-        let kun    = dev("b2c3d4e5f6071829304a5b6c7d8e9f01", who: "坤",     model: "Kun · Pixel 8",    .android, "1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f")
-        let jiawei = dev("c3d4e5f60718293041a5b6c7d8e9f012", who: "嘉伟",   model: "Jiawei · iPad",    .ios,     "2233445566778899aabbccddeeff0011")
-        let mengxi = dev("d4e5f6071829304152b6c7d8e9f01234", who: "孟茜",   model: "Meng Xi · iPhone", .ios,     "7788990011223344556677889900aabb")
-        let dev01  = dev("e5f607182930415263c7d8e9f0123456", who: "工位机", model: "DEV-01 · Win 11",  .windows, "aabbccddeeff00112233445566778899")
+        // 演示数据语言跟随 app 实际本地化（zh-Hans / en），保证截图内容与 UI 同语言。
+        let zh = (Bundle.main.preferredLocalizations.first ?? "en").lowercased().hasPrefix("zh")
+        let lily   = dev("a1b2c3d4e5f60718293a4b5c6d7e8f90", who: zh ? "李莉" : "Lily",    model: "Lily's MacBook",                            .macos,   "9f3a7c2e8b1d40563a9e7c3201ab77de")
+        let kun    = dev("b2c3d4e5f6071829304a5b6c7d8e9f01", who: zh ? "坤" : "Marco",     model: zh ? "Kun · Pixel 8" : "Marco · Pixel 8",     .android, "1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f")
+        let jiawei = dev("c3d4e5f60718293041a5b6c7d8e9f012", who: zh ? "嘉伟" : "Ethan",   model: zh ? "Jiawei · iPad" : "Ethan · iPad",        .ios,     "2233445566778899aabbccddeeff0011")
+        let mengxi = dev("d4e5f6071829304152b6c7d8e9f01234", who: zh ? "孟茜" : "Sophia",  model: zh ? "Meng Xi · iPhone" : "Sophia · iPhone",  .ios,     "7788990011223344556677889900aabb")
+        let dev01  = dev("e5f607182930415263c7d8e9f0123456", who: zh ? "工位机" : "DEV-01", model: "DEV-01 · Win 11",                           .windows, "aabbccddeeff00112233445566778899")
         devices = [lily, kun, jiawei, mengxi, dev01]
 
         let now = Date()
         func ago(_ minutes: Int) -> Date { now.addingTimeInterval(Double(-minutes) * 60) }
+        let figName = zh ? "设计稿_v3_final.fig" : "design_v3_final.fig"
+        let msg1 = zh ? "改完了，整理一下发你"        : "Done with the edits — sending them over now"
+        let msg2 = zh ? "收到，下午开会前给反馈"      : "Got it. I'll send feedback before the meeting"
+        let msg3 = zh ? "嘉伟说图改完了，我转给你看下" : "Ethan's done with the mockups — forwarding them to you"
         history = [
             HistoryItem(peer: jiawei, direction: .outgoing, kind: .file(name: "iOS-mocks-final.zip", size: 48_600_000, url: nil),
                         status: .transferring(bytesDone: 32_500_000, bytesTotal: 48_600_000), createdAt: ago(1)),
@@ -186,11 +192,11 @@ public final class ShareEngine: ObservableObject {
                         status: .pending, createdAt: ago(2)),
             HistoryItem(peer: mengxi, direction: .incoming, kind: .file(name: "IMG_4821.heic", size: 2_400_000, url: nil),
                         status: .completed, createdAt: ago(4)),
-            HistoryItem(peer: jiawei, direction: .outgoing, kind: .file(name: "设计稿_v3_final.fig", size: 14_200_000, url: nil),
+            HistoryItem(peer: jiawei, direction: .outgoing, kind: .file(name: figName, size: 14_200_000, url: nil),
                         status: .completed, createdAt: ago(6)),
-            HistoryItem(peer: lily, direction: .outgoing, kind: .text("改完了，整理一下发你"), status: .completed, createdAt: ago(8)),
-            HistoryItem(peer: mengxi, direction: .incoming, kind: .text("收到，下午开会前给反馈"), status: .completed, createdAt: ago(9)),
-            HistoryItem(peer: mengxi, direction: .outgoing, kind: .text("嘉伟说图改完了，我转给你看下"), status: .completed, createdAt: ago(10)),
+            HistoryItem(peer: lily, direction: .outgoing, kind: .text(msg1), status: .completed, createdAt: ago(8)),
+            HistoryItem(peer: mengxi, direction: .incoming, kind: .text(msg2), status: .completed, createdAt: ago(9)),
+            HistoryItem(peer: mengxi, direction: .outgoing, kind: .text(msg3), status: .completed, createdAt: ago(10)),
         ]
         transferMetrics = [
             history[0].id: TransferMetrics(bytesPerSec: 6_200_000, etaSeconds: 2.6),
@@ -208,16 +214,20 @@ public final class ShareEngine: ObservableObject {
         // 避免盖住 discover / transfers 等其它页面。
         if route == "receive" {
             pendingFileOffers = [
-                PendingFileOffer(id: UUID(), peer: mengxi, fileName: "设计稿_v3_final.fig",
+                PendingFileOffer(id: UUID(), peer: mengxi, fileName: figName,
                                  fileSize: 14_200_000,
                                  sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                                  mime: nil, previewBase64: nil, receivedAt: now)
             ]
+        } else {
+            pendingFileOffers = []
         }
         if route == "pairing" {
             pendingPairings = [
                 PairingRequest(peer: dev01, receivedAt: now)
             ]
+        } else {
+            pendingPairings = []
         }
         trusted = [
             TrustRecord(fingerprint: lily.fingerprint,   name: lily.model ?? lily.name,   firstSeen: ago(60 * 24), lastSeen: ago(8)),

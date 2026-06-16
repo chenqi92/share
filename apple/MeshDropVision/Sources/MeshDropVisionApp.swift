@@ -18,6 +18,19 @@ struct MeshDropVisionApp: App {
                        minHeight: 1000, idealHeight: 1100, maxHeight: .infinity)
                 .preferredColorScheme(.dark)
                 .onAppear {
+                    #if DEBUG
+                    if let route = ProcessInfo.processInfo.environment["MESHDROP_PREVIEW_ROUTE"] {
+                        // 离线截图预览：只注入演示数据，不联网。release 由 #if DEBUG 排除。
+                        engine.seedPreviewData(route: route)
+                        switch route {
+                        case "chats":     tab = .chats
+                        case "transfers": tab = .transfers
+                        case "pairing":   tab = .pairing
+                        default:          tab = .nearby
+                        }
+                        return
+                    }
+                    #endif
                     engine.start()
                 }
                 .ornament(attachmentAnchor: .scene(.bottom)) {

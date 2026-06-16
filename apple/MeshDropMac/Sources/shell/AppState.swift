@@ -132,6 +132,31 @@ final class AppState: ObservableObject {
             .assign(to: &$lastError)
     }
 
+    #if DEBUG
+    /// 离线截图用：bind() 的投影都走 `.receive(on:.main)` 异步派发，ImageRenderer 同步
+    /// 渲染会赶在派发之前→渲染出空态。此方法从 engine 同步拉一次快照，渲染前调用。
+    func snapshotFromEngineForScreenshot() {
+        engineDevices = engine.devices.map { MockDevice.from($0, online: true) }
+        engineHistory = engine.history.map(MockHistory.from)
+        engineHistoryItems = engine.history
+        enginePairing = engine.pendingPairings.first.map(MockPendingPairing.from)
+        engineOffer = engine.pendingFileOffers.first.map(MockPendingOffer.from)
+        engineTrusted = engine.trusted.map { MockTrustedDevice.from($0) }
+        transferMetrics = engine.transferMetrics
+        clipboardInbox = engine.clipboardInbox
+        let tp = engine.sessionThroughput
+        uploadBars = tp.up.map { Int($0.rounded()) }
+        downloadBars = tp.down.map { Int($0.rounded()) }
+        let n = max(tp.up.count, tp.down.count)
+        sessionBars = (0..<n).map { i in
+            let u = i < tp.up.count ? tp.up[i] : 0
+            let d = i < tp.down.count ? tp.down[i] : 0
+            return Int((u + d).rounded())
+        }
+        isScanning = engine.isStarting
+    }
+    #endif
+
     // MARK: - 视觉用：本机 / 选中设备投影
 
     var selectedDevice: MockDevice {

@@ -9,7 +9,16 @@ struct MeshDropTVApp: App {
         WindowGroup {
             TVRoot()
                 .environmentObject(engine)
-                .onAppear { engine.start() }
+                .onAppear {
+                    #if DEBUG
+                    if let route = ProcessInfo.processInfo.environment["MESHDROP_PREVIEW_ROUTE"] {
+                        // 离线截图预览：只注入演示数据，不联网。release 由 #if DEBUG 排除。
+                        engine.seedPreviewData(route: route)
+                        return
+                    }
+                    #endif
+                    engine.start()
+                }
                 .onDisappear { engine.stop() }
         }
     }
