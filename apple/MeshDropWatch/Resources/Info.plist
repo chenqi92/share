@@ -28,17 +28,13 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>用于发现同一网络下的 MeshDrop 设备</string>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>watch-companion</string>
-	</array>
 	<key>WKApplication</key>
 	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.welape.meshdrop</string>
 	<key>WKSupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
-	<key>WKWatchOnly</key>
-	<true/>
 </dict>
 </plist>

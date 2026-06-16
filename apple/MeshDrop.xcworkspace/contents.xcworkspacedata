@@ -5,5 +5,4 @@
    <FileRef location = "group:MeshDropiOS/MeshDropiOS.xcodeproj"></FileRef>
    <FileRef location = "group:MeshDropTV/MeshDropTV.xcodeproj"></FileRef>
    <FileRef location = "group:MeshDropVision/MeshDropVision.xcodeproj"></FileRef>
-   <FileRef location = "group:MeshDropWatch/MeshDropWatch.xcodeproj"></FileRef>
 </Workspace>

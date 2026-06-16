@@ -71,6 +71,9 @@ targets:
       - target: MeshDropWidgets
         embed: true
         codeSign: true
+      - target: MeshDropWatch
+        embed: true
+        codeSign: true
 
   MeshDropShareExtension:
     type: app-extension
@@ -138,3 +141,72 @@ targets:
     dependencies:
       - package: MeshDropKit
         product: MeshDropKit
+
+  # ── 内嵌的 watchOS companion app（源码仍在 ../MeshDropWatch）──
+  # 经 WatchConnectivity 桥接 iPhone；作为 companion 由本 iOS app 一并打包上架。
+  MeshDropWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - ../MeshDropWatch/Sources
+      - path: ../MeshDropWatch/Resources
+        excludes:
+          - Info.plist
+          - MeshDropWatch.entitlements
+    info:
+      path: ../MeshDropWatch/Resources/Info.plist
+      properties:
+        CFBundleName: MeshDrop
+        CFBundleDisplayName: MeshDrop
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: com.welape.meshdrop
+        WKSupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSLocalNetworkUsageDescription: 用于发现同一网络下的 MeshDrop 设备
+        NSBonjourServices:
+          - _meshdrop._tcp
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.watch
+        PRODUCT_NAME: MeshDropWatch   # 产物名需与 iOS app(MeshDrop) 区分；显示名走 CFBundleDisplayName
+        GENERATE_INFOPLIST_FILE: NO
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "4"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: ../MeshDropWatch/Resources/MeshDropWatch.entitlements
+    dependencies:
+      - target: MeshDropWatchComplications
+        embed: true
+        codeSign: true
+
+  MeshDropWatchComplications:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - ../MeshDropWatchComplications/Sources
+      - ../MeshDropWatchComplications/Resources
+      - ../MeshDropWatch/Sources/bridge/ComplicationSnapshot.swift
+    info:
+      path: ../MeshDropWatchComplications/Info.plist
+      properties:
+        CFBundleDisplayName: MeshDrop
+        CFBundleName: MeshDropWatchComplications
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.welape.meshdrop.watch.complications
+        PRODUCT_NAME: MeshDropWatchComplications
+        GENERATE_INFOPLIST_FILE: NO
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 2U97K3U27A
+        CODE_SIGN_ENTITLEMENTS: ../MeshDropWatchComplications/MeshDropWatchComplications.entitlements
