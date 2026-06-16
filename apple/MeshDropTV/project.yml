@@ -65,5 +65,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
         PRODUCT_NAME: MeshDropTV
         GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 2U97K3U27A

@@ -59,6 +59,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.welape.landrop
         PRODUCT_NAME: MeshDrop
         GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 2U97K3U27A
         CODE_SIGN_ENTITLEMENTS: Resources/MeshDropiOS.entitlements
@@ -210,3 +211,23 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 2U97K3U27A
         CODE_SIGN_ENTITLEMENTS: ../MeshDropWatchComplications/MeshDropWatchComplications.entitlements
+
+# 显式 scheme：加入 watchOS target 后 xcodegen 不再自动为 app target 生成 scheme，
+# 这里手动声明，保证 Xcode 归档 / 命令行构建可用。
+schemes:
+  MeshDropiOS:
+    build:
+      targets:
+        MeshDropiOS: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  MeshDropWatch:
+    build:
+      targets:
+        MeshDropWatch: all
+    run:
+      config: Debug
+    archive:
+      config: Release
