@@ -19,6 +19,7 @@ public static class LaunchAtLogin
 
     private static string StartupDir => Environment.GetFolderPath(Environment.SpecialFolder.Startup);
     private static string LinkPath => Path.Combine(StartupDir, LinkName);
+    private static readonly Guid ShellLinkClsid = new("00021401-0000-0000-C000-000000000046");
 
     /// <summary>「启动」文件夹是否已有本机自启快捷方式。</summary>
     public static bool IsEnabled
@@ -62,19 +63,17 @@ public static class LaunchAtLogin
 
     private static void CreateShortcut(string linkPath, string targetExe)
     {
-        var link = (IShellLinkW)new ShellLink();
+        var type = Type.GetTypeFromCLSID(ShellLinkClsid, throwOnError: true)!;
+        var instance = Activator.CreateInstance(type)!;
+        var link = (IShellLinkW)instance;
         link.SetPath(targetExe);
         var workDir = Path.GetDirectoryName(targetExe);
         if (!string.IsNullOrEmpty(workDir)) link.SetWorkingDirectory(workDir);
         link.SetDescription("MeshDrop");
-        ((IPersistFile)link).Save(linkPath, fRemember: true);
+        ((IPersistFile)instance).Save(linkPath, fRemember: true);
     }
 
     // ── COM interop：IShellLinkW + IPersistFile（shell32 / ole32 内置，无需 NuGet） ──
-
-    [ComImport]
-    [Guid("00021401-0000-0000-C000-000000000046")]
-    private sealed class ShellLink { }
 
     [ComImport]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]

@@ -44,4 +44,11 @@ public static class GatewayProbe
         }
         Changed?.Invoke();
     }
+
+    public static void Clear(WebGatewayHost? host = null)
+    {
+        if (host is not null && !ReferenceEquals(s_host, host)) return;
+        s_host = null;
+        Changed?.Invoke();
+    }
 }

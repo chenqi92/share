@@ -13,7 +13,7 @@ struct Chip: View {
     var body: some View {
         Text(text)
             .font(font)
-            .tracking(mono ? 1.6 : 0.4)
+            .tracking(mono ? 0.4 : 0.1)
             .textCase(mono ? .uppercase : nil)
             .foregroundStyle(fg)
             .padding(.horizontal, size * 0.7)

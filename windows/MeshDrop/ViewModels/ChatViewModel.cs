@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -28,7 +29,14 @@ public sealed partial class ChatViewModel : ObservableObject
     [ObservableProperty]
     private string _draft = "";
 
+    [ObservableProperty]
+    private string _peerInitials = "—";
+
+    [ObservableProperty]
+    private string _peerColorHex = "#9AD0FF";
+
     private readonly ProjectedCollection<HistoryItem, MockMessage> _messages;
+    public ObservableCollection<MockDevice> Devices { get; }
     public ObservableCollection<MockMessage> Messages => _messages;
 
     /// <summary>取当前选中对端（按 PeerId 在设备表里查）。无选中返回 null。</summary>
@@ -46,10 +54,31 @@ public sealed partial class ChatViewModel : ObservableObject
 
     public ChatViewModel()
     {
+        Devices = new ProjectedCollection<MeshDrop.Models.Device, MockDevice>(
+            _engine.Devices, d => d.ToMock());
+        Devices.CollectionChanged += OnDevicesChanged;
+
         _messages = new ProjectedCollection<HistoryItem, MockMessage>(
             _engine.History,
             h => h.ToMessage(),
             h => string.IsNullOrEmpty(PeerId) || h.Peer.Id == PeerId);
+
+        if (string.IsNullOrEmpty(PeerId) && Devices.Count > 0)
+        {
+            PeerId = Devices[0].Id;
+        }
+    }
+
+    public bool SendText(string content)
+    {
+        var text = (content ?? "").Trim();
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(PeerId)) return false;
+
+        var peer = _engine.Devices.FirstOrDefault(d => d.Id == PeerId);
+        if (peer is null) return false;
+
+        _engine.SendText(peer, text);
+        return true;
     }
 
     partial void OnPeerIdChanged(string value)
@@ -60,6 +89,15 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             PeerDisplayName = peer.Name;
             PeerSubtitle = $"{peer.Os} · {peer.Host ?? "—"}";
+            PeerInitials = EngineProjection.Initials(peer.Name);
+            PeerColorHex = EngineProjection.ColorFor(peer.Id);
+        }
+        else
+        {
+            PeerDisplayName = "—";
+            PeerSubtitle = "未选择对端";
+            PeerInitials = "—";
+            PeerColorHex = "#9AD0FF";
         }
         OnPropertyChanged(nameof(DropOverlayText));
     }
@@ -105,5 +143,13 @@ public sealed partial class ChatViewModel : ObservableObject
         if (CurrentPeer is not { } peer) return;
         if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
         _engine.SendFile(peer, path);
+    }
+
+    private void OnDevicesChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(PeerId) && Devices.Count > 0)
+        {
+            PeerId = Devices[0].Id;
+        }
     }
 }

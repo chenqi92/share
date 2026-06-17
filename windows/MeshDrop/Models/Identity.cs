@@ -13,8 +13,8 @@ namespace MeshDrop.Models;
 public sealed class Identity
 {
     public string Id { get; }
-    public Key PrivateKey { get; }
-    public PublicKey PublicKey { get; }
+    internal Key PrivateKey { get; }
+    internal PublicKey PublicKey { get; }
     public string Fingerprint { get; }
 
     private Identity(string id, Key privateKey)
@@ -25,7 +25,18 @@ public sealed class Identity
         Fingerprint = ComputeFingerprint(PublicKey);
     }
 
-    public static string ComputeFingerprint(PublicKey publicKey)
+    private Identity(string id, string fingerprint)
+    {
+        Id = id;
+        PrivateKey = null!;
+        PublicKey = null!;
+        Fingerprint = fingerprint;
+    }
+
+    public static Identity CompilerOnly() =>
+        new("compiler", "00000000000000000000000000000000");
+
+    private static string ComputeFingerprint(PublicKey publicKey)
     {
         var raw = publicKey.Export(KeyBlobFormat.RawPublicKey);
         var hash = SHA256.HashData(raw);
@@ -46,7 +57,7 @@ public sealed class Identity
         {
             var id = File.ReadAllText(idPath).Trim();
             var encrypted = File.ReadAllBytes(keyPath);
-            var raw = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+            var raw = Unprotect(encrypted);
             var pk = Key.Import(SignatureAlgorithm.Ed25519, raw, KeyBlobFormat.RawPrivateKey,
                 new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
             return new Identity(id, pk);
@@ -66,7 +77,7 @@ public sealed class Identity
         var pk = Key.Create(SignatureAlgorithm.Ed25519,
             new KeyCreationParameters { ExportPolicy = KeyExportPolicies.AllowPlaintextExport });
         var raw = pk.Export(KeyBlobFormat.RawPrivateKey);
-        var encrypted = ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser);
+        var encrypted = Protect(raw);
         File.WriteAllBytes(keyPath, encrypted);
         File.WriteAllText(idPath, id);
         return new Identity(id, pk);
@@ -78,6 +89,38 @@ public sealed class Identity
         {
             var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             return Path.Combine(local, "MeshDrop");
+        }
+    }
+
+    private static byte[] Protect(byte[] raw)
+    {
+        try
+        {
+            return ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser);
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return raw;
+        }
+        catch (CryptographicException)
+        {
+            return raw;
+        }
+    }
+
+    private static byte[] Unprotect(byte[] stored)
+    {
+        try
+        {
+            return ProtectedData.Unprotect(stored, null, DataProtectionScope.CurrentUser);
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return stored;
+        }
+        catch (CryptographicException)
+        {
+            return stored;
         }
     }
 }

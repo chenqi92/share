@@ -75,7 +75,7 @@ public sealed class TrustStore
         {
             if (!File.Exists(_path)) return new();
             var encrypted = File.ReadAllBytes(_path);
-            var raw = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+            var raw = Unprotect(encrypted);
             var json = Encoding.UTF8.GetString(raw);
             return JsonSerializer.Deserialize<Dictionary<string, TrustRecord>>(json) ?? new();
         }
@@ -88,9 +88,41 @@ public sealed class TrustStore
         {
             var json = JsonSerializer.Serialize(_records);
             var raw = Encoding.UTF8.GetBytes(json);
-            var encrypted = ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser);
+            var encrypted = Protect(raw);
             File.WriteAllBytes(_path, encrypted);
         }
         catch { /* silent */ }
+    }
+
+    private static byte[] Protect(byte[] raw)
+    {
+        try
+        {
+            return ProtectedData.Protect(raw, null, DataProtectionScope.CurrentUser);
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return raw;
+        }
+        catch (CryptographicException)
+        {
+            return raw;
+        }
+    }
+
+    private static byte[] Unprotect(byte[] stored)
+    {
+        try
+        {
+            return ProtectedData.Unprotect(stored, null, DataProtectionScope.CurrentUser);
+        }
+        catch (PlatformNotSupportedException)
+        {
+            return stored;
+        }
+        catch (CryptographicException)
+        {
+            return stored;
+        }
     }
 }

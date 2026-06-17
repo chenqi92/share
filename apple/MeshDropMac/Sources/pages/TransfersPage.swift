@@ -3,6 +3,7 @@ import MeshDropKit
 
 struct TransfersPage: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         PageScroll {
@@ -209,25 +210,20 @@ struct TransfersPage: View {
     @ViewBuilder
     private func filterChip(text: String, count: Int, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                Text(text)
-                    .font(MeshDropFont.body(size: 12, weight: .semibold))
-                Text("\(count)")
-                    .font(MeshDropFont.mono(size: 11, weight: .semibold))
-                    .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(MeshDropColor.divider)
-                    )
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            Text(text == "全部" ? text : "\(text) · \(count)")
+                .font(MeshDropFont.body(size: 11, weight: .semibold))
+                .tracking(0.1)
+                .padding(.horizontal, 8)
+                .frame(height: 20)
             .background(
-                RoundedRectangle(cornerRadius: 999)
-                    .fill(active ? MeshDropColor.lime : MeshDropColor.cardBg2)
+                Capsule(style: .continuous)
+                    .fill(active ? MeshDropColor.outgoingBubble : Color.clear)
             )
-            .foregroundStyle(active ? MeshDropColor.ink : MeshDropColor.textSecondary)
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(active ? Color.clear : MeshDropColor.ink12, lineWidth: 1)
+            )
+            .foregroundStyle(active ? (scheme == .dark ? MeshDropColor.ink : MeshDropColor.paper) : MeshDropColor.textSecondary)
         }
         .buttonStyle(.plain)
     }

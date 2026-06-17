@@ -277,21 +277,7 @@ public sealed partial class ShareEngine : ObservableObject
 
     private static string ResolveLocalIp()
     {
-        try
-        {
-            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
-            {
-                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
-                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback) continue;
-                foreach (var addr in nic.GetIPProperties().UnicastAddresses)
-                {
-                    if (addr.Address.AddressFamily != AddressFamily.InterNetwork) continue;
-                    var s = addr.Address.ToString();
-                    if (s.StartsWith("169.254.")) continue;
-                    return s;
-                }
-            }
-        }
+        try { return NetworkInterfaceSelector.ResolvePrimaryIPv4(); }
         catch { }
         return "127.0.0.1";
     }

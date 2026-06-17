@@ -16,6 +16,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <!-- 默认语言 zh-Hans：缺失某语言时回退到该 resw；PRI 资源选择的兜底语言 -->
     <DefaultLanguage>zh-Hans</DefaultLanguage>
+    <EnableDefaultPriItems>false</EnableDefaultPriItems>
     <!-- 我们在 App.xaml.cs 自己写了 Program.Main 来设置 SynchronizationContext；
          禁用 XAML 编译器自动生成的 Program.Main 避免重复 -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>

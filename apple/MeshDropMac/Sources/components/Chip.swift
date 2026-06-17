@@ -19,7 +19,7 @@ struct Chip: View {
             }
             Text(text)
                 .font(MeshDropFont.chip(11, isMono: mono))
-                .tracking(mono ? 0.8 : 0)
+                .tracking(0.1)
         }
         .padding(.horizontal, 8)
         .frame(height: 20)
