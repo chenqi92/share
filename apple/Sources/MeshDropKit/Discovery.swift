@@ -35,6 +35,10 @@ public final class Discovery: @unchecked Sendable {
     /// 入站 TCP 连接钩子。由 [ShareEngine] 接管握手与业务路由。
     public var onIncomingConnection: (@Sendable (NWConnection) -> Void)?
 
+    /// 发现层致命错误（listener/browser 失败，最常见是本地网络权限被拒）。
+    /// 由 [ShareEngine] 接管并反映到 UI，避免「看着在等配对、实际没在广播」的无限加载。
+    public var onError: (@Sendable (String) -> Void)?
+
     public init(
         identity: Identity,
         displayName: String,
@@ -146,6 +150,7 @@ public final class Discovery: @unchecked Sendable {
                 }
             case .failed(let err):
                 log.error("listener failed: \(err.localizedDescription)")
+                self.onError?(L10n.discoveryUnavailable)
             default:
                 break
             }
@@ -174,8 +179,12 @@ public final class Discovery: @unchecked Sendable {
         browser.browseResultsChangedHandler = { [weak self] results, _ in
             self?.handleBrowse(results: results)
         }
-        browser.stateUpdateHandler = { state in
+        browser.stateUpdateHandler = { [weak self] state in
             log.debug("browser state: \(String(describing: state))")
+            if case .failed(let err) = state {
+                log.error("browser failed: \(err.localizedDescription)")
+                self?.onError?(L10n.discoveryUnavailable)
+            }
         }
         browser.start(queue: .main)
     }

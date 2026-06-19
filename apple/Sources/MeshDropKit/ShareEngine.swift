@@ -258,6 +258,13 @@ public final class ShareEngine: ObservableObject {
                 guard let self else { nwConn.cancel(); return }
                 Task { @MainActor in await self.acceptIncoming(nwConn) }
             }
+            // 发现层失败（最常见：本地网络权限被拒）反映到 UI，避免「看着在等配对、其实没在广播」的无限加载。
+            d.onError = { [weak self] msg in
+                Task { @MainActor in
+                    self?.lastError = msg
+                    self?.isStarting = false
+                }
+            }
             try d.start()
             // 应用持久化的「局域网可见」状态：关闭时启动即不广告（仍浏览他机、仍可被已建连接使用）。
             d.setAdvertising(enabled: visibleOnLan)
@@ -1354,6 +1361,19 @@ public final class ShareEngine: ObservableObject {
                   let hid = ctx.historyID {
             // 发送态意外断开 — 让 UI 显示失败，用户可从历史重新发起。
             updateHistoryStatus(hid, status: .failed(L10n.failDisconnected))
+        }
+        // 握手从未完成就被关闭（建连超时 / 对端不响应 / mDNS 解析不到）：把仍非终态的历史
+        // 标记为失败，否则 UI 会一直停在「加载 / 待发送」转圈（App Store 2.1a 配对无限加载）。
+        switch ctx.state {
+        case .awaitingHello, .awaitingHelloAck, .awaitingFileAccept:
+            if let hid = ctx.historyID,
+               let item = history.first(where: { $0.id == hid }),
+               !item.status.isTerminal {
+                updateHistoryStatus(hid, status: .failed(L10n.failCouldNotConnect))
+            }
+            lastError = L10n.failCouldNotConnect
+        default:
+            break
         }
         // 释放 security scope
         if case .client(_, .file(let url, _, _, let needsAccess)) = ctx.role, needsAccess {

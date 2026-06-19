@@ -56,4 +56,12 @@ enum L10n {
 
     /// 连接中断（不可续传）。
     static var failDisconnected: String { t("transfer.fail.disconnected") }
+
+    /// 无法连接到对端（建连 / 握手超时，从未成功握手）。
+    static var failCouldNotConnect: String { t("transfer.fail.couldNotConnect") }
+
+    // MARK: - 发现层错误
+
+    /// 本地网络不可用（最常见：用户未授予本地网络权限）。
+    static var discoveryUnavailable: String { t("discovery.unavailable") }
 }

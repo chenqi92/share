@@ -14,6 +14,12 @@ public actor Connection {
     private let nw: NWConnection
     private var readBuffer = Data()
     private var isClosed = false
+    private var becameReady = false
+
+    /// 建连 + 进入 ready 的整体超时。service endpoint 解析不到对端 / 对端不可达时
+    /// NWConnection 会停在 `.waiting`（不会自己 `.failed`），没有超时就会永远挂着，
+    /// 上层 UI 表现为「无限加载」。超过此时限仍未 ready 即按超时失败。
+    private static let establishTimeout: TimeInterval = 12
 
     private var onMessage: ((UInt8, Data) async -> Void)?
     private var onClose: ((Error?) async -> Void)?
@@ -55,6 +61,18 @@ public actor Connection {
             Task { await self.handleNWState(state) }
         }
         nw.start(queue: .global(qos: .userInitiated))
+
+        // 建连超时兜底：N 秒内没进入 ready 就按超时失败，避免停在 .waiting/.preparing 无限挂起。
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(Self.establishTimeout * 1_000_000_000))
+            await self?.failIfNotReady()
+        }
+    }
+
+    private func failIfNotReady() async {
+        guard !becameReady, !isClosed else { return }
+        log.info("connection establish timeout: \(self.endpointDescription)")
+        await closeInternal(error: ConnectionError.timeout)
     }
 
     public func send(type: UInt8, body: Data) async throws {
@@ -75,12 +93,17 @@ public actor Connection {
     private func handleNWState(_ state: NWConnection.State) async {
         switch state {
         case .ready:
+            becameReady = true
             log.debug("connection ready: \(self.endpointDescription)")
             await onReady?()
             await readLoop()
         case .failed(let err):
             log.info("connection failed (\(self.endpointDescription)): \(err.localizedDescription)")
             await closeInternal(error: err)
+        case .waiting(let err):
+            // 解析不到对端 / 路径不可达：NWConnection 会停在 waiting 反复重试，不会自己失败。
+            // 仅记录，由上面的 establishTimeout 兜底转成失败。
+            log.info("connection waiting (\(self.endpointDescription)): \(err.localizedDescription)")
         case .cancelled:
             await closeInternal(error: nil)
         default:
@@ -155,4 +178,5 @@ public actor Connection {
 
 public enum ConnectionError: Error {
     case alreadyClosed
+    case timeout
 }

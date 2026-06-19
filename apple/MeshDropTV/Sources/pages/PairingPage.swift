@@ -58,6 +58,15 @@ struct PairingPage: View {
                     requestRow(req)
                 }
             }
+
+            // 发现层不可用（最常见：本地网络权限被拒）时给出明确提示，避免「二维码在、却永远等不到配对」。
+            if let err = engine.lastError {
+                Text(err)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(MeshDropColor.flame)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 12)
+            }
         }
     }
 
