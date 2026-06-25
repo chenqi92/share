@@ -12,7 +12,9 @@
     <CornerRadius x:Key="MdRadiusSmall">6</CornerRadius>
     <CornerRadius x:Key="MdRadiusCard">14</CornerRadius>
     <CornerRadius x:Key="MdRadiusBubble">16</CornerRadius>
-    <CornerRadius x:Key="MdRadiusChip">999</CornerRadius>
+    <!-- 半径 = chip 高度的一半（MdChipHeight=20）。WinUI 的 Border 不裁剪过大的 CornerRadius，
+         999 会让四角圆弧互相超出形成尖角（畸形椭圆），故用 10。 -->
+    <CornerRadius x:Key="MdRadiusChip">10</CornerRadius>
 
     <Thickness x:Key="MdPagePadding">24,20,24,20</Thickness>
     <Thickness x:Key="MdCardPadding">14,12,14,12</Thickness>
