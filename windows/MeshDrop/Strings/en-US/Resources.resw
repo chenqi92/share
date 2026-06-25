@@ -62,7 +62,7 @@
 
   <!-- ── common ── -->
   <data name="common/reject.Text"><value>× Reject</value></data>
-  <data name="common/cancel.Text"><value>Cancel</value></data>
+  <data name="common/cancel"><value>Cancel</value></data>
   <data name="common/copy.Text"><value>Copy</value></data>
   <data name="common/send.Text"><value>Send</value></data>
   <data name="common/allowOnce.Text"><value>Allow once</value></data>
@@ -75,7 +75,7 @@
   <data name="shell/nav/nearby.Text"><value>Nearby</value></data>
   <data name="shell/nav/messages.Text"><value>Messages</value></data>
   <data name="shell/nav/transfers.Text"><value>Transfers</value></data>
-  <data name="shell/nav/transfersBadge.Text"><value>2 active</value></data>
+  <data name="shell/nav/transfersBadge"><value>2 active</value></data>
   <data name="shell/nav/history.Text"><value>History</value></data>
   <data name="shell/nav/clipboard.Text"><value>Clipboard</value></data>
   <data name="shell/nav/trust.Text"><value>Trust</value></data>
@@ -125,9 +125,9 @@
   <!-- ── transfers ── -->
   <data name="transfers/title.Text"><value>Transfers</value></data>
   <data name="transfers/subtitle.Text"><value>6 tasks · 2 in progress</value></data>
-  <data name="transfers/filterAll.Text"><value>All</value></data>
-  <data name="transfers/filterActive.Text"><value>Active · 2</value></data>
-  <data name="transfers/filterDone.Text"><value>Done</value></data>
+  <data name="transfers/filterAll"><value>All</value></data>
+  <data name="transfers/filterActive"><value>Active · 2</value></data>
+  <data name="transfers/filterDone"><value>Done</value></data>
   <data name="transfers/tileSession"><value>── SESSION TOTAL ──</value></data>
   <data name="transfers/tileUp"><value>── UP ↑ ──</value></data>
   <data name="transfers/tileDown"><value>── DOWN ↓ ──</value></data>
@@ -145,10 +145,10 @@
   <!-- ── history ── -->
   <data name="history/title.Text"><value>History</value></data>
   <data name="history/subtitle.Text"><value>6 today · 12 yesterday · 38 total</value></data>
-  <data name="history/filterAll.Text"><value>All</value></data>
-  <data name="history/filterFile.Text"><value>Files</value></data>
-  <data name="history/filterImage.Text"><value>Images</value></data>
-  <data name="history/filterText.Text"><value>Text</value></data>
+  <data name="history/filterAll"><value>All</value></data>
+  <data name="history/filterFile"><value>Files</value></data>
+  <data name="history/filterImage"><value>Images</value></data>
+  <data name="history/filterText"><value>Text</value></data>
   <data name="history/clipboardDivider"><value>── CLIPBOARD SYNC · 5 ──</value></data>
   <data name="history/todayDivider"><value>── TODAY · 6 ──</value></data>
   <data name="history/todayLabelFormat"><value>── HISTORY · {0} ──</value></data>
@@ -255,7 +255,7 @@
   <data name="send/cancel"><value>Cancel</value></data>
   <data name="send/send"><value>Send →</value></data>
   <data name="send/toFormat.Text"><value>Send to · Lily</value></data>
-  <data name="send/chipPlaintext.Text"><value>LAN · plaintext · v0.1</value></data>
+  <data name="send/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
   <data name="send/kindDivider"><value>── KIND ──</value></data>
   <data name="send/kindText.Text"><value>Text</value></data>
   <data name="send/kindFile.Text"><value>File</value></data>

@@ -11,10 +11,10 @@ namespace MeshDrop;
 /// </summary>
 public static class I18n
 {
-    // 默认 ResourceLoader：从 resources.pri 的 Resources 子树取串（即两份 Resources.resw）。
-    // WinAppSDK 的这一 ResourceLoader 适配 unpackaged 且不绑定具体视图，可在任意线程取串
-    // （ToastService 在引擎事件回调线程构造通知文案需要这点）。
-    private static readonly ResourceLoader Loader = new();
+    // MRT Core：直接用 MainResourceMap 取串。ResourceLoader.GetString 在 unpackaged 下定位
+    // "Resources" 子树不稳（缺失会抛 COMException 0x80073B17），改用 MainResourceMap.TryGetValue
+    // （缺失返回 null 不抛）。资源 id 形如 "Resources/<name>"（Resources = Resources.resw 派生 map）。
+    private static readonly ResourceMap Map = new ResourceManager().MainResourceMap;
 
     // 与 x:Uid 对齐的属性后缀：这些是 resw name 里点分的「属性限定符」，不能转成斜杠。
     // 其余点都是命名空间分隔符 → 转成斜杠（resw name 不能含点的命名空间段）。
@@ -24,29 +24,28 @@ public static class I18n
     /// <summary>按点分 key 取本地化串；缺失时回退 key 本身，便于静态核对暴露遗漏。</summary>
     public static string T(string key)
     {
-        // 拆出可能的属性后缀（如 .Text），剩余命名空间段把点换成斜杠，再拼回后缀。
-        var suffix = "";
+        // 去掉属性后缀（如 .Text）：MRT Core 把带 .Text 的条目当作 x:Uid 属性资源，代码 TryGetValue
+        // 取不到；因此 resw 里给代码取的串用「无后缀」名，这里统一剥掉后缀再按斜杠路径查。
         foreach (var p in PropSuffixes)
         {
             if (key.EndsWith(p, System.StringComparison.Ordinal))
             {
-                suffix = p;
                 key = key.Substring(0, key.Length - p.Length);
                 break;
             }
         }
-        var name = key.Replace('.', '/') + suffix;
-        try
+        var name = key.Replace('.', '/');
+        // 先带 map 前缀再裸名；TryGetValue 缺失返回 null 不抛，最终回退 name（绝不崩）。
+        foreach (var id in new[] { "Resources/" + name, name })
         {
-            var s = Loader.GetString(name);
-            return string.IsNullOrEmpty(s) ? name : s;
+            try
+            {
+                var c = Map.TryGetValue(id);
+                if (c is not null && !string.IsNullOrEmpty(c.ValueAsString)) return c.ValueAsString;
+            }
+            catch { }
         }
-        catch
-        {
-            // WinAppSDK 的 ResourceLoader.GetString 在 key 缺失时会抛 COMException(0x80073B17)，
-            // 而非返回空串；这里吞掉并回退 name，避免任一缺失文案直接崩掉整个应用。
-            return name;
-        }
+        return name;
     }
 
     /// <summary>带占位符的格式化串（resw 里用 {0}/{1}…）。</summary>
