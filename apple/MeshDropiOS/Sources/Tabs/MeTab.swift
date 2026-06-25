@@ -105,8 +105,10 @@ struct MeTab: View {
                        detail: MD("me.action.onboarding.detail")) { state.showOnboarding = true }
             actionTile(MD("me.action.settings.title"), "gearshape",
                        detail: MD("me.action.settings.detail")) { state.showSettings = true }
+#if DEBUG
             actionTile(MD("me.action.shareExt.title"), "square.and.arrow.up",
                        detail: MD("me.action.shareExt.detail")) { state.showShareExt = true }
+#endif
             actionTile(MD("me.action.liveActivity.title"), "clock.badge",
                        detail: MD("me.action.liveActivity.detail")) { state.showLiveActivity = true }
             if pendingShareCount > 0 {
