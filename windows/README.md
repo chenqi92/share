@@ -31,7 +31,7 @@ windows/
 
 | 包                                       | 用途                          |
 | ---------------------------------------- | ----------------------------- |
-| Microsoft.WindowsAppSDK 1.6              | WinUI 3 运行时                |
+| Microsoft.WindowsAppSDK 1.7              | WinUI 3 运行时                |
 | Makaretu.Dns.Multicast.New 0.38          | mDNS responder + querier      |
 | NSec.Cryptography 24.4                   | Ed25519 (libsodium 绑定)      |
 | CommunityToolkit.Mvvm 8.4                | `[ObservableProperty]` 等     |
