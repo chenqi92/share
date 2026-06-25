@@ -1,116 +1,167 @@
 # MeshDrop
 
-跨平台局域网分享工具，类 AirDrop。同一网段内自动发现安装了本应用的其他设备，
-点选目标即可发送一段文字或一组文件。**所有端原生实现**，不走 Electron / Flutter
-/ React Native，保证最佳性能与平台体验。
+**AirDrop for everyone — cross-platform, peer-to-peer LAN file & text sharing.**
+Devices on the same network discover each other automatically; pick a target and
+send a note or a batch of files. **Every client is natively implemented** — no
+Electron, Flutter, or React Native — for the best performance and platform feel.
 
 [![Download on the App Store](https://img.shields.io/badge/App_Store-MeshDrop-0D96F6?style=flat&logo=apple&logoColor=white)](https://apps.apple.com/cn/app/meshdrop/id6772689903)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Platforms](https://img.shields.io/badge/platforms-macOS%20·%20iOS%20·%20Android%20·%20Windows%20·%20Linux%20·%20Web-blue)
 
-> iOS / iPadOS 已上架 App Store：<https://apps.apple.com/cn/app/meshdrop/id6772689903>
+**English** · [简体中文](README.zh-CN.md)
 
-## 平台覆盖
+---
 
-| 平台              | 技术栈                                                | 状态 |
-| ----------------- | ----------------------------------------------------- | ---- |
-| macOS             | SwiftUI + Network.framework                           | 可构建 / MeshDropKit 测试通过 |
-| iOS 17+ / iPadOS  | SwiftUI + Network.framework                           | ✅ 已上架 App Store（1.0 build 2） |
-| iOS 26            | + Liquid Glass (`.glassEffect()`)                     | UI 已接入 |
-| tvOS              | SwiftUI focus engine（只接收）                        | 与 Apple core 共用实现 |
-| visionOS          | SwiftUI spatial + glass                               | 已接 engine adapter，仍保留 preview mock |
-| watchOS           | SwiftUI + WatchConnectivity 桥到 iPhone               | companion bridge |
-| Android           | Jetpack Compose + `NsdManager`                        | build + 单元/截图测试通过 |
-| Wear OS           | Compose for Wear + WearableDataLayer 桥到 Android     | build 通过，无独立单测 |
-| Windows           | WinUI 3 (.NET 8) + `Makaretu.Dns`                     | 已接 ShareEngine/Gateway；需 Windows 环境验证 |
-| Linux GUI         | Rust + gtk4-rs + libadwaita + `mdns-sd`               | core 测试 + GUI check 通过 |
-| Linux TUI         | Rust + ratatui + `mdns-sd`                            | build/test 通过，10 个单测 |
-| Web Browser       | React + Vite，通过 Gateway 桥接                       | build 通过；仅显式 `?mock=1` 才进入 mock |
+## Screenshots
 
-> **版本现状**：只有 Apple 端（iOS / iPadOS / macOS / tvOS / visionOS / watchOS）
-> 已发布到 App Store，版本 1.0.0 / build 2；Android / Wear OS / Linux / Web 仍是
-> 0.1.0 预发布，未上架。
+<table>
+  <tr>
+    <td align="center"><img src="screenshots/macos-discovery-dark.png" width="420"><br><sub>macOS · discovery</sub></td>
+    <td align="center"><img src="screenshots/macos-dragdrop-dark.png" width="420"><br><sub>macOS · drag &amp; drop to send</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/linux-gui-chat-dark.png" width="420"><br><sub>Linux (GTK4) · chat</sub></td>
+    <td align="center"><img src="screenshots/macos-pairing-dark.png" width="420"><br><sub>macOS · TOFU pairing</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/android-phone-discovery-dark.png" width="200"><br><sub>Android</sub></td>
+    <td align="center"><img src="screenshots/tvos-nearby-dark.png" width="420"><br><sub>tvOS (receive-only)</sub></td>
+  </tr>
+</table>
+
+> Wearables too: Apple Watch & Wear OS act as companions to the phone app
+> (`screenshots/applewatch-nearby-dark.png`, `screenshots/wearos-nearby-dark.png`).
+
+## Features
+
+- **Zero setup, zero servers** — mDNS / DNS-SD discovery + direct TCP. No signaling
+  server, no cloud relay, no account, no internet required.
+- **Send text or files** to any device on the LAN, with a full offer / accept /
+  reject / cancel flow.
+- **Resumable transfers** — interrupted file transfers resume from where they stopped
+  (`FILE_ACCEPT.resume_offset`).
+- **Trust on first use (TOFU)** — first connection asks you to confirm the peer's
+  fingerprint; trusted devices are remembered, SSH `known_hosts`-style.
+- **Native on every platform** — SwiftUI, Jetpack Compose, WinUI 3, GTK4/ratatui,
+  React — each client follows its platform's HIG.
+- **Browser access** — desktop clients expose a built-in Web Gateway (TLS 1.3,
+  self-signed) so a browser on the LAN can join.
+- **Wearable companions** — Apple Watch (WatchConnectivity) and Wear OS
+  (Wearable Data Layer) bridge to the phone app.
+- **Share integration** — iOS Share Extension and Android Share Target.
+
+## Download / Install
+
+| Platform | How to get it |
+| --- | --- |
+| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.0, build 2) |
+| Android / Windows / Linux / Web | Build from source (pre-release `0.1.0`) — see the per-platform READMEs below |
+
+## Platforms
+
+| Platform | Stack | Status |
+| --- | --- | --- |
+| macOS | SwiftUI + Network.framework | Builds / MeshDropKit tests pass |
+| iOS 17+ / iPadOS | SwiftUI + Network.framework | ✅ Shipped on the App Store (1.0, build 2) |
+| iOS 26 | + Liquid Glass (`.glassEffect()`) | UI wired |
+| tvOS | SwiftUI focus engine (receive-only) | Shares the Apple core |
+| visionOS | SwiftUI spatial + glass | Engine adapter wired (preview mock retained) |
+| watchOS | SwiftUI + WatchConnectivity bridge to iPhone | Companion bridge |
+| Android | Jetpack Compose + `NsdManager` | Build + unit/screenshot tests |
+| Wear OS | Compose for Wear + Wearable Data Layer bridge to Android | Builds |
+| Windows | WinUI 3 (.NET 8) + `Makaretu.Dns` | Builds with .NET 8 + Windows App SDK |
+| Linux GUI | Rust + gtk4-rs + libadwaita + `mdns-sd` | Core tests + GUI build |
+| Linux TUI | Rust + ratatui + `mdns-sd` | Build/test pass (10 unit tests) |
+| Web | React + Vite, via the Gateway bridge | Builds; mock only with explicit `?mock=1` |
+
+> **Versioning:** only the Apple targets (iOS / iPadOS / macOS / tvOS / visionOS /
+> watchOS) are at `1.0.0` (build 2) and shipped to the App Store. Android / Wear OS /
+> Linux / Web are still `0.1.0` pre-release.
 >
-> **Bundle identifier 按平台各自命名，并非全局统一**：Apple = `com.welape.landrop`，
-> Android = `com.welape.meshdrop`，Wear OS = `com.welape.meshdrop.wear`。
+> **Bundle identifiers are per-platform, not unified:** Apple = `com.welape.landrop`,
+> Android = `com.welape.meshdrop`, Wear OS = `com.welape.meshdrop.wear`.
 
-各端共用一份自研协议（见 [protocol/](protocol/README.md)），通过 mDNS / DNS-SD
-做服务发现，TCP framing + HELLO / HELLO_ACK + TOFU 指纹信任。v0.1 的 LAN
-传输允许明文 TCP；Web Gateway 自身使用 TLS 1.3 自签证书。端到端应用层加密在 v1.0
-强制。
+## How it works
 
-> **安全现状（v0.1）**：LAN 传输为明文，TOFU 指纹**只防误连、不抗主动 MITM**
-> （`fp` 尚未与密钥/证书绑定，详见 [protocol/security.md](protocol/security.md)）。
-> 不要把当前版本宣传为"端到端加密 / 安全传输"。
+Every client implements one self-designed, language-agnostic protocol
+(see [protocol/](protocol/README.md)):
 
-## 目录布局
+1. **Discovery** — advertise/browse `_meshdrop._tcp` over mDNS / DNS-SD.
+2. **Connect & handshake** — TCP framing + `HELLO` / `HELLO_ACK` with version
+   negotiation.
+3. **Pair** — on first contact the receiver confirms the sender's fingerprint (TOFU);
+   trusted devices skip this afterwards.
+4. **Transfer** — `TEXT`, or `FILE_OFFER → ACCEPT → CHUNK → COMPLETE` with SHA-256
+   integrity check and resume support.
 
-```
-share/
-├── protocol/           # 协议规范（语言无关）— 所有端实现的真相
-├── apple/              # Swift Package MeshDropKit + macOS / iOS / iPadOS / tvOS / visionOS / watchOS
-├── android/            # Gradle 项目（Kotlin + Compose）
-├── wearos/             # Wear OS（Kotlin）
-├── windows/            # .NET 8 + WinUI 3 解决方案
-├── linux/              # Cargo workspace（Rust + GTK4 + ratatui）
-└── web/                # React + Vite
-```
+Desktop clients additionally run a Web Gateway (TLS 1.3 self-signed cert + WebSocket
+control channel + multipart upload) so browsers can join from the LAN
+(see [protocol/companion-bridges.md](protocol/companion-bridges.md)).
 
-每个平台子目录有独立 README 说明如何构建与运行。
+## Security status (v0.1) ⚠️
 
-## 设计原则
+Please read before relying on this for sensitive data:
 
-1. **原生 UI**：每端使用平台首选 UI 框架，遵循平台 HIG。
-2. **协议先行**：协议规范是真相；所有端按 [protocol/](protocol/) 实现，互通由协议
-   合规性保证。
-3. **零中间服务器**：mDNS 发现 + 直连 TCP；无信令服务器、无云转发。
-4. **首次配对，长期信任**：设备首次连接需用户确认（指纹校验），之后基于公钥指纹
-   持续信任，类 SSH 的 TOFU 模型。
-5. **不留遗憾**：iOS 26 Liquid Glass、macOS Tahoe 玻璃工具栏、Android 12+ 动态色、
-   Windows 11 Mica、Linux libadwaita — 该用的现代效果都用。
+- LAN transport is **plaintext TCP** in v0.1.
+- The TOFU fingerprint **only prevents accidental mis-connection — it does not resist an
+  active MITM** (the `fp` is not yet bound to a key or certificate).
+- The Web Gateway itself uses TLS 1.3 (self-signed), but the device-to-device channel
+  does not.
+- End-to-end application-layer encryption is on the roadmap (added in v0.2, enforced from v1.0).
 
-## 当前完成度
+**Do not market or treat the current version as "end-to-end encrypted / secure
+transport."** Details: [protocol/security.md](protocol/security.md).
 
-协议层：
-- ✅ mDNS / DNS-SD 服务发现
-- ✅ TCP framing（HELLO / HELLO_ACK）
-- ✅ TEXT 消息互发
-- ✅ FILE_OFFER / ACCEPT / REJECT / CHUNK / COMPLETE / CANCEL 全流程
-- ✅ TOFU 配对（指纹首次确认 + 长期信任）
-- ✅ FILE_ACCEPT.resume_offset 断点续传（Apple / Android / Windows / Linux）
+## Build from source
 
-平台原生功能：
-- ✅ Apple 端身份私钥 → Keychain (`kSecAttrAccessibleAfterFirstUnlock`)
-- ✅ Windows 身份私钥 → DPAPI
-- ✅ Android 身份私钥 → EncryptedSharedPreferences（AndroidKeyStore 派生主密钥）
-- ✅ Android Share Target / iOS Share Extension（App Group 队列）
-- ✅ Wear OS / Apple Watch companion bridge
-- ✅ Settings 重置身份功能
-- ⚠️ Linux 身份当前是文件存储（`0o600`，静置未加密），后续切 libsecret
+Each platform subdirectory has its own README with prerequisites and steps:
 
-Web Gateway（companion-bridges.md §4.3）：
-- ✅ macOS / Windows / Linux GUI 都有 TLS 1.3 自签证书 + WebSocket 控制通道
-  + multipart upload + 命令路由 + 事件订阅实现
-- ✅ Web live 模式不再隐式回退 mock；dev/截图 mock 必须显式 `?mock=1`
-- ⚠️ Windows Gateway 需要在 Windows 环境跑 `dotnet build` 验证
+- [apple/README.md](apple/README.md) — Swift Package `MeshDropKit` + the Apple apps.
+  Requires macOS + Xcode + [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+  (`xcodegen generate` per target). **The committed `DEVELOPMENT_TEAM` is the original
+  author's Apple team — forks must replace it with their own** to sign/run.
+- [android/README.md](android/README.md) — Gradle (AGP 8.13.2, Kotlin 2.4.0, JDK 17+; project targets Java 17).
+- [wearos/README.md](wearos/README.md) — Wear OS (Gradle).
+- [windows/README.md](windows/README.md) — .NET 8 + Windows App SDK (build on Windows).
+- [linux/README.md](linux/README.md) — Cargo workspace (Rust + GTK4 + ratatui).
+- [web/README.md](web/README.md) — React + Vite (`npm install && npm run build`).
 
-## 本地验证
+A convenience script runs whatever the current machine can build/test:
 
 ```bash
 ./scripts/verify-local.sh
 ```
 
-脚本会按当前机器能力跑 Web / Android / Wear OS / Linux / Apple 的构建与测试；Windows
-WinUI 构建只会在检测到 `dotnet` 且运行在 Windows 时执行。
+## Project layout
 
-## 互通证据
+```
+share/
+├── protocol/   # Protocol spec (language-agnostic) — the source of truth for all clients
+├── apple/      # Swift Package MeshDropKit + macOS / iOS / iPadOS / tvOS / visionOS / watchOS
+├── android/    # Gradle project (Kotlin + Compose)
+├── wearos/     # Wear OS (Kotlin)
+├── windows/    # .NET 8 + WinUI 3 solution
+├── linux/      # Cargo workspace (Rust + GTK4 + ratatui)
+└── web/        # React + Vite
+```
 
-协议 conformance 用例见 [protocol/conformance-tests.md](protocol/conformance-tests.md)。
-当前仓库包含历史/模板证据，但不少 RESULT.md 仍是 BLOCKED 或待回填；不能把这些模板当作
-最新实测 PASS。真实设备矩阵需要另起 conformance 轮次补证据。
+## Roadmap (v0.2)
 
-## v0.2 计划
+- End-to-end application-layer encryption (X25519 + ChaCha20-Poly1305, on top of TLS)
+- Recursive / batch folder transfer
+- Clipboard sharing across all clients (the `CLIPBOARD` message type already exists)
+- Push notifications to wake the receiver
+- Upgrade Linux identity storage to libsecret (Android already uses EncryptedSharedPreferences)
 
-- 端到端应用层加密（X25519 + ChaCha20-Poly1305，超出 TLS 之上的消息加密）
-- 文件夹批量传输（recursive offer）
-- 剪贴板分享协议 type
-- 推送通知唤醒接收端
-- Linux 身份存储升级（libsecret；Android 已切 EncryptedSharedPreferences）
+## Contributing
+
+Issues and pull requests are welcome. The [protocol/](protocol/README.md) spec is the
+source of truth — keep clients conformant to it. Note that the per-platform native
+toolchains differ (Xcode / Gradle / .NET / Cargo / npm); build the platform you touch
+before opening a PR, and replace any signing identity (e.g. Apple `DEVELOPMENT_TEAM`)
+with your own.
+
+## License
+
+[MIT](LICENSE) © 2026 chenqi92
