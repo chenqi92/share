@@ -294,6 +294,9 @@
   <data name="tray/actionsDivider"><value>── 操作 ──</value></data>
   <data name="tray/send.Text"><value>发送</value></data>
   <data name="tray/openApp.Text"><value>打开 meshdrop</value></data>
+  <data name="tray/menuOpen"><value>打开 meshdrop</value></data>
+  <data name="tray/menuSettings"><value>设置</value></data>
+  <data name="tray/menuExit"><value>退出</value></data>
   <data name="tray/tooltipFormat"><value>meshdrop · 附近 {0} 台</value></data>
   <data name="tray/activeFormat"><value>meshdrop · 活跃 {0}</value></data>
 
