@@ -67,7 +67,21 @@ cargo build --release -p meshdrop-tui
 收到配对请求或文件 offer 时自动弹出居中的浮窗，状态机会暂时只接受
 `a/t/r` 三种按键直到处理完。
 
-## 安装（GUI 桌面集成）
+## 安装
+
+一键脚本（检测到 GTK4/libadwaita 时编并装 GU+TUI，否则仅装 TUI）：
+
+```bash
+bash linux/install.sh        # 装 meshdrop(GUI) + meshdrop-tui
+bash linux/install.sh -d     # 同时注册并启用 systemd 接收守护（跑 meshdrop-tui daemon）
+TUI_ONLY=1 bash linux/install.sh   # 无 GTK4 时只装 meshdrop-tui
+```
+
+二进制与命令名对应：`meshdrop` = GUI（crate meshdrop-gui），`meshdrop-tui` = TUI
+（crate meshdrop-tui，提供 `daemon` 子命令）。`data/meshdrop.desktop` 的
+`Exec=meshdrop` 指向 GUI 二进制。
+
+### 手动安装（GUI 桌面集成）
 
 ```bash
 sudo install -Dm755 target/release/meshdrop /usr/local/bin/meshdrop
@@ -83,11 +97,11 @@ sudo gtk-update-icon-cache /usr/share/icons/hicolor 2>/dev/null || true
 
 ## 当前覆盖
 
-- ✅ 协议层完整（Frame / 11 个消息 / FileChunkHeader）
+- ✅ 协议层完整（Frame / 12 个消息 / FileChunkHeader）
 - ✅ mDNS 发现 + 信任库 (TOFU)
 - ✅ HELLO 握手 + 配对 + 文本 / 文件双向传输（SHA-256 校验）
 - ✅ GUI：libadwaita shell 已接 ShareEngine + Web Gateway；`--screenshots` 模式才跳过 engine 使用 mock
-- ✅ TUI：ratatui 全键盘 + 自动弹窗，零系统依赖
+- ✅ TUI：ratatui 全键盘 + 自动弹窗，零系统依赖（10 个单测：app.rs 4 + input.rs 6）
 - ✅ Web Gateway：TLS 自签证书 + `/api/v1/pair` + WebSocket control + upload/download
 
 ## TODO

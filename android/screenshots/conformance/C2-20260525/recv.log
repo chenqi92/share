@@ -5,10 +5,10 @@
 # 没有 FrameType.fileOffer / fileChunk / fileComplete 行可摘录。
 
 $ cd android
-$ JAVA_HOME=/Users/chenqi/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home \
+$ JAVA_HOME=/Users/user/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home \
   ANDROID_HOME=/opt/homebrew/share/android-commandlinetools \
   ./gradlew :app:assembleDebug --no-daemon
-Error: Unable to access jarfile /Users/chenqi/Projects/workspace-freq/share/.claude/worktrees/vibrant-brown-54c307/android/gradle/wrapper/gradle-wrapper.jar
+Error: Unable to access jarfile /Users/user/projects/meshdrop/android/gradle/wrapper/gradle-wrapper.jar
 
 $ ls android/gradle/wrapper/
 gradle-wrapper.properties

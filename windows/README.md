@@ -1,6 +1,6 @@
 # Windows
 
-WinUI 3 (Windows App SDK 1.6) + .NET 8 + C# 12。最低支持 Windows 10 1809
+WinUI 3 (Windows App SDK 1.7) + .NET 8 + C# 12。最低支持 Windows 10 1809
 (17763)，目标 Windows 11 23H2+。
 
 ```

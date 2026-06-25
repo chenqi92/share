@@ -169,8 +169,6 @@ struct DiscoverTab: View {
                                 state.selectedDeviceID = d.id
                                 state.presentSend(.text)
                             }
-                            Button(MD("discovery.menu.viewProfile")) {}
-                            Button(MD("discovery.menu.mute")) {}
                             Divider()
                             Button(MD("discovery.menu.revokeTrust"), role: .destructive) {
                                 if let real = engine.realDevice(for: d.id) {

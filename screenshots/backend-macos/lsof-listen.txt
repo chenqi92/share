@@ -1,3 +1,3 @@
 $ lsof -nP -iTCP -sTCP:LISTEN | grep MeshDrop
-MeshDrop  62066 chenqi    6u  IPv6 0xd720b21e59162a46  TCP *:7384 (LISTEN)    # WebGateway
-MeshDrop  62066 chenqi    7u  IPv6 0xfb08e56802c7e884  TCP *:58286 (LISTEN)   # ShareEngine LAN listener
+MeshDrop  62066 user    6u  IPv6 0xd720b21e59162a46  TCP *:7384 (LISTEN)    # WebGateway
+MeshDrop  62066 user    7u  IPv6 0xfb08e56802c7e884  TCP *:58286 (LISTEN)   # ShareEngine LAN listener

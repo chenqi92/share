@@ -9,7 +9,7 @@ interface Props {
   modeLabel?: string
 }
 
-export function StatusBar({ peerCount, connected = true, guestMode = true, hostIp = '192.168.1.42', modeLabel }: Props) {
+export function StatusBar({ peerCount, connected = false, guestMode = true, hostIp = '', modeLabel }: Props) {
   const { t } = useTranslation()
   return (
     <div
@@ -45,8 +45,12 @@ export function StatusBar({ peerCount, connected = true, guestMode = true, hostI
       <span>{t('statusBar.gatewayWss')}</span>
       <span style={{ opacity: 0.4 }}>·</span>
       <span>{t('statusBar.peers', { n: peerCount })}</span>
-      <span style={{ opacity: 0.4 }}>·</span>
-      <span style={{ textTransform: 'none', letterSpacing: '0.02em' }}>{hostIp}</span>
+      {hostIp && (
+        <>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span style={{ textTransform: 'none', letterSpacing: '0.02em' }}>{hostIp}</span>
+        </>
+      )}
       <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
         {modeLabel && <Chip tone="outline" mono>{modeLabel}</Chip>}
         {guestMode && <Chip tone="outline" mono>{t('common.guestDuo')}</Chip>}

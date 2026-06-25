@@ -56,7 +56,8 @@
     "body": "Linux / Chromebook / a colleague's laptop — any browser at <mono>{{host}}</mono> can send and receive files directly. Identities are verified with <mono>{{idScheme}}</mono> fingerprints, and everything is destroyed when you close the tab.",
     "dragToSend": "Drag to send",
     "lanZeroCloud": "LAN ONLY · zero cloud",
-    "pasteToShare": "Paste to share"
+    "pasteToShare": "Paste to share",
+    "hostUnknown": "this gateway"
   },
   "discovery": {
     "nearby": "Nearby",
@@ -67,7 +68,9 @@
   },
   "session": {
     "title": "Session",
-    "open": "session #4f2a · open"
+    "open": "open",
+    "live": "live · {{state}}",
+    "preview": "offline preview"
   },
   "dropZone": {
     "dropToSend": "Release to send",
@@ -103,6 +106,7 @@
     "noPendingOffer": "No pending offer",
     "mainPaused": "MainPage paused",
     "incomingWantsToSend": "Incoming · {{who}} wants to send to you",
+    "unknownPeer": "Unknown device",
     "paired": "Paired",
     "noteLabel": "Note",
     "confirmAccept": "Accept this?",
@@ -210,7 +214,8 @@
       "invalid": "Code invalid or expired",
       "hint": "Find the 6-character code at the top of the native app and enter it here",
       "label": "● 6-char code · 30s",
-      "sessionLimited": "This session only"
+      "sessionLimited": "This session only",
+      "unknown": "No pairing code from the gateway yet."
     },
     "pending": {
       "title": "Pending pairing · {{who}}",
@@ -219,7 +224,9 @@
     },
     "fingerprint": "FINGERPRINT · full 32 chars",
     "fingerprintPeerSame": "Peer should see the same 8 groups",
+    "fingerprintUnknown": "Gateway hasn't reported a fingerprint yet — nothing to verify against.",
     "scanWithApp": "Scan with native app",
+    "qrUnavailable": "QR unavailable — use the 6-character code instead.",
     "qrAlt": "Pairing QR code",
     "steps": {
       "title": "3-step guide",

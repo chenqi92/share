@@ -45,7 +45,6 @@ import android.widget.Toast
 import com.welape.meshdrop.data.IdentityStore
 import com.welape.meshdrop.mock.MockMeData
 import com.welape.meshdrop.mock.MockTrustList
-import com.welape.meshdrop.mock.MockTrustRecord
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.ChipTone
 import com.welape.meshdrop.ui.components.MeshAvatar
@@ -71,6 +70,10 @@ fun MeScreen(
     val mesh = MeshTheme.colors
     val context = LocalContext.current
     var showResetDialog by remember { mutableStateOf(false) }
+
+    // 真实信任列表：引擎在场时取 engine.trusted；纯 preview（engine == null）回落 mock。
+    val trusted = engine?.trusted?.collectAsState()?.value
+    val trustCount = trusted?.size ?: MockTrustList.size
 
     // 真实身份优先；引擎缺席（纯 preview）时回落 mock 文案。
     val fingerprintGroups = engine?.identity?.fingerprint?.let { groupFingerprint(it) }
@@ -131,13 +134,10 @@ fun MeScreen(
 
         AsciiDivider(label = stringResource(R.string.me_section_visibility))
         SettingsCard {
-            SwitchRow(title = stringResource(R.string.me_visible_in_nearby), subtitle = stringResource(R.string.me_visible_in_nearby_sub), initial = true)
-            DividerThin()
-            SwitchRow(title = stringResource(R.string.me_allow_stranger_pairing), subtitle = stringResource(R.string.me_allow_stranger_pairing_sub), initial = true)
-            DividerThin()
-            SwitchRow(title = stringResource(R.string.me_vibrate_on_receive), subtitle = stringResource(R.string.me_vibrate_on_receive_sub), initial = false)
+            // 仅 autoAccept 有真实后端持久化（ShareEngine.setAutoAcceptFromTrusted）。
+            // 「在 Nearby 中显示我」「允许陌生设备配对」「接收时震动」三项在引擎层没有任何
+            // 后端字段/setter，原先用 SwitchRow(initial=...) 既不持久化也不影响行为，已移除以免误导。
             if (engine != null) {
-                DividerThin()
                 val autoAccept = engine.autoAcceptFromTrusted.collectAsState().value
                 SwitchRow(
                     title = stringResource(R.string.me_auto_accept),
@@ -150,7 +150,7 @@ fun MeScreen(
 
         AsciiDivider(label = stringResource(R.string.me_section_security))
         SettingsCard {
-            ChevronRow(title = stringResource(R.string.me_paired_devices), subtitle = stringResource(R.string.me_paired_devices_sub, MockTrustList.size))
+            ChevronRow(title = stringResource(R.string.me_paired_devices), subtitle = stringResource(R.string.me_paired_devices_sub, trustCount))
             DividerThin()
             ChevronRow(title = stringResource(R.string.me_my_fingerprint), subtitle = fingerprintGroups.joinToString(" · "))
             DividerThin()
@@ -203,9 +203,26 @@ fun MeScreen(
                 MonoLabel(stringResource(R.string.me_trust_col_action))
             }
             DividerThin()
-            MockTrustList.forEachIndexed { idx, rec ->
-                TrustRow(rec)
-                if (idx != MockTrustList.lastIndex) DividerThin()
+            if (trusted != null) {
+                // 真实信任记录：撤销按钮直接调 engine.revokeTrust(fingerprint)。
+                trusted.forEachIndexed { idx, rec ->
+                    TrustRow(
+                        deviceName = rec.name,
+                        fingerprintGroups = groupFingerprint(rec.fingerprint),
+                        onRevoke = { engine?.revokeTrust(rec.fingerprint) },
+                    )
+                    if (idx != trusted.lastIndex) DividerThin()
+                }
+            } else {
+                // 纯 preview（无引擎）：保留 mock 行用于设计预览，撤销无后端可调。
+                MockTrustList.forEachIndexed { idx, rec ->
+                    TrustRow(
+                        deviceName = rec.deviceName,
+                        fingerprintGroups = rec.fingerprintGroups,
+                        onRevoke = {},
+                    )
+                    if (idx != MockTrustList.lastIndex) DividerThin()
+                }
             }
         }
 
@@ -328,47 +345,6 @@ private fun SwitchRow(title: String, subtitle: String, checked: Boolean, onChang
 }
 
 @Composable
-private fun SwitchRow(title: String, subtitle: String, initial: Boolean) {
-    val mesh = MeshTheme.colors
-    var checked by remember { mutableStateOf(initial) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(PaddingValues(horizontal = 16.dp, vertical = 12.dp)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style = TextStyle(
-                    fontFamily = Geist, fontWeight = FontWeight.W600,
-                    fontSize = 14.sp, color = mesh.textPrimary,
-                ),
-            )
-            Text(
-                subtitle,
-                style = TextStyle(
-                    fontFamily = GeistMono, fontWeight = FontWeight.W500,
-                    fontSize = 10.sp, color = mesh.textTertiary,
-                ),
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = { checked = it },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Ink,
-                checkedTrackColor = Lime,
-                checkedBorderColor = LimeDeep,
-                uncheckedThumbColor = mesh.textTertiary,
-                uncheckedTrackColor = mesh.surface,
-                uncheckedBorderColor = mesh.outline,
-            ),
-        )
-    }
-}
-
-@Composable
 private fun ChevronRow(title: String, subtitle: String, onClick: () -> Unit = {}) {
     val mesh = MeshTheme.colors
     Row(
@@ -405,7 +381,11 @@ private fun ChevronRow(title: String, subtitle: String, onClick: () -> Unit = {}
 }
 
 @Composable
-private fun TrustRow(rec: MockTrustRecord) {
+private fun TrustRow(
+    deviceName: String,
+    fingerprintGroups: List<String>,
+    onRevoke: () -> Unit,
+) {
     val mesh = MeshTheme.colors
     Row(
         modifier = Modifier
@@ -415,22 +395,15 @@ private fun TrustRow(rec: MockTrustRecord) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                rec.deviceName,
+                deviceName,
                 style = TextStyle(
                     fontFamily = Geist, fontWeight = FontWeight.W600,
                     fontSize = 13.sp, color = mesh.textPrimary,
                 ),
             )
-            Text(
-                "${rec.owner} · ${rec.os} · ${rec.lastSeen}",
-                style = TextStyle(
-                    fontFamily = GeistMono, fontWeight = FontWeight.W500,
-                    fontSize = 10.sp, color = mesh.textTertiary,
-                ),
-            )
         }
         Text(
-            text = rec.fingerprintGroups.take(2).joinToString("·"),
+            text = fingerprintGroups.take(2).joinToString("·"),
             style = TextStyle(
                 fontFamily = GeistMono, fontWeight = FontWeight.W700,
                 fontSize = 11.sp, color = mesh.textSecondary, letterSpacing = 0.8.sp,
@@ -443,7 +416,7 @@ private fun TrustRow(rec: MockTrustRecord) {
                 .background(Color.Transparent)
                 .border(1.dp, mesh.outline, RoundedCornerShape(8.dp))
                 .padding(PaddingValues(horizontal = 10.dp, vertical = 6.dp))
-                .clickable { /* mock revoke */ },
+                .clickable { onRevoke() },
         ) {
             Text(
                 stringResource(R.string.me_trust_revoke),
