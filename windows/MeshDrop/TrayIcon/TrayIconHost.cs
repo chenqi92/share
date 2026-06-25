@@ -45,9 +45,10 @@ public sealed class TrayIconHost : IDisposable
         {
             ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 0),
             ContextFlyout = _flyout,
-            // H.NotifyIcon 2.x: IconSource 类型从 IconSource 改为 ImageSource，
-            // 用 BitmapImage 直接喂 PNG URI
-            IconSource = new BitmapImage(new Uri("ms-appx:///Assets/AppIcon.png")),
+            // H.NotifyIcon 2.x 把 ImageSource 转成 System.Drawing.Icon（new Icon(stream) 需要 ICO 而非 PNG）；
+            // 喂 PNG 会在 OnIconSourceChanged 的 async-void 里抛 ArgumentException 崩掉整个应用。
+            // unpackaged 下 ms-appx 不可靠，用输出目录里的本地 .ico 文件绝对路径。
+            IconSource = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"))),
             NoLeftClickDelay = true,
             LeftClickCommand = new RelayCommand(_ => OpenMainRequested?.Invoke(this, EventArgs.Empty)),
         };
