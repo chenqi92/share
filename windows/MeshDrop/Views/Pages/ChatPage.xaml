@@ -29,7 +29,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <ctrl:AvatarControl Grid.Column="0" Size="36" Initials="LL" ColorHex="#FFB4A1" ShowRing="Visible"/>
+                <ctrl:AvatarControl Grid.Column="0" Size="36" Initials="{x:Bind ViewModel.PeerInitials, Mode=OneWay}" ColorHex="{x:Bind ViewModel.PeerColorHex, Mode=OneWay}" ShowRing="Visible"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="-1">
                     <TextBlock Text="{x:Bind ViewModel.PeerDisplayName, Mode=OneWay}"
                                FontFamily="{StaticResource MdDisplayFontFamily}"

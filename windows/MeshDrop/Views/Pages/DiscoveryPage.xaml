@@ -166,6 +166,7 @@
 
                 <!-- Selected card -->
                 <Border Grid.Row="0"
+                        Visibility="{x:Bind ViewModel.DetailVisibility, Mode=OneWay}"
                         CornerRadius="14"
                         Background="{ThemeResource MdCardBrush}"
                         BorderBrush="{ThemeResource MdLineBrush}"
@@ -173,13 +174,13 @@
                         Padding="14">
                     <StackPanel Spacing="8">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <ctrl:AvatarControl Size="40" Initials="LL" ColorHex="#FFB4A1" ShowRing="Visible"/>
+                            <ctrl:AvatarControl Size="40" Initials="{x:Bind ViewModel.Selected.Initials, Mode=OneWay}" ColorHex="{x:Bind ViewModel.Selected.ColorHex, Mode=OneWay}" ShowRing="Visible"/>
                             <StackPanel VerticalAlignment="Center" Spacing="-1">
-                                <TextBlock Text="李莉"
+                                <TextBlock Text="{x:Bind ViewModel.Selected.Name, Mode=OneWay}"
                                            FontFamily="{StaticResource MdDisplayFontFamily}"
                                            FontWeight="SemiBold"
                                            FontSize="16"/>
-                                <TextBlock Text="Lily&#x2019;s MacBook"
+                                <TextBlock Text="{x:Bind ViewModel.Selected.Os, Mode=OneWay}"
                                            FontFamily="{StaticResource MdBodyFontFamily}"
                                            FontSize="12"
                                            Opacity="0.65"/>
@@ -202,7 +203,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="ip"     Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="192.168.1.31"           Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Ip, Mode=OneWay}"           Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -210,7 +211,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="os"     Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="macOS 15.3"             Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Os, Mode=OneWay}"             Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -218,7 +219,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="rtt"    Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="18 ms · jitter 0.4"     Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Rtt, Mode=OneWay}"     Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -226,7 +227,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="bw"     Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="940 Mbps (LAN)"         Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Bw, Mode=OneWay}"         Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -234,7 +235,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="id"     Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="✓ fingerprint verified"  Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Id, Mode=OneWay}"  Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                                 <Grid ColumnSpacing="8">
                                     <Grid.ColumnDefinitions>
@@ -242,7 +243,7 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="fpr"    Style="{StaticResource MdTerminalLabelStyle}"/>
-                                    <TextBlock Grid.Column="1" Text="ZX8K · L72M · 9FQ3 · 7HD2"  Style="{StaticResource MdTerminalValueStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Selected.Fingerprint, Mode=OneWay}"  Style="{StaticResource MdTerminalValueStyle}"/>
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -250,7 +251,8 @@
                 </Border>
 
                 <!-- Actions -->
-                <StackPanel Grid.Row="1" Spacing="6">
+                <StackPanel Grid.Row="1" Spacing="6"
+                            Visibility="{x:Bind ViewModel.DetailVisibility, Mode=OneWay}">
                     <Button Style="{StaticResource MdAccentButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <TextBlock x:Uid="discovery/actionSend"/>
                     </Button>
@@ -264,6 +266,7 @@
 
                 <!-- Drop zone -->
                 <Border Grid.Row="2"
+                        Visibility="{x:Bind ViewModel.DetailVisibility, Mode=OneWay}"
                         CornerRadius="12"
                         BorderBrush="{ThemeResource MdLimeBrush}"
                         BorderThickness="1.6"
@@ -282,8 +285,7 @@
                                    FontWeight="SemiBold"
                                    FontSize="14"
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="DROP · TO · SEND → 李莉"
-                                   Style="{StaticResource MdMonoTagStyle}"/>
+                        <TextBlock Style="{StaticResource MdMonoTagStyle}"><Run Text="DROP · TO · SEND → "/><Run Text="{x:Bind ViewModel.Selected.Name, Mode=OneWay}"/></TextBlock>
                     </StackPanel>
                 </Border>
 
@@ -299,6 +301,20 @@
                                    FontSize="10"
                                    Opacity="0.7"/>
                     </StackPanel>
+                </Border>
+
+                <!-- Empty state: no device selected -->
+                <Border Grid.Row="0" Grid.RowSpan="3"
+                        Visibility="{x:Bind ViewModel.EmptyDetailVisibility, Mode=OneWay}"
+                        CornerRadius="14"
+                        Background="{ThemeResource MdCardBrush}"
+                        BorderBrush="{ThemeResource MdLineBrush}"
+                        BorderThickness="1">
+                    <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{ThemeResource MdInk60Brush}"
+                               FontFamily="{StaticResource MdBodyFontFamily}"
+                               FontSize="13"
+                               Text="选择一台设备查看详情"/>
                 </Border>
             </Grid>
         </Grid>
