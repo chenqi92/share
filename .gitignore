@@ -14,6 +14,21 @@ design/shar/
 !design/logo-light.png
 !design/logo-dark.png
 
+# 凭据 / 密钥 / 证书 / 环境变量（绝不入库）— 开源前防护，当前仓库无以下文件
+.env
+.env.*
+*.p12
+*.pfx
+*.pem
+*.cer
+*.crt
+*.key
+*.p8
+*.mobileprovision
+*.provisionprofile
+google-services.json
+**/GoogleService-Info.plist
+
 # Apple / Xcode
 # xcodeproj 由 xcodegen 从 project.yml 生成，不入库（避免机器路径污染 diff）
 xcuserdata/
