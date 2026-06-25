@@ -36,8 +36,17 @@ public static class I18n
             }
         }
         var name = key.Replace('.', '/') + suffix;
-        var s = Loader.GetString(name);
-        return string.IsNullOrEmpty(s) ? name : s;
+        try
+        {
+            var s = Loader.GetString(name);
+            return string.IsNullOrEmpty(s) ? name : s;
+        }
+        catch
+        {
+            // WinAppSDK 的 ResourceLoader.GetString 在 key 缺失时会抛 COMException(0x80073B17)，
+            // 而非返回空串；这里吞掉并回退 name，避免任一缺失文案直接崩掉整个应用。
+            return name;
+        }
     }
 
     /// <summary>带占位符的格式化串（resw 里用 {0}/{1}…）。</summary>

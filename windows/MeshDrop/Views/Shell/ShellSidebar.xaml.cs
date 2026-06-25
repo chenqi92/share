@@ -93,6 +93,34 @@ public sealed partial class ShellSidebar : Microsoft.UI.Xaml.Controls.UserContro
         }
     }
 
-    // 从应用级主题资源解析画刷（key 定义在 MeshDropColors.xaml 的 Light/Dark 字典里）。
-    private static Brush Lookup(string key) => (Brush)Application.Current.Resources[key];
+    // 画刷 key 定义在 MeshDropColors.xaml 的 ThemeDictionaries(Light/Dark)里。
+    // Application.Current.Resources[key] 这个扁平索引器解析不到 ThemeDictionaries 内的 key
+    // （且缺 key 会抛 KeyNotFoundException），所以这里递归走主题字典 + 合并字典，找不到时回落透明，绝不抛。
+    private static Brush Lookup(string key)
+        => FindBrush(Application.Current.Resources, key) ?? new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+    private static Brush? FindBrush(ResourceDictionary dict, string key)
+    {
+        if (dict is null) return null;
+        if (dict.ContainsKey(key) && dict[key] is Brush b) return b;
+
+        var theme = Application.Current.RequestedTheme == ApplicationTheme.Light ? "Light" : "Dark";
+        if (dict.ThemeDictionaries.TryGetValue(theme, out var active) && active is ResourceDictionary ad)
+        {
+            var r = FindBrush(ad, key);
+            if (r is not null) return r;
+        }
+        foreach (var kv in dict.ThemeDictionaries)
+            if (kv.Value is ResourceDictionary td)
+            {
+                var r = FindBrush(td, key);
+                if (r is not null) return r;
+            }
+        foreach (var md in dict.MergedDictionaries)
+        {
+            var r = FindBrush(md, key);
+            if (r is not null) return r;
+        }
+        return null;
+    }
 }

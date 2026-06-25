@@ -14,6 +14,9 @@ public partial class App : Application
 
     public App()
     {
+        // 全局兜底：未处理异常写日志（%TEMP%\meshdrop-crash.log），避免 WinUI 静默崩溃难定位。
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => Log("AppDomain", e.ExceptionObject as Exception);
+        UnhandledException += (s, e) => Log("Xaml", e.Exception);
         InitializeComponent();
         RequestedTheme = ApplicationTheme.Dark; // Windows 默认进 dark
     }
@@ -52,6 +55,16 @@ public partial class App : Application
         try { _gateway?.Stop(); } catch { }
         try { ShareEngine.Shared.Stop(); } catch { }
         try { Notifications.ToastService.Stop(); } catch { }
+    }
+
+    private static void Log(string where, Exception? ex)
+    {
+        try
+        {
+            var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "meshdrop-crash.log");
+            System.IO.File.AppendAllText(path, $"[{DateTime.Now:O}] {where}:\n{ex}\n\n");
+        }
+        catch { }
     }
 }
 
