@@ -91,7 +91,7 @@ jobs:
     # 显式 set 与 IReadOnlyList<int> 修复后真过
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - uses: microsoft/setup-msbuild@v3
