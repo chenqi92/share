@@ -58,7 +58,7 @@
                            HorizontalAlignment="Center"
                            CharacterSpacing="100"/>
                 <TextBlock x:Name="CenterIp"
-                           Text="192.168.1.42"
+                           Text="—"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="8"
                            Foreground="#88FFFFFF"

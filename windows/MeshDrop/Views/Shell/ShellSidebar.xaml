@@ -62,7 +62,7 @@
                         <TextBlock Grid.Column="0" Text="◎" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
                         <TextBlock Grid.Column="1" x:Name="NavDiscoveryLabel" x:Uid="shell/nav/nearby" VerticalAlignment="Center"
                                    FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
-                        <ctrl:ChipControl Grid.Column="2" Text="5" Tone="Lime" VerticalAlignment="Center"/>
+                        <ctrl:ChipControl Grid.Column="2" Text="{x:Bind ViewModel.NearbyCount, Mode=OneWay}" Tone="Lime" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnChat_Click" x:Name="NavChat">
@@ -75,7 +75,7 @@
                         <TextBlock Grid.Column="0" Text="◌" FontSize="13"/>
                         <TextBlock Grid.Column="1" x:Name="NavChatLabel" x:Uid="shell/nav/messages" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
-                        <ctrl:ChipControl Grid.Column="2" Text="2" Tone="Flame" VerticalAlignment="Center"/>
+                        <ctrl:ChipControl Grid.Column="2" Text="{x:Bind ViewModel.UnreadChatCount, Mode=OneWay}" Tone="Flame" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnTransfers_Click" x:Name="NavTransfers">
@@ -88,7 +88,7 @@
                         <TextBlock Grid.Column="0" Text="↕" FontSize="13"/>
                         <TextBlock Grid.Column="1" x:Name="NavTransfersLabel" x:Uid="shell/nav/transfers" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
-                        <ctrl:ChipControl Grid.Column="2" x:Name="TransfersBadge" Tone="Sky" VerticalAlignment="Center"/>
+                        <ctrl:ChipControl Grid.Column="2" x:Name="TransfersBadge" Text="{x:Bind ViewModel.ActiveTransfersText, Mode=OneWay}" Tone="Sky" VerticalAlignment="Center"/>
                     </Grid>
                 </Button>
                 <Button Style="{StaticResource MdNavButtonStyle}" Click="OnHistory_Click" x:Name="NavHistory">
@@ -201,11 +201,11 @@
                     </Grid.ColumnDefinitions>
                     <ctrl:AvatarControl Grid.Column="0"
                                         Size="34"
-                                        Initials="D1"
-                                        ColorHex="#DDF94B"
+                                        Initials="{x:Bind ViewModel.SelfInitials, Mode=OneWay}"
+                                        ColorHex="{x:Bind ViewModel.SelfColor, Mode=OneWay}"
                                         ShowRing="Visible"/>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="-1">
-                        <TextBlock x:Uid="shell/selfTag"
+                        <TextBlock Text="{x:Bind ViewModel.SelfDisplayName, Mode=OneWay}"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="12"
                                    FontWeight="SemiBold"/>

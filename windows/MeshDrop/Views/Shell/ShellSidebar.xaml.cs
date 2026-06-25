@@ -32,7 +32,6 @@ public sealed partial class ShellSidebar : Microsoft.UI.Xaml.Controls.UserContro
     // 自定义控件（ChipControl / AsciiDivider）的 DP 不能用 x:Uid 自动取串，统一在此设置。
     private void ApplyStrings()
     {
-        TransfersBadge.Text = I18n.T("shell.nav.transfersBadge.Text");
         PairedDivider.Label = I18n.T("shell.pairedDivider");
     }
 

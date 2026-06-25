@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using CommunityToolkit.Mvvm.ComponentModel;
 using MeshDrop.Mock;
 using MeshDrop.Transport;
@@ -35,11 +36,24 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public string UnreadChatCount => "0";
 
+    public string NearbyCount => Devices.Count.ToString();
+    public string SelfInitials => EngineProjection.Initials(_engine.DisplayName);
+    public string SelfColor => EngineProjection.ColorFromId(_engine.Identity.Id);
+    public string ActiveTransfersText => _engine.History.Count(h =>
+        h.Status is MeshDrop.Models.TransferStatus.Transferring
+            or MeshDrop.Models.TransferStatus.Pending
+            or MeshDrop.Models.TransferStatus.WaitingApproval).ToString();
+
     public ShellViewModel()
     {
         Devices = new ProjectedCollection<MeshDrop.Models.Device, MockDevice>(
             _engine.Devices, d => d.ToMock());
-        Devices.CollectionChanged += (_, _) => OnPropertyChanged(nameof(StatusText));
+        Devices.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(StatusText));
+            OnPropertyChanged(nameof(NearbyCount));
+        };
+        _engine.History.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ActiveTransfersText));
         _engine.PropertyChanged += (_, e) =>
         {
             switch (e.PropertyName)
@@ -53,6 +67,8 @@ public sealed partial class ShellViewModel : ObservableObject
                     break;
                 case nameof(ShareEngine.DisplayName):
                     OnPropertyChanged(nameof(SelfDisplayName));
+                    OnPropertyChanged(nameof(SelfInitials));
+                    OnPropertyChanged(nameof(SelfColor));
                     break;
             }
         };

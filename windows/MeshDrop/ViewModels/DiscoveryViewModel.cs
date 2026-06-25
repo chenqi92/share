@@ -20,6 +20,12 @@ public sealed partial class DiscoveryViewModel : ObservableObject
 
     public MockDevice? Selected => Devices.FirstOrDefault(d => d.Id == SelectedId);
 
+    // 右侧详情栏：有选中设备才显示，否则显示空态占位。
+    public Microsoft.UI.Xaml.Visibility DetailVisibility =>
+        Selected is not null ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+    public Microsoft.UI.Xaml.Visibility EmptyDetailVisibility =>
+        Selected is null ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
     public string PeerCountText => I18n.T("discovery.peerCountFormat", Devices.Count);
 
     public bool IsEmpty => Devices.Count == 0 && !IsScanning;
@@ -32,6 +38,8 @@ public sealed partial class DiscoveryViewModel : ObservableObject
         {
             OnPropertyChanged(nameof(PeerCountText));
             OnPropertyChanged(nameof(Selected));
+            OnPropertyChanged(nameof(DetailVisibility));
+            OnPropertyChanged(nameof(EmptyDetailVisibility));
             OnPropertyChanged(nameof(IsEmpty));
             if (Devices.Count > 0 && string.IsNullOrEmpty(SelectedId))
                 SelectedId = Devices[0].Id;
@@ -59,5 +67,7 @@ public sealed partial class DiscoveryViewModel : ObservableObject
     partial void OnSelectedIdChanged(string value)
     {
         OnPropertyChanged(nameof(Selected));
+        OnPropertyChanged(nameof(DetailVisibility));
+        OnPropertyChanged(nameof(EmptyDetailVisibility));
     }
 }

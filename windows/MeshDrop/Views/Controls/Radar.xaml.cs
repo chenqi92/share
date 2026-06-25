@@ -39,12 +39,25 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
     public Radar()
     {
         InitializeComponent();
+        var engine = MeshDrop.Transport.ShareEngine.Shared;
         Loaded += (_, _) =>
         {
+            CenterIp.Text = engine.LocalIp;
+            engine.PropertyChanged += OnEnginePropertyChanged;
             Rebuild();
             StartSweep();
         };
-        Unloaded += (_, _) => _sweepStory?.Stop();
+        Unloaded += (_, _) =>
+        {
+            engine.PropertyChanged -= OnEnginePropertyChanged;
+            _sweepStory?.Stop();
+        };
+    }
+
+    private void OnEnginePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MeshDrop.Transport.ShareEngine.LocalIp))
+            CenterIp.Text = MeshDrop.Transport.ShareEngine.Shared.LocalIp;
     }
 
     private void Rebuild()
