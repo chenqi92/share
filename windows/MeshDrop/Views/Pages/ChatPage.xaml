@@ -78,10 +78,9 @@
                     Visibility="Collapsed"
                     CornerRadius="0">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
-                    <TextBlock Text="⤓"
-                               FontFamily="{StaticResource MdDisplayFontFamily}"
-                               FontSize="64" FontWeight="Bold"
-                               HorizontalAlignment="Center"/>
+                    <FontIcon Glyph="&#xE896;"
+                              FontSize="52"
+                              HorizontalAlignment="Center"/>
                     <TextBlock x:Uid="chat/dropToSend"
                                FontFamily="{StaticResource MdDisplayFontFamily}"
                                FontSize="22" FontWeight="Bold"
@@ -124,7 +123,7 @@
                         Command="{x:Bind ViewModel.SendTextCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock x:Uid="common/send"/>
-                        <TextBlock Text="→"/>
+                        <FontIcon Glyph="&#xE724;" FontSize="14"/>
                     </StackPanel>
                 </Button>
             </Grid>

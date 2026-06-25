@@ -141,7 +141,21 @@ public sealed partial class MainWindow : Window
             var hwnd = WindowNative.GetWindowHandle(this);
             var id = Win32Interop.GetWindowIdFromWindow(hwnd);
             var aw = AppWindow.GetFromWindowId(id);
-            aw?.Resize(new Windows.Graphics.SizeInt32(1280, 820));
+            if (aw is null) return;
+            // 默认按显示器工作区的 82% × 86% 取尺寸并居中（跨分辨率/DPI 自适应，避免默认窗口过小）。
+            var da = DisplayArea.GetFromWindowId(id, DisplayAreaFallback.Primary);
+            if (da is not null)
+            {
+                var wa = da.WorkArea;
+                int w = (int)(wa.Width * 0.82);
+                int h = (int)(wa.Height * 0.86);
+                aw.MoveAndResize(new Windows.Graphics.RectInt32(
+                    wa.X + (wa.Width - w) / 2, wa.Y + (wa.Height - h) / 2, w, h));
+            }
+            else
+            {
+                aw.Resize(new Windows.Graphics.SizeInt32(1600, 1000));
+            }
         }
         catch { }
     }
