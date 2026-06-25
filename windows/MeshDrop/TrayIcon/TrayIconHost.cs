@@ -18,8 +18,6 @@ namespace MeshDrop.TrayIcon;
 public sealed class TrayIconHost : IDisposable
 {
     private TaskbarIcon? _icon;
-    private TrayFlyout? _flyoutContent;
-    private Flyout? _flyout;
 
     private ShareEngine? _engine;
     private DispatcherQueue? _ui;
@@ -30,26 +28,26 @@ public sealed class TrayIconHost : IDisposable
     public void Initialize()
     {
         _ui = DispatcherQueue.GetForCurrentThread();
-        _flyoutContent = new TrayFlyout();
-        _flyoutContent.OpenMainRequested += (s, e) => OpenMainRequested?.Invoke(s, e);
-        _flyoutContent.OpenSettingsRequested += (s, e) => OpenSettingsRequested?.Invoke(s, e);
-
-        _flyout = new Flyout
-        {
-            Content = _flyoutContent,
-            Placement = FlyoutPlacementMode.TopEdgeAlignedRight,
-            ShouldConstrainToRootBounds = false,
-        };
+        // 右键菜单用原生 MenuFlyout：H.NotifyIcon 默认 PopupMenu 模式要求 MenuFlyout（走 Win32 菜单）。
+        // 之前用富内容 Flyout 会被强转 MenuFlyout 崩溃（右键闪退）；改 SecondWindow 模式又会在托盘初始化时
+        // 创建第二窗口、在 unpackaged 下创建富控件失败导致启动即闪退。MenuFlyout 最稳，三处崩溃一并避开。
+        var menu = new MenuFlyout();
+        var openItem = new MenuFlyoutItem { Text = MeshDrop.I18n.T("tray.menuOpen") };
+        openItem.Click += (_, _) => OpenMainRequested?.Invoke(this, EventArgs.Empty);
+        var settingsItem = new MenuFlyoutItem { Text = MeshDrop.I18n.T("tray.menuSettings") };
+        settingsItem.Click += (_, _) => OpenSettingsRequested?.Invoke(this, EventArgs.Empty);
+        var exitItem = new MenuFlyoutItem { Text = MeshDrop.I18n.T("tray.menuExit") };
+        exitItem.Click += (_, _) => Microsoft.UI.Xaml.Application.Current.Exit();
+        menu.Items.Add(openItem);
+        menu.Items.Add(settingsItem);
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(exitItem);
 
         _icon = new TaskbarIcon
         {
             ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 0),
-            ContextFlyout = _flyout,
-            // 右键托盘要弹自定义 WinUI Flyout：默认 PopupMenu 模式会把 ContextFlyout 强转 MenuFlyout，
-            // 我们给的是 Flyout(含富内容 TrayFlyout) → InvalidCastException 崩溃。改 SecondWindow 模式正常显示。
-            ContextMenuMode = H.NotifyIcon.ContextMenuMode.SecondWindow,
-            // H.NotifyIcon 2.x 把 ImageSource 转成 System.Drawing.Icon（new Icon(stream) 需要 ICO 而非 PNG）；
-            // 喂 PNG 会在 OnIconSourceChanged 的 async-void 里抛 ArgumentException 崩掉整个应用。
+            ContextFlyout = menu,
+            // H.NotifyIcon 2.x 用 System.Drawing.Icon(stream) 需要 ICO；喂 PNG 会在 async-void 里抛异常崩溃。
             // unpackaged 下 ms-appx 不可靠，用输出目录里的本地 .ico 文件绝对路径。
             IconSource = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"))),
             NoLeftClickDelay = true,

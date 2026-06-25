@@ -287,6 +287,9 @@
   <data name="tray/actionsDivider"><value>── ACTIONS ──</value></data>
   <data name="tray/send.Text"><value>Send</value></data>
   <data name="tray/openApp.Text"><value>Open meshdrop</value></data>
+  <data name="tray/menuOpen"><value>Open meshdrop</value></data>
+  <data name="tray/menuSettings"><value>Settings</value></data>
+  <data name="tray/menuExit"><value>Exit</value></data>
   <data name="tray/tooltipFormat"><value>meshdrop · {0} nearby</value></data>
   <data name="tray/activeFormat"><value>meshdrop · {0} active</value></data>
 
