@@ -60,7 +60,7 @@ internal static class EngineProjection
             E2EVerified: true);
     }
 
-    private static string Initials(string name)
+    public static string Initials(string name)
     {
         var n = (name ?? "").Trim();
         if (n.Length == 0) return "·";
@@ -70,7 +70,7 @@ internal static class EngineProjection
         return (parts[0][0].ToString() + parts[1][0]).ToUpperInvariant();
     }
 
-    private static string ColorFromId(string id)
+    public static string ColorFromId(string id)
     {
         string[] palette =
         {

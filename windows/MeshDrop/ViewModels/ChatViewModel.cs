@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -90,7 +91,7 @@ public sealed partial class ChatViewModel : ObservableObject
             PeerDisplayName = peer.Name;
             PeerSubtitle = $"{peer.Os} · {peer.Host ?? "—"}";
             PeerInitials = EngineProjection.Initials(peer.Name);
-            PeerColorHex = EngineProjection.ColorFor(peer.Id);
+            PeerColorHex = EngineProjection.ColorFromId(peer.Id);
         }
         else
         {
