@@ -13,8 +13,8 @@
 文本、文件、剪贴板、文字便签。所有传输走内网 TCP，端到端加密（X25519 +
 ChaCha20-Poly1305），不经过云端。
 
-仓库根：`/Users/chenqi/Projects/__WS_FREQ_MESHDROPE__`（GitHub：
-[__CHENQI_MESHDROPE__](https://github.com/__CHENQI_MESHDROPE__)）
+仓库根：`<repo-root>`（GitHub：
+[__ORG__/__REPO__](https://github.com/__ORG__/__REPO__)）
 当前 main 分支。
 
 ## 2. 本轮你做什么（UI-FIRST）
