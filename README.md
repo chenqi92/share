@@ -4,12 +4,16 @@
 点选目标即可发送一段文字或一组文件。**所有端原生实现**，不走 Electron / Flutter
 / React Native，保证最佳性能与平台体验。
 
+[![Download on the App Store](https://img.shields.io/badge/App_Store-MeshDrop-0D96F6?style=flat&logo=apple&logoColor=white)](https://apps.apple.com/cn/app/meshdrop/id6772689903)
+
+> iOS / iPadOS 已上架 App Store：<https://apps.apple.com/cn/app/meshdrop/id6772689903>
+
 ## 平台覆盖
 
 | 平台              | 技术栈                                                | 状态 |
 | ----------------- | ----------------------------------------------------- | ---- |
 | macOS             | SwiftUI + Network.framework                           | 可构建 / MeshDropKit 测试通过 |
-| iOS 17+ / iPadOS  | SwiftUI + Network.framework                           | 与 Apple core 共用实现 |
+| iOS 17+ / iPadOS  | SwiftUI + Network.framework                           | ✅ 已上架 App Store（1.0 build 2） |
 | iOS 26            | + Liquid Glass (`.glassEffect()`)                     | UI 已接入 |
 | tvOS              | SwiftUI focus engine（只接收）                        | 与 Apple core 共用实现 |
 | visionOS          | SwiftUI spatial + glass                               | 已接 engine adapter，仍保留 preview mock |
@@ -18,8 +22,15 @@
 | Wear OS           | Compose for Wear + WearableDataLayer 桥到 Android     | build 通过，无独立单测 |
 | Windows           | WinUI 3 (.NET 8) + `Makaretu.Dns`                     | 已接 ShareEngine/Gateway；需 Windows 环境验证 |
 | Linux GUI         | Rust + gtk4-rs + libadwaita + `mdns-sd`               | core 测试 + GUI check 通过 |
-| Linux TUI         | Rust + ratatui + `mdns-sd`                            | build/test 通过，当前 0 单测 |
+| Linux TUI         | Rust + ratatui + `mdns-sd`                            | build/test 通过，10 个单测 |
 | Web Browser       | React + Vite，通过 Gateway 桥接                       | build 通过；仅显式 `?mock=1` 才进入 mock |
+
+> **版本现状**：只有 Apple 端（iOS / iPadOS / macOS / tvOS / visionOS / watchOS）
+> 已发布到 App Store，版本 1.0.0 / build 2；Android / Wear OS / Linux / Web 仍是
+> 0.1.0 预发布，未上架。
+>
+> **Bundle identifier 按平台各自命名，并非全局统一**：Apple = `com.welape.landrop`，
+> Android = `com.welape.meshdrop`，Wear OS = `com.welape.meshdrop.wear`。
 
 各端共用一份自研协议（见 [protocol/](protocol/README.md)），通过 mDNS / DNS-SD
 做服务发现，TCP framing + HELLO / HELLO_ACK + TOFU 指纹信任。v0.1 的 LAN

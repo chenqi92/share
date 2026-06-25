@@ -1,6 +1,6 @@
 # Android
 
-Jetpack Compose + Material 3 + Kotlin 2.3.21 + AGP 8.7。最低 SDK 26 (Android 8)，
+Jetpack Compose + Material 3 + Kotlin 2.3.21 + AGP 8.13.2。最低 SDK 26 (Android 8)，
 目标 SDK 35 (Android 15)。
 
 ```

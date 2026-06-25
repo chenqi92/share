@@ -7,7 +7,7 @@
 apple/
 ├── Package.swift                  # MeshDropKit SPM（依赖 apple/swift-certificates）
 ├── Sources/MeshDropKit/           # 协议核心 + 引擎
-├── Tests/MeshDropKitTests/        # XCTest 单元测试（34 个）
+├── Tests/MeshDropKitTests/        # XCTest 单元测试（66 个）
 ├── MeshDropMac/                   # SwiftUI macOS app
 ├── MeshDropiOS/                   # SwiftUI iOS + iPadOS Universal app
 ├── MeshDropTV/                    # SwiftUI tvOS app（只接收）
@@ -21,7 +21,7 @@ apple/
 
 ```bash
 cd apple
-swift test                         # 34 测试，覆盖 Frame / WebSocketFrame / Multipart / GatewayCommands / IdentityStore / ResumeStore
+swift test                         # 66 测试，覆盖 Frame / WebSocketFrame / Multipart / GatewayCommands / IdentityStore / ResumeStore
 ```
 
 ### 生成 Xcode 工程
