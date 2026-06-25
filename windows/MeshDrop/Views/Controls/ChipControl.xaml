@@ -6,12 +6,14 @@
 
     <Border x:Name="Pill"
             Height="{StaticResource MdChipHeight}"
+            MinWidth="{StaticResource MdChipHeight}"
             CornerRadius="{StaticResource MdRadiusChip}"
             Padding="8,0,8,0"
             VerticalAlignment="Center"
             BorderThickness="0">
         <TextBlock x:Name="Label"
                    Text="{x:Bind Text, Mode=OneWay}"
+                   HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    FontSize="11"
                    FontWeight="SemiBold"/>
