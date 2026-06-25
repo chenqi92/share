@@ -103,7 +103,7 @@ export function MainPage() {
           gap: 18,
         }}
       >
-        <HeroBand peerCount={peerCount} />
+        <HeroBand peerCount={peerCount} hostIp={me.hostIp} />
 
         <div
           style={{
@@ -257,7 +257,7 @@ export function MainPage() {
                 textTransform: 'uppercase',
               }}
             >
-              session #4f2a · open
+              {mode === 'live' ? t('session.live', { state: conn.toUpperCase() }) : t('session.preview')}
             </div>
           </div>
           <div

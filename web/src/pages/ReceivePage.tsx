@@ -19,8 +19,9 @@ export function ReceivePage() {
   const rejectOffer = useEngine((s) => s.rejectOffer)
   // live 模式没待审项时显示空态；preview 模式下用 mock 让 UI 不空
   const offer = live ?? (mode === 'mock' ? MESHDROP_PENDING_OFFER : undefined)
+  // 没有匹配设备时退化为通用「未知设备」占位，不再借用任意一台真实设备（devices[2]）。
   const peer = offer
-    ? devices.find((d) => d.who === offer.peer) ?? devices[2] ?? { initials: '?', color: '#ccc', kind: 'mac' as const, os: '', rtt: 0 }
+    ? devices.find((d) => d.who === offer.peer) ?? { initials: '?', color: '#ccc', kind: 'mac' as const, os: t('receive.unknownPeer'), rtt: 0 }
     : undefined
   const peerCount = devices.filter((d) => d.online).length
 

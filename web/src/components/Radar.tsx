@@ -7,7 +7,7 @@ interface Props {
   meIp?: string
 }
 
-export function Radar({ devices, size = 320, selectedId, meIp = '192.168.1.42' }: Props) {
+export function Radar({ devices, size = 320, selectedId, meIp = '' }: Props) {
   const c = size / 2
   const maxR = c - 14
 

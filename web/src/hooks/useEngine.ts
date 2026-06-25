@@ -291,8 +291,8 @@ export function useEngineConnection() {
         const pp = snap.pendingPairings?.[0]
         useEngine.setState({
           me: adaptMe(snap.me),
-          devices: snap.devices.map(adaptDevice),
-          history: buildHistoryDays(snap.history.map(adaptHistory)),
+          devices: (snap.devices ?? []).map(adaptDevice),
+          history: buildHistoryDays((snap.history ?? []).map(adaptHistory)),
           transfers: (snap.transfers ?? []).map((t) => adaptTransfer(t)),
           pendingOffer: off ? adaptOffer(off) : undefined,
           pendingPairing: pp ? adaptPairing(pp) : undefined,

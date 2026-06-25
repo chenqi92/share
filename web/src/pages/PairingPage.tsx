@@ -71,6 +71,11 @@ export function PairingPage() {
   const acceptPairing = useEngine((s) => s.acceptPairing)
   const rejectPairing = useEngine((s) => s.rejectPairing)
   const peerCount = devices.filter((d) => d.online).length
+  // adaptMe() 在 host 未上报时把 fingerprint/pairingCode 兜底成 '—'；据此判断是否有真实值。
+  const hasFingerprint = !!me.fingerprint && me.fingerprint !== '—'
+  const hasPairingCode = !!me.pairingCode && me.pairingCode !== '—'
+  // demo QR / caption 只在 mock 预览模式下展示，live 模式下不渲染假二维码。
+  const showDemoQr = mode === 'mock'
   const [code, setCode] = useState('')
   const [pairing, setPairing] = useState(false)
   const [pairErr, setPairErr] = useState<string | undefined>()
@@ -341,57 +346,114 @@ export function PairingPage() {
               <Chip tone="outline" mono>{t('pairing.code.sessionLimited')}</Chip>
             </div>
 
-            <div
-              className="font-display"
-              style={{
-                fontSize: 'clamp(56px, 7vw, 92px)',
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                lineHeight: 1,
-                fontFamily: '"Geist Mono", monospace',
-                color: 'var(--text)',
-                display: 'flex',
-                gap: 'clamp(8px, 1.4vw, 18px)',
-              }}
-            >
-              {me.pairingCode.split('').map((ch, i) => (
-                <span
-                  key={i}
+            {hasPairingCode ? (
+              <div
+                className="font-display"
+                style={{
+                  fontSize: 'clamp(56px, 7vw, 92px)',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                  lineHeight: 1,
+                  fontFamily: '"Geist Mono", monospace',
+                  color: 'var(--text)',
+                  display: 'flex',
+                  gap: 'clamp(8px, 1.4vw, 18px)',
+                }}
+              >
+                {me.pairingCode.split('').map((ch, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      minWidth: '0.9em',
+                      textAlign: 'center',
+                      background: ch === '-' ? 'transparent' : 'var(--bg)',
+                      border: ch === '-' ? 'none' : '1px solid var(--border)',
+                      borderRadius: 10,
+                      padding: ch === '-' ? '0' : '4px 10px',
+                      color: ch === '-' ? 'var(--text-faint)' : 'var(--text)',
+                    }}
+                  >
+                    {ch}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: 'var(--bg)',
+                  border: '1px dashed var(--border)',
+                  borderRadius: 12,
+                  padding: '20px 18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}
+              >
+                <div
+                  className="font-display"
                   style={{
-                    minWidth: '0.9em',
-                    textAlign: 'center',
-                    background: ch === '-' ? 'transparent' : 'var(--bg)',
-                    border: ch === '-' ? 'none' : '1px solid var(--border)',
-                    borderRadius: 10,
-                    padding: ch === '-' ? '0' : '4px 10px',
-                    color: ch === '-' ? 'var(--text-faint)' : 'var(--text)',
+                    fontSize: 'clamp(40px, 5vw, 64px)',
+                    fontWeight: 700,
+                    lineHeight: 1,
+                    fontFamily: '"Geist Mono", monospace',
+                    color: 'var(--text-mute)',
                   }}
                 >
-                  {ch}
-                </span>
-              ))}
-            </div>
+                  —
+                </div>
+                <div
+                  style={{
+                    fontFamily: '"Geist Mono", monospace',
+                    fontSize: 12,
+                    color: 'var(--text-faint)',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {t('pairing.code.unknown')}
+                </div>
+              </div>
+            )}
 
             <AsciiDivider label={`—— ${t('pairing.fingerprint')} ——`} />
 
-            <div
-              style={{
-                fontFamily: '"Geist Mono", monospace',
-                fontSize: 13.5,
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                color: 'var(--text)',
-                background: 'var(--bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 12,
-                padding: '14px 16px',
-                lineHeight: 1.7,
-              }}
-            >
-              A3F1 · 9C2D · 7B40 · E58A
-              <br />
-              1D6C · F092 · 4AB3 · C7E5
-            </div>
+            {hasFingerprint ? (
+              <div
+                style={{
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 13.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--text)',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {me.fingerprint}
+              </div>
+            ) : (
+              <div
+                style={{
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--text-faint)',
+                  background: 'var(--bg)',
+                  border: '1px dashed var(--border)',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  lineHeight: 1.6,
+                }}
+              >
+                <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-mute)' }}>—</div>
+                <div style={{ marginTop: 6 }}>{t('pairing.fingerprintUnknown')}</div>
+              </div>
+            )}
 
             <div className="flex items-center gap-2 flex-wrap">
               <Chip tone="outline" mono>{t('pairing.fingerprintPeerSame')}</Chip>
@@ -413,19 +475,47 @@ export function PairingPage() {
               textAlign: 'center',
             }}
           >
-            <FakeQr size={210} alt={t('pairing.qrAlt')} />
-            <div
-              style={{
-                fontFamily: '"Geist Mono", monospace',
-                fontSize: 10.5,
-                color: 'var(--text-mute)',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-              }}
-            >
-              meshdrop://pair?code=XJ9-LM4
-            </div>
-            <Chip tone="lime" mono>{t('pairing.scanWithApp')}</Chip>
+            {showDemoQr ? (
+              <>
+                <FakeQr size={210} alt={t('pairing.qrAlt')} />
+                <div
+                  style={{
+                    fontFamily: '"Geist Mono", monospace',
+                    fontSize: 10.5,
+                    color: 'var(--text-mute)',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  meshdrop://pair?code={me.pairingCode}
+                </div>
+                <Chip tone="lime" mono>{t('pairing.scanWithApp')}</Chip>
+              </>
+            ) : (
+              <div
+                style={{
+                  width: 210,
+                  height: 210,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  background: 'var(--bg)',
+                  border: '1px dashed var(--border)',
+                  borderRadius: 12,
+                  padding: 16,
+                  textAlign: 'center',
+                  fontFamily: '"Geist Mono", monospace',
+                  fontSize: 11.5,
+                  color: 'var(--text-faint)',
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontSize: 28, color: 'var(--text-mute)' }}>⌗</div>
+                {t('pairing.qrUnavailable')}
+              </div>
+            )}
           </aside>
         </div>
 

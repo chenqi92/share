@@ -56,7 +56,8 @@
     "body": "Linux / Chromebook / 临时同事的笔记本 —— 任何浏览器进 <mono>{{host}}</mono>，直接收发文件。身份用 <mono>{{idScheme}}</mono> 指纹核对，关页就销毁。",
     "dragToSend": "拖即发",
     "lanZeroCloud": "LAN ONLY · 零云",
-    "pasteToShare": "粘贴即分享"
+    "pasteToShare": "粘贴即分享",
+    "hostUnknown": "本 gateway"
   },
   "discovery": {
     "nearby": "附近",
@@ -67,7 +68,9 @@
   },
   "session": {
     "title": "本次会话",
-    "open": "session #4f2a · open"
+    "open": "open",
+    "live": "live · {{state}}",
+    "preview": "离线预览"
   },
   "dropZone": {
     "dropToSend": "放手即发",
@@ -103,6 +106,7 @@
     "noPendingOffer": "没有待审项",
     "mainPaused": "MainPage 已暂停 · paused",
     "incomingWantsToSend": "对方想发给你 · {{who}}",
+    "unknownPeer": "未知设备",
     "paired": "已配对",
     "noteLabel": "文字便签",
     "confirmAccept": "你确认接收吗？",
@@ -210,7 +214,8 @@
       "invalid": "代码无效或已过期",
       "hint": "在 native app 顶部找到 6 字符代码，输入这里",
       "label": "● 6 字符代码 · 30s",
-      "sessionLimited": "限本会话"
+      "sessionLimited": "限本会话",
+      "unknown": "gateway 尚未下发配对代码。"
     },
     "pending": {
       "title": "待审配对 · {{who}}",
@@ -219,7 +224,9 @@
     },
     "fingerprint": "指纹 · FINGERPRINT · 完整 32 位",
     "fingerprintPeerSame": "对方应看到同样 8 组",
+    "fingerprintUnknown": "gateway 尚未上报指纹，暂无可核对的内容。",
     "scanWithApp": "用 native app 扫码",
+    "qrUnavailable": "二维码不可用 —— 请改用 6 字符代码。",
     "qrAlt": "配对二维码",
     "steps": {
       "title": "三步说明 · 3-STEP GUIDE",

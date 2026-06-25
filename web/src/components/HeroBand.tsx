@@ -4,9 +4,10 @@ import { MeshDropLockup } from './MeshDropLogo'
 
 interface Props {
   peerCount: number
+  hostIp?: string
 }
 
-export function HeroBand({ peerCount }: Props) {
+export function HeroBand({ peerCount, hostIp }: Props) {
   const { t } = useTranslation()
   return (
     <section
@@ -62,10 +63,10 @@ export function HeroBand({ peerCount }: Props) {
           color: 'var(--text-mute)',
         }}
       >
-        {/* host / idScheme 用 mono 高亮，是协议常量按原文显示，不进语言文件。 */}
+        {/* host 用真实 me.hostIp，host 未上报时退化为中性串；idScheme 是协议常量按原文显示。 */}
         <Trans
           i18nKey="hero.body"
-          values={{ host: '192.168.1.42', idScheme: 'Ed25519 · SHA-256' }}
+          values={{ host: hostIp && hostIp !== '—' ? hostIp : t('hero.hostUnknown'), idScheme: 'Ed25519 · SHA-256' }}
           components={{
             mono: <span style={{ fontFamily: '"Geist Mono", monospace', color: 'var(--text)' }} />,
           }}

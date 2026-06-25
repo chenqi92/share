@@ -42,14 +42,14 @@ export function App() {
   const room = t('app.roomLiving')
 
   const url =
-    page === 'main' ? 'http://192.168.1.42/room/客厅' :
-    page === 'chat' ? 'http://192.168.1.42/chat' :
-    page === 'receive' ? 'http://192.168.1.42/incoming/嘉伟' :
-    page === 'transfer' ? 'http://192.168.1.42/transfers' :
-    page === 'clipboard' ? 'http://192.168.1.42/clipboard' :
-    page === 'history' ? 'http://192.168.1.42/history' :
-    page === 'pairing' ? 'http://192.168.1.42/pair' :
-    'http://192.168.1.42/settings'
+    page === 'main' ? 'https://meshdrop.local/room' :
+    page === 'chat' ? 'https://meshdrop.local/chat' :
+    page === 'receive' ? 'https://meshdrop.local/incoming' :
+    page === 'transfer' ? 'https://meshdrop.local/transfers' :
+    page === 'clipboard' ? 'https://meshdrop.local/clipboard' :
+    page === 'history' ? 'https://meshdrop.local/history' :
+    page === 'pairing' ? 'https://meshdrop.local/pair' :
+    'https://meshdrop.local/settings'
 
   const pageNode =
     page === 'main' ? <MainPage /> :
