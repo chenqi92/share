@@ -59,7 +59,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="◎" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE772;" FontSize="14" Foreground="{ThemeResource MdLimeDeepBrush}"/>
                         <TextBlock Grid.Column="1" x:Name="NavDiscoveryLabel" x:Uid="shell/nav/nearby" VerticalAlignment="Center"
                                    FontWeight="SemiBold" FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" Text="{x:Bind ViewModel.NearbyCount, Mode=OneWay}" Tone="Lime" VerticalAlignment="Center"/>
@@ -72,7 +72,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="◌" FontSize="13"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE8BD;" FontSize="14"/>
                         <TextBlock Grid.Column="1" x:Name="NavChatLabel" x:Uid="shell/nav/messages" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" Text="{x:Bind ViewModel.UnreadChatCount, Mode=OneWay}" Tone="Flame" VerticalAlignment="Center"/>
@@ -85,7 +85,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="↕" FontSize="13"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE895;" FontSize="14"/>
                         <TextBlock Grid.Column="1" x:Name="NavTransfersLabel" x:Uid="shell/nav/transfers" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                         <ctrl:ChipControl Grid.Column="2" x:Name="TransfersBadge" Text="{x:Bind ViewModel.ActiveTransfersText, Mode=OneWay}" Tone="Sky" VerticalAlignment="Center"/>
@@ -98,7 +98,7 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="◉" FontSize="13"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE81C;" FontSize="14"/>
                         <TextBlock Grid.Column="1" x:Name="NavHistoryLabel" x:Uid="shell/nav/history" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
@@ -109,7 +109,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="📋" FontSize="13"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE77F;" FontSize="14"/>
                         <TextBlock Grid.Column="1" x:Name="NavClipboardLabel" x:Uid="shell/nav/clipboard" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
@@ -120,7 +120,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="✓" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE71B;" FontSize="14" Foreground="{ThemeResource MdLimeDeepBrush}"/>
                         <TextBlock Grid.Column="1" x:Name="NavTrustLabel" x:Uid="shell/nav/trust" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>
@@ -131,7 +131,7 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="⚙" FontSize="13"/>
+                        <FontIcon Grid.Column="0" Glyph="&#xE713;" FontSize="14"/>
                         <TextBlock Grid.Column="1" x:Name="NavSettingsLabel" x:Uid="shell/nav/settings" VerticalAlignment="Center"
                                    FontSize="13" Foreground="{ThemeResource MdInk60Brush}"/>
                     </Grid>

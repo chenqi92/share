@@ -62,7 +62,7 @@
                 BorderThickness="1"
                 Padding="10,8,10,8">
             <StackPanel Orientation="Horizontal" Spacing="8">
-                <TextBlock Text="✓" Foreground="{ThemeResource MdLimeDeepBrush}" FontWeight="Bold"/>
+                <FontIcon Glyph="&#xE73E;" FontSize="13" Foreground="{ThemeResource MdLimeDeepBrush}"/>
                 <TextBlock x:Uid="send/securityNote"
                            FontFamily="{StaticResource MdMonoFontFamily}"
                            FontSize="10"
