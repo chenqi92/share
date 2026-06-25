@@ -45,6 +45,9 @@ public sealed class TrayIconHost : IDisposable
         {
             ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 0),
             ContextFlyout = _flyout,
+            // 右键托盘要弹自定义 WinUI Flyout：默认 PopupMenu 模式会把 ContextFlyout 强转 MenuFlyout，
+            // 我们给的是 Flyout(含富内容 TrayFlyout) → InvalidCastException 崩溃。改 SecondWindow 模式正常显示。
+            ContextMenuMode = H.NotifyIcon.ContextMenuMode.SecondWindow,
             // H.NotifyIcon 2.x 把 ImageSource 转成 System.Drawing.Icon（new Icon(stream) 需要 ICO 而非 PNG）；
             // 喂 PNG 会在 OnIconSourceChanged 的 async-void 里抛 ArgumentException 崩掉整个应用。
             // unpackaged 下 ms-appx 不可靠，用输出目录里的本地 .ico 文件绝对路径。
