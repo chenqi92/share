@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -65,16 +66,19 @@ fun MsgBubble(
                 .padding(contentPad),
         ) {
             when (msg.kind) {
-                MsgKind.TEXT -> Text(
-                    text = msg.text ?: "",
-                    style = TextStyle(
-                        fontFamily = Geist,
-                        fontWeight = FontWeight.W400,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp,
-                        color = fg,
-                    ),
-                )
+                // 文本气泡用 SelectionContainer 包裹，长按即可拖选 + 系统「复制/全选」浮条。
+                MsgKind.TEXT -> SelectionContainer {
+                    Text(
+                        text = msg.text ?: "",
+                        style = TextStyle(
+                            fontFamily = Geist,
+                            fontWeight = FontWeight.W400,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            color = fg,
+                        ),
+                    )
+                }
                 MsgKind.FILE -> {
                     val fileFg = if (isOut && !mesh.isDark) Color(0xFFE8E3D6) else fg
                     val fileFg2 = if (isOut && !mesh.isDark) Color(0xCCE8E3D6) else mesh.textSecondary

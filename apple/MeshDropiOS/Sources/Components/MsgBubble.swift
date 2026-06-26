@@ -46,6 +46,7 @@ public struct MsgBubble: View {
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
                 .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)   // 长按可选中 + 系统「拷贝」菜单
         case .file:
             HStack(spacing: 10) {
                 FileTile(ext: message.fileExt ?? "?", size: 36)

@@ -47,6 +47,8 @@ class ShareApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         engine = ShareEngine(this)
+        // 历史与网络监听解耦：App 启动即从盘恢复，拒绝 NEARBY_WIFI_DEVICES 权限时历史仍可见。
+        engine.loadHistoryIfNeeded()
         instance = this
         wearEventPusher = WearEventPusher(this, engine)
         applicationScope.launch {

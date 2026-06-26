@@ -172,22 +172,30 @@ class ShareEngine(private val context: Context) {
 
     // MARK: - 生命周期
 
+    /**
+     * 把上次进程的历史从盘里 load 进内存（最新在前）。历史是纯本地数据，与网络监听解耦：
+     * App 启动即可恢复，不受 NEARBY_WIFI_DEVICES 权限是否授予影响。幂等，start() 后重复调用安全。
+     */
+    fun loadHistoryIfNeeded() {
+        if (historyLoaded) return
+        historyLoaded = true
+        scope.launch {
+            // 进行中态会被 normalize 成「连接中断」失败态（见 HistoryStore.toStatus）。
+            val persisted = historyStore.load(context.getString(R.string.engine_conn_lost))
+            if (persisted.isNotEmpty()) {
+                // 会话内可能已先插入条目；保持「本会话新条目在前 + 历史快照在后」，按 id 去重。
+                val liveIds = _history.value.map { it.id }.toSet()
+                _history.value = _history.value + persisted.filter { it.id !in liveIds }
+            }
+        }
+    }
+
     fun start() {
         if (listener != null) return
         _isStarting.value = true
         _lastError.value = null
+        loadHistoryIfNeeded()
         scope.launch {
-            // 引擎首次启动：把上次进程的历史从盘里 load 进内存（最新在前）。
-            // 进行中态会被 normalize 成「连接中断」失败态（见 HistoryStore.toStatus）。
-            if (!historyLoaded) {
-                historyLoaded = true
-                val persisted = historyStore.load(context.getString(R.string.engine_conn_lost))
-                if (persisted.isNotEmpty()) {
-                    // 会话内可能已先插入条目；保持「本会话新条目在前 + 历史快照在后」，按 id 去重。
-                    val liveIds = _history.value.map { it.id }.toSet()
-                    _history.value = _history.value + persisted.filter { it.id !in liveIds }
-                }
-            }
             try {
                 val sock = ServerSocket(0)
                 listener = sock
