@@ -1,6 +1,7 @@
 package com.welape.meshdrop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -117,7 +119,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
     }
 
     Box(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
             Box(modifier = Modifier.weight(1f)) {
                 when (state.tab) {
                     MeshTab.DISCOVER -> if (inChatDetail && state.openChatDeviceId != null) {
@@ -355,6 +357,7 @@ private fun NavTabItem(
             .height(64.dp)
             .padding(horizontal = 4.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
             .background(bg),
         contentAlignment = Alignment.Center,
     ) {

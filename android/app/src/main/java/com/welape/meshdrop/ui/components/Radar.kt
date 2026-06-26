@@ -100,24 +100,22 @@ fun Radar(
             drawLine(color = ringColor, start = Offset(cx - r, cy), end = Offset(cx + r, cy), strokeWidth = 1f,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(2f, 6f)))
 
-            if (variant == RadarVariant.SWEEP) {
-                // 旋转扫描臂 — lime 半径线 + 淡渐变
-                rotate(degrees = sweepAngle, pivot = Offset(cx, cy)) {
-                    drawLine(
-                        brush = Brush.horizontalGradient(
-                            0.0f to Lime.copy(alpha = 0f),
-                            0.6f to limeArm,
-                            1.0f to Lime,
-                            startX = cx, endX = cx + r,
-                        ),
-                        start = Offset(cx, cy),
-                        end = Offset(cx + r, cy),
-                        strokeWidth = 1.4f,
-                    )
-                    // 渐淡扇区
-                    rotate(degrees = -30f, pivot = Offset(cx, cy)) {
-                        drawArcSlice(cx, cy, r, sweepDeg = 30f, color = Lime)
-                    }
+            // 旋转扫描臂 — 始终绘制（"正在扫描"指示，不再受 variant / 设备数 gate）
+            rotate(degrees = sweepAngle, pivot = Offset(cx, cy)) {
+                drawLine(
+                    brush = Brush.horizontalGradient(
+                        0.0f to Lime.copy(alpha = 0f),
+                        0.6f to limeArm,
+                        1.0f to Lime,
+                        startX = cx, endX = cx + r,
+                    ),
+                    start = Offset(cx, cy),
+                    end = Offset(cx + r, cy),
+                    strokeWidth = 1.4f,
+                )
+                // 渐淡扇区
+                rotate(degrees = -30f, pivot = Offset(cx, cy)) {
+                    drawArcSlice(cx, cy, r, sweepDeg = 30f, color = Lime)
                 }
             }
 

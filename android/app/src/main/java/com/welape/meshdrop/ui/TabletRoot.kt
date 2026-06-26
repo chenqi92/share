@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -133,7 +134,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
         }
     }
 
-    Row(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
+    Row(modifier = Modifier.fillMaxSize().background(mesh.canvas).systemBarsPadding()) {
         NavRail(state = state)
         Box(
             Modifier
