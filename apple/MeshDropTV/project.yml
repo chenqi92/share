@@ -1,6 +1,6 @@
 name: MeshDropTV
 options:
-  bundleIdPrefix: com.welape.meshdrop
+  bundleIdPrefix: com.welape.landrop
   deploymentTarget:
     tvOS: "17.0"
   developmentLanguage: zh-Hans

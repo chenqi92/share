@@ -1,6 +1,6 @@
 name: MeshDropVision
 options:
-  bundleIdPrefix: com.welape.meshdrop
+  bundleIdPrefix: com.welape.landrop
   deploymentTarget:
     visionOS: "2.0"
   developmentLanguage: zh-Hans

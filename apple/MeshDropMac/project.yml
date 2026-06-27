@@ -1,6 +1,6 @@
 name: MeshDropMac
 options:
-  bundleIdPrefix: com.welape.meshdrop
+  bundleIdPrefix: com.welape.landrop
   deploymentTarget:
     macOS: "14.0"
   developmentLanguage: zh-Hans
