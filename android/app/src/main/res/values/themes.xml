@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- 白天浅色；夜间变体见 values-night/themes.xml，让 Activity 配置随系统明暗切换 -->
     <style name="Theme.MeshDrop" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

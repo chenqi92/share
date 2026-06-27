@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 系统夜间模式：用深色 Material 平台主题，使 uiMode 夜间位与系统一致 -->
+    <style name="Theme.MeshDrop" parent="android:Theme.Material.NoActionBar" />
+</resources>
