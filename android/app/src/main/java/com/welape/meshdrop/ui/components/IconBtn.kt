@@ -29,7 +29,7 @@ fun MeshIconBtn(
     circle: Boolean = true,
     bordered: Boolean = false,
     tint: Color? = null,
-    onClick: () -> Unit = {},
+    onClick: () -> Unit,
 ) {
     val mesh = MeshTheme.colors
     val bg = when {

@@ -45,6 +45,7 @@ fun Device.toUiDevice(index: Int = 0, fallbackName: String = "Unnamed"): MockDev
     val initials = name.take(2).ifBlank { id.take(2) }.uppercase()
     return MockDevice(
         id = id,
+        fingerprint = fingerprint,
         name = name.ifBlank { model ?: id.take(8) },
         who = name.ifBlank { fallbackName },
         kind = os.toKind(),
@@ -107,6 +108,7 @@ fun HistoryItem.toUiHistoryItem(): MockHistoryItem {
         time = timeFmt.format(Date(createdAt)),
         kind = kind,
         status = status,
+        peerKey = peer.fingerprint,
     )
 }
 
@@ -120,9 +122,9 @@ private fun humanSize(bytes: Long): String {
     return String.format(Locale.US, "%.1f GB", gb)
 }
 
-/** 历史按 peerId 聚合，造出 chat list preview。 */
+/** 历史按对端指纹聚合，造出 chat list preview（指纹跨会话/离线稳定，与发现设备/盘载历史统一）。 */
 fun List<HistoryItem>.toChatPreviews(): List<MockChatPreview> {
-    val byPeer = groupBy { it.peer.id }
+    val byPeer = groupBy { it.peer.fingerprint }
     return byPeer.map { (_, items) ->
         val newest = items.maxByOrNull { it.createdAt }!!
         val snippet = when (val k = newest.kind) {
@@ -131,18 +133,19 @@ fun List<HistoryItem>.toChatPreviews(): List<MockChatPreview> {
         }
         val isFile = newest.kind is HistoryKind.File
         MockChatPreview(
-            deviceId = newest.peer.id,
+            deviceId = newest.peer.fingerprint,
             lastSnippet = snippet,
             lastTime = timeFmt.format(Date(newest.createdAt)),
             unread = 0,
             isFile = isFile,
+            peerName = newest.peer.name.ifBlank { newest.peer.model ?: newest.peer.fingerprint.take(8) },
         )
     }.sortedByDescending { it.lastTime }
 }
 
-/** 历史按 peerId 投影成 ChatDetail 的消息流。 */
+/** 历史按对端指纹投影成 ChatDetail 的消息流。 */
 fun List<HistoryItem>.toChatMessages(peerId: String): List<MockMessage> =
-    filter { it.peer.id == peerId }
+    filter { it.peer.fingerprint == peerId }
         .sortedBy { it.createdAt }
         .map { item ->
             val side = when (item.direction) {

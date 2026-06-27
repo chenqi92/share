@@ -42,7 +42,6 @@ import com.welape.meshdrop.ui.components.MeshAvatar
 import com.welape.meshdrop.ui.components.MeshChip
 import com.welape.meshdrop.ui.components.MeshIconBtn
 import com.welape.meshdrop.ui.components.MonoLabel
-import com.welape.meshdrop.ui.components.Photo
 import com.welape.meshdrop.ui.theme.Geist
 import com.welape.meshdrop.ui.theme.GeistMono
 import com.welape.meshdrop.ui.theme.Ink
@@ -82,7 +81,7 @@ fun DevicePickerSheet(
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    stringResource(R.string.picker_selected_count, selected.size),
+                    stringResource(R.string.picker_selected_count, selectedDevices.size),
                     style = TextStyle(
                         fontFamily = GeistMono, fontWeight = FontWeight.W700,
                         fontSize = 11.sp, color = mesh.textSecondary, letterSpacing = 1.2.sp,
@@ -100,21 +99,7 @@ fun DevicePickerSheet(
                         fontSize = 26.sp, color = mesh.textPrimary, letterSpacing = (-0.5).sp,
                     ),
                 )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stringResource(R.string.picker_attachment_summary),
-                    style = TextStyle(
-                        fontFamily = GeistMono, fontWeight = FontWeight.W500,
-                        fontSize = 11.sp, color = mesh.textTertiary,
-                    ),
-                )
-
-                Spacer(Modifier.height(14.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Photo(sizeDp = 88.dp, hueDeg = 22)
-                    Photo(sizeDp = 88.dp, hueDeg = 200)
-                    Photo(sizeDp = 88.dp, hueDeg = 320)
-                }
+                Spacer(Modifier.height(16.dp))
 
                 AsciiDivider(label = stringResource(R.string.discovery_section_nearby, devices.size))
 
@@ -149,13 +134,13 @@ fun DevicePickerSheet(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(mesh.textPrimary)
+                .background(Ink)
                 .padding(PaddingValues(horizontal = 18.dp, vertical = 14.dp)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    stringResource(R.string.picker_send_to_count, selected.size),
+                    stringResource(R.string.picker_send_to_count, selectedDevices.size),
                     style = TextStyle(
                         fontFamily = SpaceGrotesk, fontWeight = FontWeight.W700,
                         fontSize = 16.sp, color = Paper,

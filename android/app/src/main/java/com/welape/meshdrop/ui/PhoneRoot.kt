@@ -89,8 +89,8 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
         ?: if (engine == null) MockHistory else emptyList()
     val chatPreviewsUi = realHistoryRaw?.toChatPreviews()
         ?: if (engine == null) MockChatPreviews else emptyList()
-    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
-        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
+    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.fingerprint == id }
+        ?: realHistoryRaw?.firstOrNull { it.peer.fingerprint == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
 
     // 角标：聊天 = 未读入站文本数，传输 = 进行中任务数（真实数据，引擎缺席时为 0）
     val chatUnread = (engine?.unreadByPeer?.collectAsState()?.value ?: emptyMap()).values.sum()
@@ -132,7 +132,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             messages = realHistoryRaw?.toChatMessages(chatId),
                             useMockFallback = engine == null,
                             onSendText = { text ->
-                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine.sendText(it, text) }
+                                realDevicesRaw?.firstOrNull { it.fingerprint == chatId }?.let { engine.sendText(it, text) }
                             },
                             onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
@@ -145,10 +145,11 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                                 inChatDetail = true
                                 engine?.markRead(it)
                             },
-                            devices = devicesUi,
+                            allDevices = devicesUi,
                             isStarting = isStarting,
                             lastError = lastError,
                             onDismissError = { engine?.clearLastError() },
+                            onOpenMore = { state.tab = MeshTab.ME },
                         )
                     }
                     MeshTab.CHAT -> if (inChatDetail && state.openChatDeviceId != null) {
@@ -161,7 +162,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                             messages = realHistoryRaw?.toChatMessages(chatId),
                             useMockFallback = engine == null,
                             onSendText = { text ->
-                                realDevicesRaw?.firstOrNull { it.id == chatId }?.let { engine.sendText(it, text) }
+                                realDevicesRaw?.firstOrNull { it.fingerprint == chatId }?.let { engine.sendText(it, text) }
                             },
                             onAttachFile = { state.sheet = MeshSheet.SEND },
                         )
@@ -172,14 +173,26 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                                 inChatDetail = true
                                 engine?.markRead(it)
                             },
-                            previews = chatPreviewsUi,
+                            allPreviews = chatPreviewsUi,
                             devices = devicesUi,
                         )
                     }
                     MeshTab.TRANSFER -> TransferScreen(engine = engine)
                     MeshTab.CLIPBOARD -> ClipboardScreen(engine = engine)
                     MeshTab.ME -> if (inHistory) {
-                        HistoryPane(items = historyUi, onBack = { inHistory = false })
+                        HistoryPane(
+                            items = historyUi,
+                            onBack = { inHistory = false },
+                            onOpen = { key ->
+                                if (key.isNotBlank()) {
+                                    state.openChatDeviceId = key
+                                    inHistory = false
+                                    inChatDetail = true
+                                    state.tab = MeshTab.CHAT
+                                    engine?.markRead(key)
+                                }
+                            },
+                        )
                     } else {
                         MeScreen(
                             onOpenPairing = { state.sheet = MeshSheet.PAIRING },
@@ -276,6 +289,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
 private fun HistoryPane(
     items: List<com.welape.meshdrop.mock.MockHistoryItem>,
     onBack: () -> Unit,
+    onOpen: (String) -> Unit = {},
 ) {
     val mesh = MeshTheme.colors
     Column(modifier = Modifier.fillMaxSize().background(mesh.canvas)) {
@@ -296,7 +310,7 @@ private fun HistoryPane(
             Spacer(Modifier.weight(1f))
         }
         Box(modifier = Modifier.weight(1f)) {
-            HistoryScreen(items = items)
+            HistoryScreen(items = items, onOpen = onOpen)
         }
     }
 }

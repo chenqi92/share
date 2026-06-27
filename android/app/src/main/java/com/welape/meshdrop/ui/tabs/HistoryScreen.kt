@@ -2,6 +2,7 @@ package com.welape.meshdrop.ui.tabs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,7 +47,7 @@ import com.welape.meshdrop.ui.theme.MeshTheme
 import com.welape.meshdrop.ui.theme.SpaceGrotesk
 
 @Composable
-fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
+fun HistoryScreen(items: List<MockHistoryItem> = MockHistory, onOpen: (String) -> Unit = {}) {
     val mesh = MeshTheme.colors
     Column(
         modifier = Modifier
@@ -86,7 +87,7 @@ fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
         AsciiDivider(label = stringResource(R.string.history_section_today, items.size))
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items.forEach { item -> HistoryRow(item) }
+            items.forEach { item -> HistoryRow(item, onOpen) }
         }
 
         Spacer(Modifier.height(80.dp))
@@ -94,7 +95,7 @@ fun HistoryScreen(items: List<MockHistoryItem> = MockHistory) {
 }
 
 @Composable
-private fun HistoryRow(item: MockHistoryItem) {
+private fun HistoryRow(item: MockHistoryItem, onOpen: (String) -> Unit = {}) {
     val mesh = MeshTheme.colors
     Row(
         modifier = Modifier
@@ -102,6 +103,7 @@ private fun HistoryRow(item: MockHistoryItem) {
             .clip(RoundedCornerShape(14.dp))
             .border(1.dp, mesh.outline, RoundedCornerShape(14.dp))
             .background(mesh.card)
+            .clickable(enabled = item.peerKey.isNotBlank()) { onOpen(item.peerKey) }
             .padding(PaddingValues(horizontal = 12.dp, vertical = 12.dp)),
         verticalAlignment = Alignment.Top,
     ) {

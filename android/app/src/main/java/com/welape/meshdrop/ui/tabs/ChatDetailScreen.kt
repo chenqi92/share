@@ -25,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -131,7 +130,6 @@ fun ChatDetailScreen(
                 }
             }
             MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
-            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.common_more), bordered = true, sizeDp = 36.dp)
         }
 
         Box(modifier = Modifier.weight(1f)) {

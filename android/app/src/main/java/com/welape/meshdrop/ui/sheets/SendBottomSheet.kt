@@ -12,6 +12,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,6 +42,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.welape.meshdrop.R
@@ -69,6 +73,8 @@ fun SendBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
                 .padding(PaddingValues(horizontal = 22.dp, vertical = 12.dp)),
         ) {
             Text(
@@ -103,7 +109,9 @@ fun SendBottomSheet(
             Box(
                 Modifier
                     .fillMaxWidth()
+                    .heightIn(min = 88.dp)
                     .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, mesh.outline, RoundedCornerShape(12.dp))
                     .background(mesh.surface)
                     .padding(PaddingValues(horizontal = 12.dp, vertical = 12.dp)),
             ) {
@@ -115,6 +123,7 @@ fun SendBottomSheet(
                         fontSize = 14.sp, color = mesh.textPrimary,
                     ),
                     cursorBrush = SolidColor(mesh.textPrimary),
+                    maxLines = 6,
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { inner ->
                         if (draft.isEmpty()) {
@@ -188,6 +197,8 @@ private fun QuickActionTile(
         )
         Text(
             subtitle,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             style = TextStyle(
                 fontFamily = GeistMono, fontWeight = FontWeight.W500,
                 fontSize = 10.sp, color = if (accent) Ink.copy(alpha = 0.65f) else mesh.textTertiary,

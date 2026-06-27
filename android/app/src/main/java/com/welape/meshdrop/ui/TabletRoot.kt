@@ -104,8 +104,8 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
         ?: if (engine == null) MockChatPreviews else emptyList()
     val historyUi = realHistoryRaw?.map { it.toUiHistoryItem() }
         ?: if (engine == null) MockHistory else emptyList()
-    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.id == id }
-        ?: realHistoryRaw?.firstOrNull { it.peer.id == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
+    fun uiDeviceFor(id: String) = devicesUi.firstOrNull { it.fingerprint == id }
+        ?: realHistoryRaw?.firstOrNull { it.peer.fingerprint == id }?.peer?.toUiDevice(fallbackName = unnamedFallback)
 
     var pendingDraft by remember { mutableStateOf("") }
     var promptedPairingId by remember { mutableStateOf<String?>(null) }
@@ -172,10 +172,11 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     selectedId = state.selectedDeviceId,
                     onSelect = { state.selectedDeviceId = it },
                     onTapDevice = { state.openChatDeviceId = it; state.tab = MeshTab.CHAT },
-                    devices = devicesUi,
+                    allDevices = devicesUi,
                     isStarting = isStarting,
                     lastError = lastError,
                     onDismissError = { engine?.clearLastError() },
+                    onOpenMore = { state.tab = MeshTab.ME },
                 )
                 MeshTab.CHAT -> state.openChatDeviceId?.let { id ->
                     ChatDetailScreen(
@@ -186,7 +187,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                         messages = realHistoryRaw?.toChatMessages(id),
                         useMockFallback = engine == null,
                         onSendText = { text ->
-                            realDevicesRaw?.firstOrNull { it.id == id }?.let { engine.sendText(it, text) }
+                            realDevicesRaw?.firstOrNull { it.fingerprint == id }?.let { engine.sendText(it, text) }
                         },
                         onAttachFile = { state.sheet = MeshSheet.SEND },
                     )
@@ -329,7 +330,7 @@ private fun MiddlePanel(
     selfSubtitle: String = "${MockMeData.os} · ${MockMeData.ip}",
 ) {
     val mesh = MeshTheme.colors
-    val byId = devices.associateBy { it.id }
+    val byId = devices.associateBy { it.fingerprint }
     Column(modifier = Modifier.padding(horizontal = 14.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),

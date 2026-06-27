@@ -14,7 +14,7 @@ class MeshAppState {
     var tab by mutableStateOf(MeshTab.DISCOVER)
 
     /** 当前打开的 ChatDetail 对应的设备 id。 */
-    var openChatDeviceId by mutableStateOf<String?>("mengxi")
+    var openChatDeviceId by mutableStateOf<String?>(null)
 
     /** Discover 屏选中的设备（影响雷达高亮 + 长按状态）。 */
     var selectedDeviceId by mutableStateOf<String?>(null)
@@ -43,12 +43,7 @@ enum class MeshTab(val label: String) {
 enum class MeshSheet { NONE, SEND, PICKER, PAIRING, FILE_OFFER, ONBOARDING }
 
 @Composable
-fun rememberMeshAppState(): MeshAppState =
-    remember { MeshAppState().apply {
-        // 演示用默认值：picker 中选中孟茜和李莉
-        pickerSelection["mengxi"] = true
-        pickerSelection["lily"] = true
-    } }
+fun rememberMeshAppState(): MeshAppState = remember { MeshAppState() }
 
 object Selections {
     @Composable

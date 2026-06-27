@@ -17,13 +17,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import com.welape.meshdrop.R
 import androidx.compose.ui.Alignment
@@ -60,12 +66,21 @@ fun DiscoverScreen(
     selectedId: String?,
     onSelect: (String) -> Unit,
     onTapDevice: (String) -> Unit = {},
-    devices: List<MockDevice> = MockDevices,
+    allDevices: List<MockDevice> = MockDevices,
     isStarting: Boolean = false,
     lastError: String? = null,
     onDismissError: () -> Unit = {},
+    onOpenMore: () -> Unit = {},
 ) {
     val mesh = MeshTheme.colors
+    var searchOpen by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val devices = remember(allDevices, query) {
+        if (query.isBlank()) allDevices
+        else allDevices.filter {
+            it.who.contains(query, true) || it.name.contains(query, true) || it.os.contains(query, true)
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -78,9 +93,43 @@ fun DiscoverScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             MeshDropWordmark(fontSize = 22.sp)
             Spacer(Modifier.weight(1f))
-            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search), bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(
+                icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search),
+                bordered = true, sizeDp = 36.dp,
+                onClick = { searchOpen = !searchOpen; if (!searchOpen) query = "" },
+            )
             Spacer(Modifier.width(8.dp))
-            MeshIconBtn(icon = Icons.Outlined.MoreHoriz, contentDescription = stringResource(R.string.common_more), bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(
+                icon = Icons.Outlined.Settings, contentDescription = stringResource(R.string.common_settings),
+                bordered = true, sizeDp = 36.dp, onClick = onOpenMore,
+            )
+        }
+
+        if (searchOpen) {
+            Spacer(Modifier.height(10.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(mesh.surface)
+                    .padding(PaddingValues(horizontal = 12.dp, vertical = 10.dp)),
+            ) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = GeistMono, fontSize = 13.sp, color = mesh.textPrimary),
+                    cursorBrush = SolidColor(mesh.textPrimary),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { inner ->
+                        if (query.isEmpty()) Text(
+                            stringResource(R.string.common_search),
+                            style = TextStyle(fontFamily = GeistMono, fontSize = 12.sp, color = mesh.textTertiary),
+                        )
+                        inner()
+                    },
+                )
+            }
         }
 
         Spacer(Modifier.height(20.dp))
@@ -163,7 +212,7 @@ fun DiscoverScreen(
                     DeviceRow(
                         device = dev,
                         selected = dev.id == selectedId,
-                        onClick = { onTapDevice(dev.id) },
+                        onClick = { onTapDevice(dev.fingerprint) },
                     )
                 }
             }

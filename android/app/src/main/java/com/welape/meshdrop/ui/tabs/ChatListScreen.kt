@@ -18,27 +18,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.welape.meshdrop.R
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.welape.meshdrop.mock.DeviceKind
 import com.welape.meshdrop.mock.MockChatPreview
 import com.welape.meshdrop.mock.MockChatPreviews
 import com.welape.meshdrop.mock.MockDevice
 import com.welape.meshdrop.mock.MockDeviceById
 import com.welape.meshdrop.mock.MockDevices
+import com.welape.meshdrop.ui.theme.AvatarMint
 import com.welape.meshdrop.ui.components.AsciiDivider
 import com.welape.meshdrop.ui.components.MeshAvatar
 import com.welape.meshdrop.ui.components.MeshIconBtn
@@ -54,11 +62,17 @@ import com.welape.meshdrop.ui.theme.SpaceGrotesk
 @Composable
 fun ChatListScreen(
     onOpenChat: (String) -> Unit,
-    previews: List<MockChatPreview> = MockChatPreviews,
+    allPreviews: List<MockChatPreview> = MockChatPreviews,
     devices: List<MockDevice> = MockDevices,
 ) {
     val mesh = MeshTheme.colors
-    val byId = devices.associateBy { it.id }
+    var searchOpen by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    val previews = remember(allPreviews, query) {
+        if (query.isBlank()) allPreviews
+        else allPreviews.filter { it.peerName.contains(query, true) || it.lastSnippet.contains(query, true) }
+    }
+    val byId = devices.associateBy { it.fingerprint }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -85,7 +99,38 @@ fun ChatListScreen(
                 )
             }
             Spacer(Modifier.weight(1f))
-            MeshIconBtn(icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search), bordered = true, sizeDp = 36.dp)
+            MeshIconBtn(
+                icon = Icons.Outlined.Search, contentDescription = stringResource(R.string.common_search),
+                bordered = true, sizeDp = 36.dp,
+                onClick = { searchOpen = !searchOpen; if (!searchOpen) query = "" },
+            )
+        }
+
+        if (searchOpen) {
+            Spacer(Modifier.height(10.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(mesh.surface)
+                    .padding(PaddingValues(horizontal = 12.dp, vertical = 10.dp)),
+            ) {
+                BasicTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = GeistMono, fontSize = 13.sp, color = mesh.textPrimary),
+                    cursorBrush = SolidColor(mesh.textPrimary),
+                    modifier = Modifier.fillMaxWidth(),
+                    decorationBox = { inner ->
+                        if (query.isEmpty()) Text(
+                            stringResource(R.string.common_search),
+                            style = TextStyle(fontFamily = GeistMono, fontSize = 12.sp, color = mesh.textTertiary),
+                        )
+                        inner()
+                    },
+                )
+            }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -104,7 +149,7 @@ fun ChatListScreen(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 previews.forEach { prev ->
                     ChatListRow(
-                        device = byId[prev.deviceId] ?: MockDeviceById(prev.deviceId),
+                        device = byId[prev.deviceId] ?: MockDeviceById(prev.deviceId) ?: fallbackChatDevice(prev.peerName),
                         snippet = prev.lastSnippet,
                         time = prev.lastTime,
                         unread = prev.unread,
@@ -118,9 +163,17 @@ fun ChatListScreen(
     }
 }
 
+/** 设备离线（不在已发现列表）时，用会话预览里的对端名还原一个最小展示设备，避免会话行被丢弃。 */
+private fun fallbackChatDevice(name: String): MockDevice = MockDevice(
+    id = "", name = name, who = name.ifBlank { "—" }, kind = DeviceKind.ANDROID,
+    dist = 0f, angleDeg = 0, color = AvatarMint,
+    initials = name.take(2).uppercase().ifBlank { "?" },
+    os = "", rttMs = 0, online = false, ip = "—",
+)
+
 @Composable
 private fun ChatListRow(
-    device: MockDevice?,
+    device: MockDevice,
     snippet: String,
     time: String,
     unread: Int,
@@ -128,7 +181,6 @@ private fun ChatListRow(
     onClick: () -> Unit,
 ) {
     val mesh = MeshTheme.colors
-    device ?: return
     Row(
         modifier = Modifier
             .fillMaxWidth()

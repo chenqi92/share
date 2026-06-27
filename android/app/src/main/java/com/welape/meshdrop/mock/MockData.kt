@@ -27,6 +27,8 @@ data class MockDevice(
     val rttMs: Int,
     val online: Boolean = true,
     val ip: String,
+    /** 会话键：对端指纹（跨会话/离线稳定）。mock 样本留空。 */
+    val fingerprint: String = "",
 )
 
 val MockDevices: List<MockDevice> = listOf(
@@ -75,6 +77,8 @@ data class MockHistoryItem(
     val time: String,
     val kind: HistoryKindMock,
     val status: HistoryStatus,
+    /** 该条目对端的会话键（指纹），供历史页点开跳转会话用。 */
+    val peerKey: String = "",
 )
 
 val MockHistory: List<MockHistoryItem> = listOf(
@@ -224,6 +228,8 @@ data class MockChatPreview(
     val lastTime: String,
     val unread: Int = 0,
     val isFile: Boolean = false,
+    /** 对端显示名，设备离线（不在 devicesUi）时用它还原会话行抬头。 */
+    val peerName: String = "",
 )
 
 fun MockDeviceById(id: String): MockDevice? = MockDevices.firstOrNull { it.id == id }
