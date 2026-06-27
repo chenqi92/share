@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- MeshDrop paper #F5F2EC 报纸感主背景 -->
-    <color name="ic_launcher_background">#F5F2EC</color>
+    <!-- 应用图标自适应背景：与蓝色母图边缘近白一致，避免视差露边 -->
+    <color name="ic_launcher_background">#FDFDFD</color>
 </resources>
