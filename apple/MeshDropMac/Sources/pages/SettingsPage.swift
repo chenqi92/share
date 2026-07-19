@@ -24,7 +24,7 @@ struct SettingsPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
-                    Chip(text: "v 0.1.0", tone: .outline, mono: true)
+                    Chip(text: "v 1.0.1", tone: .outline, mono: true)
                 }
 
                 section(String(localized: "settings.section.visibility")) {

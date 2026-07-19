@@ -1,1650 +1,4318 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "." : {
+
+    },
+    "·" : {
+
+    },
+    "· %@" : {
+
+    },
+    "· %@ %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$@ %2$@"
+          }
+        }
+      }
+    },
+    "· %@%%" : {
+
+    },
+    "· ETA %@" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@%%" : {
+
+    },
+    "%@ms" : {
+
+    },
+    "↓ %@" : {
+
+    },
+    "×" : {
+
+    },
+    "✓" : {
+
+    },
     "chat.composer.offline.placeholder" : {
       "comment" : "聊天输入框占位：目标已离线",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Device offline · history kept" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设备已离线 · 历史仍保留" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device offline · history kept"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备已离线 · 历史仍保留"
+          }
+        }
       }
     },
     "chat.composer.placeholder" : {
       "comment" : "聊天输入框占位",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Say something…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "想说点什么…" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say something…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想说点什么…"
+          }
+        }
       }
     },
     "chat.empty.subtitle" : {
       "comment" : "聊天空态副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Say hi to start the conversation" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发一句你好开始对话" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say hi to start the conversation"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发一句你好开始对话"
+          }
+        }
       }
     },
     "chat.empty.title" : {
       "comment" : "聊天空态标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No messages yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有消息" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No messages yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有消息"
+          }
+        }
       }
     },
     "chat.header.offlineHint" : {
       "comment" : "聊天头部：设备离线提示",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History available · sending paused" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史可查看 · 暂停发送" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History available · sending paused"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史可查看 · 暂停发送"
+          }
+        }
       }
     },
     "chat.message.delivered" : {
       "comment" : "消息气泡：已送达标记（前面有「· 」分隔）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delivered" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已送达" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delivered"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已送达"
+          }
+        }
       }
     },
     "chatList.empty.subtitle" : {
       "comment" : "发送列表空态副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Conversations appear here once devices are found" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发现设备后此处会显示对话" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Conversations appear here once devices are found"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发现设备后此处会显示对话"
+          }
+        }
       }
     },
     "chatList.empty.title" : {
       "comment" : "发送列表空态标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No MeshDrop devices nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近没有 MeshDrop 设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No MeshDrop devices nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近没有 MeshDrop 设备"
+          }
+        }
       }
     },
     "chatList.section.active" : {
       "comment" : "发送列表分区：进行中（%d 为数量）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "ACTIVE · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "进行中 · %d" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACTIVE · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进行中 · %d"
+          }
+        }
       }
     },
     "chatList.section.recent" : {
       "comment" : "发送列表分区：最近",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "RECENT" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最近" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RECENT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近"
+          }
+        }
       }
     },
     "chatList.subtitle" : {
       "comment" : "发送页副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Text, clipboard, files." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Text, clipboard, files." } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text, clipboard, files."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text, clipboard, files."
+          }
+        }
       }
     },
     "chatList.title" : {
       "comment" : "发送页主标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送" } }
-      }
-    },
-    "clipboard.composer.pushTo" : {
-      "comment" : "剪贴板编辑器：推送到（标签）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Push to" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "推送到" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
+          }
+        }
       }
     },
     "clipboard.composer.push" : {
       "comment" : "剪贴板编辑器：推送按钮（带上箭头）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "↑ Push" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "↑ 推送" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ Push"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "↑ 推送"
+          }
+        }
+      }
+    },
+    "clipboard.composer.pushTo" : {
+      "comment" : "剪贴板编辑器：推送到（标签）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push to"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推送到"
+          }
+        }
       }
     },
     "clipboard.composer.read" : {
       "comment" : "剪贴板编辑器：读取剪贴板按钮",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Read clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "读取剪贴板" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取剪贴板"
+          }
+        }
       }
     },
     "clipboard.empty.subtitle" : {
       "comment" : "剪贴板空态副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pushes from others show up here" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "对方推送剪贴板后会出现在这里" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pushes from others show up here"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对方推送剪贴板后会出现在这里"
+          }
+        }
       }
     },
     "clipboard.empty.title" : {
       "comment" : "剪贴板空态标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No clipboard received yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有收到剪贴板" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No clipboard received yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有收到剪贴板"
+          }
+        }
       }
     },
     "clipboard.inbox.section" : {
       "comment" : "剪贴板收件分区（%d 为数量）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "INBOX · received clipboard · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收到的剪贴板 · %d" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INBOX · received clipboard · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收到的剪贴板 · %d"
+          }
+        }
       }
     },
     "clipboard.noOnlineDevice" : {
       "comment" : "剪贴板设备菜单：无在线设备",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No devices online" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无在线设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No devices online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无在线设备"
+          }
+        }
       }
     },
     "clipboard.subtitle" : {
       "comment" : "剪贴板页副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard." } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard."
+          }
+        }
       }
     },
     "clipboard.title" : {
       "comment" : "剪贴板页主标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板"
+          }
+        }
       }
     },
     "common.accept" : {
       "comment" : "通用：接收",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Accept" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收"
+          }
+        }
       }
     },
     "common.cancel" : {
       "comment" : "通用：取消",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
       }
     },
     "common.clear" : {
       "comment" : "通用：清空",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clear" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "清空" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空"
+          }
+        }
       }
     },
     "common.close" : {
       "comment" : "通用：关闭",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Close" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关闭" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
       }
     },
     "common.copy" : {
       "comment" : "通用：复制",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复制" } }
-      }
-    },
-    "common.today" : {
-      "comment" : "通用：今天（聊天 / 历史分区）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TODAY" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今天" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
+          }
+        }
       }
     },
     "common.delete" : {
       "comment" : "通用：删除",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
       }
     },
     "common.done" : {
       "comment" : "通用：完成",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
       }
     },
     "common.me" : {
       "comment" : "通用：自己（传输 from/to 标签）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Me" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我"
+          }
+        }
       }
     },
     "common.ok" : {
       "comment" : "通用：好（弹窗确认）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "好" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
+        }
       }
     },
     "common.reject" : {
       "comment" : "通用：拒绝",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reject" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拒绝" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reject"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拒绝"
+          }
+        }
       }
     },
     "common.selectDevice" : {
       "comment" : "通用：选择设备",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Select device" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择设备"
+          }
+        }
+      }
+    },
+    "common.today" : {
+      "comment" : "通用：今天（聊天 / 历史分区）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TODAY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天"
+          }
+        }
       }
     },
     "common.visible" : {
       "comment" : "通用：可见（可见性状态）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Visible" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可见" } }
-      }
-    },
-    "discovery.devices.empty.subtitle" : {
-      "comment" : "附近设备空态副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ask a friend to open it too · same Wi-Fi auto-discovers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "让朋友也打开试试 · 同一 Wi-Fi 自动发现" } }
-      }
-    },
-    "discovery.devices.empty.title" : {
-      "comment" : "附近设备空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No MeshDrop devices nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近没有 MeshDrop 设备" } }
-      }
-    },
-    "discovery.deviceCount" : {
-      "comment" : "附近在线设备数量（%d 台）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d online" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 台" } }
-      }
-    },
-    "discovery.error" : {
-      "comment" : "网络出错横幅（%@ 为底层错误）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Network error — %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "网络出错 — %@" } }
-      }
-    },
-    "discovery.fileUnreadable.title" : {
-      "comment" : "文件导入失败弹窗标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "File can't be read" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件无法读取" } }
-      }
-    },
-    "discovery.menu.mute" : {
-      "comment" : "设备右键菜单：静音",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Mute" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "静音" } }
-      }
-    },
-    "discovery.menu.revokeTrust" : {
-      "comment" : "设备右键菜单：取消信任",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Revoke trust" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消信任" } }
-      }
-    },
-    "discovery.menu.send" : {
-      "comment" : "设备右键菜单：发送…",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送…" } }
-      }
-    },
-    "discovery.menu.viewProfile" : {
-      "comment" : "设备右键菜单：查看资料",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "View profile" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "查看资料" } }
-      }
-    },
-    "discovery.photosUnreadable.message" : {
-      "comment" : "照片读取失败弹窗内容",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn't read any sendable images." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有成功读取可发送的图片。" } }
-      }
-    },
-    "discovery.photosUnreadable.title" : {
-      "comment" : "照片读取失败弹窗标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photos can't be read" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "照片无法读取" } }
-      }
-    },
-    "discovery.quick.clipboard" : {
-      "comment" : "快捷发送：剪贴板",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板" } }
-      }
-    },
-    "discovery.quick.file" : {
-      "comment" : "快捷发送：文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "File" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件" } }
-      }
-    },
-    "discovery.quick.photo" : {
-      "comment" : "快捷发送：照片",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photo" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "照片" } }
-      }
-    },
-    "discovery.quick.sectionTitle" : {
-      "comment" : "快捷发送分区标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "QUICK SEND" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "快捷发送" } }
-      }
-    },
-    "discovery.quick.text" : {
-      "comment" : "快捷发送：文本",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Text" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文本" } }
-      }
-    },
-    "discovery.quickStatus.clipboardSent" : {
-      "comment" : "快捷成功提示：已发送剪贴板给（%@ 为设备名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard sent to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已发送剪贴板给 %@" } }
-      }
-    },
-    "discovery.quickStatus.filesSent" : {
-      "comment" : "快捷成功提示：已发送 N 个文件给（%1$d 数量，%2$@ 设备名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent %1$d file(s) to %2$@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已发送 %1$d 个文件给 %2$@" } }
-      }
-    },
-    "discovery.quickStatus.photosSent" : {
-      "comment" : "快捷成功提示：已发送 N 张照片给（%1$d 数量，%2$@ 设备名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent %1$d photo(s) to %2$@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已发送 %1$d 张照片给 %2$@" } }
-      }
-    },
-    "discovery.quickTarget.clipboardEmpty.message" : {
-      "comment" : "剪贴板为空提示内容",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copy some text first, then quick-send the clipboard." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "复制一段文字后再点剪贴板快捷发送。" } }
-      }
-    },
-    "discovery.quickTarget.clipboardEmpty.title" : {
-      "comment" : "剪贴板为空提示标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard is empty" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板为空" } }
-      }
-    },
-    "discovery.quickTarget.noDevice.message" : {
-      "comment" : "无可发送设备提示内容",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Use quick send once a nearby device appears." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等附近设备出现后再使用快捷发送。" } }
-      }
-    },
-    "discovery.quickTarget.noDevice.title" : {
-      "comment" : "无可发送设备提示标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No device to send to" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有可发送设备" } }
-      }
-    },
-    "discovery.sidebar.devices.empty" : {
-      "comment" : "iPad 侧栏设备空态",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No devices nearby · ask a friend to open it too" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近没有设备 · 让朋友也打开试试" } }
-      }
-    },
-    "discovery.sidebar.section.chat" : {
-      "comment" : "iPad 侧栏节区：聊天",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Chat" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "聊天" } }
-      }
-    },
-    "discovery.sidebar.section.history" : {
-      "comment" : "iPad 侧栏节区：历史",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史" } }
-      }
-    },
-    "discovery.sidebar.section.settings" : {
-      "comment" : "iPad 侧栏节区：设置",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
-      }
-    },
-    "discovery.sidebar.section.transfers" : {
-      "comment" : "iPad 侧栏节区：传输",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transfers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输" } }
-      }
-    },
-    "discovery.sidebar.section.trust" : {
-      "comment" : "iPad 侧栏节区：信任",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trust" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任" } }
-      }
-    },
-    "discovery.sidebar.title" : {
-      "comment" : "iPad 侧栏标题：附近 · Nearby（恒定双语并排，UI 设计要求）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近 · Nearby" } }
-      }
-    },
-    "discovery.status.scanning" : {
-      "comment" : "状态栏：扫描中",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Scanning" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "扫描中" } }
-      }
-    },
-    "discovery.status.visible" : {
-      "comment" : "状态栏：可见",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Visible" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可见" } }
-      }
-    },
-    "discovery.subtitle" : {
-      "comment" : "附近页副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby devices." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Nearby devices." } }
-      }
-    },
-    "discovery.title" : {
-      "comment" : "附近页主标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近" } }
-      }
-    },
-    "history.dir.fromPeer" : {
-      "comment" : "历史方向：来自 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "From %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自 %@" } }
-      }
-    },
-    "history.dir.toPeer" : {
-      "comment" : "历史方向：发送给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送给 %@" } }
-      }
-    },
-    "history.empty.subtitle" : {
-      "comment" : "历史空态副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent and received items show up here" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送或接收后会在这里出现" } }
-      }
-    },
-    "history.empty.title" : {
-      "comment" : "历史空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nothing here yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "空空如也" } }
-      }
-    },
-    "history.imageCount" : {
-      "comment" : "历史图片数量（%d 张图片）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d image(s)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 张图片" } }
-      }
-    },
-    "history.more.empty.subtitle" : {
-      "comment" : "早些时候为空时的副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History older than 24h is archived" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "超过 24 小时的历史会折叠到归档" } }
-      }
-    },
-    "history.more.empty.title" : {
-      "comment" : "早些时候为空时的标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nothing here yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "空空如也" } }
-      }
-    },
-    "history.section.earlier" : {
-      "comment" : "历史分区：早些时候",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "EARLIER" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "早些时候" } }
-      }
-    },
-    "history.section.today" : {
-      "comment" : "历史分区：今天（%d 件）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TODAY · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今天 · %d 件" } }
-      }
-    },
-    "history.today.empty" : {
-      "comment" : "今天无传输",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No transfers today" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "今天还没有传输" } }
-      }
-    },
-    "history.title" : {
-      "comment" : "历史页标题：历史 · History（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "历史 · History" } }
-      }
-    },
-    "me.action.history.detail" : {
-      "comment" : "我的页面动作：传输历史副文案（%d 条今天）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d today" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 条今天" } }
-      }
-    },
-    "me.action.history.title" : {
-      "comment" : "我的页面动作：传输历史",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "History" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输历史" } }
-      }
-    },
-    "me.action.liveActivity.detail" : {
-      "comment" : "我的页面动作：实时活动副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Lock-screen progress" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "锁屏进度" } }
-      }
-    },
-    "me.action.liveActivity.title" : {
-      "comment" : "我的页面动作：实时活动",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live Activity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时活动" } }
-      }
-    },
-    "me.action.onboarding.detail" : {
-      "comment" : "我的页面动作：快速上手副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "3-step intro" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "3 步介绍" } }
-      }
-    },
-    "me.action.onboarding.title" : {
-      "comment" : "我的页面动作：快速上手",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Quick start" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "快速上手" } }
-      }
-    },
-    "me.action.pairing.detail" : {
-      "comment" : "我的页面动作：配对新设备副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "QR / 6-digit code" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "QR / 6 位代码" } }
-      }
-    },
-    "me.action.pairing.title" : {
-      "comment" : "我的页面动作：配对新设备",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pair new device" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "配对新设备" } }
-      }
-    },
-    "me.action.pendingShare.detail" : {
-      "comment" : "我的页面动作：待发分享副文案（%d 项待选目标）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d item(s) need a target" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 项待选目标" } }
-      }
-    },
-    "me.action.pendingShare.title" : {
-      "comment" : "我的页面动作：待发分享",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pending shares" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "待发分享" } }
-      }
-    },
-    "me.action.settings.detail" : {
-      "comment" : "我的页面动作：设置副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Visibility / identity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可见性 / 身份" } }
-      }
-    },
-    "me.action.settings.title" : {
-      "comment" : "我的页面动作：设置",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置" } }
-      }
-    },
-    "me.action.shareExt.detail" : {
-      "comment" : "我的页面动作：Share 预览副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "System share entry" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "系统分享入口" } }
-      }
-    },
-    "me.action.shareExt.title" : {
-      "comment" : "我的页面动作：Share 预览",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Share preview" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Share 预览" } }
-      }
-    },
-    "me.action.trust.detail" : {
-      "comment" : "我的页面动作：信任管理副文案（%d 台已配对）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d paired" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 台已配对" } }
-      }
-    },
-    "me.action.trust.title" : {
-      "comment" : "我的页面动作：信任管理",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trust" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任管理" } }
-      }
-    },
-    "me.offer.fromPeer" : {
-      "comment" : "我的页面：来自 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "From %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自 %@" } }
-      }
-    },
-    "me.offer.viewAndChoose" : {
-      "comment" : "我的页面收件卡片：查看并选择",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "View and choose" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "查看并选择" } }
-      }
-    },
-    "me.pending.empty" : {
-      "comment" : "我的页面：暂无待审收件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No pending items" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "暂无待审收件" } }
-      }
-    },
-    "me.section.manage" : {
-      "comment" : "我的页面分区：管理",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MANAGE" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "管理" } }
-      }
-    },
-    "me.section.received" : {
-      "comment" : "我的页面分区：最近收件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "RECEIVED" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "最近收件" } }
-      }
-    },
-    "me.subtitle" : {
-      "comment" : "我的页面副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Me." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Me." } }
-      }
-    },
-    "me.title" : {
-      "comment" : "我的页面主标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Me" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我" } }
-      }
-    },
-    "nav.transfers.subtitle" : {
-      "comment" : "传输页副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transfers." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Transfers." } }
-      }
-    },
-    "offer.fileSection" : {
-      "comment" : "收件 sheet 分区：文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "FILE" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件" } }
-      }
-    },
-    "offer.fromPeer" : {
-      "comment" : "收件 sheet：来自 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "From %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自 %@" } }
-      }
-    },
-    "offer.image" : {
-      "comment" : "收件 sheet：图片标注（大小 · 图片）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Image" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "图片" } }
-      }
-    },
-    "offer.empty.title" : {
-      "comment" : "收件 sheet 空态：没有待审的收件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No pending items" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有待审的收件" } }
-      }
-    },
-    "offer.noteSection" : {
-      "comment" : "收件 sheet 分区：文字便签",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "NOTE" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文字便签" } }
-      }
-    },
-    "offer.title" : {
-      "comment" : "收件 sheet 标题：收件 · Incoming（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Incoming" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收件 · Incoming" } }
-      }
-    },
-    "offer.verify.savedAfterCheck" : {
-      "comment" : "收件 sheet 验证行：SHA 前缀 + 校验通过后保存（%@ 为 SHA 前缀）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@… · saved after checksum ✓" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@… · 校验通过后保存 ✓" } }
-      }
-    },
-    "offer.verifySection" : {
-      "comment" : "收件 sheet 分区：验证",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "VERIFY" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "验证" } }
-      }
-    },
-    "onboarding.page1.body" : {
-      "comment" : "Onboarding 第 1 页正文",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "On the same Wi-Fi, devices ping each other within a second." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "同一 Wi-Fi 下，设备 1 秒内互相 ping 到。" } }
-      }
-    },
-    "onboarding.page1.subtitle" : {
-      "comment" : "Onboarding 第 1 页副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discovery." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Discovery." } }
-      }
-    },
-    "onboarding.page1.title" : {
-      "comment" : "Onboarding 第 1 页标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Radar discovery" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "雷达式发现" } }
-      }
-    },
-    "onboarding.page2.body" : {
-      "comment" : "Onboarding 第 2 页正文",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag files / photos / text straight onto a device to send." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "把文件 / 照片 / 文字直接拖到设备上即可发送。" } }
-      }
-    },
-    "onboarding.page2.subtitle" : {
-      "comment" : "Onboarding 第 2 页副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag to send." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Drag to send." } }
-      }
-    },
-    "onboarding.page2.title" : {
-      "comment" : "Onboarding 第 2 页标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Drag to send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "拖即发送" } }
-      }
-    },
-    "onboarding.page3.body" : {
-      "comment" : "Onboarding 第 3 页正文",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Data stays peer-to-peer on the same Wi-Fi, never via the cloud. Currently plaintext (v0.1)." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "数据只在同一 Wi-Fi 内点对点传输，不经过云端。当前为明文（v0.1）。" } }
-      }
-    },
-    "onboarding.page3.subtitle" : {
-      "comment" : "Onboarding 第 3 页副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LAN only." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "LAN only." } }
-      }
-    },
-    "onboarding.page3.title" : {
-      "comment" : "Onboarding 第 3 页标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LAN only" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "只走局域网" } }
-      }
-    },
-    "onboarding.primary.next" : {
-      "comment" : "Onboarding 主按钮：下一步",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Next" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下一步" } }
-      }
-    },
-    "onboarding.primary.start" : {
-      "comment" : "Onboarding 主按钮：开始使用",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Get started" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "开始使用" } }
-      }
-    },
-    "onboarding.skip" : {
-      "comment" : "Onboarding：跳过",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Skip" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跳过" } }
-      }
-    },
-    "pairing.empty.subtitle" : {
-      "comment" : "配对 sheet 空态副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "It appears here when a peer initiates a connection" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "对端发起连接时会出现在这里" } }
-      }
-    },
-    "pairing.empty.title" : {
-      "comment" : "配对 sheet 空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No devices to pair" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前没有待配对的设备" } }
-      }
-    },
-    "pairing.fingerprint.hint" : {
-      "comment" : "配对 sheet：指纹核对提示",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "The peer sees the same fingerprint in MeshDrop settings. Only matching ones are allowed." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "对端 MeshDrop 设置里也能看到相同的指纹。两边一致才允许。" } }
-      }
-    },
-    "pairing.fingerprintSection" : {
-      "comment" : "配对 sheet 分区：指纹",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "FINGERPRINT" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "指纹" } }
-      }
-    },
-    "pairing.primary.trust" : {
-      "comment" : "配对 sheet 主按钮：允许并记住",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Allow & remember" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "允许并记住" } }
-      }
-    },
-    "pairing.step1" : {
-      "comment" : "配对步骤 1",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirm MeshDrop is visible on the peer device" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在对端设备上确认 MeshDrop 已可见" } }
-      }
-    },
-    "pairing.step2" : {
-      "comment" : "配对步骤 2",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Compare the first two groups of the fingerprint above" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "对比上方指纹首两组" } }
-      }
-    },
-    "pairing.step3" : {
-      "comment" : "配对步骤 3",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Once allowed, future connections pass automatically" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "允许后下次自动放行" } }
-      }
-    },
-    "pairing.stepsSection" : {
-      "comment" : "配对 sheet 分区：三步",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "STEPS" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "三步" } }
-      }
-    },
-    "pairing.title" : {
-      "comment" : "配对 sheet 标题：配对 · Pairing（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Pairing" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "配对 · Pairing" } }
-      }
-    },
-    "pairing.wantsToPair" : {
-      "comment" : "配对 sheet：%@ 想配对（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ wants to pair" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@ 想配对" } }
-      }
-    },
-    "pendingShare.empty.title" : {
-      "comment" : "待发分享空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No pending shares" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有待发送的分享" } }
-      }
-    },
-    "pendingShare.header" : {
-      "comment" : "待发分享列表头（%d 项）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d item(s) from Share · choose a target" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "从「分享」收到 %d 项 · 选择发送目标" } }
-      }
-    },
-    "pendingShare.later" : {
-      "comment" : "待发分享：稍后",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Later" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "稍后" } }
-      }
-    },
-    "pendingShare.noDevices.footer" : {
-      "comment" : "待发分享：无设备时的脚注",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No devices nearby. Make sure the other party is on the same Wi-Fi with MeshDrop open; you can choose once it appears." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近暂无设备。确保对方在同一 Wi-Fi 且打开了 MeshDrop，设备出现后即可选择。" } }
-      }
-    },
-    "pendingShare.title" : {
-      "comment" : "待发分享面板标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "To send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "待发送" } }
-      }
-    },
-    "pendingShare.waitingForDevice" : {
-      "comment" : "待发分享行：等待设备",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Waiting for a device…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等待设备…" } }
-      }
-    },
-    "settings.about.bundleId" : {
-      "comment" : "设置·关于：Bundle id 标签",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Bundle id" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Bundle id" } }
-      }
-    },
-    "settings.about.serviceType" : {
-      "comment" : "设置·关于：服务类型标签",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service type" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "服务类型" } }
-      }
-    },
-    "settings.about.version" : {
-      "comment" : "设置·关于：版本标签",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Version" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "版本" } }
-      }
-    },
-    "settings.behavior.autoAccept.detail" : {
-      "comment" : "设置·行为：信任设备自动接收副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-accept files from paired devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自已配对设备的文件自动接收" } }
-      }
-    },
-    "settings.behavior.autoAccept.title" : {
-      "comment" : "设置·行为：信任设备自动接收",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Auto-accept from trusted" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任设备自动接收" } }
-      }
-    },
-    "settings.behavior.notifications.detail" : {
-      "comment" : "设置·行为：到达通知副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Banner / lock screen / Dynamic Island" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "横幅 / 锁屏 / Dynamic Island" } }
-      }
-    },
-    "settings.behavior.notifications.title" : {
-      "comment" : "设置·行为：到达通知",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Arrival notifications" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "到达通知" } }
-      }
-    },
-    "settings.behavior.requireConfirm.detail" : {
-      "comment" : "设置·行为：新设备需要确认副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Prompt when an unknown device sends a file" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "陌生设备发文件时弹审批" } }
-      }
-    },
-    "settings.behavior.requireConfirm.title" : {
-      "comment" : "设置·行为：新设备需要确认",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Confirm new devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新设备需要确认" } }
-      }
-    },
-    "settings.behavior.saveTo.detail" : {
-      "comment" : "设置·行为：保存到副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Files / MeshDrop inbox" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "Files / MeshDrop 收件箱" } }
-      }
-    },
-    "settings.behavior.saveTo.title" : {
-      "comment" : "设置·行为：保存到",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save to" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存到" } }
-      }
-    },
-    "settings.section.about" : {
-      "comment" : "设置分区：关于 · About（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关于 · About" } }
-      }
-    },
-    "settings.section.behavior" : {
-      "comment" : "设置分区：行为 / 接收 · Behavior（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Behavior" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "行为 / 接收 · Behavior" } }
-      }
-    },
-    "settings.section.security" : {
-      "comment" : "设置分区：安全 / 身份 · Security（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Security" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "安全 / 身份 · Security" } }
-      }
-    },
-    "settings.section.visibility" : {
-      "comment" : "设置分区：可见性 · Visibility（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Visibility" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可见性 · Visibility" } }
-      }
-    },
-    "settings.security.fingerprint.title" : {
-      "comment" : "设置·安全：本机指纹",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Device fingerprint" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本机指纹" } }
-      }
-    },
-    "settings.security.resetConfirm.message" : {
-      "comment" : "设置·安全：重置身份确认对话框正文",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Resetting identity creates a new ID and key pair; all paired peers will treat this device as new and must re-pair. Continue?" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？" } }
-      }
-    },
-    "settings.security.reset.detail" : {
-      "comment" : "设置·安全：重置身份副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Peers will treat this device as new and must re-pair" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "对端会把本机视为新设备需重新配对" } }
-      }
-    },
-    "settings.security.reset.title" : {
-      "comment" : "设置·安全：重置身份…",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset identity…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重置身份…" } }
-      }
-    },
-    "settings.security.reset.confirm" : {
-      "comment" : "设置·安全：重置身份确认按钮",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reset identity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重置身份" } }
-      }
-    },
-    "settings.security.transport.detail" : {
-      "comment" : "设置·安全：传输安全副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LAN · plaintext · v0.1" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "LAN · 明文 · v0.1" } }
-      }
-    },
-    "settings.security.transport.title" : {
-      "comment" : "设置·安全：传输安全",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transport security" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输安全" } }
-      }
-    },
-    "settings.security.trust.title" : {
-      "comment" : "设置·安全：信任管理",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trust management" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任管理" } }
-      }
-    },
-    "settings.title" : {
-      "comment" : "设置页标题：设置 · Settings（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置 · Settings" } }
-      }
-    },
-    "settings.visibility.deviceName.title" : {
-      "comment" : "设置·可见性：本机名",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Device name" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本机名" } }
-      }
-    },
-    "settings.visibility.visible.detail.off" : {
-      "comment" : "设置·可见性：隐身副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fully hidden (mDNS off)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完全隐身（停止 mDNS）" } }
-      }
-    },
-    "settings.visibility.visible.detail.on" : {
-      "comment" : "设置·可见性：可见副文案",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby devices can discover me" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近设备可发现我" } }
-      }
-    },
-    "settings.visibility.visible.title" : {
-      "comment" : "设置·可见性：可见开关标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Visible" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "可见" } }
-      }
-    },
-    "send.clipboard.placeholder" : {
-      "comment" : "发送 sheet：剪贴板内容占位",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Read or paste the clipboard content to push…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "读取或粘贴要推送的剪贴板内容…" } }
-      }
-    },
-    "send.clipboard.read" : {
-      "comment" : "发送 sheet：读取当前剪贴板",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Read current clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "读取当前剪贴板" } }
-      }
-    },
-    "send.clipboard.section" : {
-      "comment" : "发送 sheet 分区：剪贴板推送内容",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "CLIPBOARD · content" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "推送内容" } }
-      }
-    },
-    "send.clipboard.title" : {
-      "comment" : "发送 sheet：剪贴板标签",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板" } }
-      }
-    },
-    "send.file.add" : {
-      "comment" : "发送 sheet：继续添加文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add more files" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续添加文件" } }
-      }
-    },
-    "send.file.choose" : {
-      "comment" : "发送 sheet：选择文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose files" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择文件" } }
-      }
-    },
-    "send.file.section" : {
-      "comment" : "发送 sheet 分区：文件（%d 已选个数）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "FILE · %d selected" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件 · 已选 %d 个" } }
-      }
-    },
-    "send.kind.clipboard" : {
-      "comment" : "发送类型：剪贴板",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clipboard" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剪贴板" } }
-      }
-    },
-    "send.kind.file" : {
-      "comment" : "发送类型：文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "File" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件" } }
-      }
-    },
-    "send.kind.photo" : {
-      "comment" : "发送类型：照片",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Photo" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "照片" } }
-      }
-    },
-    "send.kind.text" : {
-      "comment" : "发送类型：文本",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Text" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文本" } }
-      }
-    },
-    "send.nothingSelected" : {
-      "comment" : "发送 sheet：还没有选择内容",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nothing selected yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有选择内容" } }
-      }
-    },
-    "send.photo.add" : {
-      "comment" : "发送 sheet：继续添加照片",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add more photos" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "继续添加照片" } }
-      }
-    },
-    "send.photo.choose" : {
-      "comment" : "发送 sheet：选择照片",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose photos" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "选择照片" } }
-      }
-    },
-    "send.photo.section" : {
-      "comment" : "发送 sheet 分区：照片（%d 已选张数）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "PHOTO · %d selected" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "照片 · 已选 %d 张" } }
-      }
-    },
-    "send.submit.selectDeviceFirst" : {
-      "comment" : "发送 sheet 主按钮：请先选择设备",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Select a device first" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "请先选择设备" } }
-      }
-    },
-    "send.submit.toPeer" : {
-      "comment" : "发送 sheet 主按钮：发送给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送给 %@" } }
-      }
-    },
-    "send.target.toPeer" : {
-      "comment" : "发送 sheet 目标行：发送给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送给 %@" } }
-      }
-    },
-    "send.text.placeholder" : {
-      "comment" : "发送 sheet：文本输入占位",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Write something…\ne.g. “Plan confirmed, sending tomorrow”" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "想写点什么…\n例如「方案已确认，明天发」" } }
-      }
-    },
-    "send.text.section" : {
-      "comment" : "发送 sheet 分区：文本",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "TEXT" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文本" } }
-      }
-    },
-    "send.title.kind" : {
-      "comment" : "发送 sheet 标题（单类型）：发送 + 类型名（%@）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送%@" } }
-      }
-    },
-    "send.title.general" : {
-      "comment" : "发送 sheet 标题：发送 · Send（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送 · Send" } }
-      }
-    },
-    "shareExt.assets.selected" : {
-      "comment" : "Share 预览：已选 3 张照片（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "3 photos selected" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已选 3 张照片" } }
-      }
-    },
-    "shareExt.extras.lan.detail" : {
-      "comment" : "Share 预览：只走局域网副文案（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LAN · plaintext · v0.1" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "LAN · 明文 · v0.1" } }
-      }
-    },
-    "shareExt.extras.lan.title" : {
-      "comment" : "Share 预览：只走局域网（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LAN only" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "只走局域网" } }
-      }
-    },
-    "shareExt.extras.note.detail" : {
-      "comment" : "Share 预览：加文字便签副文案（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Jot a quick line" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "随手记一句" } }
-      }
-    },
-    "shareExt.extras.note.title" : {
-      "comment" : "Share 预览：加文字便签（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a note" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "加文字便签" } }
-      }
-    },
-    "shareExt.extrasSection" : {
-      "comment" : "Share 预览分区：附加（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "EXTRAS" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附加" } }
-      }
-    },
-    "shareExt.sendVia" : {
-      "comment" : "Share 预览分区：通过 MeshDrop 发送 · LAN（仅 DEBUG 演示）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "SEND VIA MESHDROP · LAN" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通过 MESHDROP 发送 · LAN" } }
-      }
-    },
-    "transfer.cancel.a11y" : {
-      "comment" : "传输行无障碍标签：取消传输",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel transfer" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消传输" } }
-      }
-    },
-    "transfer.canceled" : {
-      "comment" : "传输失败原因：已取消",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Canceled" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已取消" } }
-      }
-    },
-    "transfer.empty.subtitle" : {
-      "comment" : "传输空态副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent or received files appear here" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送或接收文件后会出现在这里" } }
-      }
-    },
-    "transfer.empty.title" : {
-      "comment" : "传输空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No transfer tasks" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有传输任务" } }
-      }
-    },
-    "transfer.open.a11y" : {
-      "comment" : "传输行无障碍标签：打开文件",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Open file" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开文件" } }
-      }
-    },
-    "transfer.retry.a11y" : {
-      "comment" : "传输行无障碍标签：重试发送",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Retry sending" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "重试发送" } }
-      }
-    },
-    "transfer.section.active" : {
-      "comment" : "传输分区：进行中（%d 数量）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "ACTIVE · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "进行中 · %d" } }
-      }
-    },
-    "transfer.section.completed" : {
-      "comment" : "传输分区：完成（%d 数量）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "COMPLETED · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成 · %d" } }
-      }
-    },
-    "transfer.section.failed" : {
-      "comment" : "传输分区：失败（%d 数量）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "FAILED · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "失败 · %d" } }
-      }
-    },
-    "transfer.section.queued" : {
-      "comment" : "传输分区：等待（%d 数量）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "QUEUED · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等待 · %d" } }
-      }
-    },
-    "transfer.state.done" : {
-      "comment" : "传输状态：完成 · 给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Done · to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "完成 · 给 %@" } }
-      }
-    },
-    "transfer.state.failed" : {
-      "comment" : "传输状态：失败（无原因）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "失败" } }
-      }
-    },
-    "transfer.state.failedReason" : {
-      "comment" : "传输状态：失败 · 原因（%@）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Failed · %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "失败 · %@" } }
-      }
-    },
-    "transfer.state.queued" : {
-      "comment" : "传输状态：排队 · 给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Queued · to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "排队 · 给 %@" } }
-      }
-    },
-    "transfer.state.receiving" : {
-      "comment" : "传输状态：接收中 · 来自 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receiving · from %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收中 · 来自 %@" } }
-      }
-    },
-    "transfer.state.sending" : {
-      "comment" : "传输状态：发送中 · 给 %@（对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sending · to %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送中 · 给 %@" } }
-      }
-    },
-    "transfer.title" : {
-      "comment" : "传输页主标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transfers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输" } }
-      }
-    },
-    "trust.empty.subtitle" : {
-      "comment" : "信任空态副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "A pairing request pops up the first time a new device connects" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "第一次收到新设备的连接时会弹出配对请求" } }
-      }
-    },
-    "trust.empty.title" : {
-      "comment" : "信任空态标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No trusted devices yet" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "还没有信任的设备" } }
-      }
-    },
-    "trust.header.subtitle" : {
-      "comment" : "信任页头部副标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fingerprints and recent activity of paired devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已配对设备的指纹与最近活动" } }
-      }
-    },
-    "trust.header.title" : {
-      "comment" : "信任页头部标题",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trust management" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任管理" } }
-      }
-    },
-    "trust.paired.section" : {
-      "comment" : "信任分区：已配对（%d 数量）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "PAIRED · %d" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已配对 · %d" } }
-      }
-    },
-    "trust.revoke" : {
-      "comment" : "信任：撤销",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Revoke" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "撤销" } }
-      }
-    },
-    "trust.title" : {
-      "comment" : "信任页标题：信任 · Trust（恒定双语并排）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trust" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信任 · Trust" } }
-      }
-    },
-    "tab.discover" : {
-      "comment" : "Tab 栏：附近",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近" } }
-      }
-    },
-    "tab.send" : {
-      "comment" : "Tab 栏：发送",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送" } }
-      }
-    },
-    "tab.transfers" : {
-      "comment" : "Tab 栏：传输",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transfers" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输" } }
-      }
-    },
-    "tab.me" : {
-      "comment" : "Tab 栏：我",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Me" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "我" } }
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见"
+          }
+        }
       }
     },
     "device.placeholder.name" : {
       "comment" : "占位设备名（LAN 上还没发现任何设备时）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Waiting for devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等待设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待设备"
+          }
+        }
       }
     },
-    "liveActivity.title" : {
-      "comment" : "实时活动预览页标题：实时活动 · Live Activity（恒定双语并排）",
+    "discovery.deviceCount" : {
+      "comment" : "附近在线设备数量（%d 台）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Live Activity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "实时活动 · Live Activity" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 台"
+          }
+        }
       }
     },
-    "liveActivity.lockScreen.section" : {
-      "comment" : "实时活动预览分区：锁屏",
+    "discovery.devices.empty.subtitle" : {
+      "comment" : "附近设备空态副标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "LOCK SCREEN" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "锁屏" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask a friend to open it too · same Wi-Fi auto-discovers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "让朋友也打开试试 · 同一 Wi-Fi 自动发现"
+          }
+        }
+      }
+    },
+    "discovery.devices.empty.title" : {
+      "comment" : "附近设备空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No MeshDrop devices nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近没有 MeshDrop 设备"
+          }
+        }
+      }
+    },
+    "discovery.error" : {
+      "comment" : "网络出错横幅（%@ 为底层错误）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Network error — %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络出错 — %@"
+          }
+        }
+      }
+    },
+    "discovery.fileUnreadable.title" : {
+      "comment" : "文件导入失败弹窗标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File can't be read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件无法读取"
+          }
+        }
+      }
+    },
+    "discovery.menu.mute" : {
+      "comment" : "设备右键菜单：静音",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mute"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静音"
+          }
+        }
+      }
+    },
+    "discovery.menu.revokeTrust" : {
+      "comment" : "设备右键菜单：取消信任",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke trust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消信任"
+          }
+        }
+      }
+    },
+    "discovery.menu.send" : {
+      "comment" : "设备右键菜单：发送…",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送…"
+          }
+        }
+      }
+    },
+    "discovery.menu.viewProfile" : {
+      "comment" : "设备右键菜单：查看资料",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View profile"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看资料"
+          }
+        }
+      }
+    },
+    "discovery.photosUnreadable.message" : {
+      "comment" : "照片读取失败弹窗内容",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read any sendable images."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有成功读取可发送的图片。"
+          }
+        }
+      }
+    },
+    "discovery.photosUnreadable.title" : {
+      "comment" : "照片读取失败弹窗标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photos can't be read"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片无法读取"
+          }
+        }
+      }
+    },
+    "discovery.quick.clipboard" : {
+      "comment" : "快捷发送：剪贴板",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板"
+          }
+        }
+      }
+    },
+    "discovery.quick.file" : {
+      "comment" : "快捷发送：文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
+          }
+        }
+      }
+    },
+    "discovery.quick.photo" : {
+      "comment" : "快捷发送：照片",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片"
+          }
+        }
+      }
+    },
+    "discovery.quick.sectionTitle" : {
+      "comment" : "快捷发送分区标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QUICK SEND"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快捷发送"
+          }
+        }
+      }
+    },
+    "discovery.quick.text" : {
+      "comment" : "快捷发送：文本",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本"
+          }
+        }
+      }
+    },
+    "discovery.quickStatus.clipboardSent" : {
+      "comment" : "快捷成功提示：已发送剪贴板给（%@ 为设备名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard sent to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送剪贴板给 %@"
+          }
+        }
+      }
+    },
+    "discovery.quickStatus.filesSent" : {
+      "comment" : "快捷成功提示：已发送 N 个文件给（%1$d 数量，%2$@ 设备名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent %1$d file(s) to %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %1$d 个文件给 %2$@"
+          }
+        }
+      }
+    },
+    "discovery.quickStatus.photosSent" : {
+      "comment" : "快捷成功提示：已发送 N 张照片给（%1$d 数量，%2$@ 设备名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent %1$d photo(s) to %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 %1$d 张照片给 %2$@"
+          }
+        }
+      }
+    },
+    "discovery.quickTarget.clipboardEmpty.message" : {
+      "comment" : "剪贴板为空提示内容",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy some text first, then quick-send the clipboard."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制一段文字后再点剪贴板快捷发送。"
+          }
+        }
+      }
+    },
+    "discovery.quickTarget.clipboardEmpty.title" : {
+      "comment" : "剪贴板为空提示标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard is empty"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板为空"
+          }
+        }
+      }
+    },
+    "discovery.quickTarget.noDevice.message" : {
+      "comment" : "无可发送设备提示内容",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use quick send once a nearby device appears."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等附近设备出现后再使用快捷发送。"
+          }
+        }
+      }
+    },
+    "discovery.quickTarget.noDevice.title" : {
+      "comment" : "无可发送设备提示标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No device to send to"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可发送设备"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.devices.empty" : {
+      "comment" : "iPad 侧栏设备空态",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No devices nearby · ask a friend to open it too"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近没有设备 · 让朋友也打开试试"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.section.chat" : {
+      "comment" : "iPad 侧栏节区：聊天",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "聊天"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.section.history" : {
+      "comment" : "iPad 侧栏节区：历史",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.section.settings" : {
+      "comment" : "iPad 侧栏节区：设置",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.section.transfers" : {
+      "comment" : "iPad 侧栏节区：传输",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.section.trust" : {
+      "comment" : "iPad 侧栏节区：信任",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任"
+          }
+        }
+      }
+    },
+    "discovery.sidebar.title" : {
+      "comment" : "iPad 侧栏标题：附近 · Nearby（恒定双语并排，UI 设计要求）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近 · Nearby"
+          }
+        }
+      }
+    },
+    "discovery.status.scanning" : {
+      "comment" : "状态栏：扫描中",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫描中"
+          }
+        }
+      }
+    },
+    "discovery.status.visible" : {
+      "comment" : "状态栏：可见",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见"
+          }
+        }
+      }
+    },
+    "discovery.subtitle" : {
+      "comment" : "附近页副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby devices."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby devices."
+          }
+        }
+      }
+    },
+    "discovery.title" : {
+      "comment" : "附近页主标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近"
+          }
+        }
+      }
+    },
+    "FP" : {
+
+    },
+    "history.dir.fromPeer" : {
+      "comment" : "历史方向：来自 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 %@"
+          }
+        }
+      }
+    },
+    "history.dir.toPeer" : {
+      "comment" : "历史方向：发送给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送给 %@"
+          }
+        }
+      }
+    },
+    "history.empty.subtitle" : {
+      "comment" : "历史空态副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent and received items show up here"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送或接收后会在这里出现"
+          }
+        }
+      }
+    },
+    "history.empty.title" : {
+      "comment" : "历史空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing here yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空空如也"
+          }
+        }
+      }
+    },
+    "history.imageCount" : {
+      "comment" : "历史图片数量（%d 张图片）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d image(s)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 张图片"
+          }
+        }
+      }
+    },
+    "history.more.empty.subtitle" : {
+      "comment" : "早些时候为空时的副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History older than 24h is archived"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "超过 24 小时的历史会折叠到归档"
+          }
+        }
+      }
+    },
+    "history.more.empty.title" : {
+      "comment" : "早些时候为空时的标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing here yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空空如也"
+          }
+        }
+      }
+    },
+    "history.section.earlier" : {
+      "comment" : "历史分区：早些时候",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EARLIER"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "早些时候"
+          }
+        }
+      }
+    },
+    "history.section.today" : {
+      "comment" : "历史分区：今天（%d 件）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TODAY · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天 · %d 件"
+          }
+        }
+      }
+    },
+    "history.title" : {
+      "comment" : "历史页标题：历史 · History（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史 · History"
+          }
+        }
+      }
+    },
+    "history.today.empty" : {
+      "comment" : "今天无传输",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transfers today"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天还没有传输"
+          }
+        }
       }
     },
     "liveActivity.dynamicIsland.section" : {
       "comment" : "实时活动预览分区：灵动岛",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "DYNAMIC ISLAND" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "灵动岛" } }
-      }
-    },
-    "liveActivity.transferring" : {
-      "comment" : "实时活动预览：传输中（发送方向）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transferring" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输中" } }
-      }
-    },
-    "liveActivity.receiving" : {
-      "comment" : "实时活动预览：接收中（接收方向）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receiving" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收中" } }
-      }
-    },
-    "liveActivity.to" : {
-      "comment" : "实时活动预览：方向词「给」（后接对端名）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "to" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "给" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DYNAMIC ISLAND"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "灵动岛"
+          }
+        }
       }
     },
     "liveActivity.from" : {
       "comment" : "实时活动预览：方向词「来自」（后接对端名）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "from" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "from"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自"
+          }
+        }
       }
     },
     "liveActivity.idle.subtitle" : {
       "comment" : "实时活动预览：无活动传输副文案",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Start a transfer to see the real lock-screen / Dynamic Island look" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发起一次传输看锁屏 / 灵动岛实际样式" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start a transfer to see the real lock-screen / Dynamic Island look"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发起一次传输看锁屏 / 灵动岛实际样式"
+          }
+        }
       }
     },
     "liveActivity.idle.title" : {
       "comment" : "实时活动预览：无活动传输标题",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No active transfer" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无活动传输" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active transfer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无活动传输"
+          }
+        }
       }
+    },
+    "liveActivity.lockScreen.section" : {
+      "comment" : "实时活动预览分区：锁屏",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LOCK SCREEN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁屏"
+          }
+        }
+      }
+    },
+    "liveActivity.receiving" : {
+      "comment" : "实时活动预览：接收中（接收方向）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receiving"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收中"
+          }
+        }
+      }
+    },
+    "liveActivity.title" : {
+      "comment" : "实时活动预览页标题：实时活动 · Live Activity（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时活动 · Live Activity"
+          }
+        }
+      }
+    },
+    "liveActivity.to" : {
+      "comment" : "实时活动预览：方向词「给」（后接对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "to"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "给"
+          }
+        }
+      }
+    },
+    "liveActivity.transferring" : {
+      "comment" : "实时活动预览：传输中（发送方向）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferring"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输中"
+          }
+        }
+      }
+    },
+    "me.action.history.detail" : {
+      "comment" : "我的页面动作：传输历史副文案（%d 条今天）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d today"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 条今天"
+          }
+        }
+      }
+    },
+    "me.action.history.title" : {
+      "comment" : "我的页面动作：传输历史",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输历史"
+          }
+        }
+      }
+    },
+    "me.action.liveActivity.detail" : {
+      "comment" : "我的页面动作：实时活动副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lock-screen progress"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "锁屏进度"
+          }
+        }
+      }
+    },
+    "me.action.liveActivity.title" : {
+      "comment" : "我的页面动作：实时活动",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Activity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时活动"
+          }
+        }
+      }
+    },
+    "me.action.onboarding.detail" : {
+      "comment" : "我的页面动作：快速上手副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3-step intro"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 步介绍"
+          }
+        }
+      }
+    },
+    "me.action.onboarding.title" : {
+      "comment" : "我的页面动作：快速上手",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick start"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速上手"
+          }
+        }
+      }
+    },
+    "me.action.pairing.detail" : {
+      "comment" : "我的页面动作：配对新设备副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR / 6-digit code"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QR / 6 位代码"
+          }
+        }
+      }
+    },
+    "me.action.pairing.title" : {
+      "comment" : "我的页面动作：配对新设备",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair new device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配对新设备"
+          }
+        }
+      }
+    },
+    "me.action.pendingShare.detail" : {
+      "comment" : "我的页面动作：待发分享副文案（%d 项待选目标）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d item(s) need a target"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 项待选目标"
+          }
+        }
+      }
+    },
+    "me.action.pendingShare.title" : {
+      "comment" : "我的页面动作：待发分享",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pending shares"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待发分享"
+          }
+        }
+      }
+    },
+    "me.action.settings.detail" : {
+      "comment" : "我的页面动作：设置副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visibility / identity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见性 / 身份"
+          }
+        }
+      }
+    },
+    "me.action.settings.title" : {
+      "comment" : "我的页面动作：设置",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置"
+          }
+        }
+      }
+    },
+    "me.action.shareExt.detail" : {
+      "comment" : "我的页面动作：Share 预览副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System share entry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统分享入口"
+          }
+        }
+      }
+    },
+    "me.action.shareExt.title" : {
+      "comment" : "我的页面动作：Share 预览",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share preview"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share 预览"
+          }
+        }
+      }
+    },
+    "me.action.trust.detail" : {
+      "comment" : "我的页面动作：信任管理副文案（%d 台已配对）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d paired"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 台已配对"
+          }
+        }
+      }
+    },
+    "me.action.trust.title" : {
+      "comment" : "我的页面动作：信任管理",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任管理"
+          }
+        }
+      }
+    },
+    "me.offer.fromPeer" : {
+      "comment" : "我的页面：来自 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 %@"
+          }
+        }
+      }
+    },
+    "me.offer.viewAndChoose" : {
+      "comment" : "我的页面收件卡片：查看并选择",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View and choose"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看并选择"
+          }
+        }
+      }
+    },
+    "me.pending.empty" : {
+      "comment" : "我的页面：暂无待审收件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pending items"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无待审收件"
+          }
+        }
+      }
+    },
+    "me.section.manage" : {
+      "comment" : "我的页面分区：管理",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MANAGE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
+          }
+        }
+      }
+    },
+    "me.section.received" : {
+      "comment" : "我的页面分区：最近收件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RECEIVED"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近收件"
+          }
+        }
+      }
+    },
+    "me.subtitle" : {
+      "comment" : "我的页面副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me."
+          }
+        }
+      }
+    },
+    "me.title" : {
+      "comment" : "我的页面主标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我"
+          }
+        }
+      }
+    },
+    "meshdrop" : {
+
+    },
+    "MeshDrop" : {
+
+    },
+    "MeshDrop · %@" : {
+
+    },
+    "ms" : {
+
+    },
+    "nav.transfers.subtitle" : {
+      "comment" : "传输页副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers."
+          }
+        }
+      }
+    },
+    "offer.empty.title" : {
+      "comment" : "收件 sheet 空态：没有待审的收件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pending items"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有待审的收件"
+          }
+        }
+      }
+    },
+    "offer.fileSection" : {
+      "comment" : "收件 sheet 分区：文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
+          }
+        }
+      }
+    },
+    "offer.fromPeer" : {
+      "comment" : "收件 sheet：来自 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自 %@"
+          }
+        }
+      }
+    },
+    "offer.image" : {
+      "comment" : "收件 sheet：图片标注（大小 · 图片）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图片"
+          }
+        }
+      }
+    },
+    "offer.noteSection" : {
+      "comment" : "收件 sheet 分区：文字便签",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NOTE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字便签"
+          }
+        }
+      }
+    },
+    "offer.title" : {
+      "comment" : "收件 sheet 标题：收件 · Incoming（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incoming"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收件 · Incoming"
+          }
+        }
+      }
+    },
+    "offer.verify.savedAfterCheck" : {
+      "comment" : "收件 sheet 验证行：SHA 前缀 + 校验通过后保存（%@ 为 SHA 前缀）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@… · saved after checksum ✓"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@… · 校验通过后保存 ✓"
+          }
+        }
+      }
+    },
+    "offer.verifySection" : {
+      "comment" : "收件 sheet 分区：验证",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VERIFY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证"
+          }
+        }
+      }
+    },
+    "onboarding.page1.body" : {
+      "comment" : "Onboarding 第 1 页正文",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On the same Wi-Fi, devices ping each other within a second."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同一 Wi-Fi 下，设备 1 秒内互相 ping 到。"
+          }
+        }
+      }
+    },
+    "onboarding.page1.subtitle" : {
+      "comment" : "Onboarding 第 1 页副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discovery."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discovery."
+          }
+        }
+      }
+    },
+    "onboarding.page1.title" : {
+      "comment" : "Onboarding 第 1 页标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radar discovery"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雷达式发现"
+          }
+        }
+      }
+    },
+    "onboarding.page2.body" : {
+      "comment" : "Onboarding 第 2 页正文",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag files / photos / text straight onto a device to send."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "把文件 / 照片 / 文字直接拖到设备上即可发送。"
+          }
+        }
+      }
+    },
+    "onboarding.page2.subtitle" : {
+      "comment" : "Onboarding 第 2 页副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to send."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to send."
+          }
+        }
+      }
+    },
+    "onboarding.page2.title" : {
+      "comment" : "Onboarding 第 2 页标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drag to send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拖即发送"
+          }
+        }
+      }
+    },
+    "onboarding.page3.body" : {
+      "comment" : "Onboarding 第 3 页正文",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data stays peer-to-peer on the same Wi-Fi, never via the cloud. Currently plaintext (v0.1)."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据只在同一 Wi-Fi 内点对点传输，不经过云端。当前为明文（v0.1）。"
+          }
+        }
+      }
+    },
+    "onboarding.page3.subtitle" : {
+      "comment" : "Onboarding 第 3 页副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN only."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN only."
+          }
+        }
+      }
+    },
+    "onboarding.page3.title" : {
+      "comment" : "Onboarding 第 3 页标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN only"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只走局域网"
+          }
+        }
+      }
+    },
+    "onboarding.primary.next" : {
+      "comment" : "Onboarding 主按钮：下一步",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下一步"
+          }
+        }
+      }
+    },
+    "onboarding.primary.start" : {
+      "comment" : "Onboarding 主按钮：开始使用",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get started"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始使用"
+          }
+        }
+      }
+    },
+    "onboarding.skip" : {
+      "comment" : "Onboarding：跳过",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跳过"
+          }
+        }
+      }
+    },
+    "OPEN" : {
+
+    },
+    "pairing.empty.subtitle" : {
+      "comment" : "配对 sheet 空态副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It appears here when a peer initiates a connection"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对端发起连接时会出现在这里"
+          }
+        }
+      }
+    },
+    "pairing.empty.title" : {
+      "comment" : "配对 sheet 空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No devices to pair"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前没有待配对的设备"
+          }
+        }
+      }
+    },
+    "pairing.fingerprint.hint" : {
+      "comment" : "配对 sheet：指纹核对提示",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The peer sees the same fingerprint in MeshDrop settings. Only matching ones are allowed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对端 MeshDrop 设置里也能看到相同的指纹。两边一致才允许。"
+          }
+        }
+      }
+    },
+    "pairing.fingerprintSection" : {
+      "comment" : "配对 sheet 分区：指纹",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FINGERPRINT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指纹"
+          }
+        }
+      }
+    },
+    "pairing.primary.trust" : {
+      "comment" : "配对 sheet 主按钮：允许并记住",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow & remember"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许并记住"
+          }
+        }
+      }
+    },
+    "pairing.step1" : {
+      "comment" : "配对步骤 1",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm MeshDrop is visible on the peer device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在对端设备上确认 MeshDrop 已可见"
+          }
+        }
+      }
+    },
+    "pairing.step2" : {
+      "comment" : "配对步骤 2",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare the first two groups of the fingerprint above"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对比上方指纹首两组"
+          }
+        }
+      }
+    },
+    "pairing.step3" : {
+      "comment" : "配对步骤 3",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once allowed, future connections pass automatically"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "允许后下次自动放行"
+          }
+        }
+      }
+    },
+    "pairing.stepsSection" : {
+      "comment" : "配对 sheet 分区：三步",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "STEPS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "三步"
+          }
+        }
+      }
+    },
+    "pairing.title" : {
+      "comment" : "配对 sheet 标题：配对 · Pairing（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pairing"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配对 · Pairing"
+          }
+        }
+      }
+    },
+    "pairing.wantsToPair" : {
+      "comment" : "配对 sheet：%@ 想配对（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ wants to pair"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 想配对"
+          }
+        }
+      }
+    },
+    "pendingShare.empty.title" : {
+      "comment" : "待发分享空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No pending shares"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有待发送的分享"
+          }
+        }
+      }
+    },
+    "pendingShare.header" : {
+      "comment" : "待发分享列表头（%d 项）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d item(s) from Share · choose a target"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从「分享」收到 %d 项 · 选择发送目标"
+          }
+        }
+      }
+    },
+    "pendingShare.later" : {
+      "comment" : "待发分享：稍后",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Later"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稍后"
+          }
+        }
+      }
+    },
+    "pendingShare.noDevices.footer" : {
+      "comment" : "待发分享：无设备时的脚注",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No devices nearby. Make sure the other party is on the same Wi-Fi with MeshDrop open; you can choose once it appears."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近暂无设备。确保对方在同一 Wi-Fi 且打开了 MeshDrop，设备出现后即可选择。"
+          }
+        }
+      }
+    },
+    "pendingShare.title" : {
+      "comment" : "待发分享面板标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待发送"
+          }
+        }
+      }
+    },
+    "pendingShare.waitingForDevice" : {
+      "comment" : "待发分享行：等待设备",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for a device…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待设备…"
+          }
+        }
+      }
+    },
+    "RETRY" : {
+
+    },
+    "RTT %@ms" : {
+
+    },
+    "send.clipboard.placeholder" : {
+      "comment" : "发送 sheet：剪贴板内容占位",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read or paste the clipboard content to push…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取或粘贴要推送的剪贴板内容…"
+          }
+        }
+      }
+    },
+    "send.clipboard.read" : {
+      "comment" : "发送 sheet：读取当前剪贴板",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read current clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "读取当前剪贴板"
+          }
+        }
+      }
+    },
+    "send.clipboard.section" : {
+      "comment" : "发送 sheet 分区：剪贴板推送内容",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CLIPBOARD · content"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推送内容"
+          }
+        }
+      }
+    },
+    "send.clipboard.title" : {
+      "comment" : "发送 sheet：剪贴板标签",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板"
+          }
+        }
+      }
+    },
+    "send.file.add" : {
+      "comment" : "发送 sheet：继续添加文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add more files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续添加文件"
+          }
+        }
+      }
+    },
+    "send.file.choose" : {
+      "comment" : "发送 sheet：选择文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择文件"
+          }
+        }
+      }
+    },
+    "send.file.section" : {
+      "comment" : "发送 sheet 分区：文件（%d 已选个数）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILE · %d selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件 · 已选 %d 个"
+          }
+        }
+      }
+    },
+    "send.kind.clipboard" : {
+      "comment" : "发送类型：剪贴板",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板"
+          }
+        }
+      }
+    },
+    "send.kind.file" : {
+      "comment" : "发送类型：文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
+          }
+        }
+      }
+    },
+    "send.kind.photo" : {
+      "comment" : "发送类型：照片",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片"
+          }
+        }
+      }
+    },
+    "send.kind.text" : {
+      "comment" : "发送类型：文本",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本"
+          }
+        }
+      }
+    },
+    "send.nothingSelected" : {
+      "comment" : "发送 sheet：还没有选择内容",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing selected yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有选择内容"
+          }
+        }
+      }
+    },
+    "send.photo.add" : {
+      "comment" : "发送 sheet：继续添加照片",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add more photos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "继续添加照片"
+          }
+        }
+      }
+    },
+    "send.photo.choose" : {
+      "comment" : "发送 sheet：选择照片",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose photos"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择照片"
+          }
+        }
+      }
+    },
+    "send.photo.section" : {
+      "comment" : "发送 sheet 分区：照片（%d 已选张数）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PHOTO · %d selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照片 · 已选 %d 张"
+          }
+        }
+      }
+    },
+    "send.submit.selectDeviceFirst" : {
+      "comment" : "发送 sheet 主按钮：请先选择设备",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select a device first"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先选择设备"
+          }
+        }
+      }
+    },
+    "send.submit.toPeer" : {
+      "comment" : "发送 sheet 主按钮：发送给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送给 %@"
+          }
+        }
+      }
+    },
+    "send.target.toPeer" : {
+      "comment" : "发送 sheet 目标行：发送给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送给 %@"
+          }
+        }
+      }
+    },
+    "send.text.placeholder" : {
+      "comment" : "发送 sheet：文本输入占位",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write something…\ne.g. “Plan confirmed, sending tomorrow”"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "想写点什么…\n例如「方案已确认，明天发」"
+          }
+        }
+      }
+    },
+    "send.text.section" : {
+      "comment" : "发送 sheet 分区：文本",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TEXT"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本"
+          }
+        }
+      }
+    },
+    "send.title.general" : {
+      "comment" : "发送 sheet 标题：发送 · Send（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送 · Send"
+          }
+        }
+      }
+    },
+    "send.title.kind" : {
+      "comment" : "发送 sheet 标题（单类型）：发送 + 类型名（%@）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送%@"
+          }
+        }
+      }
+    },
+    "settings.about.bundleId" : {
+      "comment" : "设置·关于：Bundle id 标签",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle id"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundle id"
+          }
+        }
+      }
+    },
+    "settings.about.serviceType" : {
+      "comment" : "设置·关于：服务类型标签",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Service type"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务类型"
+          }
+        }
+      }
+    },
+    "settings.about.version" : {
+      "comment" : "设置·关于：版本标签",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本"
+          }
+        }
+      }
+    },
+    "settings.behavior.autoAccept.detail" : {
+      "comment" : "设置·行为：信任设备自动接收副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-accept files from paired devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自已配对设备的文件自动接收"
+          }
+        }
+      }
+    },
+    "settings.behavior.autoAccept.title" : {
+      "comment" : "设置·行为：信任设备自动接收",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-accept from trusted"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任设备自动接收"
+          }
+        }
+      }
+    },
+    "settings.behavior.notifications.detail" : {
+      "comment" : "设置·行为：到达通知副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner / lock screen / Dynamic Island"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横幅 / 锁屏 / Dynamic Island"
+          }
+        }
+      }
+    },
+    "settings.behavior.notifications.title" : {
+      "comment" : "设置·行为：到达通知",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arrival notifications"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "到达通知"
+          }
+        }
+      }
+    },
+    "settings.behavior.requireConfirm.detail" : {
+      "comment" : "设置·行为：新设备需要确认副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prompt when an unknown device sends a file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "陌生设备发文件时弹审批"
+          }
+        }
+      }
+    },
+    "settings.behavior.requireConfirm.title" : {
+      "comment" : "设置·行为：新设备需要确认",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm new devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新设备需要确认"
+          }
+        }
+      }
+    },
+    "settings.behavior.saveTo.detail" : {
+      "comment" : "设置·行为：保存到副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files / MeshDrop inbox"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files / MeshDrop 收件箱"
+          }
+        }
+      }
+    },
+    "settings.behavior.saveTo.title" : {
+      "comment" : "设置·行为：保存到",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存到"
+          }
+        }
+      }
+    },
+    "settings.section.about" : {
+      "comment" : "设置分区：关于 · About（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于 · About"
+          }
+        }
+      }
+    },
+    "settings.section.behavior" : {
+      "comment" : "设置分区：行为 / 接收 · Behavior（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behavior"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "行为 / 接收 · Behavior"
+          }
+        }
+      }
+    },
+    "settings.section.security" : {
+      "comment" : "设置分区：安全 / 身份 · Security（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Security"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安全 / 身份 · Security"
+          }
+        }
+      }
+    },
+    "settings.section.visibility" : {
+      "comment" : "设置分区：可见性 · Visibility（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visibility"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见性 · Visibility"
+          }
+        }
+      }
+    },
+    "settings.security.fingerprint.title" : {
+      "comment" : "设置·安全：本机指纹",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device fingerprint"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本机指纹"
+          }
+        }
+      }
+    },
+    "settings.security.reset.confirm" : {
+      "comment" : "设置·安全：重置身份确认按钮",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset identity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置身份"
+          }
+        }
+      }
+    },
+    "settings.security.reset.detail" : {
+      "comment" : "设置·安全：重置身份副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Peers will treat this device as new and must re-pair"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对端会把本机视为新设备需重新配对"
+          }
+        }
+      }
+    },
+    "settings.security.reset.title" : {
+      "comment" : "设置·安全：重置身份…",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset identity…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置身份…"
+          }
+        }
+      }
+    },
+    "settings.security.resetConfirm.message" : {
+      "comment" : "设置·安全：重置身份确认对话框正文",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resetting identity creates a new ID and key pair; all paired peers will treat this device as new and must re-pair. Continue?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置身份会生成新的 ID 与密钥对，所有已配对的对端会把本机视为新设备需要重新配对。继续？"
+          }
+        }
+      }
+    },
+    "settings.security.transport.detail" : {
+      "comment" : "设置·安全：传输安全副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN · plaintext · v0.1"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN · 明文 · v0.1"
+          }
+        }
+      }
+    },
+    "settings.security.transport.title" : {
+      "comment" : "设置·安全：传输安全",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transport security"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输安全"
+          }
+        }
+      }
+    },
+    "settings.security.trust.title" : {
+      "comment" : "设置·安全：信任管理",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust management"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任管理"
+          }
+        }
+      }
+    },
+    "settings.title" : {
+      "comment" : "设置页标题：设置 · Settings（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设置 · Settings"
+          }
+        }
+      }
+    },
+    "settings.visibility.deviceName.title" : {
+      "comment" : "设置·可见性：本机名",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device name"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本机名"
+          }
+        }
+      }
+    },
+    "settings.visibility.visible.detail.off" : {
+      "comment" : "设置·可见性：隐身副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fully hidden (mDNS off)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完全隐身（停止 mDNS）"
+          }
+        }
+      }
+    },
+    "settings.visibility.visible.detail.on" : {
+      "comment" : "设置·可见性：可见副文案",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby devices can discover me"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近设备可发现我"
+          }
+        }
+      }
+    },
+    "settings.visibility.visible.title" : {
+      "comment" : "设置·可见性：可见开关标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visible"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可见"
+          }
+        }
+      }
+    },
+    "SHA" : {
+
+    },
+    "shareExt.assets.selected" : {
+      "comment" : "Share 预览：已选 3 张照片（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3 photos selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选 3 张照片"
+          }
+        }
+      }
+    },
+    "shareExt.extras.lan.detail" : {
+      "comment" : "Share 预览：只走局域网副文案（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN · plaintext · v0.1"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN · 明文 · v0.1"
+          }
+        }
+      }
+    },
+    "shareExt.extras.lan.title" : {
+      "comment" : "Share 预览：只走局域网（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LAN only"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只走局域网"
+          }
+        }
+      }
+    },
+    "shareExt.extras.note.detail" : {
+      "comment" : "Share 预览：加文字便签副文案（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jot a quick line"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "随手记一句"
+          }
+        }
+      }
+    },
+    "shareExt.extras.note.title" : {
+      "comment" : "Share 预览：加文字便签（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a note"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加文字便签"
+          }
+        }
+      }
+    },
+    "shareExt.extrasSection" : {
+      "comment" : "Share 预览分区：附加（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXTRAS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附加"
+          }
+        }
+      }
+    },
+    "shareExt.sendVia" : {
+      "comment" : "Share 预览分区：通过 MeshDrop 发送 · LAN（仅 DEBUG 演示）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SEND VIA MESHDROP · LAN"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通过 MESHDROP 发送 · LAN"
+          }
+        }
+      }
+    },
+    "tab.discover" : {
+      "comment" : "Tab 栏：附近",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近"
+          }
+        }
+      }
+    },
+    "tab.me" : {
+      "comment" : "Tab 栏：我",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Me"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我"
+          }
+        }
+      }
+    },
+    "tab.send" : {
+      "comment" : "Tab 栏：发送",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
+          }
+        }
+      }
+    },
+    "tab.transfers" : {
+      "comment" : "Tab 栏：传输",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输"
+          }
+        }
+      }
+    },
+    "transfer.cancel.a11y" : {
+      "comment" : "传输行无障碍标签：取消传输",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel transfer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消传输"
+          }
+        }
+      }
+    },
+    "transfer.canceled" : {
+      "comment" : "传输失败原因：已取消",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Canceled"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已取消"
+          }
+        }
+      }
+    },
+    "transfer.empty.subtitle" : {
+      "comment" : "传输空态副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent or received files appear here"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送或接收文件后会出现在这里"
+          }
+        }
+      }
+    },
+    "transfer.empty.title" : {
+      "comment" : "传输空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transfer tasks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有传输任务"
+          }
+        }
+      }
+    },
+    "transfer.open.a11y" : {
+      "comment" : "传输行无障碍标签：打开文件",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开文件"
+          }
+        }
+      }
+    },
+    "transfer.retry.a11y" : {
+      "comment" : "传输行无障碍标签：重试发送",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry sending"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试发送"
+          }
+        }
+      }
+    },
+    "transfer.section.active" : {
+      "comment" : "传输分区：进行中（%d 数量）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ACTIVE · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "进行中 · %d"
+          }
+        }
+      }
+    },
+    "transfer.section.completed" : {
+      "comment" : "传输分区：完成（%d 数量）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COMPLETED · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成 · %d"
+          }
+        }
+      }
+    },
+    "transfer.section.failed" : {
+      "comment" : "传输分区：失败（%d 数量）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FAILED · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败 · %d"
+          }
+        }
+      }
+    },
+    "transfer.section.queued" : {
+      "comment" : "传输分区：等待（%d 数量）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "QUEUED · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待 · %d"
+          }
+        }
+      }
+    },
+    "transfer.state.done" : {
+      "comment" : "传输状态：完成 · 给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done · to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成 · 给 %@"
+          }
+        }
+      }
+    },
+    "transfer.state.failed" : {
+      "comment" : "传输状态：失败（无原因）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败"
+          }
+        }
+      }
+    },
+    "transfer.state.failedReason" : {
+      "comment" : "传输状态：失败 · 原因（%@）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败 · %@"
+          }
+        }
+      }
+    },
+    "transfer.state.queued" : {
+      "comment" : "传输状态：排队 · 给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued · to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排队 · 给 %@"
+          }
+        }
+      }
+    },
+    "transfer.state.receiving" : {
+      "comment" : "传输状态：接收中 · 来自 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receiving · from %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收中 · 来自 %@"
+          }
+        }
+      }
+    },
+    "transfer.state.sending" : {
+      "comment" : "传输状态：发送中 · 给 %@（对端名）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sending · to %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送中 · 给 %@"
+          }
+        }
+      }
+    },
+    "transfer.title" : {
+      "comment" : "传输页主标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transfers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输"
+          }
+        }
+      }
+    },
+    "trust.empty.subtitle" : {
+      "comment" : "信任空态副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A pairing request pops up the first time a new device connects"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第一次收到新设备的连接时会弹出配对请求"
+          }
+        }
+      }
+    },
+    "trust.empty.title" : {
+      "comment" : "信任空态标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No trusted devices yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还没有信任的设备"
+          }
+        }
+      }
+    },
+    "trust.header.subtitle" : {
+      "comment" : "信任页头部副标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fingerprints and recent activity of paired devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已配对设备的指纹与最近活动"
+          }
+        }
+      }
+    },
+    "trust.header.title" : {
+      "comment" : "信任页头部标题",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust management"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任管理"
+          }
+        }
+      }
+    },
+    "trust.paired.section" : {
+      "comment" : "信任分区：已配对（%d 数量）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PAIRED · %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已配对 · %d"
+          }
+        }
+      }
+    },
+    "trust.revoke" : {
+      "comment" : "信任：撤销",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revoke"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "撤销"
+          }
+        }
+      }
+    },
+    "trust.title" : {
+      "comment" : "信任页标题：信任 · Trust（恒定双语并排）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trust"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信任 · Trust"
+          }
+        }
+      }
+    },
+    "YOU" : {
+
     }
   },
   "version" : "1.0"

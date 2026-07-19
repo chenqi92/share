@@ -1,23 +1,47 @@
 {
-  "sourceLanguage": "zh-Hans",
-  "strings": {
-    "NSLocalNetworkUsageDescription": {
-      "comment": "系统本地网络权限弹窗文案，需随系统语言本地化",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Used to discover MeshDrop devices on the same local network."
+  "sourceLanguage" : "zh-Hans",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "MeshDrop"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "MeshDrop"
+          }
+        }
+      }
+    },
+    "NSLocalNetworkUsageDescription" : {
+      "comment" : "系统本地网络权限弹窗文案，需随系统语言本地化",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to discover MeshDrop devices on the same local network."
           }
         },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "用于发现同一局域网内的 MeshDrop 设备"
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于发现同一局域网内的 MeshDrop 设备"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

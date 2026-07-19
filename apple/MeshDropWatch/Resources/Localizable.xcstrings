@@ -1,375 +1,948 @@
 {
   "sourceLanguage" : "zh-Hans",
   "strings" : {
+    "%" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ · %@ms" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ms"
+          }
+        }
+      }
+    },
+    "→" : {
+
+    },
+    "↑" : {
+
+    },
+    "×" : {
+
+    },
+    "✓" : {
+
+    },
+    "✱" : {
+
+    },
+    "CIRCULAR" : {
+
+    },
     "common.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
       }
     },
     "common.error" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Error" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "出错" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出错"
+          }
+        }
       }
     },
     "common.ok" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "好" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好"
+          }
+        }
       }
     },
     "complication.tap.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tap to open MeshDrop" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "点击进入 MeshDrop" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to open MeshDrop"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击进入 MeshDrop"
+          }
+        }
       }
     },
     "complication.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "COMPLICATION" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "COMPLICATION · 表盘" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COMPLICATION"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "COMPLICATION · 表盘"
+          }
+        }
       }
     },
     "composer.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancel" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "取消" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
       }
     },
     "composer.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Say something…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "说点什么…" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Say something…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "说点什么…"
+          }
+        }
       }
     },
     "composer.send" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送"
+          }
+        }
       }
     },
     "composer.to" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "To" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发给" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "To"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发给"
+          }
+        }
       }
+    },
+    "CORNER / INLINE" : {
+
     },
     "error.bridge.init.failed %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Bridge setup failed: %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "桥接初始化失败：%@" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bridge setup failed: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "桥接初始化失败：%@"
+          }
+        }
       }
     },
     "error.bridge.unreachable" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby · waiting to reconnect" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边 · 等待回连" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby · waiting to reconnect"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边 · 等待回连"
+          }
+        }
       }
     },
     "error.bridge.unsupported" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "This device doesn't support WatchConnectivity" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "本设备不支持 WatchConnectivity" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This device doesn't support WatchConnectivity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本设备不支持 WatchConnectivity"
+          }
+        }
       }
     },
     "error.command.failed" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Command failed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "命令失败" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令失败"
+          }
+        }
       }
     },
     "error.command.timeout" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Command timed out (>10s)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "命令超时（>10s）" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command timed out (>10s)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "命令超时（>10s）"
+          }
+        }
       }
     },
     "error.malformed.ack %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Malformed reply: %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "回执格式异常：%@" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Malformed reply: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回执格式异常：%@"
+          }
+        }
       }
+    },
+    "meshdrop" : {
+
     },
     "nearby.empty.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Ask a friend to open MeshDrop too" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "让朋友也打开 MeshDrop" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask a friend to open MeshDrop too"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "让朋友也打开 MeshDrop"
+          }
+        }
       }
     },
     "nearby.empty.tag" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "EMPTY" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "空 · EMPTY" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EMPTY"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空 · EMPTY"
+          }
+        }
       }
     },
     "nearby.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No devices nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近没有设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No devices nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近没有设备"
+          }
+        }
       }
     },
     "nearby.footer.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tap to text · long-press to multi-select" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "点击发文本 · 长按多选" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to text · long-press to multi-select"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击发文本 · 长按多选"
+          }
+        }
       }
     },
     "nearby.hint.crown" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "CROWN TO PICK" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "转动表冠选人 · CROWN TO PICK" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CROWN TO PICK"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转动表冠选人 · CROWN TO PICK"
+          }
+        }
       }
     },
     "nearby.hint.offline" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby · OFFLINE" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边 · OFFLINE" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby · OFFLINE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边 · OFFLINE"
+          }
+        }
       }
     },
     "nearby.offline.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reconnects automatically when your phone is near" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等手机靠近自动回连" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reconnects automatically when your phone is near"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等手机靠近自动回连"
+          }
+        }
       }
     },
     "nearby.offline.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边"
+          }
+        }
       }
     },
     "nearby.selected.count %lld" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Selected · %lld · SELECTED" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "多选 · %lld 台 · SELECTED" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected · %lld · SELECTED"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多选 · %lld 台 · SELECTED"
+          }
+        }
       }
     },
     "nearby.send.failed %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Send failed · %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发送失败 · %@" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send failed · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送失败 · %@"
+          }
+        }
       }
     },
     "nearby.sent %@" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sent · SENT · %@" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已发送 · SENT · %@" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sent · SENT · %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发送 · SENT · %@"
+          }
+        }
       }
     },
     "nearby.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "附近" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附近"
+          }
+        }
       }
     },
     "nearby.title.suffix" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "· devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "· Nearby" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· Nearby"
+          }
+        }
       }
+    },
+    "OFFLINE" : {
+
     },
     "receive.accept" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Accept" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accept"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收"
+          }
+        }
       }
     },
     "receive.accepted" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Accepted ✓" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已接收 ✓" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accepted ✓"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已接收 ✓"
+          }
+        }
       }
     },
     "receive.empty.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "It pops up automatically when someone sends" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "有人发来时会自动弹出" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It pops up automatically when someone sends"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有人发来时会自动弹出"
+          }
+        }
       }
     },
     "receive.empty.tag" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "INBOX" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收件箱 · INBOX" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INBOX"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收件箱 · INBOX"
+          }
+        }
       }
     },
     "receive.empty.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No new files" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有新文件" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有新文件"
+          }
+        }
       }
     },
     "receive.file.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "File" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "文件" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
+          }
+        }
       }
     },
     "receive.file.saved" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Saved to iPhone · preview on watch" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已存到 iPhone · 表上可预览" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to iPhone · preview on watch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已存到 iPhone · 表上可预览"
+          }
+        }
       }
     },
     "receive.file.transferring" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transferring from iPhone…" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在从 iPhone 传输…" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferring from iPhone…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在从 iPhone 传输…"
+          }
+        }
       }
     },
     "receive.from" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "From" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "来自" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来自"
+          }
+        }
       }
     },
     "receive.inbox.tag" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "INBOX" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收件箱 · INBOX" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "INBOX"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收件箱 · INBOX"
+          }
+        }
       }
     },
     "receive.offline.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Receiving is unavailable for now" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "接收功能暂不可用" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receiving is unavailable for now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接收功能暂不可用"
+          }
+        }
       }
     },
     "receive.offline.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边"
+          }
+        }
       }
     },
     "receive.rejected" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Rejected ×" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "已拒绝 ×" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rejected ×"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已拒绝 ×"
+          }
+        }
       }
     },
     "receive.side.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "⌃ double-press the side button also works" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "⌃ 双击侧键也行" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌃ double-press the side button also works"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "⌃ 双击侧键也行"
+          }
+        }
       }
     },
     "transfer.default.name" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Transferring" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输中" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transferring"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输中"
+          }
+        }
       }
     },
     "transfer.footer.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Phone keeps transferring · watch only shows progress" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输由手机继续 · 手表只显示进度" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Phone keeps transferring · watch only shows progress"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输由手机继续 · 手表只显示进度"
+          }
+        }
       }
     },
     "transfer.idle.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Progress shows here once started" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "发起后会在这里看到进度" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress shows here once started"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发起后会在这里看到进度"
+          }
+        }
       }
     },
     "transfer.idle.tag" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "IDLE" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "空闲 · IDLE" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "IDLE"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲 · IDLE"
+          }
+        }
       }
     },
     "transfer.idle.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "No active transfer" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "当前无传输" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active transfer"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前无传输"
+          }
+        }
       }
     },
     "transfer.offline.detail" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Progress updates paused" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "传输进度暂停更新" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progress updates paused"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "传输进度暂停更新"
+          }
+        }
       }
     },
     "transfer.offline.title" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边"
+          }
+        }
       }
     },
     "transfer.stat.eta" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Left" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "剩余" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Left"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剩余"
+          }
+        }
       }
     },
     "transfer.stat.speed" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Speed" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "速度" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "速度"
+          }
+        }
       }
     },
     "vm.just.now" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Just now" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "刚刚" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Just now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刚刚"
+          }
+        }
       }
     },
     "vm.text.label" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "(Text)" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "（文本）" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "(Text)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（文本）"
+          }
+        }
       }
     }
   },

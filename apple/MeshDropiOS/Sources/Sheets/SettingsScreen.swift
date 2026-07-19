@@ -150,7 +150,7 @@ struct SettingsScreen: View {
     private var aboutCard: some View {
         VStack(spacing: 0) {
             HStack {
-                row(title: MD("settings.about.version"), detail: "0.1.0 · build 1")
+                row(title: MD("settings.about.version"), detail: "1.0.1 · build 3")
                 Spacer()
             }
             .padding(14)

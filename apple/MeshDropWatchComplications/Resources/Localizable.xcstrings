@@ -3,59 +3,150 @@
   "strings" : {
     "complication.configDisplayName" : {
       "comment" : "复杂功能展示名（自定义表盘选择列表里显示）",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop online devices" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop 在线设备" } }
-      }
-    },
-    "complication.description" : {
-      "comment" : "复杂功能描述",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Shows the number of MeshDrop devices online nearby." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示附近在线的 MeshDrop 设备数。" } }
-      }
-    },
-    "complication.offline" : {
-      "comment" : "离线（圆形 widgetLabel / 内联）",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Offline" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "离线" } }
-      }
-    },
-    "complication.inline.online" : {
-      "comment" : "内联：MeshDrop · %d 在线",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop · %d online" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop · %d 在线" } }
-      }
-    },
-    "complication.inline.offline" : {
-      "comment" : "内联：MeshDrop · 离线",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop · offline" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop · 离线" } }
-      }
-    },
-    "complication.rectangular.online" : {
-      "comment" : "矩形：%d 台设备在线",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "%d devices online" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%d 台设备在线" } }
-      }
-    },
-    "complication.rectangular.offline" : {
-      "comment" : "矩形：iPhone 不在身边",
-      "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "iPhone not nearby" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "iPhone 不在身边" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop online devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop 在线设备"
+          }
+        }
       }
     },
     "complication.corner.offline" : {
       "comment" : "角落 widgetLabel：MeshDrop 离线",
+      "extractionState" : "stale",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop offline" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop 离线" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop 离线"
+          }
+        }
       }
+    },
+    "complication.description" : {
+      "comment" : "复杂功能描述",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shows the number of MeshDrop devices online nearby."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示附近在线的 MeshDrop 设备数。"
+          }
+        }
+      }
+    },
+    "complication.inline.offline" : {
+      "comment" : "内联：MeshDrop · 离线",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop · offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop · 离线"
+          }
+        }
+      }
+    },
+    "complication.inline.online" : {
+      "comment" : "内联：MeshDrop · %d 在线",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop · %d online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop · %d 在线"
+          }
+        }
+      }
+    },
+    "complication.offline" : {
+      "comment" : "离线（圆形 widgetLabel / 内联）",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线"
+          }
+        }
+      }
+    },
+    "complication.rectangular.offline" : {
+      "comment" : "矩形：iPhone 不在身边",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone not nearby"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iPhone 不在身边"
+          }
+        }
+      }
+    },
+    "complication.rectangular.online" : {
+      "comment" : "矩形：%d 台设备在线",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d devices online"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 台设备在线"
+          }
+        }
+      }
+    },
+    "MeshDrop" : {
+
     }
   },
   "version" : "1.0"

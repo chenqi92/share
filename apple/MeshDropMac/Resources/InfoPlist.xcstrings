@@ -4,22 +4,64 @@
     "CFBundleDisplayName" : {
       "comment" : "App 显示名（品牌名，各语言一致）",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop"
+          }
+        }
       }
     },
     "CFBundleName" : {
       "comment" : "App 名（品牌名，各语言一致）",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "MeshDrop" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MeshDrop"
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright" : {
+      "comment" : "Copyright (human-readable)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "© 2026 MeshDrop"
+          }
+        }
       }
     },
     "NSLocalNetworkUsageDescription" : {
       "comment" : "系统本地网络权限弹窗文案，需随系统语言本地化",
       "localizations" : {
-        "en" : { "stringUnit" : { "state" : "translated", "value" : "Used to discover MeshDrop devices on the same local network." } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "用于发现同一局域网内的 MeshDrop 设备" } }
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used to discover MeshDrop devices on the same local network."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于发现同一局域网内的 MeshDrop 设备"
+          }
+        }
       }
     }
   },

@@ -37,7 +37,7 @@ struct StatusOrnament: View {
                      tone: .flame, mono: true, leadingDot: MD.flame)
             }
             Chip(text: L10n.statusLanPlaintext, tone: .outline, mono: true)
-            Chip(text: "v0.1", tone: .outline, mono: true)
+            Chip(text: "v1.0.1", tone: .outline, mono: true)
 
             Spacer().frame(width: 8)
 
