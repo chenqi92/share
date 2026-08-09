@@ -29,6 +29,7 @@ public final class ShareEngine: ObservableObject {
     @Published public private(set) var trusted: [TrustRecord] = []
     @Published public private(set) var identity: Identity
     @Published public var displayName: String
+    @Published public private(set) var receiveDirectoryURL: URL
 
     /// 进行中传输的实时速率 / 剩余时间。Key 为 history.id。
     /// 进入 .completed / .failed / .canceled 时由 closeContext / updateHistoryStatus
@@ -147,6 +148,11 @@ public final class ShareEngine: ObservableObject {
     /// FILE_CHUNK 单帧 data 硬上限 4 MiB（messages.md），超限视为协议错误关连接。
     private static let maxChunkBytes = 4 * 1024 * 1024
 
+    #if os(macOS)
+    private static let receiveDirectoryBookmarkKey = "meshdrop.receiveDirectoryBookmark"
+    private var receiveDirectoryBookmarkIsUsable = false
+    #endif
+
     /// 吞吐环形缓冲保留的秒数（柱状图横轴长度）。
     private static let throughputBuckets = 32
 
@@ -157,6 +163,13 @@ public final class ShareEngine: ObservableObject {
     private init() {
         self.identity = IdentityStore.loadOrCreate()
         self.displayName = Self.defaultDisplayName()
+        self.receiveDirectoryURL = Self.defaultReceiveDirectory()
+        #if os(macOS)
+        if let restoredURL = Self.restoreReceiveDirectoryBookmark() {
+            self.receiveDirectoryURL = restoredURL
+            self.receiveDirectoryBookmarkIsUsable = true
+        }
+        #endif
     }
 
     #if DEBUG
@@ -323,6 +336,12 @@ public final class ShareEngine: ObservableObject {
         devices = []
         isStarting = false
         let active = Array(contexts.values)
+        for ctx in active {
+            try? ctx.fileHandle?.close()
+            ctx.fileHandle = nil
+            ctx.receiveSecurityScopedURL?.stopAccessingSecurityScopedResource()
+            ctx.receiveSecurityScopedURL = nil
+        }
         contexts.removeAll()
         Task { for ctx in active { await ctx.connection.close() } }
     }
@@ -331,6 +350,32 @@ public final class ShareEngine: ObservableObject {
     public func clearLastError() {
         lastError = nil
     }
+
+    #if os(macOS)
+    public func setReceiveDirectory(_ url: URL) throws {
+        let selectedURL = url.standardizedFileURL
+        let values = try selectedURL.resourceValues(forKeys: [.isDirectoryKey])
+        guard values.isDirectory == true else {
+            throw CocoaError(.fileReadNoSuchFile)
+        }
+
+        let bookmark = try selectedURL.bookmarkData(
+            options: .withSecurityScope,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+        var isStale = false
+        let resolvedURL = try URL(
+            resolvingBookmarkData: bookmark,
+            options: .withSecurityScope,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        )
+        UserDefaults.standard.set(bookmark, forKey: Self.receiveDirectoryBookmarkKey)
+        receiveDirectoryURL = resolvedURL.standardizedFileURL
+        receiveDirectoryBookmarkIsUsable = true
+    }
+    #endif
 
     public func setDisplayName(_ name: String) {
         displayName = name
@@ -653,11 +698,11 @@ public final class ShareEngine: ObservableObject {
         }
 
         // 接受：创建保存路径 + 打开 file handle + 发 ACCEPT + 进入 receiving 状态
-        let saveURL = Self.uniqueFileURL(
-            in: Self.defaultSaveDir(for: offer.peer),
-            fileName: offer.fileName
-        )
         do {
+            let directoryAccess = beginReceiveDirectoryAccess()
+            ctx.receiveSecurityScopedURL = directoryAccess.securityScopedURL
+            let saveDirectory = try Self.receiveSaveDir(in: directoryAccess.rootURL, for: offer.peer)
+            let saveURL = Self.uniqueFileURL(in: saveDirectory, fileName: offer.fileName)
             FileManager.default.createFile(atPath: saveURL.path, contents: nil)
             let handle = try FileHandle(forWritingTo: saveURL)
             ctx.fileHandle = handle
@@ -1104,11 +1149,13 @@ public final class ShareEngine: ObservableObject {
                 peerFingerprint: peer.fingerprint,
                 sha256: first.sha256
             )
+            let directoryAccess = self.beginReceiveDirectoryAccess()
             let canResume: Bool = {
                 guard let r = resume else { return false }
                 guard r.fileSize == first.size, r.bytesDone < first.size else { return false }
                 return FileManager.default.fileExists(atPath: r.savedPath)
             }()
+            directoryAccess.securityScopedURL?.stopAccessingSecurityScopedResource()
 
             guard let ctx = self.contexts[contextID] else { return }
             if canResume, let r = resume {
@@ -1159,6 +1206,8 @@ public final class ShareEngine: ObservableObject {
     ) {
         let savedURL = URL(fileURLWithPath: record.savedPath)
         do {
+            let directoryAccess = beginReceiveDirectoryAccess()
+            ctx.receiveSecurityScopedURL = directoryAccess.securityScopedURL
             let handle = try FileHandle(forWritingTo: savedURL)
             try handle.seek(toOffset: record.bytesDone)
             try handle.truncate(atOffset: record.bytesDone)
@@ -1193,6 +1242,8 @@ public final class ShareEngine: ObservableObject {
                 log.info("auto-resume: \(record.fileName, privacy: .public) from \(record.bytesDone)/\(fileMeta.size)")
             }
         } catch {
+            ctx.receiveSecurityScopedURL?.stopAccessingSecurityScopedResource()
+            ctx.receiveSecurityScopedURL = nil
             log.error("auto-resume open failed: \(error.localizedDescription)")
             // 回退：丢弃残留记录，走正常审批流程
             Task { await self.resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: fileMeta.sha256) }
@@ -1381,6 +1432,8 @@ public final class ShareEngine: ObservableObject {
         }
         try? ctx.fileHandle?.close()
         ctx.fileHandle = nil
+        ctx.receiveSecurityScopedURL?.stopAccessingSecurityScopedResource()
+        ctx.receiveSecurityScopedURL = nil
         ctx.state = .closed
         await ctx.connection.close()
         if let error {
@@ -1522,6 +1575,76 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - SHA256 + 路径辅助
 
+    #if os(macOS)
+    private static func restoreReceiveDirectoryBookmark() -> URL? {
+        guard let bookmark = UserDefaults.standard.data(forKey: receiveDirectoryBookmarkKey) else {
+            return nil
+        }
+        do {
+            var isStale = false
+            let url = try URL(
+                resolvingBookmarkData: bookmark,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            )
+            if isStale {
+                let didStartAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if didStartAccess { url.stopAccessingSecurityScopedResource() }
+                }
+                if let refreshed = try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                ) {
+                    UserDefaults.standard.set(refreshed, forKey: receiveDirectoryBookmarkKey)
+                }
+            }
+            return url.standardizedFileURL
+        } catch {
+            log.error("restore receive directory bookmark failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func beginReceiveDirectoryAccess() -> (rootURL: URL, securityScopedURL: URL?) {
+        guard receiveDirectoryBookmarkIsUsable,
+              let bookmark = UserDefaults.standard.data(forKey: Self.receiveDirectoryBookmarkKey) else {
+            return (receiveDirectoryURL, nil)
+        }
+        do {
+            var isStale = false
+            let url = try URL(
+                resolvingBookmarkData: bookmark,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            )
+            let didStartAccess = url.startAccessingSecurityScopedResource()
+            if isStale,
+               let refreshed = try? url.bookmarkData(
+                   options: .withSecurityScope,
+                   includingResourceValuesForKeys: nil,
+                   relativeTo: nil
+               ) {
+                UserDefaults.standard.set(refreshed, forKey: Self.receiveDirectoryBookmarkKey)
+            }
+            receiveDirectoryURL = url.standardizedFileURL
+            return (url, didStartAccess ? url : nil)
+        } catch {
+            log.error("access receive directory bookmark failed: \(error.localizedDescription)")
+            receiveDirectoryBookmarkIsUsable = false
+            receiveDirectoryURL = Self.defaultReceiveDirectory()
+            return (receiveDirectoryURL, nil)
+        }
+    }
+    #else
+    private func beginReceiveDirectoryAccess() -> (rootURL: URL, securityScopedURL: URL?) {
+        (receiveDirectoryURL, nil)
+    }
+    #endif
+
     nonisolated static func sha256OfFile(at url: URL) throws -> String {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
@@ -1547,16 +1670,27 @@ public final class ShareEngine: ObservableObject {
         return cleaned
     }
 
-    nonisolated static func defaultSaveDir(for peer: Device) -> URL {
+    nonisolated static func defaultReceiveDirectory() -> URL {
         let fm = FileManager.default
         let documents = (try? fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: true))
             ?? fm.temporaryDirectory
-        // 对端可控的 name 作目录分量也可能含 .. / 分隔符 → 净化，防保存目录整体逃逸。
-        let dir = documents
-            .appendingPathComponent("MeshDrop", isDirectory: true)
-            .appendingPathComponent(sanitizedPathComponent(peer.name.isEmpty ? peer.id : peer.name), isDirectory: true)
+        let dir = documents.appendingPathComponent("MeshDrop", isDirectory: true)
         try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
+    }
+
+    nonisolated static func receiveSaveDir(in root: URL, for peer: Device) throws -> URL {
+        let fm = FileManager.default
+        // 对端可控的 name 作目录分量也可能含 .. / 分隔符 → 净化，防保存目录整体逃逸。
+        let dir = root
+            .appendingPathComponent(sanitizedPathComponent(peer.name.isEmpty ? peer.id : peer.name), isDirectory: true)
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    nonisolated static func defaultSaveDir(for peer: Device) -> URL {
+        let root = defaultReceiveDirectory()
+        return (try? receiveSaveDir(in: root, for: peer)) ?? root
     }
 
     nonisolated static func uniqueFileURL(in dir: URL, fileName: String) -> URL {
@@ -1704,6 +1838,7 @@ final class ConnectionContext {
     var sentBytes: UInt64 = 0
     var receivedBytes: UInt64 = 0
     var savedURL: URL?
+    var receiveSecurityScopedURL: URL?
     var expectedSHA256: String?
     /// 接收方：上次写入 ResumeStore 的 bytesDone，用来限制持久化频率。
     var lastPersistedBytes: UInt64 = 0

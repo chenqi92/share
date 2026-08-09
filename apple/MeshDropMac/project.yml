@@ -49,6 +49,7 @@ targets:
         com.apple.security.network.server: true
         com.apple.security.files.user-selected.read-only: true
         com.apple.security.files.user-selected.read-write: true
+        com.apple.security.files.bookmarks.app-scope: true
         # 沙盒下向钥匙串添加私钥(Web Gateway 的 TLS SecIdentity)需要显式 keychain group，
         # 否则 SecItemAdd 返回 -34018(errSecMissingEntitlement)，网关因建不出证书而启动失败。
         keychain-access-groups:

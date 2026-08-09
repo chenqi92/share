@@ -81,4 +81,25 @@ final class ShareEngineSettingsTests: XCTestCase {
         XCTAssertTrue(engine.clipboardInbox.isEmpty)
         engine.clipboardSyncEnabled = true
     }
+
+    func testChosenReceiveDirectoryControlsSaveLocation() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MeshDropTests-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let peer = Device(
+            id: "peer-id",
+            name: "../Living Room Mac",
+            os: .macos,
+            model: nil,
+            fingerprint: "peer-fingerprint",
+            port: 9580
+        )
+        let directory = try ShareEngine.receiveSaveDir(in: root, for: peer)
+
+        XCTAssertEqual(directory.deletingLastPathComponent().standardizedFileURL, root.standardizedFileURL)
+        XCTAssertEqual(directory.lastPathComponent, "Living Room Mac")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: directory.path))
+    }
 }

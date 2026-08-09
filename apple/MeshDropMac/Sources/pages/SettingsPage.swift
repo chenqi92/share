@@ -8,6 +8,7 @@ struct SettingsPage: View {
     @State private var keepHistoryDays = 30
     @State private var displayNameEdit = ""
     @State private var confirmingReset = false
+    @State private var pathSelectionError: String?
     /// 「登录时启动」回显以系统真实登录项状态为准（onAppear 同步），开关动作走 SMAppService。
     @State private var launchAtLogin = LoginItemManager.isEnabled
 
@@ -125,9 +126,18 @@ struct SettingsPage: View {
                         enabled: !engine.verifyBeforeReceive
                     )
                     field(String(localized: "settings.receive.defaultPath"), trailing:
-                        Text("~/Documents/MeshDrop/")
-                            .font(MeshDropFont.mono(size: 12))
-                            .foregroundStyle(MeshDropColor.textSecondary)
+                        HStack(spacing: 10) {
+                            Text(receiveDirectoryDisplayPath)
+                                .font(MeshDropFont.mono(size: 12))
+                                .foregroundStyle(MeshDropColor.textSecondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .frame(maxWidth: 300, alignment: .trailing)
+                            Button("settings.receive.changePath") {
+                                chooseReceiveDirectory()
+                            }
+                            .controlSize(.small)
+                        }
                     )
                 }
 
@@ -193,6 +203,40 @@ struct SettingsPage: View {
             if displayNameEdit.isEmpty { displayNameEdit = state.displayName }
             // 以系统真实登录项状态回显（用户可能在系统设置里手动改过）。
             launchAtLogin = LoginItemManager.isEnabled
+        }
+        .alert(
+            String(localized: "settings.receive.pathError.title"),
+            isPresented: Binding(
+                get: { pathSelectionError != nil },
+                set: { if !$0 { pathSelectionError = nil } }
+            )
+        ) {
+            Button("common.close", role: .cancel) { pathSelectionError = nil }
+        } message: {
+            Text(pathSelectionError ?? "")
+        }
+    }
+
+    private var receiveDirectoryDisplayPath: String {
+        (engine.receiveDirectoryURL.path as NSString).abbreviatingWithTildeInPath
+    }
+
+    private func chooseReceiveDirectory() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = engine.receiveDirectoryURL
+        panel.title = String(localized: "settings.receive.pathPicker.title")
+        panel.prompt = String(localized: "settings.receive.pathPicker.prompt")
+
+        guard panel.runModal() == .OK, let selectedURL = panel.url else { return }
+        do {
+            try engine.setReceiveDirectory(selectedURL)
+            pathSelectionError = nil
+        } catch {
+            pathSelectionError = error.localizedDescription
         }
     }
 
