@@ -27,6 +27,15 @@ public struct Device: Identifiable, Hashable, Sendable {
     public var protocolVersion: UInt8
     public var discoveryEndpoint: NWEndpoint?
 
+    /// A conversation survives rediscovery and history reloads, which can use different runtime IDs.
+    public var conversationID: String {
+        Self.conversationID(id: id, fingerprint: fingerprint)
+    }
+
+    public static func conversationID(id: String, fingerprint: String) -> String {
+        fingerprint.isEmpty ? id : fingerprint.lowercased()
+    }
+
     public init(
         id: String,
         name: String,

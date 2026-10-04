@@ -11,7 +11,7 @@ struct ChatListTab: View {
     /// （History.swift），同一台设备这两个 id 永不相等 —— 按 id 去重会让"在线那台"和
     /// "历史里那台"并列成两行。先放 displayDevices（在线优先胜出），历史项补充离线设备。
     private func mergeKey(_ device: MockDevice) -> String {
-        device.fingerprint.isEmpty ? device.id : device.fingerprint
+        device.conversationID
     }
 
     private var devices: [MockDevice] {
@@ -39,7 +39,7 @@ struct ChatListTab: View {
         let history = engine.history
         return devices.map { d in
             let key = mergeKey(d)
-            let related = history.first(where: { $0.peer.fingerprint == key })
+            let related = history.first(where: { $0.peer.conversationID == key })
             return (d, ChatListTab.previewLine(related),
                     related.map { HistoryItem.timeFormatter.string(from: $0.createdAt) },
                     engine.unreadByPeer[d.id] ?? 0)
@@ -134,7 +134,7 @@ struct ChatListTab: View {
     }
 
     private func chatRow(_ d: MockDevice, unread: Int, last: String, lastTime: String) -> some View {
-        NavigationLink(value: d.id) {
+        NavigationLink(value: d.conversationID) {
             HStack(spacing: 12) {
                 Avatar(initials: d.initials, color: d.color, size: 42,
                        ring: unread > 0 ? .lime : .none, online: d.isOnline)
@@ -179,8 +179,8 @@ struct ChatListTab: View {
     }
 
     private func deviceForChat(_ id: String) -> MockDevice? {
-        engine.displayDevices.first(where: { $0.id == id })
-        ?? engine.history.first(where: { $0.peer.id == id })?.peer.displayMock(isOnline: false)
+        engine.displayDevices.first(where: { $0.conversationID == id })
+        ?? engine.history.first(where: { $0.peer.conversationID == id })?.peer.displayMock(isOnline: false)
     }
 
     private var muted: Color { scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45 }

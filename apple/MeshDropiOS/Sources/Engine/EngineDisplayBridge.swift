@@ -3,6 +3,10 @@ import MeshDropKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+extension MockDevice {
+    var conversationID: String { Device.conversationID(id: id, fingerprint: fingerprint) }
+}
+
 // MARK: - Device → MockDevice 适配
 
 extension Device {

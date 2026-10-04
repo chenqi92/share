@@ -29,7 +29,18 @@ public actor HistoryStore {
         decoder.dateDecodingStrategy = .iso8601
         let items = (try? decoder.decode([HistoryItem].self, from: data)) ?? []
         // 防御：即使磁盘上的旧文件超限，读回也截断到上限。
-        return Array(items.prefix(Self.maxItems))
+        let restored = items.prefix(Self.maxItems).map { item -> HistoryItem in
+            guard case .file(let name, let size, let url) = item.kind,
+                  let restoredURL = LocalFileContent.restoredURL(url) else { return item }
+            var result = item
+            let retained = item.direction == .outgoing
+                ? (try? LocalFileContent.retainTemporaryAttachment(restoredURL, id: item.id))
+                : nil
+            result.kind = .file(name: name, size: size, url: retained ?? restoredURL)
+            return result
+        }
+        if restored != Array(items.prefix(Self.maxItems)) { save(restored) }
+        return restored
     }
 
     /// 整表覆盖写。传入的数组应是「最新在前」的当前内存历史；超过上限自动截断尾部（最旧）。

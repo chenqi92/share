@@ -1,5 +1,6 @@
 import SwiftUI
 import MeshDropKit
+import QuickLook
 
 /// 聊天气泡（COMMON §7.6）。
 /// - 圆角 16，非尖角方向圆角 6
@@ -12,6 +13,7 @@ public struct MsgBubble: View {
     let message: MockMessage
     @Environment(\.colorScheme) private var scheme
     @State private var copied = false
+    @State private var previewURL: URL?
 
     public init(_ message: MockMessage) { self.message = message }
 
@@ -23,6 +25,10 @@ public struct MsgBubble: View {
                     .background(bubbleFill)
                     .foregroundStyle(textColor)
                     .clipShape(BubbleShape(side: message.dir))
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if message.kind != .text { previewURL = availableFileURL }
+                    }
                     .contextMenu {
                         if message.kind == .text { copyButton }
                         if let url = availableFileURL {
@@ -53,6 +59,7 @@ public struct MsgBubble: View {
             }
             if message.dir == .incoming { Spacer(minLength: 56) }
         }
+        .quickLookPreview($previewURL)
         .task(id: copied) {
             guard copied else { return }
             try? await Task.sleep(for: .seconds(2))
@@ -85,45 +92,49 @@ public struct MsgBubble: View {
                 .padding(.horizontal, 12)
                 .fixedSize(horizontal: false, vertical: true)
         case .file:
-            HStack(spacing: 10) {
-                if LocalFileContent.isVideo(name: message.fileName ?? "") {
-                    Image(systemName: "play.rectangle.fill").font(.system(size: 32))
-                } else {
+            if LocalFileContent.isVideo(name: message.fileName ?? "") {
+                mediaContent(isVideo: true)
+            } else {
+                HStack(spacing: 10) {
                     FileTile(ext: message.fileExt ?? "?", size: 36)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(message.fileName ?? "")
-                        .font(MeshDropFont.body(13, weight: .semibold))
-                        .lineLimit(1)
-                    Text(message.fileSize ?? "")
-                        .font(MeshDropFont.mono(11))
-                        .opacity(0.65)
-                }
-            }
-            .padding(10)
-        case .image:
-            VStack(alignment: .leading, spacing: 6) {
-                ImagePreview(url: message.fileURL, base64: message.previewBase64, cornerRadius: 12)
-                    .frame(width: 220, height: 160)
-                if let name = message.fileName {
-                    HStack(spacing: 6) {
-                        Text(name)
-                            .font(MeshDropFont.body(12, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(message.fileName ?? "")
+                            .font(MeshDropFont.body(13, weight: .semibold))
                             .lineLimit(1)
-                            .truncationMode(.middle)
-                        if let size = message.fileSize {
-                            Text("· \(size)")
-                                .font(MeshDropFont.mono(10.5))
-                                .opacity(0.65)
-                        }
+                        Text(message.fileSize ?? "")
+                            .font(MeshDropFont.mono(11))
+                            .opacity(0.65)
                     }
-                    .padding(.horizontal, 6)
-                    .padding(.bottom, 4)
                 }
+                .padding(10)
             }
-            .padding(4)
-            .frame(width: 228)
+        case .image:
+            mediaContent(isVideo: false)
         }
+    }
+
+    private func mediaContent(isVideo: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ImagePreview(url: availableFileURL, base64: message.previewBase64, cornerRadius: 12, isVideo: isVideo)
+                .frame(width: 220, height: 160)
+            if let name = message.fileName {
+                HStack(spacing: 6) {
+                    Text(name)
+                        .font(MeshDropFont.body(12, weight: .semibold))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    if let size = message.fileSize {
+                        Text("· \(size)")
+                            .font(MeshDropFont.mono(10.5))
+                            .opacity(0.65)
+                    }
+                }
+                .padding(.horizontal, 6)
+                .padding(.bottom, 4)
+            }
+        }
+        .padding(4)
+        .frame(width: 228)
     }
 
     private var bubbleFill: Color {

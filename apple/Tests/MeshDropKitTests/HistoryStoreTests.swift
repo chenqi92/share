@@ -2,6 +2,35 @@ import XCTest
 @testable import MeshDropKit
 
 final class HistoryStoreTests: XCTestCase {
+    func testConversationIncludesMediaAfterHistoryReloadAndRediscovery() async throws {
+        let (url, store) = makeTempStore()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let peer = device()
+        let image = HistoryItem(peer: peer, direction: .outgoing,
+                                kind: .file(name: "IMG.webp", size: 39_332, url: nil), status: .completed)
+        let video = HistoryItem(peer: peer, direction: .incoming,
+                                kind: .file(name: "clip.mov", size: 64_000, url: nil), status: .completed)
+        let unrelated = HistoryItem(peer: device(peer.name, fp: "other-fingerprint"), direction: .incoming,
+                                    kind: .text("another device"), status: .completed)
+        await store.save([video, image, unrelated])
+        let restored = await store.load()
+        let rediscovered = Device(id: "new-runtime-id", name: peer.name, os: peer.os,
+                                  fingerprint: peer.fingerprint, port: 1234)
+        XCTAssertNotEqual(try XCTUnwrap(restored.first).peer.id, rediscovered.id)
+        let conversation = restored.filter { $0.peer.conversationID == rediscovered.conversationID }
+        XCTAssertEqual(conversation.map(\.id), [video.id, image.id])
+        XCTAssertEqual(conversation.first?.kind, video.kind)
+        XCTAssertEqual(conversation.last?.kind, image.kind)
+    }
+
+    func testConversationIdentityDoesNotMergeDifferentFingerprintsOrEmptyPlaceholders() {
+        XCTAssertNotEqual(device(fp: "first").conversationID, device(fp: "second").conversationID)
+        XCTAssertEqual(Device.conversationID(id: "first-id", fingerprint: "ABCDEF"),
+                       Device.conversationID(id: "second-id", fingerprint: "abcdef"))
+        XCTAssertNotEqual(Device.conversationID(id: "first-id", fingerprint: ""),
+                          Device.conversationID(id: "second-id", fingerprint: ""))
+    }
+
     private func makeTempStore() -> (URL, HistoryStore) {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("history-test-\(UUID().uuidString).json")

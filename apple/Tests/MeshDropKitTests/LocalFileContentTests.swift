@@ -2,6 +2,41 @@ import XCTest
 @testable import MeshDropKit
 
 final class LocalFileContentTests: XCTestCase {
+    func testMediaPathsFollowAnUpdatedIOSContainer() {
+        let oldContainer = "/private/var/mobile/Containers/Data/Application/\(UUID().uuidString)"
+        let current = URL(fileURLWithPath: "/var/mobile/Containers/Data/Application/\(UUID().uuidString)")
+        for relative in ["Documents/MeshDrop/Mac/旅行.heic", "Library/Application Support/MeshDrop/Attachments/clip.mov", "tmp/IMG.webp"] {
+            let old = URL(fileURLWithPath: oldContainer).appendingPathComponent(relative)
+            XCTAssertEqual(LocalFileContent.rebasedURL(old, container: current), current.appendingPathComponent(relative))
+        }
+        for path in ["/Users/me/Downloads/photo.jpg", "/var/mobile/Containers/Shared/AppGroup/\(UUID().uuidString)/photo.jpg", oldContainer + "/../../outside.jpg"] {
+            let outside = URL(fileURLWithPath: path)
+            XCTAssertEqual(LocalFileContent.rebasedURL(outside, container: current), outside)
+        }
+    }
+
+    func testRetainedPhotoSurvivesTemporaryFileRemoval() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let temporary = root.appendingPathComponent("tmp")
+        let attachments = root.appendingPathComponent("Attachments")
+        try FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let source = temporary.appendingPathComponent("IMG.webp")
+        let bytes = Data([1, 2, 3, 4])
+        try bytes.write(to: source)
+        let id = UUID()
+        let retained = try LocalFileContent.retainTemporaryAttachment(source, id: id,
+            temporaryDirectory: temporary, attachmentsDirectory: attachments)
+        XCTAssertEqual(retained.lastPathComponent, source.lastPathComponent)
+        XCTAssertEqual(try Data(contentsOf: source), bytes)
+        try FileManager.default.removeItem(at: source)
+        XCTAssertEqual(try Data(contentsOf: retained), bytes)
+        XCTAssertEqual(try LocalFileContent.retainTemporaryAttachment(source, id: id,
+            temporaryDirectory: temporary, attachmentsDirectory: attachments), retained)
+        XCTAssertEqual(try LocalFileContent.retainTemporaryAttachment(retained, id: UUID(),
+            temporaryDirectory: temporary, attachmentsDirectory: attachments), retained)
+    }
+
     func testOnlyExistingReadableFilesCanBePreviewed() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -554,8 +554,10 @@ public final class ShareEngine: ObservableObject {
             let engineRef = self
             Task.detached(priority: .userInitiated) {
                 let hash: String
+                let retainedURL: URL
                 do {
-                    hash = try Self.sha256OfFile(at: sourceURL)
+                    retainedURL = try LocalFileContent.retainTemporaryAttachment(sourceURL, id: historyID)
+                    hash = try Self.sha256OfFile(at: retainedURL)
                 } catch {
                     if needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
                     let msg = error.localizedDescription
@@ -565,13 +567,17 @@ public final class ShareEngine: ObservableObject {
                     return
                 }
                 await MainActor.run { [weak engineRef] in
+                    if retainedURL != sourceURL, needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
+                    if let index = engineRef?.history.firstIndex(where: { $0.id == historyID }) {
+                        engineRef?.history[index].kind = .file(name: fileName, size: fileSize, url: retainedURL)
+                    }
                     engineRef?.startFileSend(
                         to: device,
                         historyID: historyID,
-                        sourceURL: sourceURL,
+                        sourceURL: retainedURL,
                         fileSize: fileSize,
                         sha256: hash,
-                        needsSecurityScope: needsAccess
+                        needsSecurityScope: retainedURL == sourceURL && needsAccess
                     )
                 }
             }
