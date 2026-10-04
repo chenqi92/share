@@ -27,10 +27,10 @@ struct ChatPage: View {
     private var dev: MockDevice { state.selectedDevice }
     private var canSend: Bool { state.canSendToSelectedDevice }
 
-    /// 当前对话 = engine.history 中 peer.id 匹配选中设备的所有项，按时间正序展示。
+    /// 按稳定指纹合并重启前后的会话历史。
     private var conversation: [HistoryItem] {
         state.engineHistoryItems
-            .filter { $0.peer.id == state.selectedDeviceID }
+            .filter { $0.peer.conversationID == state.selectedConversationID }
             .sorted { $0.createdAt < $1.createdAt }
     }
 

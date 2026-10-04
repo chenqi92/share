@@ -24,6 +24,7 @@ extension MockDevice {
         let color = stableColor(device.id)
         return MockDevice(
             id: device.id,
+            fingerprint: device.fingerprint,
             name: device.name,
             who: device.name,
             kind: kind,
