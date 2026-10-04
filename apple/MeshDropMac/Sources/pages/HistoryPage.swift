@@ -1,4 +1,5 @@
 import SwiftUI
+import MeshDropKit
 
 struct HistoryPage: View {
     @EnvironmentObject var state: AppState
@@ -120,10 +121,18 @@ struct HistoryPage: View {
                 FileChip(name: h.name ?? "", size: h.size ?? "", ext: h.ext ?? "",
                          progress: h.progress.map { Double($0) / 100 })
             case .text:
-                Text(h.content ?? "")
+                Text(verbatim: h.content ?? "")
                     .font(MeshDropFont.body(size: 13))
                     .foregroundStyle(MeshDropColor.textPrimary)
                     .lineLimit(3)
+                    .textSelection(.enabled)
+            }
+            if h.kind == .text {
+                TextContentActions(h.content ?? "")
+                    .font(MeshDropFont.body(size: 11))
+            } else {
+                FileContentActions(url: h.fileURL, completed: h.status == .done)
+                    .font(MeshDropFont.body(size: 11))
             }
             // 状态
             HStack {
@@ -142,6 +151,11 @@ struct HistoryPage: View {
                 .shadow(color: MeshDropColor.ink06, radius: 2, x: 0, y: 1)
         )
         .contextMenu {
+            if h.kind == .text {
+                Button("common.copy", systemImage: "doc.on.doc") {
+                    SystemClipboard.copy(h.content ?? "")
+                }
+            }
             Button(role: .destructive) {
                 state.removeHistoryItem(h.id)
             } label: {

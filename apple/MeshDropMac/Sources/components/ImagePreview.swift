@@ -25,7 +25,11 @@ struct ImagePreview: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Photo(hue: 210)
+                Image(systemName: "photo")
+                    .resizable()
+                    .scaledToFit()
+                    .padding(12)
+                    .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

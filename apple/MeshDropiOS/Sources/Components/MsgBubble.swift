@@ -40,14 +40,12 @@ public struct MsgBubble: View {
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
                     if message.kind == .text {
-                        copyButton
-                            .buttonStyle(.plain)
+                        TextContentActions(message.text ?? "")
                             .font(MeshDropFont.mono(11))
                             .padding(.vertical, 6)
                     }
-                    if let url = availableFileURL {
-                        ShareLink(item: url) { Label(MD("common.share"), systemImage: "square.and.arrow.up") }
-                            .buttonStyle(.plain)
+                    if message.kind != .text {
+                        FileContentActions(url: message.fileURL, completed: message.delivered)
                             .font(MeshDropFont.mono(11))
                             .padding(.vertical, 6)
                     }
@@ -64,9 +62,8 @@ public struct MsgBubble: View {
     }
 
     private var availableFileURL: URL? {
-        guard message.delivered, let url = message.fileURL,
-              FileManager.default.isReadableFile(atPath: url.path) else { return nil }
-        return url
+        guard message.delivered else { return nil }
+        return LocalFileContent.readableURL(message.fileURL)
     }
 
     private var copyButton: some View {
@@ -81,16 +78,19 @@ public struct MsgBubble: View {
     @ViewBuilder private var bubbleContent: some View {
         switch message.kind {
         case .text:
-            Text(message.text ?? "")
+            MarkdownContentView(message.text ?? "")
                 .font(MeshDropFont.body(14.5))
                 .lineSpacing(2)
                 .padding(.vertical, 8)
                 .padding(.horizontal, 12)
                 .fixedSize(horizontal: false, vertical: true)
-                .textSelection(.enabled)   // 长按可选中 + 系统「拷贝」菜单
         case .file:
             HStack(spacing: 10) {
-                FileTile(ext: message.fileExt ?? "?", size: 36)
+                if LocalFileContent.isVideo(name: message.fileName ?? "") {
+                    Image(systemName: "play.rectangle.fill").font(.system(size: 32))
+                } else {
+                    FileTile(ext: message.fileExt ?? "?", size: 36)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(message.fileName ?? "")
                         .font(MeshDropFont.body(13, weight: .semibold))
