@@ -65,7 +65,7 @@ public final class Discovery: @unchecked Sendable {
         #else
         params.includePeerToPeer = true
         #endif
-        self.listener = try NWListener(using: params)
+        self.listener = try NWListener(using: params, on: NWEndpoint.Port(rawValue: port) ?? .any)
     }
 
     public func start() throws {
@@ -74,6 +74,10 @@ public final class Discovery: @unchecked Sendable {
     }
 
     public func stop() {
+        listener?.stateUpdateHandler = nil
+        listener?.newConnectionHandler = nil
+        browser?.stateUpdateHandler = nil
+        browser?.browseResultsChangedHandler = nil
         listener?.cancel()
         browser?.cancel()
         listener = nil
@@ -128,8 +132,8 @@ public final class Discovery: @unchecked Sendable {
                 conn.cancel()
             }
         }
-        listener.stateUpdateHandler = { [weak self] state in
-            guard let self else { return }
+        listener.stateUpdateHandler = { [weak self, weak listener] state in
+            guard let self, let listener else { return }
             switch state {
             case .ready:
                 let actualPort = listener.port?.rawValue ?? 0
@@ -148,7 +152,7 @@ public final class Discovery: @unchecked Sendable {
                         txtRecord: self.makeTXT(port: actualPort)
                     )
                 }
-            case .failed(let err):
+            case .waiting(let err), .failed(let err):
                 log.error("listener failed: \(err.localizedDescription)")
                 self.onError?(L10n.discoveryUnavailable)
             default:
@@ -181,9 +185,12 @@ public final class Discovery: @unchecked Sendable {
         }
         browser.stateUpdateHandler = { [weak self] state in
             log.debug("browser state: \(String(describing: state))")
-            if case .failed(let err) = state {
+            switch state {
+            case .waiting(let err), .failed(let err):
                 log.error("browser failed: \(err.localizedDescription)")
                 self?.onError?(L10n.discoveryUnavailable)
+            default:
+                break
             }
         }
         browser.start(queue: .main)
@@ -193,7 +200,7 @@ public final class Discovery: @unchecked Sendable {
         var seen: [String: Device] = [:]
         for result in results {
             guard case .bonjour(let txt) = result.metadata,
-                  let device = TXTRecord.decode(txt) else { continue }
+                  let device = TXTRecord.decode(txt, endpoint: result.endpoint) else { continue }
 
             // 过滤自己
             if device.id == identity.id { continue }

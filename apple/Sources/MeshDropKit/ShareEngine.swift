@@ -95,6 +95,11 @@ public final class ShareEngine: ObservableObject {
         didSet { UserDefaults.standard.set(clipboardSyncEnabled, forKey: "meshdrop.clipboardSync") }
     }
 
+    @Published public var autoCopyReceivedText: Bool =
+        UserDefaults.standard.bool(forKey: "meshdrop.autoCopyReceivedText") {
+        didSet { UserDefaults.standard.set(autoCopyReceivedText, forKey: "meshdrop.autoCopyReceivedText") }
+    }
+
     /// 设置：局域网可见（mDNS 广告）开关（默认**开**，与现有行为一致；持久化）。
     /// 开=正常广告 mDNS（可被发现）；关=停止广告（不再被发现，但已建连接不强断、浏览他机不受影响）。
     /// `didSet` 在 discovery 运行时立即生效；start() 时也会读取该值决定初始广告状态。
@@ -259,6 +264,40 @@ public final class ShareEngine: ObservableObject {
         // 也要确保历史已从磁盘读回并挂上落盘订阅。
         loadHistoryIfNeeded()
         guard discovery == nil else { return }
+        startDiscovery()
+        throughputTask?.cancel()
+        heartbeatTask?.cancel()
+        Task { await refreshTrusted() }
+        // 每秒采样一次会话吞吐，喂给传输页速度柱状图。
+        throughputTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, !Task.isCancelled else { return }
+                self.sampleThroughput()
+            }
+        }
+        // 每秒巡检：握手超时回收 + 周期性 PING + 丢 PONG 判死。
+        heartbeatTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, !Task.isCancelled else { return }
+                await self.tickConnectionHealth()
+            }
+        }
+    }
+
+    /// 只重建发现服务；正在进行的传输、配对与重放窗口继续保留。
+    public func refreshDiscovery() {
+        guard discovery != nil else { start(); return }
+        discovery?.stop()
+        discovery = nil
+        devicesTask?.cancel()
+        devicesTask = nil
+        devices = []
+        startDiscovery()
+    }
+
+    private func startDiscovery() {
         isStarting = true
         lastError = nil
         do {
@@ -272,49 +311,37 @@ public final class ShareEngine: ObservableObject {
                 Task { @MainActor in await self.acceptIncoming(nwConn) }
             }
             // 发现层失败（最常见：本地网络权限被拒）反映到 UI，避免「看着在等配对、其实没在广播」的无限加载。
-            d.onError = { [weak self] msg in
-                Task { @MainActor in
-                    self?.lastError = msg
-                    self?.isStarting = false
+            d.onError = { [weak self, weak d] msg in
+                Task { @MainActor [weak self, weak d] in
+                    guard let self, let d, self.discovery === d else { return }
+                    self.lastError = msg
+                    self.isStarting = false
                 }
             }
+            discovery = d
             try d.start()
             // 应用持久化的「局域网可见」状态：关闭时启动即不广告（仍浏览他机、仍可被已建连接使用）。
             d.setAdvertising(enabled: visibleOnLan)
-            discovery = d
             devicesTask = Task { [weak self] in
                 guard let self else { return }
                 for await list in d.devices {
                     await MainActor.run {
+                        guard self.discovery === d, !Task.isCancelled else { return }
                         self.devices = list
                         // 收到首批设备 / 至少完成一轮浏览后视为不再扫描
                         if self.isStarting { self.isStarting = false }
                     }
                 }
             }
-            Task { await refreshTrusted() }
-            // 每秒采样一次会话吞吐，喂给传输页速度柱状图。
-            throughputTask = Task { [weak self] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    guard let self else { return }
-                    self.sampleThroughput()
-                }
-            }
-            // 每秒巡检：握手超时回收 + 周期性 PING + 丢 PONG 判死。
-            heartbeatTask = Task { [weak self] in
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    guard let self else { return }
-                    await self.tickConnectionHealth()
-                }
-            }
             // 即使 LAN 上暂时一台都没有也算启动完成；3 秒后清掉 isStarting
-            Task { [weak self] in
+            Task { [weak self, weak d] in
                 try? await Task.sleep(nanoseconds: 3_000_000_000)
-                await MainActor.run { self?.isStarting = false }
+                guard let self, let d, self.discovery === d else { return }
+                self.isStarting = false
             }
         } catch {
+            discovery?.stop()
+            discovery = nil
             isStarting = false
             lastError = error.localizedDescription
             log.error("ShareEngine start failed: \(error.localizedDescription)")
@@ -1085,6 +1112,7 @@ public final class ShareEngine: ObservableObject {
         )
         appendHistory(item)
         unreadByPeer[peer.id, default: 0] += 1
+        if autoCopyReceivedText { SystemClipboard.copy(text.content) }
     }
 
     private func handleReceivedClipboard(body: Data, contextID: UUID) {
@@ -1105,6 +1133,7 @@ public final class ShareEngine: ObservableObject {
             receivedAt: Date()
         )
         clipboardInbox.insert(entry, at: 0)
+        if autoCopyReceivedText { SystemClipboard.copy(msg.content) }
         // 上限 50 条，超出丢最旧。
         if clipboardInbox.count > 50 { clipboardInbox.removeLast(clipboardInbox.count - 50) }
     }

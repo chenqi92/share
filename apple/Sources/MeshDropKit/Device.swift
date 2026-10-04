@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 public enum DeviceOS: String, Codable, Sendable, CaseIterable {
     case ios, android, macos, windows, linux
@@ -24,6 +25,7 @@ public struct Device: Identifiable, Hashable, Sendable {
     public var fingerprint: String     // 32 hex
     public var port: UInt16
     public var protocolVersion: UInt8
+    public var discoveryEndpoint: NWEndpoint?
 
     public init(
         id: String,
@@ -32,7 +34,8 @@ public struct Device: Identifiable, Hashable, Sendable {
         model: String? = nil,
         fingerprint: String,
         port: UInt16,
-        protocolVersion: UInt8 = 1
+        protocolVersion: UInt8 = 1,
+        discoveryEndpoint: NWEndpoint? = nil
     ) {
         self.id = id
         self.name = name
@@ -41,6 +44,7 @@ public struct Device: Identifiable, Hashable, Sendable {
         self.fingerprint = fingerprint
         self.port = port
         self.protocolVersion = protocolVersion
+        self.discoveryEndpoint = discoveryEndpoint
     }
 
     /// 人眼对齐用：把 32 hex 指纹切成 8 组 4 位、空格分隔、全大写。

@@ -1,4 +1,5 @@
 import SwiftUI
+import MeshDropKit
 
 /// 聊天气泡（COMMON §7.6）。
 /// - 圆角 16，非尖角方向圆角 6
@@ -10,6 +11,7 @@ public struct MsgBubble: View {
 
     let message: MockMessage
     @Environment(\.colorScheme) private var scheme
+    @State private var copied = false
 
     public init(_ message: MockMessage) { self.message = message }
 
@@ -21,19 +23,58 @@ public struct MsgBubble: View {
                     .background(bubbleFill)
                     .foregroundStyle(textColor)
                     .clipShape(BubbleShape(side: message.dir))
+                    .contextMenu {
+                        if message.kind == .text { copyButton }
+                        if let url = availableFileURL {
+                            ShareLink(item: url) { Label(MD("common.share"), systemImage: "square.and.arrow.up") }
+                        }
+                    }
 
                 HStack(spacing: 4) {
                     Text(message.time)
                         .font(MeshDropFont.mono(10))
                         .foregroundStyle(timeColor)
-                    if message.dir == .outgoing {
+                    if message.dir == .outgoing && message.delivered {
                         Text("· \(MD("chat.message.delivered"))")
                             .font(MeshDropFont.mono(10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
+                    if message.kind == .text {
+                        copyButton
+                            .buttonStyle(.plain)
+                            .font(MeshDropFont.mono(11))
+                            .padding(.vertical, 6)
+                    }
+                    if let url = availableFileURL {
+                        ShareLink(item: url) { Label(MD("common.share"), systemImage: "square.and.arrow.up") }
+                            .buttonStyle(.plain)
+                            .font(MeshDropFont.mono(11))
+                            .padding(.vertical, 6)
+                    }
                 }
             }
             if message.dir == .incoming { Spacer(minLength: 56) }
+        }
+        .task(id: copied) {
+            guard copied else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            copied = false
+        }
+    }
+
+    private var availableFileURL: URL? {
+        guard message.delivered, let url = message.fileURL,
+              FileManager.default.isReadableFile(atPath: url.path) else { return nil }
+        return url
+    }
+
+    private var copyButton: some View {
+        Button {
+            SystemClipboard.copy(message.text ?? "")
+            copied = true
+        } label: {
+            Label(MD(copied ? "common.copied" : "common.copy"), systemImage: copied ? "checkmark" : "doc.on.doc")
         }
     }
 

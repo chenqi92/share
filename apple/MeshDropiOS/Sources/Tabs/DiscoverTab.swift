@@ -42,6 +42,7 @@ struct DiscoverTab: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
             }
+            .refreshable { engine.refreshDiscovery() }
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
@@ -85,6 +86,13 @@ struct DiscoverTab: View {
         HStack {
             MeshDropLockup(size: 18)
             Spacer()
+            Button {
+                engine.refreshDiscovery()
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .accessibilityLabel(MD("discovery.refresh"))
+            .disabled(engine.isStarting)
             Chip(engine.isStarting ? "SCAN" : "LIVE",
                  tone: engine.isStarting ? .flame : .lime,
                  mono: true, uppercased: true, icon: "circle.fill")

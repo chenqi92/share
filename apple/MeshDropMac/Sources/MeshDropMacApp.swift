@@ -25,10 +25,6 @@ struct MeshDropMacApp: App {
                     IncomingNotifier.startShared(engine: ShareEngine.shared)
                     gateway.startIfEnabled()
                 }
-                .onDisappear {
-                    ShareEngine.shared.stop()
-                    gateway.stop()
-                }
         }
         .windowStyle(.hiddenTitleBar)
         .windowToolbarStyle(.unifiedCompact)

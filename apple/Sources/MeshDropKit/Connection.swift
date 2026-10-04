@@ -38,7 +38,7 @@ public actor Connection {
     public init(connectingTo device: Device) {
         let params = NWParameters.tcp
         params.includePeerToPeer = true
-        let endpoint = NWEndpoint.service(
+        let endpoint = device.discoveryEndpoint ?? NWEndpoint.service(
             name: device.id,
             type: TXTRecord.serviceType,
             domain: "local",
