@@ -71,7 +71,7 @@ pub async fn accept(
     let pp0 = pp_rx.borrow_and_update().clone();
     let po0 = po_rx.borrow_and_update().clone();
     let snapshot = make_state_snapshot_from(&engine, &dev0, &hist0, &pp0, &po0);
-    let _ = ws.send(Message::Text(snapshot.to_string())).await;
+    let _ = ws.send(Message::Text(snapshot.to_string().into())).await;
 
     let (out_tx, mut out_rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
 
@@ -92,7 +92,7 @@ pub async fn accept(
                 if !cur.contains_key(id) {
                     let payload = json!({ "v": 1, "type": "device_removed",
                         "id": format!("evt-{}", Uuid::new_v4()), "payload": { "id": id } });
-                    if out_tx_d.send(Message::Text(payload.to_string())).is_err() { return; }
+                    if out_tx_d.send(Message::Text(payload.to_string().into())).is_err() { return; }
                 }
             }
             for (id, dj) in &cur {
@@ -104,7 +104,7 @@ pub async fn accept(
                 if let Some(typ) = typ {
                     let payload = json!({ "v": 1, "type": typ,
                         "id": format!("evt-{}", Uuid::new_v4()), "payload": dj });
-                    if out_tx_d.send(Message::Text(payload.to_string())).is_err() { return; }
+                    if out_tx_d.send(Message::Text(payload.to_string().into())).is_err() { return; }
                 }
             }
             prev = cur;
@@ -127,7 +127,7 @@ pub async fn accept(
                 if seen.insert(id.clone()) {
                     let payload = json!({ "v": 1, "type": "history_added",
                         "id": format!("evt-{}", Uuid::new_v4()), "payload": history_json(h) });
-                    if out_tx_h.send(Message::Text(payload.to_string())).is_err() { return; }
+                    if out_tx_h.send(Message::Text(payload.to_string().into())).is_err() { return; }
                 }
                 // 文件传输到达终态 → transfer_done（每 id 一次）。
                 if matches!(h.kind, HistoryKind::File { .. }) {
@@ -142,7 +142,7 @@ pub async fn accept(
                             let payload = json!({ "v": 1, "type": "transfer_done",
                                 "id": format!("evt-{}", Uuid::new_v4()),
                                 "payload": { "id": id, "ok": ok, "error": error } });
-                            if out_tx_h.send(Message::Text(payload.to_string())).is_err() { return; }
+                            if out_tx_h.send(Message::Text(payload.to_string().into())).is_err() { return; }
                         }
                     }
                 }
@@ -159,7 +159,7 @@ pub async fn accept(
                     "id": format!("evt-{}", Uuid::new_v4()),
                     "payload": pairing_json(p),
                 });
-                if out_tx_p.send(Message::Text(payload.to_string())).is_err() { return; }
+                if out_tx_p.send(Message::Text(payload.to_string().into())).is_err() { return; }
             }
         }
     });
@@ -173,7 +173,7 @@ pub async fn accept(
                     "id": format!("evt-{}", Uuid::new_v4()),
                     "payload": offer_json(o),
                 });
-                if out_tx_o.send(Message::Text(payload.to_string())).is_err() { return; }
+                if out_tx_o.send(Message::Text(payload.to_string().into())).is_err() { return; }
             }
         }
     });
@@ -198,7 +198,7 @@ pub async fn accept(
                     "id": format!("evt-{}", Uuid::new_v4()),
                     "payload": clipboard_json(e),
                 });
-                if out_tx_c.send(Message::Text(payload.to_string())).is_err() { return; }
+                if out_tx_c.send(Message::Text(payload.to_string().into())).is_err() { return; }
             }
         }
     });
@@ -224,7 +224,7 @@ pub async fn accept(
                             "id": format!("evt-{}", Uuid::new_v4()),
                             "payload": { "id": hid.to_string(), "bytesSent": done, "totalBytes": total, "speedBps": m.bytes_per_sec as i64 },
                         });
-                        if out_tx_t.send(Message::Text(payload.to_string())).is_err() { return; }
+                        if out_tx_t.send(Message::Text(payload.to_string().into())).is_err() { return; }
                     }
                 }
                 last_progress = Some(std::time::Instant::now());
@@ -243,7 +243,7 @@ pub async fn accept(
                 match msg {
                     Message::Text(t) => {
                         let response = handle_command(&t, &engine);
-                        let _ = ws.send(Message::Text(response.to_string())).await;
+                        let _ = ws.send(Message::Text(response.to_string().into())).await;
                     }
                     Message::Ping(p) => { let _ = ws.send(Message::Pong(p)).await; }
                     Message::Close(_) => break,
