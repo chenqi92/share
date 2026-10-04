@@ -26,7 +26,7 @@ public enum TXTRecord {
 
     /// 解析 TXT。任何必选字段缺失或格式错误返回 nil（调用方应当忽略此服务，
     /// 不能视为协议错误 — 同网段可能存在新版本广告的旧端解析不了的字段）。
-    public static func decode(_ record: NWTXTRecord) -> Device? {
+    public static func decode(_ record: NWTXTRecord, endpoint: NWEndpoint? = nil) -> Device? {
         guard let v = record["v"], let versionInt = UInt8(v),
               let id = record["id"], id.count == 32,
               let nameB64 = record["name"],
@@ -45,7 +45,8 @@ public enum TXTRecord {
             model: record["model"],
             fingerprint: fp,
             port: port,
-            protocolVersion: versionInt
+            protocolVersion: versionInt,
+            discoveryEndpoint: endpoint
         )
     }
 

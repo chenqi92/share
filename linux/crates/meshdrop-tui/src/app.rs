@@ -610,7 +610,9 @@ pub async fn run_demo<B: ratatui::backend::Backend>(
     let tick = Duration::from_millis(120);
 
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
+        terminal
+            .draw(|f| ui(f, &mut app))
+            .map_err(|error| anyhow::anyhow!("{error}"))?;
 
         tokio::select! {
             _ = tokio::time::sleep(tick) => {},
@@ -638,7 +640,9 @@ pub async fn run<B: ratatui::backend::Backend>(
     let tick = Duration::from_millis(100);
 
     loop {
-        terminal.draw(|f| ui(f, &mut app))?;
+        terminal
+            .draw(|f| ui(f, &mut app))
+            .map_err(|error| anyhow::anyhow!("{error}"))?;
 
         tokio::select! {
             _ = tokio::time::sleep(tick) => {},
@@ -968,7 +972,9 @@ pub fn render_once<B: ratatui::backend::Backend>(
     terminal: &mut Terminal<B>,
     app: &mut App,
 ) -> Result<()> {
-    terminal.draw(|f| ui(f, app))?;
+    terminal
+        .draw(|f| ui(f, app))
+        .map_err(|error| anyhow::anyhow!("{error}"))?;
     Ok(())
 }
 

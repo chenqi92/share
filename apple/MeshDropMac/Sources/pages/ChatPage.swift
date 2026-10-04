@@ -108,14 +108,14 @@ struct ChatPage: View {
         let time = Self.timeFormatter.string(from: item.createdAt)
         switch item.kind {
         case .text(let content):
-            MsgBubble(side: side, time: time, delivered: isDelivered(item)) {
+            MsgBubble(side: side, time: time, delivered: isDelivered(item), copyText: content) {
                 Text(content)
                     .font(MeshDropFont.body(size: 13))
                     .textSelection(.enabled)
             }
         case .file(let name, let size, let url):
             if isImageFile(name: name, url: url) {
-                MsgBubble(side: side, kind: .image, time: time, delivered: isDelivered(item)) {
+                MsgBubble(side: side, kind: .image, time: time, delivered: isDelivered(item), fileURL: availableFile(item, url: url)) {
                     VStack(alignment: .leading, spacing: 6) {
                         ImagePreview(url: url, base64: nil, cornerRadius: 12)
                             .frame(width: 280, height: 188)
@@ -134,7 +134,7 @@ struct ChatPage: View {
                     .frame(width: 288)
                 }
             } else {
-                MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item)) {
+                MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item), fileURL: availableFile(item, url: url)) {
                     FileChip(name: name,
                              size: fileSizeLabel(size: size, status: item.status),
                              ext: fileExt(name),
@@ -253,6 +253,11 @@ struct ChatPage: View {
 
     private func isDelivered(_ item: HistoryItem) -> Bool {
         item.direction == .outgoing && item.status == .completed
+    }
+
+    private func availableFile(_ item: HistoryItem, url: URL?) -> URL? {
+        guard item.status == .completed, let url, FileManager.default.isReadableFile(atPath: url.path) else { return nil }
+        return url
     }
 
     private func progressFraction(_ status: TransferStatus) -> Double? {

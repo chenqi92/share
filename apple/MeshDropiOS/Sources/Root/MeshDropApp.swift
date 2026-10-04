@@ -36,6 +36,10 @@ struct MeshDropApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     // 从「分享」回到主 app 时再 drain + 刷新一次未决项。
                     guard phase == .active else { return }
+                    #if DEBUG
+                    guard ProcessInfo.processInfo.environment["MESHDROP_PREVIEW_ROUTE"] == nil else { return }
+                    #endif
+                    engine.refreshDiscovery()
                     PendingShareQueue.shared.drain(engine: engine)
                     state.refreshPendingShares()
                 }

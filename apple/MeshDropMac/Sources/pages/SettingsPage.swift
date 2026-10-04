@@ -144,6 +144,7 @@ struct SettingsPage: View {
                 section(String(localized: "settings.section.clipboard")) {
                     // 跨设备剪贴板同步总开关：关=不发不收剪贴板（门控已有 push/handle 收发）。
                     toggle(String(localized: "settings.clipboard.enableSync"), on: $engine.clipboardSyncEnabled)
+                    toggle(String(localized: "settings.clipboard.autoCopy"), on: $engine.autoCopyReceivedText)
                     field(String(localized: "settings.clipboard.keepDuration"), trailing:
                         Text("settings.clipboard.keepDuration.value")
                             .font(MeshDropFont.mono(size: 12))

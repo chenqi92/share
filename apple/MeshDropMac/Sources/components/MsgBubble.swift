@@ -1,4 +1,6 @@
 import SwiftUI
+import AppKit
+import MeshDropKit
 
 enum BubbleSide { case incoming, outgoing }
 enum BubbleKind { case text, file, image }
@@ -10,7 +12,10 @@ struct MsgBubble<Content: View>: View {
     var kind: BubbleKind = .text
     var time: String = ""
     var delivered: Bool = false
+    var copyText: String? = nil
+    var fileURL: URL? = nil
     @ViewBuilder var content: Content
+    @State private var copied = false
 
     @Environment(\.colorScheme) private var scheme
 
@@ -23,6 +28,19 @@ struct MsgBubble<Content: View>: View {
                 .background(bg)
                 .foregroundStyle(fg)
                 .clipShape(BubbleShape(side: side, radius: radius, inset: inset))
+                .contextMenu {
+                    if copyText != nil { copyButton }
+                    if let fileURL {
+                        Button("chat.file.copy", systemImage: "doc.on.doc") {
+                            NSPasteboard.general.clearContents()
+                            NSPasteboard.general.writeObjects([fileURL as NSURL])
+                        }
+                        Button("chat.file.reveal", systemImage: "folder") {
+                            NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+                        }
+                        ShareLink(item: fileURL) { Label("common.share", systemImage: "square.and.arrow.up") }
+                    }
+                }
 
             if !time.isEmpty {
                 HStack(spacing: 4) {
@@ -35,11 +53,37 @@ struct MsgBubble<Content: View>: View {
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
+                    if copyText != nil {
+                        copyButton
+                            .buttonStyle(.plain)
+                            .font(MeshDropFont.mono(size: 10))
+                    }
+                    if let fileURL {
+                        ShareLink(item: fileURL) { Label("common.share", systemImage: "square.and.arrow.up") }
+                            .buttonStyle(.plain)
+                            .font(MeshDropFont.mono(size: 10))
+                    }
                     if side == .incoming { Spacer() }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: side == .outgoing ? .trailing : .leading)
+        .task(id: copied) {
+            guard copied else { return }
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            copied = false
+        }
+    }
+
+    private var copyButton: some View {
+        Button {
+            guard let copyText else { return }
+            SystemClipboard.copy(copyText)
+            copied = true
+        } label: {
+            Label(copied ? "common.copied" : "common.copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+        }
     }
 
     private var padding: EdgeInsets {

@@ -1,4 +1,5 @@
 import SwiftUI
+import MeshDropKit
 
 struct DiscoveryPage: View {
     @EnvironmentObject var state: AppState
@@ -21,6 +22,12 @@ struct DiscoveryPage: View {
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textMuted)
                         Spacer()
+                        Button {
+                            ShareEngine.shared.refreshDiscovery()
+                        } label: {
+                            Label("discovery.refresh", systemImage: "arrow.clockwise")
+                        }
+                        .disabled(state.isScanning)
                         Chip(text: String(localized: "discovery.tag.plaintext"), tone: .outline, mono: true)
                         Chip(text: "LAN ONLY",         tone: .outline, mono: true)
                     }

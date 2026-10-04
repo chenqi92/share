@@ -55,6 +55,11 @@ final class AppState: ObservableObject {
     }
 
     private func bind() {
+        NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.engine.refreshDiscovery() }
+            .store(in: &cancellables)
+
         engine.$devices
             .receive(on: DispatchQueue.main)
             .sink { [weak self] list in

@@ -30,7 +30,7 @@ jobs:
         run: swift test
 
   linux-core:
-    name: Linux · meshdrop-core test
+    name: Linux · core / TUI tests + GUI check
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -39,17 +39,26 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: linux
+      - name: Install GTK development libraries
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
       - name: Build meshdrop-core
         working-directory: linux
         run: cargo build -p meshdrop-core
-      - name: Run meshdrop-core unit + integration tests
+      - name: Run core and TUI tests
         working-directory: linux
-        run: cargo test -p meshdrop-core
+        run: cargo test -p meshdrop-core -p meshdrop-tui
+      - name: Check GUI
+        working-directory: linux
+        run: cargo check -p meshdrop-gui
 
   android-unit:
-    name: Android · :app unit tests
+    name: ${{ matrix.project }} · build + unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [android, wearos]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v4
@@ -58,10 +67,12 @@ jobs:
           java-version: '21'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - uses: gradle/actions/setup-gradle@v6
       - name: Run :app JVM unit tests
-        working-directory: android
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
+        working-directory: ${{ matrix.project }}
+        run: ./gradlew :app:assembleDebug :app:testDebugUnitTest --no-daemon
 
   web-build:
     name: Web · npm build
@@ -69,7 +80,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -91,7 +102,7 @@ jobs:
     # 显式 set 与 IReadOnlyList<int> 修复后真过
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - uses: microsoft/setup-msbuild@v3
@@ -108,7 +119,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: Verify frame_bytes_hex = u32(BE length) + type + body_bytes_hex

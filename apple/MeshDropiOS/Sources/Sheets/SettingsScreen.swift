@@ -6,8 +6,6 @@ struct SettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var scheme
     @EnvironmentObject var engine: ShareEngine
-    @State private var visible: Bool = true
-    @State private var requireConfirm: Bool = true
     @State private var confirmingReset: Bool = false
 
     private var me: MockMe { engine.displaySelf }
@@ -39,9 +37,6 @@ struct SettingsScreen: View {
                 Button(MD("common.done")) { dismiss() }
             }
         }
-        .onChange(of: visible) { _, newValue in
-            if newValue { engine.start() } else { engine.stop() }
-        }
     }
 
     @ViewBuilder
@@ -51,9 +46,9 @@ struct SettingsScreen: View {
 
     private var visibilityCard: some View {
         VStack(spacing: 0) {
-            Toggle(isOn: $visible) {
+            Toggle(isOn: $engine.visibleOnLan) {
                 row(title: MD("settings.visibility.visible.title"),
-                    detail: visible ? MD("settings.visibility.visible.detail.on") : MD("settings.visibility.visible.detail.off"))
+                    detail: engine.visibleOnLan ? MD("settings.visibility.visible.detail.on") : MD("settings.visibility.visible.detail.off"))
             }
             .tint(MeshDropColor.lime)
             .padding(14)
@@ -121,7 +116,12 @@ struct SettingsScreen: View {
 
     private var behaviorCard: some View {
         VStack(spacing: 0) {
-            Toggle(isOn: $requireConfirm) {
+            Toggle(isOn: $engine.autoCopyReceivedText) {
+                row(title: MD("settings.clipboard.autoCopy"), detail: MD("settings.clipboard.autoCopy.detail"))
+            }
+            .tint(MeshDropColor.lime).padding(14)
+            divider
+            Toggle(isOn: $engine.verifyBeforeReceive) {
                 row(title: MD("settings.behavior.requireConfirm.title"), detail: MD("settings.behavior.requireConfirm.detail"))
             }
             .tint(MeshDropColor.lime).padding(14)
