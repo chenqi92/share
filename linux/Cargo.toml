@@ -35,7 +35,7 @@ rust-i18n = "4"
 rustls = "0.23"
 rustls-pemfile = "2"
 tokio-rustls = "0.26"
-tokio-tungstenite = { version = "0.24", features = ["rustls-tls-native-roots"] }
+tokio-tungstenite = { version = "0.30", features = ["rustls-tls-native-roots"] }
 rcgen = "0.14"
 httparse = "1.9"
 futures-util = "0.3"
