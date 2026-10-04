@@ -55,7 +55,7 @@ jobs:
       # Swift / C# / Kotlin 都需要先 build 一次让 CodeQL 抓 AST
       - name: Setup .NET (csharp only)
         if: matrix.language == 'csharp'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
 
