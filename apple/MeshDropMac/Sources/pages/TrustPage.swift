@@ -36,22 +36,26 @@ struct TrustPage: View {
                                 .fill(MeshDropColor.cardBg)
                         )
                 } else {
-                    tableHeader
+                    ScrollView(.horizontal) {
+                        VStack(alignment: .leading, spacing: 18) {
+                            tableHeader
 
-                    VStack(spacing: 0) {
-                        ForEach(Array(state.engineTrusted.enumerated()), id: \.element.id) { i, t in
-                            row(t)
-                            if i < state.engineTrusted.count - 1 {
-                                Rectangle()
-                                    .fill(MeshDropColor.divider)
-                                    .frame(height: 1)
+                            VStack(spacing: 0) {
+                                ForEach(Array(state.engineTrusted.enumerated()), id: \.element.id) { i, t in
+                                    row(t)
+                                    if i < state.engineTrusted.count - 1 {
+                                        Rectangle()
+                                            .fill(MeshDropColor.divider)
+                                            .frame(height: 1)
+                                    }
+                                }
                             }
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(MeshDropColor.cardBg)
+                            )
                         }
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(MeshDropColor.cardBg)
-                    )
                 }
             }
             .padding(.horizontal, 24)
@@ -63,7 +67,7 @@ struct TrustPage: View {
 
     private var tableHeader: some View {
         HStack(spacing: 0) {
-            cell(String(localized: "trust.col.device"), width: 240)
+            cell(String(localized: "trust.col.device"), width: 220)
             cell(String(localized: "trust.col.fingerprint"), width: 280)
             cell(String(localized: "trust.col.pairedAt"),     width: 110)
             cell(String(localized: "trust.col.lastSeen"),     width: 110)
@@ -74,6 +78,7 @@ struct TrustPage: View {
         .tracking(1.4)
         .foregroundStyle(MeshDropColor.textMuted)
         .padding(.vertical, 4)
+        .padding(.horizontal, 14)
     }
 
     @ViewBuilder
@@ -101,12 +106,13 @@ struct TrustPage: View {
                     }
                 }
             }
-            .frame(width: 240, alignment: .leading)
+            .frame(width: 220, alignment: .leading)
 
             Text(t.fingerprint)
                 .font(MeshDropFont.mono(size: 10.5))
                 .foregroundStyle(MeshDropColor.textSecondary)
                 .frame(width: 280, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(t.pairedAt)
                 .font(MeshDropFont.mono(size: 11))

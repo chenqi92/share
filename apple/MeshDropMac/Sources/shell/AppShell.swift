@@ -14,8 +14,11 @@ struct AppShell: View {
                     if showsSidebar {
                         Sidebar()
                     }
-                    contentRouter
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    GeometryReader { viewport in
+                        contentRouter
+                            .frame(width: viewport.size.width, height: viewport.size.height)
+                    }
+                    .clipped()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showsStatusBar {
