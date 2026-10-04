@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
+import { webcrypto } from 'node:crypto'
 import ts from 'typescript'
 
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/engine.ts', import.meta.url), 'utf8'), {
@@ -19,6 +20,8 @@ function fixture(fetchOverride) {
     static OPEN = 1
     readyState = 0
     handlers = new Map()
+    sent = []
+    send(frame) { this.sent.push(JSON.parse(frame)) }
     constructor(url) { this.url = url; sockets.push(this) }
     addEventListener(type, callback) { this.handlers.set(type, callback) }
     emit(type, event = {}) {
@@ -35,14 +38,14 @@ function fixture(fetchOverride) {
   }
   vm.runInNewContext(source, {
     exports, require: () => ({ default: { t: (key) => key } }),
-    ...clock, window: clock, WebSocket: Socket, AbortController,
+    ...clock, window: clock, WebSocket: Socket, AbortController, FormData, crypto: webcrypto,
     localStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: (k) => storage.delete(k) },
     fetch: fetchOverride ?? (async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => ({ token: 'fresh' }) } }),
   })
   const client = new exports.GatewayClient('https://host:7384')
   const states = []
   client.subscribe({ onConn: (state) => states.push(state) })
-  return { client, states, storage, sockets, requests, timers, fire(delay) {
+  return { client, states, storage, sockets, requests, timers, api: exports, fire(delay) {
     for (const [id, timer] of timers) if (timer.delay === delay) { timers.delete(id); timer.callback(); return }
     assert.fail(`Missing ${delay}ms timer`)
   } }
@@ -106,4 +109,50 @@ test('pair requests have a deadline and release the pending request', async () =
   f.fire(10_000)
   await assert.rejects(result, /aborted/)
   assert.equal(f.timers.size, 0)
+})
+
+test('file upload rejection from the gateway is not reported as sent', async () => {
+  const f = fixture()
+  await f.client.connect()
+  f.sockets[0].emit('open')
+  const result = f.client.sendFile('phone', new File(['hello'], 'original.txt'))
+  await new Promise((resolve) => setImmediate(resolve))
+  const command = f.sockets[0].sent[0]
+  assert.equal(command.type, 'send_file_ref')
+  assert.equal(command.payload.name, 'original.txt')
+  assert.equal(command.payload.fileRef, 'fresh')
+  f.sockets[0].emit('message', { data: JSON.stringify({ id: command.id, ok: false, error: 'peer_not_found' }) })
+  await assert.rejects(result, /peer_not_found/)
+  assert.equal(f.timers.size, 0)
+})
+
+test('files are not uploaded while disconnected or sent without an upload reference', async () => {
+  const f = fixture(async () => ({ ok: true, json: async () => ({}) }))
+  const file = new File(['hello'], 'original.txt')
+  await assert.rejects(f.client.sendFile('phone', file), /not connected/)
+  await f.client.connect()
+  f.sockets[0].emit('open')
+  await assert.rejects(f.client.sendFile('phone', file), /file reference/)
+  assert.equal(f.sockets[0].sent.length, 0)
+})
+
+test('waiting, failure before progress, and completion reach history and transfer UI', async () => {
+  const f = fixture()
+  const item = { id: 'file', peerName: 'iPhone', direction: 'sent', kind: 'file', files: [{ name: 'a.txt', sizeBytes: 50 }], completedAt: 0, ok: false }
+  await f.client.connect()
+  f.sockets[0].emit('open')
+  const updates = []
+  f.client.subscribe({ onHistoryUpdated: (h) => updates.push(h) })
+  for (const change of [{ status: 'waiting' }, { status: 'failed', error: 'Connection timed out' }, { status: 'done', ok: true }]) {
+    f.sockets[0].emit('message', { data: JSON.stringify({ type: 'history_updated', payload: { ...item, ...change } }) })
+  }
+  const rows = updates.map(f.api.adaptHistoryTransfer)
+  assert.equal(rows[0].state, 'queued')
+  assert.equal(rows[0].statusDetail, 'transfer.waitingApproval')
+  assert.equal(f.api.adaptHistory(updates[0]).status, 'queued')
+  assert.equal(rows[1].state, 'failed')
+  assert.equal(rows[1].statusDetail, 'Connection timed out')
+  assert.equal(rows[2].state, 'done')
+  assert.equal(rows[2].progress, 100)
+  assert.equal(f.api.adaptHistory(updates[2]).status, 'done')
 })

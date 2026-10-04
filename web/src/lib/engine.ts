@@ -53,6 +53,8 @@ export interface WireHistoryItem {
   files?: Array<{ name: string; sizeBytes: number; mime?: string }>
   bytesTransferred?: number
   ok: boolean
+  status?: 'queued' | 'waiting' | 'sending' | 'receiving' | 'done' | 'failed' | 'canceled'
+  error?: string
   completedAt: number
 }
 
@@ -107,7 +109,7 @@ type WsEvent =
   | { v: 1; type: 'offer_resolved'; payload: { id: string } }
   | { v: 1; type: 'transfer_progress'; payload: WireTransferProgress }
   | { v: 1; type: 'transfer_done'; payload: { id: string; ok: boolean; error?: string } }
-  | { v: 1; type: 'history_added'; payload: WireHistoryItem }
+  | { v: 1; type: 'history_added' | 'history_updated'; payload: WireHistoryItem }
   | { v: 1; type: 'clipboard_received'; payload: WireClipboardItem }
 
 type CmdAck = {
@@ -180,7 +182,9 @@ function timeOf(ts: number): string {
 export function adaptHistory(h: WireHistoryItem): HistoryEntry {
   const first = h.files?.[0]
   const dir = h.direction === 'sent' ? 'outgoing' : 'incoming'
-  const status = h.ok ? 'done' : 'failed'
+  const status: HistoryEntry['status'] = h.status === 'queued' || h.status === 'waiting' ? 'queued'
+    : h.status === 'sending' || h.status === 'receiving' ? 'transferring'
+    : h.ok ? 'done' : 'failed'
   if (h.kind === 'text') {
     return { id: h.id, dir, peer: h.peerName, time: timeOf(h.completedAt), kind: 'text', content: h.text ?? '', status }
   }
@@ -192,6 +196,23 @@ export function adaptHistory(h: WireHistoryItem): HistoryEntry {
     kind: 'file',
     name: first?.name, size: formatBytes(first?.sizeBytes), ext: extOf(first?.name),
     status,
+  }
+}
+
+export function adaptHistoryTransfer(h: WireHistoryItem): TransferRow {
+  const file = h.files?.[0]
+  const state: TransferState = h.status === 'waiting' || h.status === 'queued' ? 'queued'
+    : h.status === 'sending' || h.status === 'receiving' ? h.status
+    : h.ok ? 'done' : 'failed'
+  const total = file?.sizeBytes ?? 0
+  return {
+    id: h.id, name: file?.name ?? h.text ?? '', size: formatBytes(total), ext: extOf(file?.name),
+    from: h.direction === 'sent' ? '我' : h.peerName,
+    to: h.direction === 'sent' ? h.peerName : '我', state,
+    progress: h.ok ? 100 : total > 0 ? Math.min(100, Math.round((h.bytesTransferred ?? 0) / total * 100)) : 0,
+    totalBytes: total,
+    statusDetail: h.status === 'waiting' ? i18n.t('transfer.waitingApproval')
+      : h.status === 'canceled' ? i18n.t('transfer.canceled') : h.error,
   }
 }
 
@@ -323,6 +344,7 @@ export interface EngineListener {
   onTransferProgress?(t: WireTransferProgress): void
   onTransferDone?(id: string, ok: boolean, error?: string): void
   onHistoryAdded?(h: WireHistoryItem): void
+  onHistoryUpdated?(h: WireHistoryItem): void
   onClipboardReceived?(c: WireClipboardItem): void
   onConn?(s: EngineConnState): void
 }
@@ -464,6 +486,7 @@ export class GatewayClient {
   }
 
   async sendFile(peerId: string, file: File, opts?: { noteText?: string }): Promise<CmdAck> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('gateway not connected')
     const fd = new FormData()
     fd.append('file', file, file.name)
     const r = await fetch(`${this.gateway}/api/v1/upload`, {
@@ -472,6 +495,7 @@ export class GatewayClient {
     })
     if (!r.ok) throw new Error(`upload failed: HTTP ${r.status}`)
     const { token } = await r.json() as { token: string }
+    if (typeof token !== 'string' || !token) throw new Error('upload did not return a file reference')
     return this.cmd('send_file_ref', {
       peerId, fileRef: token, name: file.name, sizeBytes: file.size, mime: file.type,
       noteText: opts?.noteText,
@@ -533,7 +557,8 @@ export class GatewayClient {
       if (p) {
         clearTimeout(p.timer)
         this.pending.delete(msg.id)
-        p.resolve(msg as CmdAck)
+        if (msg.ok) p.resolve(msg as CmdAck)
+        else p.reject(new Error(msg.error || 'command failed'))
       }
       return
     }
@@ -553,6 +578,7 @@ export class GatewayClient {
         case 'transfer_progress': l.onTransferProgress?.(ev.payload); break
         case 'transfer_done': l.onTransferDone?.(ev.payload.id, ev.payload.ok, ev.payload.error); break
         case 'history_added': l.onHistoryAdded?.(ev.payload); break
+        case 'history_updated': l.onHistoryUpdated?.(ev.payload); break
         case 'clipboard_received': l.onClipboardReceived?.(ev.payload); break
       }
     }

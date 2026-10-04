@@ -22,6 +22,27 @@ final class GatewayCommandsTests: XCTestCase {
         XCTAssertEqual(obj["error"] as? String, "peer_not_found")
     }
 
+    func testHistoryStatusIncludesWaitingAndFailureBeforeProgress() throws {
+        let peer = Device(id: "phone", name: "iPhone", os: .ios, fingerprint: "fp", port: 1)
+        var item = HistoryItem(peer: peer, direction: .outgoing,
+                               kind: .file(name: "original.txt", size: 100, url: nil), status: .waitingApproval)
+        var wire = GatewayCommands.historyWire(item)
+        XCTAssertEqual(wire["status"] as? String, "waiting")
+        XCTAssertEqual(wire["ok"] as? Bool, false)
+        XCTAssertNil(wire["bytesTransferred"])
+        item.status = .failed("Connection timed out")
+        wire = GatewayCommands.historyWire(item)
+        XCTAssertEqual(wire["status"] as? String, "failed")
+        XCTAssertEqual(wire["error"] as? String, "Connection timed out")
+        item.status = .transferring(bytesDone: 40, bytesTotal: 100)
+        XCTAssertEqual(GatewayCommands.historyWire(item)["bytesTransferred"] as? Int, 40)
+        item.status = .completed
+        wire = GatewayCommands.historyWire(item)
+        XCTAssertEqual(wire["status"] as? String, "done")
+        XCTAssertEqual(wire["ok"] as? Bool, true)
+        XCTAssertEqual(wire["bytesTransferred"] as? Int, 100)
+    }
+
     @MainActor
     func testFileForHistoryReturnsIncomingFileURL() throws {
         // 写一个临时文件，把它当作"已接收"的 incoming history item

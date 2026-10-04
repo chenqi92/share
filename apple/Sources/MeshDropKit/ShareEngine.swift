@@ -141,7 +141,7 @@ public final class ShareEngine: ObservableObject {
     /// 重放窗口：5 分钟（security.md）。
     private static let replayWindow: TimeInterval = 5 * 60
 
-    /// 握手超时：纯机器协商态（awaitingHello/awaitingHelloAck）应在秒级完成，
+    /// 握手超时：入方等待 HELLO 的机器协商态应在秒级完成，
     /// 超过这么久仍没推进即判死回收，防半开连接堆积。
     private static let handshakeTimeout: TimeInterval = 30
     /// 决策超时：awaitingPairApproval / awaitingFileAccept 等待的是**人**点「信任」/「接收」，
@@ -1568,12 +1568,13 @@ public final class ShareEngine: ObservableObject {
         for (id, ctx) in contexts {
             switch ctx.state {
             // 纯机器协商态：秒级应完成，超 handshakeTimeout 即回收
-            case .awaitingHello, .awaitingHelloAck:
+            case .awaitingHello:
                 if now.timeIntervalSince(ctx.createdAt) > Self.handshakeTimeout {
                     toClose.append(id)
                 }
             // 人为决策态（等用户点信任/接收）：给宽松窗口，仅兜底回收长期无人理会的僵尸连接
-            case .awaitingPairApproval, .awaitingFileAccept:
+            // HELLO_ACK 在接收方确认配对后才发送，出方也需要等待用户决策。
+            case .awaitingHelloAck, .awaitingPairApproval, .awaitingFileAccept:
                 if now.timeIntervalSince(ctx.createdAt) > Self.decisionTimeout {
                     toClose.append(id)
                 }

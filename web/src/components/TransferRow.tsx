@@ -32,7 +32,7 @@ function stateVisual(state: Row['state'], t: TFunction): { label: string; symbol
 export function TransferRow({ row, onCancel, onRetry }: Props) {
   const { t } = useTranslation()
   const s = stateVisual(row.state, t)
-  const isActive = row.state === 'sending' || row.state === 'receiving'
+  const isActive = row.state === 'sending' || row.state === 'receiving' || row.state === 'queued'
   const isFailed = row.state === 'failed'
   return (
     <div
@@ -112,6 +112,7 @@ export function TransferRow({ row, onCancel, onRetry }: Props) {
         )}
       </div>
 
+      {row.statusDetail && <p role="status" style={{ color: isFailed ? 'var(--error)' : 'var(--text-mute)', fontSize: 13 }}>{row.statusDetail}</p>}
       <ProgressBar value={row.progress} state={row.state} />
 
       <div

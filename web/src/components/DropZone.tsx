@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 interface Props {
   selectedPeerName?: string
+  disabled?: boolean
   onFiles?: (files: File[]) => void
   onPasteText?: () => void
   /** force the drop-overlay highlight (used when dragging over peer rows etc.) */
@@ -10,7 +11,7 @@ interface Props {
   children?: ReactNode
 }
 
-export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighlight, children }: Props) {
+export function DropZone({ selectedPeerName, disabled = false, onFiles, onPasteText, forceHighlight, children }: Props) {
   const { t } = useTranslation()
   const [active, setActive] = useState(false)
   const counter = useRef(0)
@@ -39,9 +40,9 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
       counter.current = 0
       setActive(false)
       const files = Array.from(e.dataTransfer.files ?? [])
-      if (files.length) onFiles?.(files)
+      if (files.length && !disabled) onFiles?.(files)
     },
-    [onFiles],
+    [onFiles, disabled],
   )
 
   const highlight = active || !!forceHighlight
@@ -72,11 +73,12 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
       <input
         ref={inputRef}
         type="file"
+        disabled={disabled}
         multiple
         hidden
         onChange={(e) => {
           const files = Array.from(e.target.files ?? [])
-          if (files.length) onFiles?.(files)
+          if (files.length && !disabled) onFiles?.(files)
           if (inputRef.current) inputRef.current.value = ''
         }}
       />
@@ -125,6 +127,7 @@ export function DropZone({ selectedPeerName, onFiles, onPasteText, forceHighligh
 
       <div className="flex flex-wrap gap-3 justify-center" style={{ marginTop: 6 }}>
         <button
+          disabled={disabled}
           onClick={() => inputRef.current?.click()}
           style={{
             background: 'var(--ink)',

@@ -33,6 +33,7 @@ import {
   adaptClipboard,
   adaptDevice,
   adaptHistory,
+  adaptHistoryTransfer,
   adaptMe,
   adaptOffer,
   adaptPairing,
@@ -293,7 +294,10 @@ export function useEngineConnection() {
           me: adaptMe(snap.me),
           devices: (snap.devices ?? []).map(adaptDevice),
           history: buildHistoryDays((snap.history ?? []).map(adaptHistory)),
-          transfers: (snap.transfers ?? []).map((t) => adaptTransfer(t)),
+          transfers: [
+            ...(snap.transfers ?? []).map((t) => adaptTransfer(t)),
+            ...(snap.history ?? []).filter((h) => !snap.transfers?.some((t) => t.id === h.id)).map(adaptHistoryTransfer),
+          ],
           pendingOffer: off ? adaptOffer(off) : undefined,
           pendingPairing: pp ? adaptPairing(pp) : undefined,
         })
@@ -321,26 +325,37 @@ export function useEngineConnection() {
       onOfferResolved: () => useEngine.setState({ pendingOffer: undefined }),
       onTransferProgress: (t) => {
         const next = useEngine.getState().transfers.map((r) =>
-          r.id === t.id ? adaptTransfer(t, r.state) : r
+          r.id === t.id ? adaptTransfer(t, r.to === '我' ? 'receiving' : 'sending') : r
         )
         if (!next.some((r) => r.id === t.id)) next.unshift(adaptTransfer(t))
         useEngine.setState({ transfers: next })
       },
-      onTransferDone: (id, ok) => {
+      onTransferDone: (id, ok, error) => {
         const next = useEngine.getState().transfers.map((r) =>
-          r.id === id ? { ...r, state: ok ? ('done' as const) : ('failed' as const), progress: ok ? 100 : r.progress } : r
+          r.id === id ? { ...r, state: ok ? ('done' as const) : ('failed' as const), progress: ok ? 100 : r.progress, statusDetail: error } : r
         )
         useEngine.setState({ transfers: next })
       },
       onHistoryAdded: (h) => {
         const item = adaptHistory(h)
         const day = useEngine.getState().history[0]
-        const items = day ? [item, ...day.items] : [item]
-        useEngine.setState({ history: buildHistoryDays(items) })
+        const items = [item, ...(day?.items ?? []).filter((x) => x.id !== h.id)]
+        useEngine.setState({
+          history: buildHistoryDays(items),
+          transfers: [adaptHistoryTransfer(h), ...useEngine.getState().transfers.filter((r) => r.id !== h.id)],
+        })
         if (h.direction === 'received') {
           const body = h.kind === 'text' ? (h.text ?? '') : (h.files?.[0]?.name ?? i18n.t('notify.fileFallback'))
           notifyIncoming(i18n.t('notify.from', { who: h.peerName }), body)
         }
+      },
+      onHistoryUpdated: (h) => {
+        const state = useEngine.getState()
+        const items = state.history.flatMap((day) => day.items).map((item) => item.id === h.id ? adaptHistory(h) : item)
+        const row = adaptHistoryTransfer(h)
+        const transfers = state.transfers.some((r) => r.id === h.id)
+          ? state.transfers.map((r) => r.id === h.id ? row : r) : [row, ...state.transfers]
+        useEngine.setState({ history: buildHistoryDays(items), transfers })
       },
       onClipboardReceived: (c) => {
         const inbox = useEngine.getState().clipboardInbox

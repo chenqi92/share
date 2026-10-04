@@ -61,7 +61,7 @@ export function App() {
     page === 'transfer' ? <TransferPage /> :
     page === 'clipboard' ? <ClipboardPage /> :
     page === 'history' ? <HistoryPage /> :
-    page === 'pairing' ? <PairingPage /> :
+    page === 'pairing' ? <PairingPage onSend={() => setPage('main')} /> :
     <SettingsPage />
 
   return (

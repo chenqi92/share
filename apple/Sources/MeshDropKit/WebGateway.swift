@@ -670,9 +670,11 @@ public final class WebGateway: @unchecked Sendable {
             .appendingPathComponent("uploads", isDirectory: true)
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         // 文件名由客户端控制，绝不直接拼路径：剥到最后一段并剔除分隔符 / .. / 控制字符，
-        // 永远落盘到 uploads 目录下（UUID 前缀防重名 + 防覆盖）。
+        // 每次上传独立目录，防止重名覆盖，同时保留传给接收方的原文件名。
         let safeName = Self.sanitizedUploadName(part.filename)
-        let target = dir.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
+        let uploadDir = dir.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: uploadDir, withIntermediateDirectories: true)
+        let target = uploadDir.appendingPathComponent(safeName)
 
         // 纵深校验：canonicalize 后必须仍在 uploads 目录前缀内，否则拒绝写入。
         let uploadsRoot = dir.standardizedFileURL.path
