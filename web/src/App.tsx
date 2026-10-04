@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useEngineConnection } from './hooks/useEngine'
+import { useEngine, useEngineConnection } from './hooks/useEngine'
 import { BrowserChrome } from './components/BrowserChrome'
 import { MainPage } from './pages/MainPage'
 import { ChatPage } from './pages/ChatPage'
@@ -37,7 +37,10 @@ export function App() {
   useEngineConnection()
   const { t, i18n } = useTranslation()
   const { mode, setMode } = useTheme()
-  const [page, setPage] = useState<PageId>(() => initialPage())
+  const [selectedPage, setPage] = useState<PageId>(() => initialPage())
+  const engineMode = useEngine((s) => s.mode)
+  const conn = useEngine((s) => s.conn)
+  const page = engineMode === 'live' && conn !== 'open' ? 'pairing' : selectedPage
   // URL 里房间名保持原文（属可演示数据），但 hint 里的可读部分走 i18n。
   const room = t('app.roomLiving')
 
@@ -175,9 +178,11 @@ export function App() {
       </header>
 
       <main style={{ flex: 1, padding: 18, display: 'flex' }}>
-        <BrowserChrome url={url} hint={`${page.toUpperCase()} · ${t('browserChrome.roomHint', { room })}`}>
-          {pageNode}
-        </BrowserChrome>
+        {engineMode === 'mock' ? (
+          <BrowserChrome url={url} hint={`${page.toUpperCase()} · ${t('browserChrome.roomHint', { room })}`}>
+            {pageNode}
+          </BrowserChrome>
+        ) : <div style={{ flex: 1, minWidth: 0 }}>{pageNode}</div>}
       </main>
     </div>
   )

@@ -91,6 +91,9 @@ jobs:
       - name: Build
         working-directory: web
         run: npm run build
+      - name: Test gateway client
+        working-directory: web
+        run: npm test
 
   windows-build:
     name: Windows · MeshDrop build

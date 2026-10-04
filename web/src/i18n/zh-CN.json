@@ -20,7 +20,7 @@
     "noOnlineDevices": "无在线设备"
   },
   "app": {
-    "previewBanner": "MESHDROP · WEB FALLBACK PREVIEW",
+    "previewBanner": "MESHDROP · WEB",
     "roomLiving": "客厅",
     "nav": {
       "main": "主页",
@@ -191,7 +191,7 @@
     "eyebrow": "配对",
     "titleLine1": "把这台浏览器,",
     "titleLine2": "加入你的 MeshDrop 网",
-    "intro": "访客匿名收发不需要配对；只有当你希望这台浏览器变成“长期信任”——下次进来不再弹接收确认——才需要把它配对到你的 MeshDrop 设备上。",
+    "intro": "输入桌面端「设置 → Web 访问」中显示的 6 字符配对码，即可通过这台设备使用局域网传输。",
     "gateway": {
       "notConfigured": "当前未配置 native Web Gateway。输入运行 MeshDrop native 端的地址后再配对。",
       "placeholder": "https://192.168.1.12:7384",
@@ -212,7 +212,7 @@
       "pairing": "配对中…",
       "submit": "配对 →",
       "invalid": "代码无效或已过期",
-      "hint": "在 native app 顶部找到 6 字符代码，输入这里",
+      "hint": "在桌面端「设置 → Web 访问」中找到 6 字符配对码，输入这里",
       "label": "● 6 字符代码 · 30s",
       "sessionLimited": "限本会话",
       "unknown": "gateway 尚未下发配对代码。"

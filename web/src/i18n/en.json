@@ -20,7 +20,7 @@
     "noOnlineDevices": "No devices online"
   },
   "app": {
-    "previewBanner": "MESHDROP · WEB FALLBACK PREVIEW",
+    "previewBanner": "MESHDROP · WEB",
     "roomLiving": "Living Room",
     "nav": {
       "main": "Main",
@@ -191,7 +191,7 @@
     "eyebrow": "Pairing",
     "titleLine1": "Add this browser",
     "titleLine2": "to your MeshDrop network",
-    "intro": "Anonymous guest transfers don't need pairing. You only pair this browser to your MeshDrop device when you want it to become \"long-term trusted\" — so next time it won't prompt you to accept.",
+    "intro": "Enter the six-character pairing code from Settings → Web access in the desktop app to use LAN transfers through this device.",
     "gateway": {
       "notConfigured": "No native Web Gateway configured. Enter the address of a running MeshDrop native client before pairing.",
       "placeholder": "https://192.168.1.12:7384",

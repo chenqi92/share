@@ -335,6 +335,7 @@ export class GatewayClient {
   private pending = new Map<string, { resolve: (r: CmdAck) => void; reject: (e: Error) => void; timer: number }>()
   private state: EngineConnState = 'idle'
   private retryTimer?: number
+  private connectionTimer?: number
   private gateway: string
   private session?: string
 
@@ -355,19 +356,27 @@ export class GatewayClient {
 
   /** 用 6 字符配对代码换 session cookie。返回 true 表示已配对。 */
   async pair(code: string): Promise<boolean> {
-    const r = await fetch(`${this.gateway}/api/v1/pair`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code }),
-      credentials: 'include',
-    })
-    if (!r.ok) return false
-    const body = await r.json().catch(() => null) as { token?: string } | null
-    if (body?.token) {
-      this.session = body.token
-      try { localStorage.setItem('meshdrop.session', body.token) } catch { /* ignore */ }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), CMD_TIMEOUT_MS)
+    try {
+      const r = await fetch(`${this.gateway}/api/v1/pair`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: code.replace(/[\s·-]/g, '').toUpperCase() }),
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      if (!r.ok) return false
+      const body = await r.json().catch(() => null) as { token?: string } | null
+      if (body?.token) {
+        this.disconnect()
+        this.session = body.token
+        try { localStorage.setItem('meshdrop.session', body.token) } catch { /* ignore */ }
+      }
+      return !!body?.token
+    } finally {
+      clearTimeout(timer)
     }
-    return true
   }
 
   hasSession(): boolean {
@@ -388,6 +397,8 @@ export class GatewayClient {
   }
 
   async connect(): Promise<void> {
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) return
+    if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
     if (!this.session) {
       this.setState('unpaired')
       return
@@ -399,20 +410,45 @@ export class GatewayClient {
 
     const ws = new WebSocket(url)
     this.ws = ws
+    let opened = false
+    this.connectionTimer = window.setTimeout(() => {
+      if (this.ws !== ws || opened) return
+      this.disconnect()
+      this.forgetSession()
+      this.setState('unpaired')
+    }, CMD_TIMEOUT_MS)
 
-    ws.addEventListener('open', () => { this.setState('open') })
+    ws.addEventListener('open', () => {
+      if (this.ws !== ws) return
+      opened = true
+      clearTimeout(this.connectionTimer)
+      this.connectionTimer = undefined
+      this.setState('open')
+    })
     ws.addEventListener('close', () => {
-      this.setState('closed')
-      this.scheduleRetry()
+      if (this.ws !== ws) return
+      this.ws = undefined
+      clearTimeout(this.connectionTimer)
+      this.connectionTimer = undefined
+      if (!opened) {
+        this.forgetSession()
+        this.setState('unpaired')
+      } else {
+        this.setState('closed')
+        this.scheduleRetry()
+      }
     })
     ws.addEventListener('error', () => { /* close handler will retry */ })
-    ws.addEventListener('message', (e) => this.onMessage(e.data))
+    ws.addEventListener('message', (e) => { if (this.ws === ws) this.onMessage(e.data) })
   }
 
   disconnect(): void {
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
-    this.ws?.close()
+    clearTimeout(this.connectionTimer)
+    this.connectionTimer = undefined
+    const ws = this.ws
     this.ws = undefined
+    ws?.close()
     this.setState('closed')
   }
 

@@ -65,3 +65,7 @@ targets:
     dependencies:
       - package: MeshDropKit
         product: MeshDropKit
+    postBuildScripts:
+      - name: Bundle Web Gateway
+        script: '"$SRCROOT/../../scripts/build-web-gateway.sh"'
+        basedOnDependencyAnalysis: false
