@@ -15,6 +15,23 @@ tools_dir="$sdk_root/build-tools/35.0.0"
 test -x "$tools_dir/apksigner"
 out="$repo_root/release-assets"
 mkdir -p "$out"
+if [[ "$project" == android && ! -f "$project/key.properties" ]]; then
+  python3 - <<'PY'
+import os
+from pathlib import Path
+mapping = {'storeFile': 'ANDROID_KEYSTORE', 'storePassword': 'ANDROID_STORE_PASSWORD',
+           'keyAlias': 'ANDROID_KEY_ALIAS', 'keyPassword': 'ANDROID_KEY_PASSWORD'}
+def escape(value):
+    return ''.join('\\u%04x' % ord(c) if ord(c) > 127 else
+                   {'\\': '\\\\', '\n': '\\n', '\r': '\\r', '\t': '\\t', ' ': '\\ ', '=': '\\=', ':': '\\:'}.get(c, c)
+                   for c in value)
+path = Path('android/key.properties')
+with path.open('x') as stream:
+    os.chmod(path, 0o600)
+    stream.write(''.join(f'{key}={escape(os.environ[value])}\n' for key, value in mapping.items()))
+PY
+  trap 'rm -f android/key.properties' EXIT
+fi
 (
   cd "$project"
   ./gradlew :app:assembleRelease :app:bundleRelease :app:testReleaseUnitTest --no-daemon

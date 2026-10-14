@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 spec = importlib.util.spec_from_file_location('assets', Path(__file__).parents[1] / 'release-assets.py')
@@ -10,6 +11,17 @@ spec.loader.exec_module(assets)
 
 
 class ReleaseAssetsTests(unittest.TestCase):
+    def test_published_binary_collision_stops_before_upload(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            name = 'MeshDrop-v1.1.2-android.apk'
+            (root / name).write_bytes(b'different build')
+            remote = {'assets': [{'name': name, 'digest': 'sha256:old'}]}
+            with patch.object(assets, 'validate_assets'), patch.object(assets, 'existing_release', return_value=remote), patch.object(assets.subprocess, 'run') as command:
+                with self.assertRaisesRegex(ValueError, 'immutable'):
+                    assets.publish('owner/repo', 'v1.1.2', root)
+                command.assert_not_called()
+
     def test_windows_only_cannot_publish(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

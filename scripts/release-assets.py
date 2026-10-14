@@ -15,7 +15,7 @@ METADATA = {'CHANGELOG.md', 'SHA256SUMS.txt', 'release-manifest.json'}
 
 
 def run(*args):
-    return subprocess.check_output(args, text=True).strip()
+    return subprocess.check_output(args, encoding='utf-8').strip()
 
 
 def digest(path):
@@ -75,7 +75,7 @@ def manifest(tag, directory, source_sha, tooling_sha):
 
 def existing_release(repo, tag):
     result = subprocess.run(['gh', 'api', f'repos/{repo}/releases/tags/{tag}'],
-                            text=True, capture_output=True)
+                            encoding='utf-8', capture_output=True)
     if result.returncode:
         if 'HTTP 404' in result.stderr:
             return None
