@@ -351,6 +351,22 @@ export interface EngineListener {
 
 const CMD_TIMEOUT_MS = 10_000
 
+function gatewayOrigin(raw: string): string {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error(i18n.t('pairing.gateway.urlInvalid'))
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(i18n.t('pairing.gateway.urlScheme'))
+  }
+  if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error(i18n.t('pairing.gateway.urlInvalid'))
+  }
+  return url.origin
+}
+
 export class GatewayClient {
   private ws?: WebSocket
   private listeners = new Set<EngineListener>()
@@ -360,14 +376,38 @@ export class GatewayClient {
   private connectionTimer?: number
   private gateway: string
   private session?: string
+  private generation = 0
 
   constructor(gateway: string) {
-    this.gateway = gateway.replace(/\/$/, '')
+    this.gateway = gateway ? gatewayOrigin(gateway) : ''
+    this.restoreSession()
+  }
+
+  private get sessionKey(): string { return `meshdrop.session:${this.gateway}` }
+
+  private restoreSession(): void {
+    this.session = undefined
     try {
-      this.session = localStorage.getItem('meshdrop.session') ?? undefined
+      // Legacy tokens have no recorded origin, so they cannot be safely reused.
+      localStorage.removeItem('meshdrop.session')
+      if (this.gateway) this.session = localStorage.getItem(this.sessionKey) ?? undefined
     } catch {
       // ignore
     }
+  }
+
+  setGateway(gateway: string): void {
+    const origin = gateway ? gatewayOrigin(gateway) : ''
+    if (origin === this.gateway) return
+    this.disconnect()
+    this.gateway = origin
+    this.restoreSession()
+    this.setState(this.session ? 'idle' : 'unpaired')
+  }
+
+  private endpoint(path: string): string {
+    if (!this.gateway) throw new Error(i18n.t('pairing.gateway.needGateway'))
+    return `${this.gateway}${path}`
   }
 
   subscribe(l: EngineListener): () => void {
@@ -378,24 +418,29 @@ export class GatewayClient {
 
   /** 用 6 字符配对代码换 session cookie。返回 true 表示已配对。 */
   async pair(code: string): Promise<boolean> {
+    const url = this.endpoint('/api/v1/pair')
+    const generation = this.generation
     const controller = new AbortController()
     const timer = window.setTimeout(() => controller.abort(), CMD_TIMEOUT_MS)
     try {
-      const r = await fetch(`${this.gateway}/api/v1/pair`, {
+      const r = await fetch(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ code: code.replace(/[\s·-]/g, '').toUpperCase() }),
         credentials: 'include',
+        redirect: 'error',
         signal: controller.signal,
       })
       if (!r.ok) return false
       const body = await r.json().catch(() => null) as { token?: string } | null
-      if (body?.token) {
+      if (generation !== this.generation) return false
+      if (typeof body?.token === 'string' && body.token) {
         this.disconnect()
         this.session = body.token
-        try { localStorage.setItem('meshdrop.session', body.token) } catch { /* ignore */ }
+        try { localStorage.setItem(this.sessionKey, body.token) } catch { /* ignore */ }
+        return true
       }
-      return !!body?.token
+      return false
     } finally {
       clearTimeout(timer)
     }
@@ -409,28 +454,31 @@ export class GatewayClient {
    *  server 带 Content-Disposition: attachment）。带 ?token= 兼容无 cookie 场景。
    *  注意：传入的是 history item id —— 协议约定它与对应 offerId 等值，server 端按此路由。 */
   downloadURL(offerId: string): string {
-    const base = `${this.gateway}/api/v1/download/${encodeURIComponent(offerId)}`
+    if (!/^[a-zA-Z0-9_-]+$/.test(offerId)) throw new Error('Invalid offer ID')
+    const base = this.endpoint(`/api/v1/download/${encodeURIComponent(offerId)}`)
     return this.session ? `${base}?token=${encodeURIComponent(this.session)}` : base
   }
 
   forgetSession(): void {
+    this.disconnect()
     this.session = undefined
-    try { localStorage.removeItem('meshdrop.session') } catch { /* ignore */ }
+    try { localStorage.removeItem(this.sessionKey) } catch { /* ignore */ }
+    this.setState('unpaired')
   }
 
   async connect(): Promise<void> {
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) return
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
-    if (!this.session) {
+    if (!this.gateway || !this.session) {
       this.setState('unpaired')
       return
     }
     this.setState('connecting')
-    const scheme = this.gateway.startsWith('https') ? 'wss' : 'ws'
-    const host = this.gateway.replace(/^https?:\/\//, '')
-    const url = `${scheme}://${host}/api/v1/control?token=${encodeURIComponent(this.session)}`
+    const url = new URL(this.endpoint('/api/v1/control'))
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    url.searchParams.set('token', this.session)
 
-    const ws = new WebSocket(url)
+    const ws = new WebSocket(url.toString())
     this.ws = ws
     let opened = false
     this.connectionTimer = window.setTimeout(() => {
@@ -465,12 +513,18 @@ export class GatewayClient {
   }
 
   disconnect(): void {
+    this.generation++
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
     clearTimeout(this.connectionTimer)
     this.connectionTimer = undefined
     const ws = this.ws
     this.ws = undefined
     ws?.close()
+    for (const p of this.pending.values()) {
+      clearTimeout(p.timer)
+      p.reject(new Error('gateway disconnected'))
+    }
+    this.pending.clear()
     this.setState('closed')
   }
 
@@ -487,14 +541,17 @@ export class GatewayClient {
 
   async sendFile(peerId: string, file: File, opts?: { noteText?: string }): Promise<CmdAck> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('gateway not connected')
+    const generation = this.generation
     const fd = new FormData()
     fd.append('file', file, file.name)
-    const r = await fetch(`${this.gateway}/api/v1/upload`, {
+    const r = await fetch(this.endpoint('/api/v1/upload'), {
       method: 'POST', body: fd, credentials: 'include',
+      redirect: 'error',
       headers: this.session ? { 'x-meshdrop-token': this.session } : undefined,
     })
     if (!r.ok) throw new Error(`upload failed: HTTP ${r.status}`)
     const { token } = await r.json() as { token: string }
+    if (generation !== this.generation) throw new Error('gateway disconnected')
     if (typeof token !== 'string' || !token) throw new Error('upload did not return a file reference')
     return this.cmd('send_file_ref', {
       peerId, fileRef: token, name: file.name, sizeBytes: file.size, mime: file.type,
@@ -588,16 +645,14 @@ export class GatewayClient {
 // ---------- single shared instance ----------
 
 function detectGateway(): string {
-  // 1) 显式覆盖 (?gw=https://1.2.3.4:7384)
+  // Only explicit settings may select a different origin; links cannot redirect sessions.
   try {
-    const q = new URLSearchParams(window.location.search).get('gw')
-    if (q) return q
     const stored = localStorage.getItem('meshdrop.gateway')
-    if (stored) return stored
+    if (stored) return gatewayOrigin(stored)
   } catch { /* ignore */ }
   // 2) gateway 把 web fallback 嵌在自己进程里：当前 origin 就是 gateway
   if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('http://localhost')) {
-    return window.location.origin
+    try { return gatewayOrigin(window.location.origin) } catch { /* ignore */ }
   }
   // 3) dev 模式默认占位
   return ''
@@ -605,7 +660,7 @@ function detectGateway(): string {
 
 let _client: GatewayClient | undefined
 export function getClient(): GatewayClient {
-  if (!_client) _client = new GatewayClient(detectGateway() || 'about:blank')
+  if (!_client) _client = new GatewayClient(detectGateway())
   return _client
 }
 
@@ -618,21 +673,13 @@ export function getGatewayEndpoint(): string {
 }
 
 export function setGatewayEndpoint(raw: string): void {
-  const value = raw.trim().replace(/\/$/, '')
+  const value = raw.trim()
   if (!value) {
     try { localStorage.removeItem('meshdrop.gateway') } catch { /* ignore */ }
-    _client = undefined
+    _client?.setGateway(detectGateway())
     return
   }
-  let url: URL
-  try {
-    url = new URL(value)
-  } catch {
-    throw new Error(i18n.t('pairing.gateway.urlInvalid'))
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error(i18n.t('pairing.gateway.urlScheme'))
-  }
-  try { localStorage.setItem('meshdrop.gateway', url.toString().replace(/\/$/, '')) } catch { /* ignore */ }
-  _client = undefined
+  const origin = gatewayOrigin(value)
+  try { localStorage.setItem('meshdrop.gateway', origin) } catch { /* ignore */ }
+  _client?.setGateway(origin)
 }
