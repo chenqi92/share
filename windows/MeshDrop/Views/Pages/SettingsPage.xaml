@@ -41,7 +41,7 @@
                                 <TextBlock x:Name="DeviceNameLabel" x:Uid="settings/displayName" FontSize="14" FontWeight="SemiBold"/>
                                 <TextBox Text="{x:Bind ViewModel.DisplayName, Mode=TwoWay}"
                                          MaxWidth="400" HorizontalAlignment="Stretch" MinHeight="36"
-                                         CornerRadius="6" AutomationProperties.LabeledBy="DeviceNameLabel"/>
+                                         CornerRadius="6" AutomationProperties.LabeledBy="{Binding ElementName=DeviceNameLabel}"/>
                                 <TextBlock x:Uid="settings/visibilityHint" FontSize="12"
                                            Foreground="{ThemeResource MdInk60Brush}" TextWrapping="Wrap"/>
                             </StackPanel>
