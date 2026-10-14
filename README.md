@@ -55,7 +55,7 @@ Electron, Flutter, or React Native — for the best performance and platform fee
 
 | Platform | How to get it |
 | --- | --- |
-| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.1) |
+| **iOS / iPadOS / macOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.1) |
 | **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64 portable ZIPs, with runtimes included. |
 | Android / Wear OS | [GitHub Releases](https://github.com/chenqi92/share/releases) · signed APKs (experimental clients) |
 | Linux desktop / terminal | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64, desktop `.deb` / `.tar.gz` and standalone TUI `.tar.gz` |
@@ -132,7 +132,7 @@ git push origin v1.1.2
 The workflow builds every distribution channel and requires all 16 assets before publication:
 Windows x64 / ARM64 portable ZIPs and Store MSIX packages; signed Android / Wear OS APKs and AABs;
 a signed, notarized macOS universal ZIP; Linux x64 / ARM64 desktop DEBs, desktop archives and terminal archives; and the Web bundle.
-Apple device builds cover iOS (including Watch), tvOS and visionOS, with App Store download links.
+Apple device builds cover iOS (including Watch), tvOS and visionOS. iOS/macOS are available on the App Store; native tvOS/visionOS Store versions have not yet been submitted.
 Generated `CHANGELOG.md`, `SHA256SUMS.txt` and `release-manifest.json` accompany the downloads.
 Tags ending in `-rc.N`, `-beta.N`, or `-alpha.N` produce prereleases.
 

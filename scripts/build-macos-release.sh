@@ -35,7 +35,9 @@ while IFS= read -r -d '' bundle; do
 done < <(find "$app/Contents" -depth -name '*.bundle' -type d -print0)
 codesign --force --timestamp --options runtime --sign "$MACOS_SIGN_IDENTITY" \
   --entitlements "$derived/entitlements.plist" "$app"
-lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/MeshDrop"
+for architecture in arm64 x86_64; do
+  lipo "$app/Contents/MacOS/MeshDrop" -verify_arch "$architecture"
+done
 codesign --verify --deep --strict "$app"
 archive="$root/release-assets/MeshDrop-$tag-macos-universal.zip"
 ditto -c -k --keepParent "$app" "$archive"

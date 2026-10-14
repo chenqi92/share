@@ -27,7 +27,8 @@ def notes(tag):
 | --- | --- |
 | Windows x64 / ARM64 | `windows-*.zip`：完整解压后运行 `MeshDrop.exe`；已包含 .NET、Windows App SDK 与本机加密库。 |
 | macOS Intel / Apple Silicon | `macos-universal.zip`：解压后将 MeshDrop 拖入“应用程序”；Developer ID 签名并经 Apple 公证。也可通过 [App Store](https://apps.apple.com/app/meshdrop/id6772689903) 安装。 |
-| iPhone / iPad / Apple Watch / Apple TV / Vision Pro | [App Store](https://apps.apple.com/app/meshdrop/id6772689903)，具体设备支持和已审核版本以商店页面为准。Watch 随 iPhone App 分发。 |
+| iPhone / iPad / Apple Watch | [App Store](https://apps.apple.com/app/meshdrop/id6772689903)；Watch 随 iPhone App 分发，已审核版本以商店页面为准。 |
+| Apple TV / 原生 visionOS | 此标签的 Release 构建已验证；原生商店版本尚未提交，源码位于 `apple/MeshDropTV`、`apple/MeshDropVision`。 |
 | Android | `android.apk`：手机、平板直接安装；正式发布密钥签名。 |
 | Wear OS | `wearos.apk`：手表端 Android companion。 |
 | Linux 桌面 x64 / ARM64 | `linux-gui-*.deb`：Ubuntu 24.04+ 使用 `sudo apt install ./MeshDrop-*.deb`；其他发行版可用 `.tar.gz`，需 GTK 4.12+、libadwaita 1.5+、glibc 2.39+。 |

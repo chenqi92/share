@@ -51,7 +51,7 @@
 
 | 平台 | 获取方式 |
 | --- | --- |
-| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.1） |
+| **iOS / iPadOS / macOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.1） |
 | **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64 便携 ZIP，包含运行时。 |
 | Android / Wear OS | [GitHub Releases](https://github.com/chenqi92/share/releases) · 正式密钥签名的 APK，客户端仍为实验阶段 |
 | Linux 桌面 / 终端 | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64，桌面 `.deb` / `.tar.gz` 与独立终端 `.tar.gz` |
@@ -121,7 +121,7 @@ git push origin v1.1.2
 
 工作流覆盖完整发布渠道，全部 16 个产物齐备才发布：Windows x64 / ARM64 便携 ZIP 与商店 MSIX；
 Android / Wear OS 签名 APK 和 AAB；macOS 签名、公证的通用 ZIP；Linux x64 / ARM64 桌面 DEB、桌面压缩包、终端压缩包；Web 静态站点包。
-Apple 设备构建覆盖 iOS（包含 Watch）、tvOS、visionOS，并提供 App Store 入口。
+Apple 设备构建覆盖 iOS（包含 Watch）、tvOS、visionOS；iOS/macOS 已上架 App Store，原生 tvOS/visionOS 商店版本尚未提交。
 下载同时附带自动生成的 `CHANGELOG.md`、`SHA256SUMS.txt` 和记录源码/打包提交的 `release-manifest.json`。
 `-rc.N`、`-beta.N` 和 `-alpha.N` 标签发布为预发布版本。
 

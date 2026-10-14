@@ -13,7 +13,8 @@
 | Android、Wear OS | 各一个 APK、AAB | Release 构建、单元测试、APK 签名和 zipalign、AAB 签名 |
 | Linux x64、ARM64 | 各一个桌面 DEB、桌面 tar.gz、终端 tar.gz | 核心与终端测试、实际链接库、虚拟显示器下的桌面启动、终端命令启动 |
 | Web | 静态站点 ZIP | TypeScript / Vite 构建和 Gateway 客户端测试 |
-| iOS / iPadOS / Watch、tvOS、visionOS | App Store 入口 | 真机目标 Release 构建，Watch 随 iOS 编译 |
+| iOS / iPadOS / Watch | App Store 入口 | 真机目标 Release 构建，Watch 随 iOS 编译 |
+| tvOS、visionOS | 源码；原生商店版本尚未提交 | 真机目标 Release 构建 |
 
 共 16 个下载包，以及 `CHANGELOG.md`、`SHA256SUMS.txt`、`release-manifest.json`；GitHub 同时提供标签的源码归档。
 任何必需平台缺失或验证失败都会阻止新的 Release 发布。

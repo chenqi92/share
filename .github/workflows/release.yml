@@ -131,7 +131,9 @@ jobs:
           codesign --verify --deep --strict "$app"
           xcrun stapler validate "$app"
           spctl --assess --type execute --verbose=2 "$app"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/MeshDrop"
+          for architecture in arm64 x86_64; do
+            lipo "$app/Contents/MacOS/MeshDrop" -verify_arch "$architecture"
+          done
       - uses: actions/upload-artifact@v7
         with:
           name: release-macos
