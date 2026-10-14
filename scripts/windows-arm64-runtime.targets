@@ -1,0 +1,8 @@
+<Project>
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-arm64'">
+    <Content Include="$(MeshDropSodiumDir)\libsodium.dll" Link="libsodium.dll"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(MeshDropSodiumDir)\libsodium-LICENSE.txt" Link="libsodium-LICENSE.txt"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

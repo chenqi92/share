@@ -52,8 +52,11 @@
 | 平台 | 获取方式 |
 | --- | --- |
 | **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.1） |
-| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · `1.1.1`（x64 / ARM64）已于 2026-10-14 提交 Microsoft Store，等待认证；目前可[从源码构建](windows/README.md)。 |
-| Android / Linux / Web | 从源码构建（预发布 `0.1.0`），见下方各端 README |
+| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64 便携 ZIP，包含运行时。 |
+| Android / Wear OS | [GitHub Releases](https://github.com/chenqi92/share/releases) · 正式密钥签名的 APK，客户端仍为实验阶段 |
+| Linux 桌面 / 终端 | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64，桌面 `.deb` / `.tar.gz` 与独立终端 `.tar.gz` |
+| Web | [GitHub Releases](https://github.com/chenqi92/share/releases) · 静态站点包，通过桌面 Gateway 连接 |
+| macOS 直接下载 | [GitHub Releases](https://github.com/chenqi92/share/releases) · 已签名和公证的通用 ZIP |
 
 ## 平台覆盖
 
@@ -116,12 +119,15 @@ git tag v1.1.2
 git push origin v1.1.2
 ```
 
-Apple 测试和应用构建、Windows 测试及 x64 包完整性检查全部通过后，自动发布到
-[GitHub Releases](https://github.com/chenqi92/share/releases)，附带 Windows x64 便携 ZIP、
-按 PR 分类及完整提交生成的 `CHANGELOG.md` 和 `SHA256SUMS.txt`。`-rc.N`、`-beta.N` 和 `-alpha.N` 标签发布为预发布版本。
-Windows 包自带运行时，完整解压后运行 `MeshDrop.exe`；Microsoft Store 上传包保留为 Actions 产物 14 天。
-Windows ARM64 原生包暂不提供，需先补齐加密依赖对应的本机运行库。
-Apple 下载入口为 [App Store](https://apps.apple.com/app/meshdrop/id6772689903)，商店审核及提交独立进行。
+工作流覆盖完整发布渠道，全部 16 个产物齐备才发布：Windows x64 / ARM64 便携 ZIP 与商店 MSIX；
+Android / Wear OS 签名 APK 和 AAB；macOS 签名、公证的通用 ZIP；Linux x64 / ARM64 桌面 DEB、桌面压缩包、终端压缩包；Web 静态站点包。
+Apple 设备构建覆盖 iOS（包含 Watch）、tvOS、visionOS，并提供 App Store 入口。
+下载同时附带自动生成的 `CHANGELOG.md`、`SHA256SUMS.txt` 和记录源码/打包提交的 `release-manifest.json`。
+`-rc.N`、`-beta.N` 和 `-alpha.N` 标签发布为预发布版本。
+
+重跑已发布标签时补齐缺少的产物，保留已有二进制和标签。
+新版本发布前必须配置 Android 正式签名与 macOS 签名、公证；缺少凭据时相应任务失败。
+签名 Secrets、安装要求和各组件版本策略详见[发布配置](docs/RELEASING.md)。商店提交和审核独立进行。
 
 ## 从源码构建
 

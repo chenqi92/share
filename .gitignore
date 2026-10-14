@@ -81,6 +81,7 @@ wearos/.idea/
 *.nupkg
 packages/
 artifacts/
+release-assets/
 
 # Linux / Rust
 linux/target/

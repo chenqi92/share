@@ -56,8 +56,11 @@ Electron, Flutter, or React Native — for the best performance and platform fee
 | Platform | How to get it |
 | --- | --- |
 | **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.1) |
-| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · `1.1.1` (x64 / ARM64) submitted to Microsoft Store on 2026-10-14; awaiting certification. [Build from source](windows/README.md) in the meantime. |
-| Android / Linux / Web | Build from source (pre-release `0.1.0`) — see the per-platform READMEs below |
+| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64 portable ZIPs, with runtimes included. |
+| Android / Wear OS | [GitHub Releases](https://github.com/chenqi92/share/releases) · signed APKs (experimental clients) |
+| Linux desktop / terminal | [GitHub Releases](https://github.com/chenqi92/share/releases) · x64 / ARM64, desktop `.deb` / `.tar.gz` and standalone TUI `.tar.gz` |
+| Web | [GitHub Releases](https://github.com/chenqi92/share/releases) · static bundle, connects through a desktop Gateway |
+| macOS direct download | [GitHub Releases](https://github.com/chenqi92/share/releases) · signed, notarized universal ZIP |
 
 ## Platforms
 
@@ -126,14 +129,17 @@ git tag v1.1.2
 git push origin v1.1.2
 ```
 
-After Apple tests and app builds, Windows tests, and x64 package validation pass, the workflow publishes
-[GitHub Releases](https://github.com/chenqi92/share/releases) with a Windows x64 portable ZIP,
-a generated `CHANGELOG.md` covering categorized PRs and all commits, and `SHA256SUMS.txt`.
+The workflow builds every distribution channel and requires all 16 assets before publication:
+Windows x64 / ARM64 portable ZIPs and Store MSIX packages; signed Android / Wear OS APKs and AABs;
+a signed, notarized macOS universal ZIP; Linux x64 / ARM64 desktop DEBs, desktop archives and terminal archives; and the Web bundle.
+Apple device builds cover iOS (including Watch), tvOS and visionOS, with App Store download links.
+Generated `CHANGELOG.md`, `SHA256SUMS.txt` and `release-manifest.json` accompany the downloads.
 Tags ending in `-rc.N`, `-beta.N`, or `-alpha.N` produce prereleases.
-Windows ZIPs include the runtimes; extract the whole archive and run `MeshDrop.exe`.
-Native Windows ARM64 downloads are unavailable until the cryptography dependency includes the required runtime.
-Microsoft Store upload packages are retained as Actions artifacts for 14 days.
-Apple downloads link to the [App Store](https://apps.apple.com/app/meshdrop/id6772689903); Store submission and review are separate.
+
+Rerunning a published tag supplements missing assets without replacing its existing binaries or moving the tag.
+Android signing and macOS signing/notarization must be configured before a new release; missing credentials fail the job.
+See [release configuration](docs/RELEASING.md) for signing Secrets, package requirements and the component version policy.
+Store submission and review remain separate from GitHub publication.
 
 ## Build from source
 
