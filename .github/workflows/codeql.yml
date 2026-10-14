@@ -47,7 +47,7 @@ jobs:
 
       - name: Select Xcode (swift only)
         if: matrix.language == 'swift'
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
