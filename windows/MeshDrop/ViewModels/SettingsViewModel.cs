@@ -25,12 +25,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // 安全/加密
     [ObservableProperty] private bool _trustedOnly;
-    [ObservableProperty] private bool _verifyBeforeReceive;
 
     // 行为/接收
     [ObservableProperty] private string _receiveDir;
     [ObservableProperty] private bool _autoAcceptTrusted;
-    [ObservableProperty] private bool _autoAcceptStranger;
     [ObservableProperty] private bool _clipboardSync;
     [ObservableProperty] private bool _launchAtLogin;
     [ObservableProperty] private bool _showTrayBadge;
@@ -59,9 +57,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         // 从持久化设置 seed 所有开关（缺文件时即默认安全值）。
         _visible = _settings.VisibleOnLan;
         _trustedOnly = _settings.TrustedOnly;
-        _verifyBeforeReceive = _settings.VerifyBeforeReceive;
         _autoAcceptTrusted = _settings.AutoAcceptTrusted;
-        _autoAcceptStranger = _settings.AutoAcceptStranger;
         _clipboardSync = _settings.ClipboardSync;
         // System startup state wins over preferences, including DisabledByUser.
         _launchAtLogin = false;
@@ -120,24 +116,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Save();
     }
 
-    /// <summary>接收前必须验证指纹：开启时禁用一切自动接受（引擎实时读取）。</summary>
-    partial void OnVerifyBeforeReceiveChanged(bool value)
-    {
-        if (_settings.VerifyBeforeReceive == value) return;
-        _settings.VerifyBeforeReceive = value;
-        _settings.Save();
-    }
-
     /// <summary>自动接收已配对设备：经引擎旧入口同步（其内部已写 settings 并持久化）。</summary>
     partial void OnAutoAcceptTrustedChanged(bool value) => _engine.AutoAcceptFromTrusted = value;
-
-    /// <summary>自动接收陌生设备（危险）：引擎自动接受判断处实时读取，默认关。</summary>
-    partial void OnAutoAcceptStrangerChanged(bool value)
-    {
-        if (_settings.AutoAcceptStranger == value) return;
-        _settings.AutoAcceptStranger = value;
-        _settings.Save();
-    }
 
     /// <summary>跨设备剪贴板同步：引擎 PushClipboard / HandleReceivedClipboard 处实时门控。</summary>
     partial void OnClipboardSyncChanged(bool value)

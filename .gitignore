@@ -3,6 +3,7 @@
 *.swp
 *.bak
 *.log
+__pycache__/
 # conformance 证据目录里的 send.log / recv.log 必须入库（见 protocol/conformance-tests.md §一·证据采集）
 !**/screenshots/conformance/**/*.log
 # C4 等大文件用例的临时 4 GiB 测试文件不入库

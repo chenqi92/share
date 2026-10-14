@@ -1,7 +1,5 @@
 import SwiftUI
 import UIKit
-import ImageIO
-import AVFoundation
 import MeshDropKit
 
 struct ImagePreview: View {
@@ -10,6 +8,9 @@ struct ImagePreview: View {
     var cornerRadius: CGFloat = 14
     var isVideo = false
     @State private var thumbnail: UIImage?
+
+    @State private var loadedSource: String?
+    private var sourceID: String { "\(url?.absoluteString ?? "")|\(base64 ?? "")|\(isVideo)" }
 
     var body: some View {
         GeometryReader { bounds in
@@ -35,35 +36,13 @@ struct ImagePreview: View {
           .frame(width: bounds.size.width, height: bounds.size.height)
           .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
-        .task(id: "\(url?.absoluteString ?? "")|\(base64 ?? "")|\(isVideo)") {
-            thumbnail = nil
-            let file = LocalFileContent.readableURL(url)
-            if isVideo, let file {
-                let generator = AVAssetImageGenerator(asset: AVURLAsset(url: file))
-                generator.appliesPreferredTrackTransform = true
-                generator.maximumSize = CGSize(width: 660, height: 660)
-                if let frame = try? await generator.image(at: .zero), !Task.isCancelled {
-                    thumbnail = UIImage(cgImage: frame.image)
-                }
-            } else {
-                let task = Task.detached(priority: .userInitiated) {
-                    let source: CGImageSource?
-                    if let base64, let data = Data(base64Encoded: base64) {
-                        source = CGImageSourceCreateWithData(data as CFData, nil)
-                    } else if let file {
-                        source = CGImageSourceCreateWithURL(file as CFURL, nil)
-                    } else { source = nil }
-                    guard let source else { return nil as UIImage? }
-                    let options: [CFString: Any] = [
-                        kCGImageSourceCreateThumbnailFromImageAlways: true,
-                        kCGImageSourceCreateThumbnailWithTransform: true,
-                        kCGImageSourceThumbnailMaxPixelSize: 660
-                    ]
-                    return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
-                        .map { UIImage(cgImage: $0) }
-                }
-                let image = await task.value
-                if !Task.isCancelled { thumbnail = image }
+        .task(id: sourceID) {
+            if loadedSource != sourceID {
+                thumbnail = nil
+                loadedSource = sourceID
+            }
+            if let image = await MediaThumbnail.image(url: url, base64: base64, isVideo: isVideo), !Task.isCancelled {
+                thumbnail = UIImage(cgImage: image)
             }
         }
     }

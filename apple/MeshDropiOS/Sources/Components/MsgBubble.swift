@@ -1,6 +1,5 @@
 import SwiftUI
 import MeshDropKit
-import QuickLook
 
 /// 聊天气泡（COMMON §7.6）。
 /// - 圆角 16，非尖角方向圆角 6
@@ -12,8 +11,6 @@ public struct MsgBubble: View {
 
     let message: MockMessage
     @Environment(\.colorScheme) private var scheme
-    @State private var copied = false
-    @State private var previewURL: URL?
 
     public init(_ message: MockMessage) { self.message = message }
 
@@ -25,16 +22,9 @@ public struct MsgBubble: View {
                     .background(bubbleFill)
                     .foregroundStyle(textColor)
                     .clipShape(BubbleShape(side: message.dir))
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if message.kind != .text { previewURL = availableFileURL }
-                    }
-                    .contextMenu {
-                        if message.kind == .text { copyButton }
-                        if let url = availableFileURL {
-                            ShareLink(item: url) { Label(MD("common.share"), systemImage: "square.and.arrow.up") }
-                        }
-                    }
+                    .messageActions(text: message.kind == .text ? (message.text ?? "") : nil,
+                                    fileURL: message.fileURL, completed: message.delivered,
+                                    historyID: UUID(uuidString: message.id))
 
                 HStack(spacing: 4) {
                     Text(message.time)
@@ -45,44 +35,15 @@ public struct MsgBubble: View {
                             .font(MeshDropFont.mono(10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
-                    if message.kind == .text {
-                        TextContentActions(message.text ?? "")
-                            .font(MeshDropFont.mono(11))
-                            .padding(.vertical, 6)
-                    }
-                    if message.kind != .text {
-                        FileContentActions(url: message.fileURL, completed: message.delivered)
-                            .font(MeshDropFont.mono(11))
-                            .padding(.vertical, 6)
-                    }
-                    if let id = UUID(uuidString: message.id) {
-                        HistoryDeleteButton(id: id).labelStyle(.iconOnly).padding(.vertical, 6)
-                    }
                 }
             }
             if message.dir == .incoming { Spacer(minLength: 56) }
-        }
-        .quickLookPreview($previewURL)
-        .task(id: copied) {
-            guard copied else { return }
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            copied = false
         }
     }
 
     private var availableFileURL: URL? {
         guard message.delivered else { return nil }
         return LocalFileContent.readableURL(message.fileURL)
-    }
-
-    private var copyButton: some View {
-        Button {
-            SystemClipboard.copy(message.text ?? "")
-            copied = true
-        } label: {
-            Label(MD(copied ? "common.copied" : "common.copy"), systemImage: copied ? "checkmark" : "doc.on.doc")
-        }
     }
 
     @ViewBuilder private var bubbleContent: some View {

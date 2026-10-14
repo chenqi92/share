@@ -49,7 +49,7 @@ public struct TextContentActions: View {
     }
 }
 
-private struct TextContentDetail: View {
+struct TextContentDetail: View {
     let text: String
     @Environment(\.dismiss) private var dismiss
     @State private var showSource = false

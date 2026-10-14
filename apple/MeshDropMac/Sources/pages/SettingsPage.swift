@@ -21,7 +21,7 @@ struct SettingsPage: View {
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
                     Spacer()
-                    Chip(text: "v 1.0.1", tone: .outline, mono: true)
+                    Chip(text: "v \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")", tone: .outline, mono: true)
                 }
 
                 section(String(localized: "settings.section.visibility")) {
@@ -59,8 +59,6 @@ struct SettingsPage: View {
                             .frame(width: 380, alignment: .trailing)
                             .multilineTextAlignment(.trailing)
                     )
-                    // 接收前必须验证对方指纹：开（默认）=禁用一切自动接受，offer 一律进待确认。
-                    toggle(String(localized: "settings.security.verifyBeforeReceive"), on: $engine.verifyBeforeReceive)
                     // 陌生设备首次配对要求确认：TOFU 是安全基线，关闭等于自动信任陌生设备（危险），
                     // 故锁定为始终开启并加说明，而不是留作可关的假开关。
                     lockedOnToggle(
@@ -115,13 +113,6 @@ struct SettingsPage: View {
 
                 section(String(localized: "settings.section.receive")) {
                     toggle(String(localized: "settings.receive.autoAcceptTrusted"), on: $engine.autoAcceptFromTrusted)
-                    // 陌生设备自动接受（危险，默认关）。仅在「接收前验证指纹」关闭时才会真正生效，
-                    // 故验证开启时灰显锁定，避免「已开但无效」的错觉。
-                    gatedToggle(
-                        String(localized: "settings.receive.autoAcceptStranger"),
-                        on: $engine.autoAcceptStranger,
-                        enabled: !engine.verifyBeforeReceive
-                    )
                     field(String(localized: "settings.receive.defaultPath"), trailing:
                         HStack(spacing: 10) {
                             Text(receiveDirectoryDisplayPath)

@@ -7,6 +7,7 @@ struct ChatPage: View {
     @EnvironmentObject var state: AppState
     @ObservedObject private var engine = ShareEngine.shared
     var forceDragOverlay: Bool = false
+    @StateObject private var preview = ContentPreviewPresenter()
     @State private var composer: String = ""
 
     var body: some View {
@@ -22,6 +23,7 @@ struct ChatPage: View {
                 composerBar
             }
             .background(MeshDropColor.background)
+            .contentPreviewHost(preview)
         }
     }
 

@@ -1,0 +1,160 @@
+name: Release
+
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '已存在的版本标签，例如 v1.1.2 或 v1.1.2-rc.1'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      sha: ${{ steps.version.outputs.sha }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Validate tag and source versions
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          python3 scripts/check-release-version.py "$RELEASE_TAG"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")" = "$(git rev-parse HEAD)"
+          git merge-base --is-ancestor HEAD origin/main
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [[ "$RELEASE_TAG" == *-* ]]; then
+            echo 'prerelease=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'prerelease=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  apple:
+    needs: version
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+      - name: Test Apple core
+        run: swift test --package-path apple
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install Web Gateway dependencies
+        working-directory: web
+        run: npm ci
+      - name: Generate Apple projects
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec apple/MeshDropMac/project.yml
+          xcodegen generate --spec apple/MeshDropiOS/project.yml
+      - name: Build macOS and iOS apps
+        run: |
+          xcodebuild -project apple/MeshDropMac/MeshDropMac.xcodeproj -scheme MeshDropMac -configuration Release -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project apple/MeshDropiOS/MeshDropiOS.xcodeproj -scheme MeshDropiOS -configuration Release -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: [x64, ARM64]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - uses: microsoft/setup-msbuild@v3
+      - name: Test transport and receive preferences
+        run: dotnet test windows/MeshDrop.Transport.Tests/MeshDrop.Transport.Tests.csproj -c Release --verbosity minimal
+      - name: Build portable ZIP and Store upload package
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_ARCH: ${{ matrix.architecture }}
+        run: ./windows/build-release.ps1 -Architecture $env:RELEASE_ARCH -Tag $env:RELEASE_TAG
+      - uses: actions/upload-artifact@v7
+        with:
+          name: portable-${{ matrix.architecture }}
+          path: windows/artifacts/release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v7
+        with:
+          name: store-upload-${{ matrix.architecture }}
+          path: |
+            windows/artifacts/store/**/*.msixupload
+            windows/artifacts/store/**/*.appxupload
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [version, apple, windows]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: portable-*
+          path: release-assets
+          merge-multiple: true
+      - name: Generate release notes and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          python3 scripts/release-notes.py "$RELEASE_TAG" > release-assets/CHANGELOG.md
+          cd release-assets
+          test -f "MeshDrop-$RELEASE_TAG-windows-x64.zip"
+          test -f "MeshDrop-$RELEASE_TAG-windows-arm64.zip"
+          sha256sum ./*.zip CHANGELOG.md > SHA256SUMS.txt
+      - name: Publish complete release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
+            test "$(jq -r .isDraft existing-release.json)" = true || { echo 'Release is already published; refusing to replace it.'; exit 1; }
+            gh release edit "$RELEASE_TAG" --notes-file release-assets/CHANGELOG.md
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft --title "MeshDrop $RELEASE_TAG" --notes-file release-assets/CHANGELOG.md
+          fi
+          gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          if [[ "$PRERELEASE" == true ]]; then
+            gh release edit "$RELEASE_TAG" --draft=false --prerelease --latest=false
+          else
+            gh release edit "$RELEASE_TAG" --draft=false --latest
+          fi

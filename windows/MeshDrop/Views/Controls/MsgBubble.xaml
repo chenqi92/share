@@ -10,6 +10,16 @@
                 MaxWidth="520"
                 Padding="12,8,12,8"
                 CornerRadius="16,16,16,6">
+            <Border.ContextFlyout>
+                <MenuFlyout Opening="OnMenuOpening">
+                    <MenuFlyoutItem x:Name="CopyTextItem" x:Uid="msg/copy" Click="OnCopyText"/>
+                    <MenuFlyoutItem x:Name="OpenFileItem" x:Uid="file/open" Click="OnFileOpen"/>
+                    <MenuFlyoutItem x:Name="RevealFileItem" x:Uid="file/reveal" Click="OnFileReveal"/>
+                    <MenuFlyoutItem x:Name="SaveFileItem" x:Uid="file/saveCopy" Click="OnFileSaveCopy"/>
+                    <MenuFlyoutSeparator/>
+                    <MenuFlyoutItem x:Uid="msg/delete" Click="OnDelete"/>
+                </MenuFlyout>
+            </Border.ContextFlyout>
             <StackPanel x:Name="Body" Spacing="6">
                 <!-- 文本气泡 -->
                 <RichTextBlock x:Name="TextRun"
@@ -21,13 +31,6 @@
                 <!-- 文件气泡 -->
                 <Grid x:Name="FileRow" Visibility="Collapsed" ColumnSpacing="10"
                       Tapped="OnFileTapped">
-                    <Grid.ContextFlyout>
-                        <MenuFlyout>
-                            <MenuFlyoutItem x:Uid="file/open" Click="OnFileOpen"/>
-                            <MenuFlyoutItem x:Uid="file/reveal" Click="OnFileReveal"/>
-                            <MenuFlyoutItem x:Uid="file/saveCopy" Click="OnFileSaveCopy"/>
-                        </MenuFlyout>
-                    </Grid.ContextFlyout>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>

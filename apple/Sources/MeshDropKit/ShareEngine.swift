@@ -54,8 +54,8 @@ public final class ShareEngine: ObservableObject {
 
     /// 设置：收到来自已信任设备的文件 offer 时自动接受（持久化到 UserDefaults）。
     @Published public var autoAcceptFromTrusted: Bool =
-        UserDefaults.standard.bool(forKey: "meshdrop.autoAcceptTrusted") {
-        didSet { UserDefaults.standard.set(autoAcceptFromTrusted, forKey: "meshdrop.autoAcceptTrusted") }
+        ReceivePolicy.autoAcceptTrusted(defaults: .standard) {
+        didSet { UserDefaults.standard.set(autoAcceptFromTrusted, forKey: "meshdrop.autoReceiveTrusted") }
     }
 
     /// 设置：收到入站内容时弹系统通知（默认开；持久化到 UserDefaults）。IncomingNotifier 据此决定是否弹。
@@ -70,22 +70,6 @@ public final class ShareEngine: ObservableObject {
     @Published public var trustedOnly: Bool =
         UserDefaults.standard.bool(forKey: "meshdrop.trustedOnly") {
         didSet { UserDefaults.standard.set(trustedOnly, forKey: "meshdrop.trustedOnly") }
-    }
-
-    /// 设置：收到来自**陌生**（未信任）设备的文件 offer 时自动接受（危险，持久化）。
-    /// 与 `autoAcceptFromTrusted` 正交：自动接受判定 = (trusted && autoAcceptFromTrusted)
-    ///   || (!trusted && autoAcceptStranger)。默认**关**——陌生设备一律进待确认。
-    @Published public var autoAcceptStranger: Bool =
-        UserDefaults.standard.bool(forKey: "meshdrop.autoAcceptStranger") {
-        didSet { UserDefaults.standard.set(autoAcceptStranger, forKey: "meshdrop.autoAcceptStranger") }
-    }
-
-    /// 设置：接收前必须验证对方指纹（默认**开**，更安全；持久化）。
-    /// 开=禁用一切自动接受（无论 trusted/stranger），所有 offer 一律进待确认 sheet；
-    /// 关=允许 `autoAcceptFromTrusted` / `autoAcceptStranger` 的自动接受逻辑生效。
-    @Published public var verifyBeforeReceive: Bool =
-        (UserDefaults.standard.object(forKey: "meshdrop.verifyBeforeReceive") as? Bool) ?? true {
-        didSet { UserDefaults.standard.set(verifyBeforeReceive, forKey: "meshdrop.verifyBeforeReceive") }
     }
 
     /// 设置：跨设备剪贴板同步总开关（默认**开**，与现有行为一致；持久化）。
@@ -914,6 +898,12 @@ public final class ShareEngine: ObservableObject {
         guard let offer = pendingFileOffers.first(where: { $0.id == offerID }) else { return }
         pendingFileOffers.removeAll { $0.id == offerID }
 
+        respondToFileOffer(offer, accept: accept)
+    }
+
+    private func respondToFileOffer(_ offer: PendingFileOffer, accept: Bool) {
+        let offerID = offer.id
+
         // 找对应连接
         let entry = contexts.first { _, c in c.pendingOfferID == offerID }
         guard let (ctxID, ctx) = entry else { return }
@@ -1434,18 +1424,13 @@ public final class ShareEngine: ObservableObject {
                     mime: first.mime,
                     previewBase64: first.preview_b64
                 )
-                ctx.pendingOfferID = pending.id
-                self.pendingFileOffers.append(pending)
-                // 自动接受判定（附加式安全门控）：
-                //   verifyBeforeReceive 开（默认）→ 一律不自动接受，进待确认。
-                //   否则按对端信任态分流：trusted && autoAcceptFromTrusted，
-                //   或 !trusted && autoAcceptStranger（默认关）。命中则复用标准接受流程（移出 pending）。
                 let isTrusted = await self.trustStore.isTrusted(peer.fingerprint)
-                let shouldAuto = !self.verifyBeforeReceive
-                    && ((isTrusted && self.autoAcceptFromTrusted)
-                        || (!isTrusted && self.autoAcceptStranger))
-                if shouldAuto {
-                    self.respondToFileOffer(pending.id, accept: true)
+                guard self.contexts[contextID] === ctx else { return }
+                ctx.pendingOfferID = pending.id
+                if ReceivePolicy.shouldAutoAccept(isTrusted: isTrusted, enabled: self.autoAcceptFromTrusted) {
+                    self.respondToFileOffer(pending, accept: true)
+                } else {
+                    self.pendingFileOffers.append(pending)
                 }
             }
         }

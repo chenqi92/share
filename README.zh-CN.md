@@ -52,7 +52,7 @@
 | 平台 | 获取方式 |
 | --- | --- |
 | **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.1） |
-| **Windows 10 1809+ / Windows 11** | `1.1.1`（x64 / ARM64）已于 2026-10-14 提交 Microsoft Store，等待认证；目前可[从源码构建](windows/README.md)。 |
+| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · `1.1.1`（x64 / ARM64）已于 2026-10-14 提交 Microsoft Store，等待认证；目前可[从源码构建](windows/README.md)。 |
 | Android / Linux / Web | 从源码构建（预发布 `0.1.0`），见下方各端 README |
 
 ## 平台覆盖
@@ -103,6 +103,24 @@
 - 浏览器 Web Gateway 使用独立的自签 HTTPS 证书和配对码。
 
 证书与信任模型详见 [protocol/security.md](protocol/security.md)。
+
+## 自动发布
+
+[`Release` workflow](.github/workflows/release.yml) 在推送 `vMAJOR.MINOR.PATCH` 标签后自动运行，也可手动重跑已有标签。
+发布前将 `VERSION`、Windows 项目和 MSIX 清单、macOS / iOS 的 `MARKETING_VERSION` 同步，并递增 Apple 构建号；
+工作流会拒绝版本不一致或未合入 `main` 的标签。
+
+```bash
+python3 scripts/check-release-version.py v1.1.2
+git tag v1.1.2
+git push origin v1.1.2
+```
+
+Apple 测试和应用构建、Windows 测试及 x64 / ARM64 打包全部通过后，自动发布到
+[GitHub Releases](https://github.com/chenqi92/share/releases)，附带 Windows 便携 ZIP、
+按 PR 分类及完整提交生成的 `CHANGELOG.md` 和 `SHA256SUMS.txt`。`-rc.N`、`-beta.N` 和 `-alpha.N` 标签发布为预发布版本。
+Windows 包自带运行时，完整解压后运行 `MeshDrop.exe`；Microsoft Store 上传包保留为 Actions 产物 14 天。
+Apple 下载入口为 [App Store](https://apps.apple.com/app/meshdrop/id6772689903)，商店审核及提交独立进行。
 
 ## 从源码构建
 

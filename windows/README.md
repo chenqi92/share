@@ -60,6 +60,21 @@ dotnet run --project MeshDrop -c Debug -p:Platform=x64
 
 或 VS 打开 `MeshDrop.sln` → F5。
 
+## 版本发布包
+
+[GitHub Releases](https://github.com/chenqi92/share/releases) 提供 x64 / ARM64 便携 ZIP、自动更新日志与 SHA-256 校验文件。
+便携包包含 .NET 和 Windows App SDK 运行时，完整解压后运行 `MeshDrop.exe`。
+
+本地打包需在 Visual Studio Developer PowerShell 中运行（版本号须与项目一致）：
+
+```powershell
+.\windows\build-release.ps1 -Architecture x64 -Tag v1.1.2
+.\windows\build-release.ps1 -Architecture ARM64 -Tag v1.1.2
+```
+
+便携包位于 `windows/artifacts/release/`，商店上传包位于 `windows/artifacts/store/`。
+推送版本标签可自动执行测试、打包及发布，详见根目录 README 的自动发布说明。
+
 ## Microsoft Store 打包
 
 在 Windows 上安装 .NET 8 SDK 后，从仓库根目录运行：

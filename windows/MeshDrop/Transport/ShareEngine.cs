@@ -113,18 +113,7 @@ public sealed partial class ShareEngine : ObservableObject
         _discovery = new MdnsDiscovery(Identity, DisplayName, Model);
         _discovery.DevicesChanged += OnDevicesChanged;
 
-        // 自动接受（已信任）旧入口仍保留，但真相统一到 settings.json。
-        // 兼容旧版独立 auto_accept 文件：若它存在且为 1，迁移进设置后行为不变——
-        // 旧版没有「接收前验证指纹」总开关，auto_accept 一开就真的自动收；为不回归该
-        // 行为，迁移时同时把 verifyBeforeReceive 置 false（否则会被新默认的 ON 压制）。
-        var legacyAutoAccept = LoadLegacyAutoAccept();
-        _autoAcceptFromTrusted = _settings.AutoAcceptTrusted || legacyAutoAccept;
-        if (_autoAcceptFromTrusted != _settings.AutoAcceptTrusted)
-        {
-            _settings.AutoAcceptTrusted = _autoAcceptFromTrusted;
-            if (legacyAutoAccept) _settings.VerifyBeforeReceive = false;
-            _settings.Save();
-        }
+        _autoAcceptFromTrusted = _settings.AutoAcceptTrusted;
 
         foreach (var r in _trustStore.Snapshot()) Trusted.Add(r);
 
@@ -161,16 +150,6 @@ public sealed partial class ShareEngine : ObservableObject
 
     /// <summary>历史整表覆盖落盘（HistoryStore 内部截断到 500 条）。</summary>
     private void PersistHistory() => _historyStore.Save(History);
-
-    // 旧版独立 auto_accept 标志文件（一次性迁移用，不再写入）。
-    private static string AutoAcceptPath() => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MeshDrop", "auto_accept");
-
-    private static bool LoadLegacyAutoAccept()
-    {
-        try { return File.Exists(AutoAcceptPath()) && File.ReadAllText(AutoAcceptPath()).Trim() == "1"; }
-        catch { return false; }
-    }
 
     public void SetDisplayName(string name)
     {
@@ -445,7 +424,12 @@ public sealed partial class ShareEngine : ObservableObject
         if (offer is null) return;
         PendingFileOffers.Remove(offer);
 
-        var ctx = _contexts.Values.FirstOrDefault(c => c.PendingOfferId == offerId);
+        RespondToFileOffer(offer, accept);
+    }
+
+    private void RespondToFileOffer(PendingFileOffer offer, bool accept)
+    {
+        var ctx = _contexts.Values.FirstOrDefault(c => c.PendingOfferId == offer.Id);
         if (ctx is null) return;
 
         if (!accept)
@@ -942,7 +926,6 @@ public sealed partial class ShareEngine : ObservableObject
 
         var first = offer.Files[0];
         var peer = ctx.Peer!;
-        var trusted = _trustStore.IsTrusted(ctx.Peer.Fingerprint);
         var offerId = offer.TransferId; // 用 transfer_id 作 FILE_OFFER 的去重 message id
         _ui.TryEnqueue(() =>
         {
@@ -955,18 +938,14 @@ public sealed partial class ShareEngine : ObservableObject
 
             var pending = new PendingFileOffer(tid, peer, first.Name, first.Size, first.Sha256, DateTime.Now);
             ctx.PendingOfferId = pending.Id;
-            PendingFileOffers.Add(pending);
-            RaiseEvent(new EngineEvent.OfferPending(pending));
-
-            // 自动接受判定（settings.json）：
-            //   verifyBeforeReceive=ON  → 禁用一切自动接受，一律进待确认（默认，更安全）。
-            //   否则 (trusted && autoAcceptTrusted) || (!trusted && autoAcceptStranger)。
-            // autoAcceptStranger 危险，默认关；对未信任对端只有显式开它才会自动收。
-            if (!_settings.VerifyBeforeReceive)
+            if (_settings.ShouldAutoAccept(_trustStore.IsTrusted(peer.Fingerprint)))
             {
-                var auto = (trusted && _settings.AutoAcceptTrusted)
-                           || (!trusted && _settings.AutoAcceptStranger);
-                if (auto) RespondToFileOffer(pending.Id, true);
+                RespondToFileOffer(pending, true);
+            }
+            else
+            {
+                PendingFileOffers.Add(pending);
+                RaiseEvent(new EngineEvent.OfferPending(pending));
             }
         });
     }

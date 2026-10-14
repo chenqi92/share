@@ -1,0 +1,12 @@
+changelog:
+  categories:
+    - title: 功能与体验
+      labels: [enhancement, feature]
+    - title: 问题修复
+      labels: [bug, fix]
+    - title: 文档
+      labels: [documentation]
+    - title: 依赖更新
+      labels: [dependencies]
+    - title: 其他改进
+      labels: ['*']

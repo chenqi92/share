@@ -56,7 +56,7 @@ Electron, Flutter, or React Native — for the best performance and platform fee
 | Platform | How to get it |
 | --- | --- |
 | **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.1) |
-| **Windows 10 1809+ / Windows 11** | `1.1.1` (x64 / ARM64) submitted to Microsoft Store on 2026-10-14; awaiting certification. [Build from source](windows/README.md) in the meantime. |
+| **Windows 10 1809+ / Windows 11** | [GitHub Releases](https://github.com/chenqi92/share/releases) · `1.1.1` (x64 / ARM64) submitted to Microsoft Store on 2026-10-14; awaiting certification. [Build from source](windows/README.md) in the meantime. |
 | Android / Linux / Web | Build from source (pre-release `0.1.0`) — see the per-platform READMEs below |
 
 ## Platforms
@@ -113,6 +113,26 @@ control channel + multipart upload) so browsers can join from the LAN
 - The browser Web Gateway uses separate self-signed HTTPS and pairing codes.
 
 See [protocol/security.md](protocol/security.md) for the certificate and trust model.
+
+## Automated releases
+
+The [`Release` workflow](.github/workflows/release.yml) runs when a `vMAJOR.MINOR.PATCH` tag is pushed, or can be rerun manually for an existing tag.
+Before tagging, synchronize `VERSION`, the Windows project and MSIX manifest, and macOS / iOS `MARKETING_VERSION`; increment the Apple build number.
+The workflow rejects mismatched versions and tags that are not part of `main`.
+
+```bash
+python3 scripts/check-release-version.py v1.1.2
+git tag v1.1.2
+git push origin v1.1.2
+```
+
+After Apple tests and app builds, Windows tests, and both x64 / ARM64 packages pass, the workflow publishes
+[GitHub Releases](https://github.com/chenqi92/share/releases) with Windows portable ZIPs,
+a generated `CHANGELOG.md` covering categorized PRs and all commits, and `SHA256SUMS.txt`.
+Tags ending in `-rc.N`, `-beta.N`, or `-alpha.N` produce prereleases.
+Windows ZIPs include the runtimes; extract the whole archive and run `MeshDrop.exe`.
+Microsoft Store upload packages are retained as Actions artifacts for 14 days.
+Apple downloads link to the [App Store](https://apps.apple.com/app/meshdrop/id6772689903); Store submission and review are separate.
 
 ## Build from source
 

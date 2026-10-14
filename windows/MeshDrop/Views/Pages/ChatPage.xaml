@@ -58,7 +58,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="mock:MockMessage">
-                            <ctrl:MsgBubble Side="{x:Bind Side}"
+                            <ctrl:MsgBubble HistoryId="{x:Bind Id}" Side="{x:Bind Side}"
                                             Kind="{x:Bind Kind}"
                                             Text="{x:Bind Text}"
                                             Time="{x:Bind Time}"

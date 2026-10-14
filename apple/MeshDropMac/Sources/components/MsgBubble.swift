@@ -19,7 +19,6 @@ struct MsgBubble<Content: View>: View {
     var onRetry: (() -> Void)? = nil
     var historyID: UUID? = nil
     @ViewBuilder var content: Content
-    @State private var copied = false
 
     @Environment(\.colorScheme) private var scheme
 
@@ -32,19 +31,8 @@ struct MsgBubble<Content: View>: View {
                 .background(bg)
                 .foregroundStyle(fg)
                 .clipShape(BubbleShape(side: side, radius: radius, inset: inset))
-                .contextMenu {
-                    if copyText != nil { copyButton }
-                    if fileCompleted, let fileURL = LocalFileContent.readableURL(fileURL) {
-                        Button("chat.file.copy", systemImage: "doc.on.doc") {
-                            NSPasteboard.general.clearContents()
-                            NSPasteboard.general.writeObjects([fileURL as NSURL])
-                        }
-                        Button("chat.file.reveal", systemImage: "folder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([fileURL])
-                        }
-                        ShareLink(item: fileURL) { Label("common.share", systemImage: "square.and.arrow.up") }
-                    }
-                }
+                .messageActions(text: copyText, fileURL: fileURL, completed: fileCompleted,
+                                historyID: historyID, retry: canRetry ? onRetry : nil)
 
             if !time.isEmpty {
                 HStack(spacing: 4) {
@@ -57,17 +45,6 @@ struct MsgBubble<Content: View>: View {
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
-                    if let copyText {
-                        TextContentActions(copyText)
-                            .font(MeshDropFont.mono(size: 10))
-                    }
-                    if kind != .text {
-                        FileContentActions(url: fileURL, completed: fileCompleted)
-                            .font(MeshDropFont.mono(size: 10))
-                    }
-                    if let historyID {
-                        HistoryDeleteButton(id: historyID).labelStyle(.iconOnly)
-                    }
                     if side == .incoming { Spacer() }
                 }
             }
@@ -77,14 +54,12 @@ struct MsgBubble<Content: View>: View {
                     case .failed(let reason):
                         Image(systemName: "exclamationmark.circle")
                         Text(reason).lineLimit(2).textSelection(.enabled)
-                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
                     case .pending:
                         Text("chat.sending")
                     case .waitingApproval:
                         Text("chat.waitingApproval")
                     case .canceled:
                         Text("chat.canceled")
-                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
                     default: EmptyView()
                     }
                 }
@@ -93,21 +68,12 @@ struct MsgBubble<Content: View>: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: side == .outgoing ? .trailing : .leading)
-        .task(id: copied) {
-            guard copied else { return }
-            try? await Task.sleep(for: .seconds(2))
-            guard !Task.isCancelled else { return }
-            copied = false
-        }
     }
 
-    private var copyButton: some View {
-        Button {
-            guard let copyText else { return }
-            SystemClipboard.copy(copyText)
-            copied = true
-        } label: {
-            Label(copied ? "common.copied" : "common.copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+    private var canRetry: Bool {
+        switch status {
+        case .failed, .canceled: return true
+        default: return false
         }
     }
 

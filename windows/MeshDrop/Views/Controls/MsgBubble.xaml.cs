@@ -1,10 +1,17 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
+using MeshDrop.Transport;
+using System;
 
 namespace MeshDrop.Views.Controls;
 
 public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
 {
+    public static readonly DependencyProperty HistoryIdProperty = DependencyProperty.Register(
+        nameof(HistoryId), typeof(string), typeof(MsgBubble), new PropertyMetadata(""));
+    public string HistoryId { get => (string)GetValue(HistoryIdProperty); set => SetValue(HistoryIdProperty, value); }
     public static readonly DependencyProperty SideProperty = DependencyProperty.Register(
         nameof(Side), typeof(string), typeof(MsgBubble),
         new PropertyMetadata("in", (d, _) => ((MsgBubble)d).Apply()));
@@ -84,14 +91,47 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
         }
 
         TextRun.Visibility = Kind == "text" ? Visibility.Visible : Visibility.Collapsed;
-        FileRow.Visibility = Kind == "file" ? Visibility.Visible : Visibility.Collapsed;
+        FileRow.Visibility = Kind != "text" ? Visibility.Visible : Visibility.Collapsed;
         DeliveredText.Visibility = (outgoing && Delivered) ? Visibility.Visible : Visibility.Collapsed;
     }
 
 
-    // 文件气泡左键点击=打开；右键菜单=打开/所在文件夹/转存。文件不存在时 FileActions 静默忽略。
-    private void OnFileTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e) => FileActions.Open(LocalPath);
-    private void OnFileOpen(object sender, RoutedEventArgs e) => FileActions.Open(LocalPath);
+    private void OnMenuOpening(object sender, object e)
+    {
+        CopyTextItem.Visibility = Kind == "text" ? Visibility.Visible : Visibility.Collapsed;
+        OpenFileItem.Visibility = RevealFileItem.Visibility = SaveFileItem.Visibility =
+            Kind != "text" ? Visibility.Visible : Visibility.Collapsed;
+        OpenFileItem.IsEnabled = RevealFileItem.IsEnabled = SaveFileItem.IsEnabled = FileActions.Exists(LocalPath);
+    }
+
+    private void OnCopyText(object sender, RoutedEventArgs e)
+    {
+        var data = new DataPackage();
+        data.SetText(Text ?? "");
+        Clipboard.SetContent(data);
+    }
+
+    private async void OnDelete(object sender, RoutedEventArgs e)
+    {
+        if (!Guid.TryParse(HistoryId, out var id)) return;
+        var confirm = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = I18n.T("msg.deleteTitle"),
+            Content = I18n.T("msg.deleteDetail"),
+            PrimaryButtonText = I18n.T("msg.deleteConfirm"),
+            CloseButtonText = I18n.T("file.close"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await confirm.ShowAsync() == ContentDialogResult.Primary) ShareEngine.Shared.RemoveHistoryItem(id);
+    }
+
+    private async void OnFileTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        await FileActions.PreviewAsync(LocalPath, XamlRoot);
+    }
+    private async void OnFileOpen(object sender, RoutedEventArgs e) => await FileActions.PreviewAsync(LocalPath, XamlRoot);
     private void OnFileReveal(object sender, RoutedEventArgs e) => FileActions.Reveal(LocalPath);
     private void OnFileSaveCopy(object sender, RoutedEventArgs e) => FileActions.SaveCopy(LocalPath);
 }

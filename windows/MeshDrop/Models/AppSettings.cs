@@ -5,15 +5,6 @@ using System.Text.Json.Serialization;
 
 namespace MeshDrop.Models;
 
-/// <summary>
-/// 设置开关的持久化集合（与 trust.json / resume.json / history.json 同目录、同范式）。
-/// 落 LocalAppData/MeshDrop/settings.json。所有字段都是**附加式**且取**默认安全值**——
-/// 默认值刻意复刻「无此文件时」的现有收发/配对行为，保证旧用户升级后行为不变（不回归
-/// 已修好的 LAN 收发 / TOFU 流程）。
-///
-/// 单例 <see cref="Current"/> 进程内全局可读；ShareEngine 在握手/接受判断处读取，
-/// SettingsViewModel 写入后调 <see cref="Save"/> 落盘并触发 <see cref="Changed"/>。
-/// </summary>
 public sealed class AppSettings
 {
     // ── 可见性 ──
@@ -24,14 +15,13 @@ public sealed class AppSettings
     /// <summary>仅显示已配对设备：true=只对信任库 fp 回 HELLO_ACK，未知 fp 直接关连接。默认 false（现状走 TOFU 配对）。</summary>
     [JsonPropertyName("trusted_only")] public bool TrustedOnly { get; set; } = false;
 
-    /// <summary>接收前必须验证对方指纹：true=禁用一切自动接受，offer 一律进待确认。默认 true（更安全）。</summary>
+    // 仅用于迁移旧版的冲突开关；传输身份始终在握手阶段校验。
     [JsonPropertyName("verify_before_receive")] public bool VerifyBeforeReceive { get; set; } = true;
 
-    /// <summary>已信任设备的 offer 自动接受：(trusted &amp;&amp; 此项)。默认 false（现状）。</summary>
-    [JsonPropertyName("auto_accept_trusted")] public bool AutoAcceptTrusted { get; set; } = false;
+    /// <summary>自动接收已验证身份且保存在信任库中的设备发来的文件。</summary>
+    [JsonPropertyName("auto_accept_trusted")] public bool AutoAcceptTrusted { get; set; } = true;
 
-    /// <summary>陌生（未信任）设备的 offer 自动接受：(!trusted &amp;&amp; 此项)。危险，默认 false。</summary>
-    [JsonPropertyName("auto_accept_stranger")] public bool AutoAcceptStranger { get; set; } = false;
+    [JsonPropertyName("receive_policy_version")] public int ReceivePolicyVersion { get; set; } = 1;
 
     // ── 剪贴板 ──
     /// <summary>跨设备剪贴板同步：门控 0x11 收/发；false=不发不收剪贴板。默认 true（现状有剪贴板收发）。</summary>
@@ -66,13 +56,28 @@ public sealed class AppSettings
         {
             var p = FilePath();
             if (!File.Exists(p)) return new AppSettings();
-            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllBytes(p), s_options) ?? new AppSettings();
+            return FromJson(File.ReadAllText(p));
         }
         catch
         {
             return new AppSettings();
         }
     }
+
+    internal static AppSettings FromJson(string json)
+    {
+        var settings = JsonSerializer.Deserialize<AppSettings>(json, s_options) ?? new AppSettings();
+        using var document = JsonDocument.Parse(json);
+        if (!document.RootElement.TryGetProperty("receive_policy_version", out _))
+        {
+            // A manual choice with the old override disabled remains manual.
+            settings.AutoAcceptTrusted = settings.VerifyBeforeReceive || settings.AutoAcceptTrusted;
+            settings.ReceivePolicyVersion = 1;
+        }
+        return settings;
+    }
+
+    public bool ShouldAutoAccept(bool isTrusted) => isTrusted && AutoAcceptTrusted;
 
     /// <summary>整体覆盖写当前单例状态，并通知订阅方。best-effort，写失败不抛。</summary>
     public void Save()

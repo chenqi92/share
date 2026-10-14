@@ -123,11 +123,6 @@ struct SettingsScreen: View {
             }
             .tint(MeshDropColor.lime).padding(14)
             divider
-            Toggle(isOn: $engine.verifyBeforeReceive) {
-                row(title: MD("settings.behavior.requireConfirm.title"), detail: MD("settings.behavior.requireConfirm.detail"))
-            }
-            .tint(MeshDropColor.lime).padding(14)
-            divider
             Toggle(isOn: $engine.autoAcceptFromTrusted) {
                 row(title: MD("settings.behavior.autoAccept.title"), detail: MD("settings.behavior.autoAccept.detail"))
             }

@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
@@ -15,7 +20,48 @@ namespace MeshDrop.Views.Controls;
 /// </summary>
 public static class FileActions
 {
+    private static bool _previewOpen;
+
     public static bool Exists(string? path) => !string.IsNullOrEmpty(path) && File.Exists(path);
+
+    public static async Task PreviewAsync(string? path, XamlRoot? root)
+    {
+        if (!Exists(path) || root is null || _previewOpen) return;
+        var extension = Path.GetExtension(path!).ToLowerInvariant();
+        if (extension is not (".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".tif" or ".tiff"))
+        {
+            Open(path);
+            return;
+        }
+
+        _previewOpen = true;
+        try
+        {
+            var file = await StorageFile.GetFileFromPathAsync(path);
+            using var stream = await file.OpenReadAsync();
+            var bitmap = new BitmapImage { DecodePixelWidth = 1600 };
+            // Decode before presenting so the dialog's first frame contains the image.
+            await bitmap.SetSourceAsync(stream);
+            var dialog = new ContentDialog
+            {
+                Title = file.Name,
+                XamlRoot = root,
+                Content = new Image
+                {
+                    Source = bitmap,
+                    Stretch = Stretch.Uniform,
+                    MaxHeight = Math.Max(160, Math.Min(640, root.Size.Height - 220)),
+                },
+                CloseButtonText = I18n.T("file.close"),
+            };
+            await dialog.ShowAsync();
+        }
+        catch
+        {
+            Open(path);
+        }
+        finally { _previewOpen = false; }
+    }
 
     /// <summary>用系统默认程序打开文件。</summary>
     public static async void Open(string? path)

@@ -8,6 +8,7 @@ struct ChatDetailScreen: View {
     @EnvironmentObject var state: AppState
     @EnvironmentObject var engine: ShareEngine
     @Environment(\.colorScheme) private var scheme
+    @StateObject private var preview = ContentPreviewPresenter()
     @State private var composerText: String = ""
     @State private var showFileImporter: Bool = false
     @State private var photoSelection: [PhotosPickerItem] = []
@@ -64,6 +65,7 @@ struct ChatDetailScreen: View {
             composer
         }
         .navigationBarTitleDisplayMode(.inline)
+        .contentPreviewHost(preview)
         // 进入单设备对话是 push 出来的详情页，隐藏底部 tab bar，给 composer 让出全宽。
         .toolbar(.hidden, for: .tabBar)
         .toolbar {
