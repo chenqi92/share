@@ -111,6 +111,8 @@ jobs:
           path: |
             windows/artifacts/store/**/*.msixupload
             windows/artifacts/store/**/*.appxupload
+            windows/artifacts/store/**/*.msix
+            windows/artifacts/store/**/*.msixsym
           if-no-files-found: error
           retention-days: 14
 
