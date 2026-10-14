@@ -341,7 +341,7 @@
   <data name="settings/receiveTitle.Text"><value>接收与剪贴板</value></data>
   <data name="settings/systemTitle.Text"><value>系统集成</value></data>
   <data name="settings/openFolder.Content"><value>打开文件夹</value></data>
-  <data name="settings/openFolder"><value>打开接收文件夹</value></data>
+  <data name="settings/openFolderTitle"><value>打开接收文件夹</value></data>
   <data name="settings/releasesLink.Content"><value>更新日志与下载</value></data>
   <data name="settings/deviceLabel.Text"><value>本机设备</value></data>
   <data name="settings/ipLabel.Text"><value>局域网地址</value></data>

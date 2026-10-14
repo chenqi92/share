@@ -26,7 +26,7 @@ public sealed partial class SettingsPage : Microsoft.UI.Xaml.Controls.UserContro
         {
             var dialog = new ContentDialog
             {
-                Title = I18n.T("settings.openFolder"),
+                Title = I18n.T("settings.openFolderTitle"),
                 Content = ex.Message,
                 CloseButtonText = I18n.T("common.cancel.Text"),
                 XamlRoot = XamlRoot,

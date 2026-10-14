@@ -334,7 +334,7 @@
   <data name="settings/receiveTitle.Text"><value>Receiving and clipboard</value></data>
   <data name="settings/systemTitle.Text"><value>System integration</value></data>
   <data name="settings/openFolder.Content"><value>Open folder</value></data>
-  <data name="settings/openFolder"><value>Open received files folder</value></data>
+  <data name="settings/openFolderTitle"><value>Open received files folder</value></data>
   <data name="settings/releasesLink.Content"><value>Release notes and downloads</value></data>
   <data name="settings/deviceLabel.Text"><value>Device</value></data>
   <data name="settings/ipLabel.Text"><value>LAN address</value></data>
