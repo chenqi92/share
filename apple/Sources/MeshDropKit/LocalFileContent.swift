@@ -54,7 +54,7 @@ public enum LocalFileContent {
         let directory = attachmentsDirectory.appendingPathComponent(id.uuidString, isDirectory: true)
         let destination = directory.appendingPathComponent(url.lastPathComponent)
         try fm.createDirectory(at: directory, withIntermediateDirectories: true)
-        if !fm.fileExists(atPath: destination.path) { try fm.copyItem(at: url, to: destination) }
+        if !fm.fileExists(atPath: destination.path) { try fm.moveItem(at: url, to: destination) }
         return destination
     }
 

@@ -256,10 +256,10 @@ extension PairingRequest {
     }
 
     static func ago(_ date: Date) -> String {
-        let secs = Int(Date().timeIntervalSince(date))
-        if secs < 60 { return "\(max(secs, 1))s ago" }
-        if secs < 3600 { return "\(secs / 60)m ago" }
-        return "\(secs / 3600)h ago"
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        formatter.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? Locale.current.identifier)
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
 

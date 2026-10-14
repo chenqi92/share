@@ -11,10 +11,6 @@ struct PairingPage: View {
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("pairing.title.suffix")
-                        .font(MeshDropFont.hero(34))
-                        .tracking(-1)
-                        .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
                 }
 

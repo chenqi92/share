@@ -45,15 +45,15 @@ public actor HistoryStore {
 
     /// 整表覆盖写。传入的数组应是「最新在前」的当前内存历史；超过上限自动截断尾部（最旧）。
     public func save(_ items: [HistoryItem]) {
-        let capped = Array(items.prefix(Self.maxItems))
-        do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(capped)
-            try data.write(to: url, options: .atomic)
-        } catch {
-            log.error("save failed: \(error.localizedDescription)")
-        }
+        do { try saveOrThrow(items) }
+        catch { log.error("save failed: \(error.localizedDescription)") }
+    }
+
+    func saveOrThrow(_ items: [HistoryItem]) throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(Array(items.prefix(Self.maxItems)))
+        try data.write(to: url, options: .atomic)
     }
 
     private static func defaultStoreURL() -> URL {

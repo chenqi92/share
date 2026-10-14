@@ -5,15 +5,20 @@ options:
     iOS: "17.0"
   developmentLanguage: zh-Hans
 
-# i18n：默认简体中文 + 英文。各 target 的 Resources/Localizable.xcstrings 提供两份文案。
-knownRegions:
-  - zh-Hans
-  - en
+  knownRegions:
+    - zh-Hans
+    - zh-Hant
+    - en
+    - ja
+    - ko
+    - fr
+    - de
+    - es
 
 settings:
   base:
-    MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.1.0"
+    CURRENT_PROJECT_VERSION: "7"
     SWIFT_VERSION: "5.10"
     TARGETED_DEVICE_FAMILY: "1,2"   # iPhone + iPad
 
@@ -50,8 +55,11 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         NSLocalNetworkUsageDescription: 用于发现同一局域网下的 MeshDrop 设备
+        NSBluetoothAlwaysUsageDescription: 用于通过蓝牙发现附近设备并传输文本、图片和文件
+        NSBluetoothPeripheralUsageDescription: 用于通过蓝牙发现附近设备并传输文本、图片和文件
         NSBonjourServices:
           - _meshdrop._tcp
+          - _meshdrop-p2p._tcp
         NSSupportsLiveActivities: true
         ITSAppUsesNonExemptEncryption: false
     settings:

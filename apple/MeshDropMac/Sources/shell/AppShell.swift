@@ -29,6 +29,7 @@ struct AppShell: View {
             GlobalOverlay()
         }
         .frame(minWidth: 1180, minHeight: 760)
+        .ignoresSafeArea(.container, edges: showsSidebar ? .top : [])
     }
 
     /// onboarding / receive / menubar 三个全屏视图不显示 sidebar。

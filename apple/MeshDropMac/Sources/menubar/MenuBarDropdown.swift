@@ -1,9 +1,11 @@
 import SwiftUI
 import AppKit
+import MeshDropKit
 
 /// 常驻菜单栏 dropdown · drop target + Nearby + 6 项快捷操作。
 struct MenuBarDropdown: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var engine = ShareEngine.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,8 +32,7 @@ struct MenuBarDropdown: View {
         HStack(spacing: 10) {
             MeshDropLockup(size: 18)
             Spacer()
-            Chip(text: "LAN", tone: .lime, mono: true)
-            // v0.1 明文传输，不宣称 E2E/加密。
+            Chip(text: engine.routeLabel, tone: .lime, mono: true)
             Chip(text: String(localized: "menubar.tag.plaintext"), tone: .outline, mono: true)
         }
         .padding(.horizontal, 12)
@@ -141,7 +142,7 @@ struct MenuBarDropdown: View {
     private var footer: some View {
         HStack {
             Circle().fill(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep).frame(width: 6, height: 6)
-            Text("\(state.isScanning ? "SCANNING" : "ONLINE") · \(state.localIPSummary)")
+            Text("\(state.isScanning ? String(localized: "status.scanning") : String(localized: "status.online")) · \(state.localIPSummary)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
             Spacer()

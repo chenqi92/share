@@ -53,6 +53,8 @@ struct SettingsScreen: View {
             .tint(MeshDropColor.lime)
             .padding(14)
             divider
+            TransportSettingsView(engine: engine).padding(14)
+            divider
             HStack {
                 row(title: MD("settings.visibility.deviceName.title"), detail: me.name)
                 Spacer()
@@ -69,7 +71,7 @@ struct SettingsScreen: View {
             HStack {
                 row(title: MD("settings.security.transport.title"), detail: MD("settings.security.transport.detail"))
                 Spacer()
-                Chip("PLAINTEXT", tone: .flame, mono: true, uppercased: true)
+                Chip(MD("status.encrypted"), tone: .flame, mono: true, uppercased: true)
             }
             .padding(14)
             divider

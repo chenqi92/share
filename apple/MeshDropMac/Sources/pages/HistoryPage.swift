@@ -13,10 +13,6 @@ struct HistoryPage: View {
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("history.title.suffix")
-                        .font(MeshDropFont.hero(34))
-                        .tracking(-1)
-                        .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
                     if !state.engineHistory.isEmpty {
                         Button { confirmingClear = true } label: {
@@ -96,6 +92,9 @@ struct HistoryPage: View {
                 Text(h.time)
                     .font(MeshDropFont.mono(size: 10))
                     .foregroundStyle(MeshDropColor.textMuted)
+                if let id = UUID(uuidString: h.id) {
+                    HistoryDeleteButton(id: id).labelStyle(.iconOnly)
+                }
             }
             // 内容
             switch h.kind {
@@ -156,11 +155,7 @@ struct HistoryPage: View {
                     SystemClipboard.copy(h.content ?? "")
                 }
             }
-            Button(role: .destructive) {
-                state.removeHistoryItem(h.id)
-            } label: {
-                Label("history.deleteItem", systemImage: "trash")
-            }
+            if let id = UUID(uuidString: h.id) { HistoryDeleteButton(id: id) }
         }
     }
 
@@ -168,10 +163,10 @@ struct HistoryPage: View {
     @ViewBuilder
     private func statusBadge(_ s: HistoryStatus) -> some View {
         switch s {
-        case .done:         Chip(text: "DONE",   tone: .lime,    mono: true)
-        case .transferring: Chip(text: "GOING…", tone: .flame,   mono: true)
-        case .queued:       Chip(text: "QUEUED", tone: .outline, mono: true)
-        case .failed:       Chip(text: "FAILED", tone: .flame,   mono: true)
+        case .done:         Chip(text: String(localized: "status.done"),   tone: .lime,    mono: true)
+        case .transferring: Chip(text: String(localized: "status.transferring"), tone: .flame,   mono: true)
+        case .queued:       Chip(text: String(localized: "status.queued"), tone: .outline, mono: true)
+        case .failed:       Chip(text: String(localized: "status.failed"), tone: .flame,   mono: true)
         }
     }
 }

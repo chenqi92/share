@@ -17,6 +17,9 @@ public final class Discovery: @unchecked Sendable {
     private let identity: Identity
     private let displayName: String
     private let model: String?
+    public static let peerToPeerServiceType = "_meshdrop-p2p._tcp"
+    private let peerToPeer: Bool
+    private var serviceType: String { peerToPeer ? Self.peerToPeerServiceType : TXTRecord.serviceType }
 
     private var listener: NWListener?
     private var browser: NWBrowser?
@@ -43,25 +46,23 @@ public final class Discovery: @unchecked Sendable {
         identity: Identity,
         displayName: String,
         model: String? = nil,
-        port: UInt16 = 0   // 0 = 让系统分配
+        port: UInt16 = 0,   // 0 = 让系统分配
+        peerToPeer: Bool = false
     ) throws {
         self.identity = identity
         self.displayName = displayName
         self.model = model
+        self.peerToPeer = peerToPeer
 
         let (stream, continuation) = AsyncStream.makeStream(of: [Device].self)
         self.devices = stream
         self.continuation = continuation
 
-        // 让 NWListener 自分配端口。
-        // includePeerToPeer 必须按平台区分，不能一刀切：
-        // - macOS：关。沙盒下启用 P2P（AWDL）会让 Bonjour 只广告 link-local IPv6、不广告可路由
-        //   IPv4，对端能发现却连不上；关掉后走同网段基础 Wi-Fi 的可路由 IPv4 广告。
-        // - iOS（及其它非 macOS）：开。iOS 上若关掉 P2P，基础 Wi-Fi 上的 Bonjour 广告会被一并抑制，
-        //   导致本机对同网段任何设备（包括 Mac）都不可见；开启后才能在同网段被发现。
-        let params = NWParameters.tcp
+        // Keep the legacy LAN advertisement independent of the AWDL service.
+        // iOS LAN discovery retains its existing peer-to-peer opt-in.
+        let params = try TransportSecurity.parameters(identity: identity)
         #if os(macOS)
-        params.includePeerToPeer = false
+        params.includePeerToPeer = peerToPeer
         #else
         params.includePeerToPeer = true
         #endif
@@ -99,7 +100,7 @@ public final class Discovery: @unchecked Sendable {
             guard port != 0 else { return } // 端口未就绪，留给 .ready 发布
             listener.service = NWListener.Service(
                 name: identity.id,
-                type: TXTRecord.serviceType,
+                type: serviceType,
                 domain: nil,
                 txtRecord: makeTXT(port: port)
             )
@@ -147,13 +148,13 @@ public final class Discovery: @unchecked Sendable {
                 if shouldAdvertise {
                     listener.service = NWListener.Service(
                         name: self.identity.id,             // mDNS 实例名用 device id（唯一）
-                        type: TXTRecord.serviceType,
+                        type: self.serviceType,
                         domain: nil,
                         txtRecord: self.makeTXT(port: actualPort)
                     )
                 }
             case .waiting(let err), .failed(let err):
-                log.error("listener failed: \(err.localizedDescription)")
+                log.error("listener \(self.serviceType, privacy: .public) failed: \(err.localizedDescription, privacy: .public)")
                 self.onError?(L10n.discoveryUnavailable)
             default:
                 break
@@ -166,14 +167,13 @@ public final class Discovery: @unchecked Sendable {
 
     private func startBrowser() {
         let descriptor = NWBrowser.Descriptor.bonjourWithTXTRecord(
-            type: TXTRecord.serviceType,
+            type: serviceType,
             domain: nil
         )
         let params = NWParameters()
-        // 与 listener 保持一致按平台区分：macOS 关 P2P（避免只浏览到 link-local IPv6 的连不上端点），
-        // iOS（及其它非 macOS）开 P2P，否则同网段对端的 Bonjour 广告浏览不到。
+        // Match the corresponding listener's interface scope.
         #if os(macOS)
-        params.includePeerToPeer = false
+        params.includePeerToPeer = peerToPeer
         #else
         params.includePeerToPeer = true
         #endif
@@ -187,7 +187,7 @@ public final class Discovery: @unchecked Sendable {
             log.debug("browser state: \(String(describing: state))")
             switch state {
             case .waiting(let err), .failed(let err):
-                log.error("browser failed: \(err.localizedDescription)")
+                log.error("browser \(self?.serviceType ?? "unknown", privacy: .public) failed: \(err.localizedDescription, privacy: .public)")
                 self?.onError?(L10n.discoveryUnavailable)
             default:
                 break
@@ -200,7 +200,16 @@ public final class Discovery: @unchecked Sendable {
         var seen: [String: Device] = [:]
         for result in results {
             guard case .bonjour(let txt) = result.metadata,
-                  let device = TXTRecord.decode(txt, endpoint: result.endpoint) else { continue }
+                  var device = TXTRecord.decode(txt, endpoint: result.endpoint) else { continue }
+
+            if peerToPeer {
+                // Bind to AWDL explicitly: selecting Apple direct must never silently
+                // send over the router just because both devices also have LAN access.
+                guard let interface = result.interfaces.first(where: { $0.name.hasPrefix("awdl") }),
+                      case let .service(name, type, domain, _) = result.endpoint else { continue }
+                device.discoveryEndpoint = nil
+                device.peerToPeerEndpoint = .service(name: name, type: type, domain: domain, interface: interface)
+            }
 
             // 过滤自己
             if device.id == identity.id { continue }

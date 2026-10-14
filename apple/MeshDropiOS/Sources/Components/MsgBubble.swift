@@ -55,6 +55,9 @@ public struct MsgBubble: View {
                             .font(MeshDropFont.mono(11))
                             .padding(.vertical, 6)
                     }
+                    if let id = UUID(uuidString: message.id) {
+                        HistoryDeleteButton(id: id).labelStyle(.iconOnly).padding(.vertical, 6)
+                    }
                 }
             }
             if message.dir == .incoming { Spacer(minLength: 56) }

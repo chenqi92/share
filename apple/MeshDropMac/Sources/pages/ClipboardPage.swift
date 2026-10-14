@@ -15,10 +15,6 @@ struct ClipboardPage: View {
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("clipboard.title.suffix")
-                        .font(MeshDropFont.hero(34))
-                        .tracking(-1)
-                        .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
                     pushButton
                 }
@@ -147,9 +143,9 @@ struct ClipboardPage: View {
 
     private func kindText(_ k: String) -> String {
         switch k {
-        case "link": return "LINK"
-        case "code": return "CODE"
-        default:     return "TEXT"
+        case "link": return String(localized: "content.link")
+        case "code": return String(localized: "content.code")
+        default:     return String(localized: "content.text")
         }
     }
     private func kindTone(_ k: String) -> ChipTone {

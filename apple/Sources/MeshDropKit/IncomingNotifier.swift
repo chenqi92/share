@@ -51,8 +51,8 @@ public final class IncomingNotifier {
             seenHistory.insert(it.id)
             guard it.direction == .incoming else { continue }
             switch it.kind {
-            case .text(let t): post(title: it.peer.name, body: t)
-            case .file(let name, _, _): post(title: L10n.notifIncomingFile(peer: it.peer.name), body: name)
+            case .text(let t): post(title: it.peer.name, body: t, identifier: it.id.uuidString)
+            case .file(let name, _, _): post(title: L10n.notifIncomingFile(peer: it.peer.name), body: name, identifier: it.id.uuidString)
             }
         }
     }
@@ -71,7 +71,26 @@ public final class IncomingNotifier {
         }
     }
 
-    private func post(title: String, body: String) {
+    static func removeNotification(for item: HistoryItem) async {
+        #if !os(tvOS)
+        let center = UNUserNotificationCenter.current()
+        let body: String
+        switch item.kind {
+        case .text(let text): body = String(text.prefix(140))
+        case .file(let name, _, _): body = String(name.prefix(140))
+        }
+        let delivered = await center.deliveredNotifications()
+        let identifiers = delivered.filter {
+            $0.request.identifier == item.id.uuidString ||
+            ($0.request.content.body == body && ($0.request.content.title == item.peer.name ||
+                $0.request.content.title == L10n.notifIncomingFile(peer: item.peer.name)))
+        }.map { $0.request.identifier }
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+        center.removePendingNotificationRequests(withIdentifiers: [item.id.uuidString])
+        #endif
+    }
+
+    private func post(title: String, body: String, identifier: String = UUID().uuidString) {
         guard engine.notificationsEnabled else { return }
         #if os(tvOS)
         // tvOS 的 UNMutableNotificationContent 不支持 title/body/sound；接收端只在 app 内提示，不发系统通知。
@@ -81,7 +100,7 @@ public final class IncomingNotifier {
         content.title = title
         content.body = String(body.prefix(140))
         content.sound = .default
-        let req = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        let req = UNNotificationRequest(identifier: identifier, content: content, trigger: nil)
         UNUserNotificationCenter.current().add(req)
         #endif
     }

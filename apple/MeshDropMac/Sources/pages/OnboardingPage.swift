@@ -10,7 +10,7 @@ struct OnboardingPage: View {
             HStack {
                 MeshDropLockup(size: 26)
                 Spacer()
-                Chip(text: "STEP 2 / 4", tone: .outline, mono: true)
+                Chip(text: String(localized: "onboarding.step"), tone: .outline, mono: true)
                 Text("onboarding.skip")
                     .font(MeshDropFont.body(size: 12))
                     .foregroundStyle(MeshDropColor.textMuted)

@@ -139,9 +139,9 @@ struct TransferRow: View {
         switch item.state {
         case .sending:   return "SENDING · \(item.progress)%"
         case .receiving: return "RECV · \(item.progress)%"
-        case .done:      return "DONE"
-        case .failed:    return "FAILED"
-        case .queued:    return "QUEUED"
+        case .done:      return String(localized: "status.done")
+        case .failed:    return String(localized: "status.failed")
+        case .queued:    return String(localized: "status.queued")
         }
     }
     private var stateTone: ChipTone {

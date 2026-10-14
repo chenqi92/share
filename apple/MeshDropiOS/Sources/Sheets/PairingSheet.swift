@@ -49,7 +49,7 @@ struct PairingSheet: View {
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
             }
             Spacer()
-            Chip("LIVE", tone: .lime, mono: true, uppercased: true, icon: "circle.fill")
+            Chip(MD("status.live"), tone: .lime, mono: true, uppercased: true, icon: "circle.fill")
         }
     }
 

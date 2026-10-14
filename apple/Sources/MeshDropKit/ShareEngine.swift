@@ -108,7 +108,34 @@ public final class ShareEngine: ObservableObject {
         didSet {
             UserDefaults.standard.set(visibleOnLan, forKey: "meshdrop.visibleOnLan")
             discovery?.setAdvertising(enabled: visibleOnLan)
+            directDiscovery?.setAdvertising(enabled: visibleOnLan)
+            #if os(iOS) || os(macOS)
+            bluetoothDiscovery?.setVisible(visibleOnLan)
+            #endif
         }
+    }
+
+    @Published public var bluetoothEnabled: Bool = UserDefaults.standard.bool(forKey: "meshdrop.bluetoothEnabled") {
+        didSet {
+            UserDefaults.standard.set(bluetoothEnabled, forKey: "meshdrop.bluetoothEnabled")
+            if !bluetoothEnabled, preferredRoute == .bluetooth { preferredRoute = .automatic }
+            if running { updateBluetoothDiscovery() }
+        }
+    }
+    @Published public var preferredRoute: TransferRoute = TransferRoute(rawValue:
+        UserDefaults.standard.string(forKey: "meshdrop.preferredRoute") ?? "automatic") ?? .automatic {
+        didSet {
+            UserDefaults.standard.set(preferredRoute.rawValue, forKey: "meshdrop.preferredRoute")
+            if preferredRoute == .bluetooth, !bluetoothEnabled { bluetoothEnabled = true }
+            publishDevices()
+        }
+    }
+    @Published public private(set) var bluetoothStatus = ""
+    @Published public private(set) var directDiscoveryError: String?
+    public var routeLabel: String { preferredRoute.title }
+    public func routeLabel(for device: Device?) -> String {
+        guard let device else { return preferredRoute.title }
+        return (DeviceRoutes.select(device, preference: preferredRoute) ?? preferredRoute).title
     }
 
     /// 是否处于"启动 / 扫描 LAN"阶段。UI 顶部 banner 用。
@@ -119,11 +146,24 @@ public final class ShareEngine: ObservableObject {
     @Published public private(set) var lastError: String?
 
     private var discovery: Discovery?
+    private var transportCertificateCreatedAt = Date.distantPast
+    private var directDiscovery: Discovery?
+    private var directTask: Task<Void, Never>?
+    private var lanDevices: [Device] = []
+    private var directDevices: [Device] = []
+    private var bluetoothDevices: [Device] = []
+    private var running = false
+    #if os(iOS) || os(macOS)
+    private var bluetoothDiscovery: BluetoothDiscovery?
+    #endif
     private let trustStore = TrustStore()
     private let resumeStore = ResumeStore()
     private let historyStore = HistoryStore()
     /// 历史落盘订阅：监听 `history` 任何变更（新增 / 状态更新 / 删除 / 清空）整表覆盖写。
     private var historyCancellable: AnyCancellable?
+    private var historySaveTask: Task<Void, Error>?
+    private var filePreparationTasks: [UUID: Task<Void, Never>] = [:]
+    private var deletingHistoryIDs: Set<UUID> = []
     /// 内存历史上限，超出截断最旧（与 [HistoryStore.maxItems] 一致）。防长会话内存无限增长。
     private static let maxHistoryItems = HistoryStore.maxItems
     /// 标记是否已从磁盘载入过历史，避免重复 load（start 可能被多次调用）。
@@ -263,8 +303,11 @@ public final class ShareEngine: ObservableObject {
         // 历史载入独立于网络发现：即使 discovery 已在跑（guard 提前返回），
         // 也要确保历史已从磁盘读回并挂上落盘订阅。
         loadHistoryIfNeeded()
-        guard discovery == nil else { return }
+        guard !running else { return }
+        running = true
         startDiscovery()
+        startDirectDiscovery()
+        updateBluetoothDiscovery()
         throughputTask?.cancel()
         heartbeatTask?.cancel()
         Task { await refreshTrusted() }
@@ -288,16 +331,23 @@ public final class ShareEngine: ObservableObject {
 
     /// 只重建发现服务；正在进行的传输、配对与重放窗口继续保留。
     public func refreshDiscovery() {
-        guard discovery != nil else { start(); return }
+        guard running else { start(); return }
         discovery?.stop()
         discovery = nil
         devicesTask?.cancel()
         devicesTask = nil
-        devices = []
+        directDiscovery?.stop()
+        directDiscovery = nil
+        directTask?.cancel()
+        lanDevices = []
+        directDevices = []
+        publishDevices()
         startDiscovery()
+        startDirectDiscovery()
     }
 
     private func startDiscovery() {
+        transportCertificateCreatedAt = Date()
         isStarting = true
         lastError = nil
         do {
@@ -327,7 +377,8 @@ public final class ShareEngine: ObservableObject {
                 for await list in d.devices {
                     await MainActor.run {
                         guard self.discovery === d, !Task.isCancelled else { return }
-                        self.devices = list
+                        self.lanDevices = list
+                        self.publishDevices()
                         // 收到首批设备 / 至少完成一轮浏览后视为不再扫描
                         if self.isStarting { self.isStarting = false }
                     }
@@ -348,7 +399,107 @@ public final class ShareEngine: ObservableObject {
         }
     }
 
+    private func startDirectDiscovery() {
+        #if os(iOS) || os(macOS)
+        directDiscoveryError = nil
+        do {
+            let d = try Discovery(identity: identity, displayName: displayName,
+                                  model: Self.systemModel(), peerToPeer: true)
+            d.onIncomingConnection = { [weak self] nw in
+                Task { @MainActor in
+                    guard let self else { nw.cancel(); return }
+                    await self.acceptIncoming(nw, route: .peerToPeer)
+                }
+            }
+            d.onError = { [weak self, weak d] message in
+                Task { @MainActor in
+                    guard let self, let d, self.directDiscovery === d else { return }
+                    self.directDiscoveryError = message
+                }
+            }
+            directDiscovery = d
+            try d.start()
+            d.setAdvertising(enabled: visibleOnLan)
+            directTask = Task { [weak self] in
+                for await list in d.devices {
+                    guard let self, self.directDiscovery === d, !Task.isCancelled else { return }
+                    self.directDevices = list
+                    self.publishDevices()
+                }
+            }
+        } catch {
+            directDiscoveryError = error.localizedDescription
+            log.error("Direct discovery failed: \(error.localizedDescription)")
+        }
+        #endif
+    }
+
+    private func updateBluetoothDiscovery() {
+        #if os(iOS) || os(macOS)
+        if !bluetoothEnabled {
+            bluetoothDiscovery?.stop()
+            bluetoothDiscovery = nil
+            bluetoothDevices = []
+            publishDevices()
+            return
+        }
+        guard bluetoothDiscovery == nil else { return }
+        bluetoothStatus = String(localized: "bluetooth.starting", bundle: .module)
+        let bluetooth = BluetoothDiscovery(identity: identity, name: displayName, model: Self.systemModel())
+        bluetooth.onDevices = { [weak self, weak bluetooth] list in
+            guard let self, self.bluetoothDiscovery === bluetooth else { return }
+            self.bluetoothDevices = list
+            self.publishDevices()
+        }
+        bluetooth.onStatus = { [weak self] in self?.bluetoothStatus = $0 }
+        bluetooth.onIncoming = { [weak self] connection in
+            Task { @MainActor in
+                guard let self else { await connection.close(); return }
+                await self.acceptIncomingConnection(connection)
+            }
+        }
+        bluetoothDiscovery = bluetooth
+        bluetooth.start(visible: visibleOnLan)
+        #endif
+    }
+
+    private func publishDevices() {
+        devices = DeviceRoutes.merge([lanDevices, directDevices, bluetoothDevices], preference: preferredRoute)
+    }
+
+    private func makeConnection(to device: Device) -> Connection {
+        let device = DeviceRoutes.currentDevice(for: device, in: devices) ?? device
+        guard let route = DeviceRoutes.select(device, preference: preferredRoute) else {
+            // Preserve service resolution for legacy callers, but never override an
+            // explicitly selected Bluetooth or direct-only route.
+            if preferredRoute == .automatic, device.bluetoothID == nil, device.peerToPeerEndpoint == nil {
+                return Connection(connectingTo: device, identity: identity)
+            }
+            return Connection(unavailable: preferredRoute)
+        }
+        if route == .bluetooth {
+            #if os(iOS) || os(macOS)
+            return bluetoothDiscovery?.connection(to: device) ?? Connection(unavailable: route)
+            #else
+            return Connection(unavailable: route)
+            #endif
+        }
+        return Connection(connectingTo: device, route: route, identity: identity)
+    }
+
     public func stop() {
+        running = false
+        directDiscovery?.stop()
+        directDiscovery = nil
+        directTask?.cancel()
+        directTask = nil
+        #if os(iOS) || os(macOS)
+        bluetoothDiscovery?.stop()
+        bluetoothDiscovery = nil
+        #endif
+        lanDevices = []
+        directDevices = []
+        bluetoothDevices = []
         discovery?.stop()
         discovery = nil
         devicesTask?.cancel()
@@ -421,7 +572,7 @@ public final class ShareEngine: ObservableObject {
     /// 信任库（trustedDevices.json）**保留** —— 那是别人 → 我的信任关系，
     /// 我换身份不该影响。但其它端会发现我是"新设备"，他们要重新审我。
     public func resetIdentity() {
-        let wasRunning = (discovery != nil)
+        let wasRunning = running
         stop()
         history.removeAll()
         IdentityStore.reset()
@@ -470,12 +621,52 @@ public final class ShareEngine: ObservableObject {
             .removeDuplicates()
             .sink { [weak self] items in
                 guard let self else { return }
-                Task { await self.historyStore.save(items) }
+                let previous = self.historySaveTask
+                self.historySaveTask = Task {
+                    try? await previous?.value
+                    try await self.historyStore.saveOrThrow(items)
+                }
             }
     }
 
     public func removeHistoryItem(_ id: UUID) {
+        Task {
+            do { try await deleteHistoryItem(id) }
+            catch { lastError = error.localizedDescription }
+        }
+    }
+
+    public func deleteHistoryItem(_ id: UUID) async throws {
+        guard deletingHistoryIDs.insert(id).inserted else { return }
+        defer { deletingHistoryIDs.remove(id) }
+        await filePreparationTasks[id]?.value
+        guard let item = history.first(where: { $0.id == id }) else { return }
+        let active = contexts.values.filter { $0.historyID == id }
+        let transferIDs = Set(active.compactMap(\.transferID))
+        for context in active {
+            try? context.fileHandle?.close()
+            context.fileHandle = nil
+            context.state = .closed
+            await closeContext(id: context.id, error: nil)
+        }
+        let remaining = history.filter { $0.id != id }
+        let support = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let receiveAccess = beginReceiveDirectoryAccess()
+        defer { receiveAccess.securityScopedURL?.stopAccessingSecurityScopedResource() }
+        try HistoryDeletion.removeAttachment(for: item, preserving: remaining,
+            attachmentsDirectory: support.appendingPathComponent("MeshDrop/Attachments"))
+        let savedPath: String?
+        if case .file(_, _, let url) = item.kind { savedPath = LocalFileContent.restoredURL(url)?.path }
+        else { savedPath = nil }
+        try await resumeStore.discard(savedPath: savedPath, transferIDs: transferIDs)
         history.removeAll { $0.id == id }
+        transferMetrics.removeValue(forKey: id)
+        do { try await historySaveTask?.value }
+        catch {
+            if !history.contains(where: { $0.id == id }) { appendHistory(item) }
+            throw error
+        }
+        await IncomingNotifier.removeNotification(for: item)
     }
 
     public func clearHistory() {
@@ -493,7 +684,7 @@ public final class ShareEngine: ObservableObject {
         )
         appendHistory(historyItem)
 
-        let conn = Connection(connectingTo: device)
+        let conn = makeConnection(to: device)
         let ctx = ConnectionContext(
             connection: conn,
             role: .client(target: device, payload: .text(content)),
@@ -512,7 +703,7 @@ public final class ShareEngine: ObservableObject {
         guard !content.isEmpty else { return }
         // 剪贴板同步总开关关闭时不发送（门控已存在的剪贴板收发）。
         guard clipboardSyncEnabled else { return }
-        let conn = Connection(connectingTo: device)
+        let conn = makeConnection(to: device)
         let ctx = ConnectionContext(
             connection: conn,
             role: .client(target: device, payload: .clipboard(content: content, kind: kind)),
@@ -552,26 +743,35 @@ public final class ShareEngine: ObservableObject {
 
             // 后台算 sha256（大文件流式），算完后启动连接
             let engineRef = self
-            Task.detached(priority: .userInitiated) {
+            filePreparationTasks[historyID] = Task.detached(priority: .userInitiated) {
                 let hash: String
                 let retainedURL: URL
                 do {
                     retainedURL = try LocalFileContent.retainTemporaryAttachment(sourceURL, id: historyID)
+                    await MainActor.run {
+                        if let index = engineRef.history.firstIndex(where: { $0.id == historyID }) {
+                            engineRef.history[index].kind = .file(name: fileName, size: fileSize, url: retainedURL)
+                        }
+                    }
                     hash = try Self.sha256OfFile(at: retainedURL)
                 } catch {
                     if needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
                     let msg = error.localizedDescription
                     await MainActor.run { [weak engineRef] in
+                        engineRef?.filePreparationTasks.removeValue(forKey: historyID)
                         engineRef?.updateHistoryStatus(historyID, status: .failed(L10n.failReadFile(msg)))
                     }
                     return
                 }
                 await MainActor.run { [weak engineRef] in
                     if retainedURL != sourceURL, needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
-                    if let index = engineRef?.history.firstIndex(where: { $0.id == historyID }) {
-                        engineRef?.history[index].kind = .file(name: fileName, size: fileSize, url: retainedURL)
+                    engineRef?.filePreparationTasks.removeValue(forKey: historyID)
+                    guard let engineRef, !engineRef.deletingHistoryIDs.contains(historyID),
+                          engineRef.history.contains(where: { $0.id == historyID }) else {
+                        if retainedURL == sourceURL, needsAccess { sourceURL.stopAccessingSecurityScopedResource() }
+                        return
                     }
-                    engineRef?.startFileSend(
+                    engineRef.startFileSend(
                         to: device,
                         historyID: historyID,
                         sourceURL: retainedURL,
@@ -596,7 +796,7 @@ public final class ShareEngine: ObservableObject {
         needsSecurityScope: Bool
     ) {
         let transferID = UUID()
-        let conn = Connection(connectingTo: device)
+        let conn = makeConnection(to: device)
         let payload = ConnectionContext.ClientPayload.file(
             sourceURL: sourceURL,
             fileSize: fileSize,
@@ -691,20 +891,22 @@ public final class ShareEngine: ObservableObject {
         updateHistoryStatus(historyID, status: .canceled)
     }
 
-    /// 失败 / 取消的发送项重试。
-    /// 找 historyID 对应的 outgoing 历史项；若 kind 是 file 且 url 仍可读，
-    /// 调用 sendFile 走完整流程（新建一个独立的 history 条目，旧的失败条目不动）。
-    /// 返回 true 表示触发了重发；false 表示找不到 / 不是文件 / 源文件已失效。
+    /// 用重新发现的设备端点重发，历史中的设备快照不包含可用的传输通道。
     @discardableResult
     public func retryTransfer(_ historyID: UUID) -> Bool {
         guard let item = history.first(where: { $0.id == historyID }),
               item.direction == .outgoing,
-              case .file(_, _, let url) = item.kind,
-              let sourceURL = url,
-              FileManager.default.fileExists(atPath: sourceURL.path) else {
-            return false
+              let target = DeviceRoutes.currentDevice(for: item.peer, in: devices) else { return false }
+        switch item.status {
+        case .failed, .canceled: break
+        default: return false
         }
-        sendFile(to: item.peer, sourceURL: sourceURL)
+        switch item.kind {
+        case .text(let content): sendText(to: target, content: content)
+        case .file(_, _, let url):
+            guard let sourceURL = url, FileManager.default.fileExists(atPath: sourceURL.path) else { return false }
+            sendFile(to: target, sourceURL: sourceURL)
+        }
         return true
     }
 
@@ -774,8 +976,12 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 入站连接
 
-    private func acceptIncoming(_ nwConn: NWConnection) async {
-        let conn = Connection(nwConnection: nwConn)
+    private func acceptIncoming(_ nwConn: NWConnection, route: TransferRoute = .lan) async {
+        let conn = Connection(nwConnection: nwConn, route: route)
+        await acceptIncomingConnection(conn)
+    }
+
+    private func acceptIncomingConnection(_ conn: Connection) async {
         let ctx = ConnectionContext(connection: conn, role: .server, state: .awaitingHello)
         contexts[ctx.id] = ctx
         let ctxID = ctx.id
@@ -791,6 +997,7 @@ public final class ShareEngine: ObservableObject {
     }
 
     private func startConnection(_ ctx: ConnectionContext) {
+        lastError = nil
         let ctxID = ctx.id
         Task {
             await ctx.connection.start(
@@ -908,6 +1115,10 @@ public final class ShareEngine: ObservableObject {
         guard Set<UInt8>([1]).intersection(hello.protocol_versions).max() != nil else {
             await closeContext(id: contextID, error: nil); return
         }
+        let authenticated = await ctx.connection.authenticatedFingerprint
+        guard ctx.connection.route == .bluetooth || authenticated == hello.fp.lowercased() else {
+            await closeContext(id: contextID, error: TransportSecurity.Failure.invalidIdentity); return
+        }
         let peer = Device(
             id: hello.id, name: hello.name, os: hello.os, model: hello.model,
             fingerprint: hello.fp, port: 0, protocolVersion: 1
@@ -953,15 +1164,22 @@ public final class ShareEngine: ObservableObject {
         guard case .client(let target, let payload) = ctx.role else {
             await closeContext(id: contextID, error: nil); return
         }
-        // v0.1 明文阶段：fp 仅与 TXT 广告里的 fingerprint 比对，未绑定任何公钥/证书，
-        // 因此只防误连、不抗主动 MITM（攻击者可伪造 fp）。v1.0 接 TLS 后须改为「从证书公钥导出
-        // fp 再比对 TXT/HELLO」。UI 对指纹核对的安全承诺措辞需与此保守现状一致。
+        let authenticated = await ctx.connection.authenticatedFingerprint
+        guard ctx.connection.route == .bluetooth || authenticated == target.fingerprint.lowercased() else {
+            await closeContext(id: contextID, error: TransportSecurity.Failure.invalidIdentity); return
+        }
         guard ack.fp == target.fingerprint else {
             log.info("server fp mismatch; closing")
             await closeContext(id: contextID, error: nil); return
         }
         ctx.peer = target
+        ctx.state = .ready
+        // Keep receiving PING/PONG while a slow Bluetooth write is backpressured.
+        Task { await sendPendingPayload(payload, contextID: contextID) }
+    }
 
+    private func sendPendingPayload(_ payload: ConnectionContext.ClientPayload, contextID: UUID) async {
+        guard let ctx = contexts[contextID], !ctx.state.isClosed else { return }
         switch payload {
         case .text(let content):
             // 发文本 → 等 200ms 让对方读完缓冲 → 关
@@ -973,6 +1191,7 @@ public final class ShareEngine: ObservableObject {
             do {
                 let textBody = try MessageCodec.encode(msg)
                 try await ctx.connection.send(type: MessageType.text, body: textBody)
+                guard contexts[contextID] != nil, !ctx.state.isClosed else { return }
                 if let hid = ctx.historyID { updateHistoryStatus(hid, status: .completed) }
                 try? await Task.sleep(nanoseconds: 200_000_000)
                 await ctx.connection.close()
@@ -1015,8 +1234,8 @@ public final class ShareEngine: ObservableObject {
             )
             do {
                 let offerBody = try MessageCodec.encode(offer)
-                try await ctx.connection.send(type: MessageType.fileOffer, body: offerBody)
                 ctx.state = .awaitingFileAccept
+                try await ctx.connection.send(type: MessageType.fileOffer, body: offerBody)
             } catch {
                 if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed(error.localizedDescription)) }
                 await closeContext(id: contextID, error: error)
@@ -1062,7 +1281,7 @@ public final class ShareEngine: ObservableObject {
               let handle = ctx.fileHandle,
               let transferID = ctx.transferID else { return }
         let fileSize = ctx.fileSize
-        let chunkSize = 256 * 1024
+        let chunkSize = ctx.connection.route == .bluetooth ? 16 * 1024 : 256 * 1024
 
         while ctx.sentBytes < fileSize {
             if ctx.state.isClosed { return }
@@ -1078,16 +1297,19 @@ public final class ShareEngine: ObservableObject {
                 let header = FileChunkHeader(transferID: transferID, index: 0, offset: offset)
                 return FileChunkHeader.encode(header, data: data)
             }.value
+            guard contexts[contextID] != nil, !ctx.state.isClosed else { return }
             guard let body, body.count > FileChunkHeader.size else { break }
             let dataCount = body.count - FileChunkHeader.size
 
             do {
                 try await ctx.connection.send(type: MessageType.fileChunk, body: body)
             } catch {
+                guard contexts[contextID] != nil, !ctx.state.isClosed else { return }
                 if let hid = ctx.historyID { updateHistoryStatus(hid, status: .failed(error.localizedDescription)) }
                 await closeContext(id: contextID, error: error)
                 return
             }
+            guard contexts[contextID] != nil, !ctx.state.isClosed else { return }
             ctx.sentBytes += UInt64(dataCount)
             recordProgress(ctx: ctx, currentBytes: ctx.sentBytes, totalBytes: fileSize)
             if let hid = ctx.historyID {
@@ -1452,12 +1674,13 @@ public final class ShareEngine: ObservableObject {
         // 标记为失败，否则 UI 会一直停在「加载 / 待发送」转圈（App Store 2.1a 配对无限加载）。
         switch ctx.state {
         case .awaitingHello, .awaitingHelloAck, .awaitingFileAccept:
+            let message = error?.localizedDescription ?? L10n.failCouldNotConnect
             if let hid = ctx.historyID,
                let item = history.first(where: { $0.id == hid }),
                !item.status.isTerminal {
-                updateHistoryStatus(hid, status: .failed(L10n.failCouldNotConnect))
+                updateHistoryStatus(hid, status: .failed(message))
             }
-            lastError = L10n.failCouldNotConnect
+            lastError = message
         default:
             break
         }
@@ -1568,6 +1791,9 @@ public final class ShareEngine: ObservableObject {
 
     private func tickConnectionHealth() async {
         let now = Date()
+        if now.timeIntervalSince(transportCertificateCreatedAt) >= 24 * 3600 {
+            refreshDiscovery()
+        }
         var toClose: [UUID] = []
         var toPing: [UUID] = []
 
@@ -1586,11 +1812,12 @@ public final class ShareEngine: ObservableObject {
                 }
             // 业务态：超过一个心跳周期没收到任何帧就 PING；连续丢 PONG 判死
             case .ready, .receivingFile, .sendingFile:
-                if now.timeIntervalSince(ctx.lastInboundAt) > Self.heartbeatInterval {
+                if ctx.shouldCheckHeartbeat(now: now, interval: Self.heartbeatInterval) {
                     if ctx.missedPongs >= Self.maxMissedPongs {
                         toClose.append(id)
                     } else {
                         ctx.missedPongs += 1
+                        ctx.lastPingAt = now
                         toPing.append(id)
                     }
                 }
@@ -1861,7 +2088,12 @@ final class ConnectionContext {
     let createdAt: Date = Date()
     /// 心跳：自上次收到对端任意帧的时刻；连续丢 PONG 计数。
     var lastInboundAt: Date = Date()
+    var lastPingAt: Date = .distantPast
     var missedPongs: Int = 0
+
+    func shouldCheckHeartbeat(now: Date, interval: TimeInterval) -> Bool {
+        now.timeIntervalSince(max(lastInboundAt, lastPingAt)) > interval
+    }
 
     // 关联的历史记录与传输
     var historyID: UUID?

@@ -15,6 +15,9 @@ struct MsgBubble<Content: View>: View {
     var copyText: String? = nil
     var fileURL: URL? = nil
     var fileCompleted: Bool = false
+    var status: TransferStatus? = nil
+    var onRetry: (() -> Void)? = nil
+    var historyID: UUID? = nil
     @ViewBuilder var content: Content
     @State private var copied = false
 
@@ -62,8 +65,31 @@ struct MsgBubble<Content: View>: View {
                         FileContentActions(url: fileURL, completed: fileCompleted)
                             .font(MeshDropFont.mono(size: 10))
                     }
+                    if let historyID {
+                        HistoryDeleteButton(id: historyID).labelStyle(.iconOnly)
+                    }
                     if side == .incoming { Spacer() }
                 }
+            }
+            if let status {
+                HStack(spacing: 6) {
+                    switch status {
+                    case .failed(let reason):
+                        Image(systemName: "exclamationmark.circle")
+                        Text(reason).lineLimit(2).textSelection(.enabled)
+                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
+                    case .pending:
+                        Text("chat.sending")
+                    case .waitingApproval:
+                        Text("chat.waitingApproval")
+                    case .canceled:
+                        Text("chat.canceled")
+                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
+                    default: EmptyView()
+                    }
+                }
+                .font(MeshDropFont.body(size: 10.5))
+                .foregroundStyle(status.isFailure ? MeshDropColor.error : MeshDropColor.textMuted)
             }
         }
         .frame(maxWidth: .infinity, alignment: side == .outgoing ? .trailing : .leading)
@@ -105,6 +131,13 @@ struct MsgBubble<Content: View>: View {
         case .outgoing: return MeshDropColor.outgoingText
         case .incoming: return MeshDropColor.textPrimary
         }
+    }
+}
+
+private extension TransferStatus {
+    var isFailure: Bool {
+        if case .failed = self { return true }
+        return false
     }
 }
 

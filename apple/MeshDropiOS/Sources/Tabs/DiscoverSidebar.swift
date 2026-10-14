@@ -38,7 +38,7 @@ struct DiscoverSidebar: View {
         HStack {
             MeshDropLockup(size: 20)
             Spacer()
-            Chip("LIVE \(devices.filter(\.isOnline).count)", tone: .lime,
+            Chip(String(format: MD("live.count"), devices.filter(\.isOnline).count), tone: .lime,
                  mono: true, uppercased: true, icon: "circle.fill")
         }
     }
@@ -47,7 +47,7 @@ struct DiscoverSidebar: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(MD("discovery.sidebar.title"))
                 .font(MeshDropFont.display(22, weight: .bold))
-            Text(engine.isStarting ? "scanning · \(me.ip)/24" : "LAN · \(me.ip)/24")
+            Text("\(engine.isStarting ? "scanning" : "ready") · \(engine.routeLabel)")
                 .font(MeshDropFont.mono(10.5))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
         }
@@ -63,7 +63,7 @@ struct DiscoverSidebar: View {
     @ViewBuilder
     private var devicesList: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AsciiDivider("DEVICES · \(devices.count)")
+            AsciiDivider(MD("discovery.devices.count", devices.count))
             if devices.isEmpty {
                 Text(MD("discovery.sidebar.devices.empty"))
                     .font(MeshDropFont.mono(11))
@@ -84,7 +84,7 @@ struct DiscoverSidebar: View {
 
     private var sectionList: some View {
         VStack(alignment: .leading, spacing: 6) {
-            AsciiDivider("SECTIONS")
+            AsciiDivider(MD("navigation.sections"))
             sectionRow(MD("discovery.sidebar.section.chat"), "message", .chat)
             sectionRow(MD("discovery.sidebar.section.transfers"), "arrow.up.arrow.down", .transfers)
             sectionRow(MD("discovery.sidebar.section.history"), "clock.arrow.circlepath", .history)

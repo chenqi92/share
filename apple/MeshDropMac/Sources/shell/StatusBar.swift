@@ -1,23 +1,21 @@
 import SwiftUI
+import MeshDropKit
 
 /// 底部 mono 状态条。
 struct StatusBar: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var engine = ShareEngine.shared
 
     var body: some View {
         HStack(spacing: 14) {
             Circle()
                 .fill(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
                 .frame(width: 6, height: 6)
-            Text(state.isScanning ? "SCANNING LAN" : "LAN ONLINE")
+            Text(state.isScanning ? "\(String(localized: "status.scanning")) · \(engine.routeLabel)" : engine.routeLabel)
                 .meshTag()
                 .foregroundStyle(state.isScanning ? MeshDropColor.flame : MeshDropColor.limeDeep)
             Divider().frame(height: 12)
             Text("\(state.localIPSummary)")
-                .font(MeshDropFont.mono(size: 10))
-                .foregroundStyle(MeshDropColor.textMuted)
-            Divider().frame(height: 12)
-            Text("mDNS · _meshdrop._tcp")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)
             Spacer()
@@ -30,11 +28,6 @@ struct StatusBar: View {
                     .onTapGesture { state.clearError() }
                 Divider().frame(height: 12)
             }
-            // v0.1 LAN 传输为明文 TCP，未启用 TLS —— 状态条诚实标注，不宣称加密。
-            Text("statusbar.tag.plaintext")
-                .meshTag()
-                .foregroundStyle(MeshDropColor.textSecondary)
-            Divider().frame(height: 12)
             Text("FP \(state.localFingerprintShort)")
                 .font(MeshDropFont.mono(size: 10))
                 .foregroundStyle(MeshDropColor.textMuted)

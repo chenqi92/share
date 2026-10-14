@@ -12,7 +12,8 @@ struct ImagePreview: View {
     @State private var thumbnail: UIImage?
 
     var body: some View {
-        ZStack {
+        GeometryReader { bounds in
+          ZStack {
             if let thumbnail {
                 Image(uiImage: thumbnail)
                     .resizable()
@@ -30,9 +31,10 @@ struct ImagePreview: View {
                     .foregroundStyle(.white)
                     .shadow(radius: 4)
             }
+          }
+          .frame(width: bounds.size.width, height: bounds.size.height)
+          .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
-        .clipped()
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .task(id: "\(url?.absoluteString ?? "")|\(base64 ?? "")|\(isVideo)") {
             thumbnail = nil
             let file = LocalFileContent.readableURL(url)

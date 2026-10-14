@@ -15,7 +15,7 @@ final class LocalFileContentTests: XCTestCase {
         }
     }
 
-    func testRetainedPhotoSurvivesTemporaryFileRemoval() throws {
+    func testRetainedPhotoMovesOutOfTemporaryStorage() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         let temporary = root.appendingPathComponent("tmp")
         let attachments = root.appendingPathComponent("Attachments")
@@ -28,8 +28,7 @@ final class LocalFileContentTests: XCTestCase {
         let retained = try LocalFileContent.retainTemporaryAttachment(source, id: id,
             temporaryDirectory: temporary, attachmentsDirectory: attachments)
         XCTAssertEqual(retained.lastPathComponent, source.lastPathComponent)
-        XCTAssertEqual(try Data(contentsOf: source), bytes)
-        try FileManager.default.removeItem(at: source)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: source.path))
         XCTAssertEqual(try Data(contentsOf: retained), bytes)
         XCTAssertEqual(try LocalFileContent.retainTemporaryAttachment(source, id: id,
             temporaryDirectory: temporary, attachmentsDirectory: attachments), retained)

@@ -35,7 +35,7 @@ struct DiscoverTab: View {
                     radarBlock
                     quickStripBlock
                     deviceListBlock
-                    AsciiDivider("LAN · \(me.ip)/24 · \(engine.isStarting ? "SCANNING" : "LIVE")")
+                    AsciiDivider("\(engine.routeLabel) · \(engine.isStarting ? MD("status.scanning") : MD("status.live"))")
                     statusBar
                     Spacer(minLength: 60)
                 }
@@ -93,7 +93,7 @@ struct DiscoverTab: View {
             }
             .accessibilityLabel(MD("discovery.refresh"))
             .disabled(engine.isStarting)
-            Chip(engine.isStarting ? "SCAN" : "LIVE",
+            Chip(engine.isStarting ? MD("status.scanning") : MD("status.live"),
                  tone: engine.isStarting ? .flame : .lime,
                  mono: true, uppercased: true, icon: "circle.fill")
             IconBtn("line.3.horizontal", size: 32, variant: .ghost) {
@@ -141,7 +141,7 @@ struct DiscoverTab: View {
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.55) : MeshDropColor.ink60)
                 Spacer()
             }
-            Text(engine.isStarting ? "scanning · \(me.ip)/24 · LAN ONLY" : "ready · \(me.ip)/24 · LAN ONLY")
+            Text("\(engine.isStarting ? MD("status.scanning") : MD("status.ready")) · \(engine.routeLabel)")
                 .font(MeshDropFont.mono(11))
                 .foregroundStyle(scheme == .dark ? Color.white.opacity(0.45) : MeshDropColor.ink45)
                 .tracking(0.5)
@@ -162,7 +162,7 @@ struct DiscoverTab: View {
     @ViewBuilder
     private var deviceListBlock: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AsciiDivider("DEVICES · \(devices.count)")
+            AsciiDivider(MD("discovery.devices.count", devices.count))
             if devices.isEmpty {
                 emptyDeviceCard
             } else {
@@ -318,7 +318,7 @@ struct DiscoverTab: View {
 
     private var statusBar: some View {
         HStack(spacing: 8) {
-            Chip("LAN ONLY", tone: .outline, mono: true, uppercased: true)
+            Chip(engine.routeLabel, tone: .outline, mono: true, uppercased: true)
             Chip(engine.isStarting ? MD("discovery.status.scanning") : MD("discovery.status.visible"),
                  tone: .lime,
                  mono: true, uppercased: true,

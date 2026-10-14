@@ -90,7 +90,10 @@ struct HistoryScreen: View {
                         .padding(.top, 6)
                 }
             }
-            statusChip(h)
+            VStack(spacing: 12) {
+                statusChip(h)
+                if let id = UUID(uuidString: h.id) { HistoryDeleteButton(id: id).labelStyle(.iconOnly) }
+            }
         }
         .padding(12)
         .background(
@@ -107,11 +110,7 @@ struct HistoryScreen: View {
                     SystemClipboard.copy(h.content ?? "")
                 }
             }
-            Button(MD("common.delete"), role: .destructive) {
-                if let id = UUID(uuidString: h.id) {
-                    engine.removeHistoryItem(id)
-                }
-            }
+            if let id = UUID(uuidString: h.id) { HistoryDeleteButton(id: id) }
         }
     }
 

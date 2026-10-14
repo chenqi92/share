@@ -9,11 +9,11 @@ struct Sidebar: View {
             // logo + 搜索
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
-                    Spacer().frame(width: 56)   // 给 traffic lights 让位
+                    Spacer().frame(width: 72)   // 给 traffic lights 让位
                     MeshDropLockup(size: 20)
                     Spacer()
                 }
-                .padding(.top, 10)
+                .frame(height: 32)
 
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")

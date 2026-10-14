@@ -1,6 +1,19 @@
 import Foundation
 import Network
 
+public enum TransferRoute: String, CaseIterable, Sendable, Identifiable {
+    case automatic, lan, bluetooth, peerToPeer
+    public var id: String { rawValue }
+    public var title: String {
+        switch self {
+        case .automatic: return String(localized: "route.auto", bundle: .module)
+        case .lan: return "LAN"
+        case .bluetooth: return String(localized: "route.bluetooth", bundle: .module)
+        case .peerToPeer: return String(localized: "route.peerToPeer", bundle: .module)
+        }
+    }
+}
+
 public enum DeviceOS: String, Codable, Sendable, CaseIterable {
     case ios, android, macos, windows, linux
 
@@ -26,6 +39,17 @@ public struct Device: Identifiable, Hashable, Sendable {
     public var port: UInt16
     public var protocolVersion: UInt8
     public var discoveryEndpoint: NWEndpoint?
+    public var peerToPeerEndpoint: NWEndpoint?
+    public var bluetoothID: UUID?
+    public var bluetoothPSM: UInt16?
+
+    public var availableRoutes: [TransferRoute] {
+        var routes: [TransferRoute] = []
+        if discoveryEndpoint != nil { routes.append(.lan) }
+        if peerToPeerEndpoint != nil { routes.append(.peerToPeer) }
+        if bluetoothID != nil, bluetoothPSM != nil { routes.append(.bluetooth) }
+        return routes
+    }
 
     /// A conversation survives rediscovery and history reloads, which can use different runtime IDs.
     public var conversationID: String {

@@ -76,7 +76,7 @@ struct ChatDetailScreen: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(currentDevice.who)
                             .font(MeshDropFont.body(14, weight: .semibold))
-                        Text(currentDevice.isOnline ? "\(currentDevice.os) · \(currentDevice.rtt)ms · LAN" : "\(currentDevice.os) · OFFLINE · LAN")
+                        Text(currentDevice.isOnline ? "\(currentDevice.os) · \(engine.routeLabel(for: realTarget))" : "\(currentDevice.os) · \(MD("status.offline"))")
                             .font(MeshDropFont.mono(9.5))
                             .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                     }
@@ -108,10 +108,10 @@ struct ChatDetailScreen: View {
 
     private var chatHeader: some View {
         HStack(spacing: 8) {
-            Chip(currentDevice.isOnline ? "ONLINE" : "OFFLINE",
+            Chip(currentDevice.isOnline ? MD("status.online") : MD("status.offline"),
                  tone: currentDevice.isOnline ? .lime : .outline,
                  mono: true, uppercased: true, icon: "circle.fill")
-            Chip("LAN", tone: .outline, mono: true, uppercased: true)
+            Chip(engine.routeLabel(for: realTarget), tone: .outline, mono: true, uppercased: true)
             Spacer()
             if currentDevice.isOnline {
                 Text("RTT \(currentDevice.rtt)ms")
