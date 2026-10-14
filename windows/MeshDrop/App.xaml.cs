@@ -18,7 +18,8 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (s, e) => Log("AppDomain", e.ExceptionObject as Exception);
         UnhandledException += (s, e) => Log("Xaml", e.Exception);
         InitializeComponent();
-        RequestedTheme = ApplicationTheme.Dark; // Windows 默认进 dark
+        // 不显式设 RequestedTheme：WinUI 应用默认跟随系统「应用模式」(浅色/深色)。
+        // 主题字典 MeshDropColors.xaml 已含 Light/Dark 两套，随系统切换。
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)

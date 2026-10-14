@@ -39,10 +39,10 @@ public sealed partial class ShellViewModel : ObservableObject
     public string NearbyCount => Devices.Count.ToString();
     public string SelfInitials => EngineProjection.Initials(_engine.DisplayName);
     public string SelfColor => EngineProjection.ColorFromId(_engine.Identity.Id);
-    public string ActiveTransfersText => _engine.History.Count(h =>
+    public string ActiveTransfersText => (_engine.PendingFileOffers.Count + _engine.History.Count(h =>
         h.Status is MeshDrop.Models.TransferStatus.Transferring
             or MeshDrop.Models.TransferStatus.Pending
-            or MeshDrop.Models.TransferStatus.WaitingApproval).ToString();
+            or MeshDrop.Models.TransferStatus.WaitingApproval)).ToString();
 
     public ShellViewModel()
     {
@@ -54,6 +54,7 @@ public sealed partial class ShellViewModel : ObservableObject
             OnPropertyChanged(nameof(NearbyCount));
         };
         _engine.History.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ActiveTransfersText));
+        _engine.PendingFileOffers.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ActiveTransfersText));
         _engine.PropertyChanged += (_, e) =>
         {
             switch (e.PropertyName)

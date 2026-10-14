@@ -60,19 +60,20 @@
                                     </Grid.ColumnDefinitions>
                                     <ctrl:ChipControl Grid.Column="0" Text="{x:Bind KindLabel}" Tone="Outline" Mono="True" VerticalAlignment="Center"/>
                                     <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Body}"
-                                                   FontFamily="{StaticResource MdMonoFontFamily}"
-                                                   FontSize="12"
-                                                   TextWrapping="Wrap"
-                                                   MaxLines="3"
-                                                   TextTrimming="WordEllipsis"/>
+                                        <RichTextBlock ctrl:Linkify.Text="{x:Bind Body}"
+                                                       FontFamily="{StaticResource MdMonoFontFamily}"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap"
+                                                       MaxLines="3"
+                                                       TextTrimming="WordEllipsis"/>
                                         <TextBlock FontFamily="{StaticResource MdMonoFontFamily}"
                                                    FontSize="10"
                                                    Opacity="0.55">
                                             <Run Text="from "/><Run Text="{x:Bind Who}"/><Run Text=" · "/><Run Text="{x:Bind Ago}"/>
                                         </TextBlock>
                                     </StackPanel>
-                                    <Button Grid.Column="2" Style="{StaticResource MdOutlineButtonStyle}" VerticalAlignment="Center">
+                                    <Button Grid.Column="2" Style="{StaticResource MdOutlineButtonStyle}" VerticalAlignment="Center"
+                                            Click="OnClipboardCopyClick">
                                         <TextBlock x:Uid="common/copy"/>
                                     </Button>
                                 </Grid>
@@ -117,7 +118,8 @@
                                         <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Text="{x:Bind Peer}"
                                                        FontFamily="{StaticResource MdBodyFontFamily}"
-                                                       FontWeight="SemiBold" FontSize="13"/>
+                                                       FontWeight="SemiBold" FontSize="13"
+                                                       IsTextSelectionEnabled="True"/>
                                             <TextBlock Text="·" Opacity="0.4"/>
                                             <TextBlock Text="{x:Bind KindLabel}"
                                                        FontFamily="{StaticResource MdMonoFontFamily}"
@@ -128,6 +130,7 @@
                                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                                    FontSize="12"
                                                    Opacity="0.8"
+                                                   IsTextSelectionEnabled="True"
                                                    TextTrimming="CharacterEllipsis"
                                                    MaxLines="2"
                                                    TextWrapping="Wrap"/>

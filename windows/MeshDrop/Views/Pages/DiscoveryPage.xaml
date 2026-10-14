@@ -41,13 +41,13 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <Button Style="{StaticResource MdOutlineButtonStyle}">
+                <Button x:Name="SendFileBtn" Click="OnSendFile_Click" Style="{StaticResource MdOutlineButtonStyle}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon Glyph="&#xE898;" FontSize="14"/>
                         <TextBlock x:Uid="discovery/sendFile"/>
                     </StackPanel>
                 </Button>
-                <Button Style="{StaticResource MdAccentButtonStyle}">
+                <Button x:Name="NewSessionBtn" Click="OnNewSession_Click" Style="{StaticResource MdAccentButtonStyle}">
                     <TextBlock x:Uid="discovery/newSession"/>
                 </Button>
             </StackPanel>

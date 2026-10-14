@@ -2,6 +2,8 @@ using System;
 using MeshDrop.Mock;
 using MeshDrop.ViewModels;
 using MeshDrop.Views.Controls;
+using MeshDrop.Transport;
+using Microsoft.UI.Xaml;
 
 namespace MeshDrop.Views.Pages;
 
@@ -29,5 +31,17 @@ public sealed partial class TransfersPage : Microsoft.UI.Xaml.Controls.UserContr
         {
             ViewModel.CancelCommand.Execute(item);
         }
+    }
+
+    private void OnAcceptFile(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: Guid id })
+            ShareEngine.Shared.RespondToFileOffer(id, true);
+    }
+
+    private void OnRejectFile(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: Guid id })
+            ShareEngine.Shared.RespondToFileOffer(id, false);
     }
 }

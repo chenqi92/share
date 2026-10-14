@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Specialized;
+using System.IO;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -27,6 +29,7 @@ public sealed partial class MainWindow : Window
         SetInitialSize();
         Sidebar.SectionChanged += OnSectionChanged;
         Sidebar.PeerChosen += OnPeerChosen;
+        DiscoveryPg.StartSessionRequested += OnPeerChosen;
         _tray.OpenMainRequested += (_, _) => Activate();
         _tray.OpenSettingsRequested += (_, _) =>
         {
@@ -38,6 +41,9 @@ public sealed partial class MainWindow : Window
 
         // 窗口在前台时，TOFU 待审配对直接弹审批对话框（后台时由 Toast 承接）。
         ShareEngine.Shared.Event += OnEngineEvent;
+        ShareEngine.Shared.PendingFileOffers.CollectionChanged += OnPendingFilesChanged;
+        ReviewIncomingFilesButton.Content = I18n.T("receive.review");
+        RefreshPendingFiles();
     }
 
     private bool _trayReady;
@@ -63,7 +69,24 @@ public sealed partial class MainWindow : Window
     private void OnClosed(object sender, WindowEventArgs args)
     {
         ShareEngine.Shared.Event -= OnEngineEvent;
+        ShareEngine.Shared.PendingFileOffers.CollectionChanged -= OnPendingFilesChanged;
         _tray.Dispose();
+    }
+
+    private void OnPendingFilesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshPendingFiles();
+
+    private void RefreshPendingFiles()
+    {
+        var count = ShareEngine.Shared.PendingFileOffers.Count;
+        IncomingFilesBar.Title = I18n.T("receive.pendingFormat", count);
+        IncomingFilesBar.Message = I18n.T("receive.pendingHint");
+        IncomingFilesBar.IsOpen = count > 0;
+    }
+
+    private void OnReviewIncomingFiles(object sender, RoutedEventArgs e)
+    {
+        Sidebar.SetActiveSection(ShellSection.Transfers);
+        ShowSection(ShellSection.Transfers);
     }
 
     private void OnEngineEvent(EngineEvent ev)
@@ -94,7 +117,14 @@ public sealed partial class MainWindow : Window
 
     private void OnSectionChanged(object? sender, ShellSection section) => ShowSection(section);
 
-    private void OnPeerChosen(object? sender, string peerId) => ShowSection(ShellSection.Chat);
+    private void OnPeerChosen(object? sender, string peerId)
+    {
+        // 把选中的对端喂给 ChatViewModel，否则 Chat 页只会显示设备表里的第一台。
+        if (!string.IsNullOrEmpty(peerId))
+            ChatPg.ViewModel.PeerId = peerId;
+        Sidebar.SetActiveSection(ShellSection.Chat);
+        ShowSection(ShellSection.Chat);
+    }
 
     private void ShowSection(ShellSection section)
     {
@@ -125,7 +155,7 @@ public sealed partial class MainWindow : Window
             var hwnd = WindowNative.GetWindowHandle(this);
             var id = Win32Interop.GetWindowIdFromWindow(hwnd);
             var aw = AppWindow.GetFromWindowId(id);
-            aw?.SetIcon(@"Assets\AppIcon.ico");
+            aw?.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
             if (aw?.TitleBar is { } tb)
             {
                 tb.ExtendsContentIntoTitleBar = false;

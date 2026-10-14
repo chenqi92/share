@@ -57,6 +57,9 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
         nameof(CancelVisibility), typeof(Visibility), typeof(TransferRowControl),
         new PropertyMetadata(Visibility.Collapsed));
 
+    public static readonly DependencyProperty LocalPathProperty = DependencyProperty.Register(
+        nameof(LocalPath), typeof(string), typeof(TransferRowControl), new PropertyMetadata(null));
+
     public new string Name { get => (string)GetValue(NameProperty); set => SetValue(NameProperty, value); }
     public string Size { get => (string)GetValue(SizeProperty); set => SetValue(SizeProperty, value); }
     public string Ext { get => (string)GetValue(ExtProperty); set => SetValue(ExtProperty, value); }
@@ -79,7 +82,14 @@ public sealed partial class TransferRowControl : Microsoft.UI.Xaml.Controls.User
         set => SetValue(CancelVisibilityProperty, value);
     }
 
+    public string? LocalPath { get => (string?)GetValue(LocalPathProperty); set => SetValue(LocalPathProperty, value); }
+
     private void OnCancelClick(object sender, RoutedEventArgs e) => CancelRequested?.Invoke(this, EventArgs.Empty);
+
+    // 右键菜单：打开/所在文件夹/转存。文件不存在（文本传输、路径已失效）时静默忽略。
+    private void OnRowOpen(object sender, RoutedEventArgs e) => FileActions.Open(LocalPath);
+    private void OnRowReveal(object sender, RoutedEventArgs e) => FileActions.Reveal(LocalPath);
+    private void OnRowSaveCopy(object sender, RoutedEventArgs e) => FileActions.SaveCopy(LocalPath);
 
     public TransferRowControl()
     {

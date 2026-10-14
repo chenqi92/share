@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MeshDrop.Gateway;
@@ -15,6 +16,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly ShareEngine _engine = ShareEngine.Shared;
     private readonly AppSettings _settings = AppSettings.Current;
+    private readonly SemaphoreSlim _startupChangeLock = new(1, 1);
+    private bool _refreshingStartup;
 
     // 可见性
     [ObservableProperty] private bool _visible;
@@ -60,8 +63,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _autoAcceptTrusted = _settings.AutoAcceptTrusted;
         _autoAcceptStranger = _settings.AutoAcceptStranger;
         _clipboardSync = _settings.ClipboardSync;
-        // 自启状态以注册表为准（用户可能在系统侧改过），与持久化设置取并集回填。
-        _launchAtLogin = _settings.LaunchAtLogin || Models.LaunchAtLogin.IsEnabled;
+        // System startup state wins over preferences, including DisabledByUser.
+        _launchAtLogin = false;
+        _ = RefreshLaunchAtLoginAsync();
         _showTrayBadge = _settings.TrayBadge;
 
         _webGatewayEnabled = GatewayProbe.IsRunning;
@@ -143,20 +147,41 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.Save();
     }
 
-    /// <summary>登录时启动：真正写/删 HKCU Run 键；注册表失败则回滚开关显示。</summary>
+    private async Task RefreshLaunchAtLoginAsync()
+    {
+        await _startupChangeLock.WaitAsync();
+        try
+        {
+            var enabled = await Models.LaunchAtLogin.IsEnabledAsync();
+            _refreshingStartup = true;
+            try { LaunchAtLogin = enabled; }
+            finally { _refreshingStartup = false; }
+            _settings.LaunchAtLogin = enabled;
+            _settings.Save();
+        }
+        finally { _startupChangeLock.Release(); }
+    }
+
+    /// <summary>MSIX 使用系统 StartupTask；未打包版本继续使用启动目录快捷方式。</summary>
     partial void OnLaunchAtLoginChanged(bool value)
     {
-        if (!Models.LaunchAtLogin.Set(value))
+        if (!_refreshingStartup) _ = ApplyLaunchAtLoginAsync(value);
+    }
+
+    private async Task ApplyLaunchAtLoginAsync(bool value)
+    {
+        await _startupChangeLock.WaitAsync();
+        try
         {
-            // 写注册表失败：回滚 UI 状态，避免显示与实际不符。
-            if (Models.LaunchAtLogin.IsEnabled != value)
-            {
-                SetProperty(ref _launchAtLogin, Models.LaunchAtLogin.IsEnabled, nameof(LaunchAtLogin));
-                return;
-            }
+            await Models.LaunchAtLogin.SetAsync(value);
+            var actual = await Models.LaunchAtLogin.IsEnabledAsync();
+            _refreshingStartup = true;
+            try { LaunchAtLogin = actual; }
+            finally { _refreshingStartup = false; }
+            _settings.LaunchAtLogin = actual;
+            _settings.Save();
         }
-        _settings.LaunchAtLogin = value;
-        _settings.Save();
+        finally { _startupChangeLock.Release(); }
     }
 
     /// <summary>托盘活跃数徽标：持久化；tray host 订阅 AppSettings.Changed 刷新显示。</summary>

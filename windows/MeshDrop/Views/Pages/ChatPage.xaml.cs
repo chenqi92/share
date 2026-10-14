@@ -18,6 +18,37 @@ public sealed partial class ChatPage : Microsoft.UI.Xaml.Controls.UserControl
         ViewModel = new ChatViewModel();
         InitializeComponent();
         PlaintextChip.Text = I18n.T("chat.chipPlaintext");
+        ViewModel.Messages.CollectionChanged += (_, _) => QueueScrollToLatest();
+        ViewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ChatViewModel.PeerId))
+            {
+                _followLatest = true;
+                QueueScrollToLatest();
+            }
+        };
+        Loaded += (_, _) => QueueScrollToLatest();
+    }
+
+    private bool _followLatest = true;
+    private bool _scrollQueued;
+
+    private void OnMessagesViewChanged(object sender, Microsoft.UI.Xaml.Controls.ScrollViewerViewChangedEventArgs e)
+    {
+        if (!_scrollQueued)
+            _followLatest = MessagesScroll.ScrollableHeight - MessagesScroll.VerticalOffset < 40;
+    }
+
+    private void QueueScrollToLatest()
+    {
+        if (!_followLatest || _scrollQueued) return;
+        _scrollQueued = true;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            MessagesScroll.UpdateLayout();
+            MessagesScroll.ChangeView(null, MessagesScroll.ScrollableHeight, null, true);
+            _scrollQueued = false;
+        });
     }
 
     /// <summary>composer 里按 Enter 直接发送（Shift+Enter 不拦，留给将来多行）。</summary>

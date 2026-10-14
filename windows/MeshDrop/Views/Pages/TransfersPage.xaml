@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ctrl="using:MeshDrop.Views.Controls"
-    xmlns:mock="using:MeshDrop.Mock">
+    xmlns:mock="using:MeshDrop.Mock"
+    xmlns:models="using:MeshDrop.Models">
 
     <Grid Background="{ThemeResource MdPaperBrush}">
         <Grid.RowDefinitions>
@@ -38,6 +39,30 @@
 
         <ScrollViewer Grid.Row="1" Padding="24,8,24,18" VerticalScrollMode="Enabled">
             <StackPanel Spacing="14">
+                <ItemsControl ItemsSource="{x:Bind ViewModel.PendingOffers, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:PendingFileOffer">
+                            <Border Background="{ThemeResource MdCardBrush}" BorderBrush="{ThemeResource MdLimeDeepBrush}"
+                                    BorderThickness="1" CornerRadius="12" Padding="16" Margin="0,0,0,8">
+                                <StackPanel Spacing="10">
+                                    <TextBlock x:Uid="receive/waiting" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Bind Peer.Name}"/>
+                                    <TextBlock Text="{x:Bind FileName}" TextWrapping="Wrap" FontSize="18" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{x:Bind FormattedSize}"/>
+                                    <TextBlock x:Uid="receive/saveHint" TextWrapping="Wrap" Opacity="0.7"/>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <Button Tag="{x:Bind Id}" Click="OnAcceptFile" Style="{StaticResource MdAccentButtonStyle}">
+                                            <TextBlock x:Uid="receive/accept"/>
+                                        </Button>
+                                        <Button Tag="{x:Bind Id}" Click="OnRejectFile" Style="{StaticResource MdOutlineButtonStyle}">
+                                            <TextBlock x:Uid="common/reject"/>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
                 <!-- 3 DashTile -->
                 <Grid ColumnSpacing="12">
                     <Grid.ColumnDefinitions>
@@ -83,6 +108,7 @@
                                                      Progress="{x:Bind Progress}"
                                                      Speed="{x:Bind Speed}"
                                                      Eta="{x:Bind Eta}"
+                                                     LocalPath="{x:Bind LocalPath}"
                                                      Tag="{x:Bind}"
                                                      CancelRequested="OnRowCancelRequested"/>
                         </DataTemplate>

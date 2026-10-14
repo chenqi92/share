@@ -15,6 +15,7 @@ public sealed partial class TransfersViewModel : ObservableObject
     private readonly ShareEngine _engine = ShareEngine.Shared;
 
     public ObservableCollection<MockTransfer> All { get; }
+    public ObservableCollection<PendingFileOffer> PendingOffers => _engine.PendingFileOffers;
 
     /// <summary>
     /// 用户点 Cancel：MockTransfer.Id 是 history Guid 字符串，解出后转给 ShareEngine.CancelTransfer。

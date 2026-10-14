@@ -115,6 +115,9 @@ jobs:
       - name: Build
         working-directory: windows
         run: msbuild MeshDrop.sln -t:Build -p:Configuration=Release -p:Platform=x64 -v:minimal
+      - name: TLS identity and interoperability tests
+        working-directory: windows
+        run: dotnet test MeshDrop.Transport.Tests/MeshDrop.Transport.Tests.csproj -c Release --verbosity minimal
 
   protocol-vectors-consistency:
     name: Protocol · testdata frame_bytes_hex 一致性

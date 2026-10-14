@@ -307,7 +307,7 @@ public sealed partial class ShareEngine : ObservableObject
             return;
         }
 
-        var conn = Connection.ForOutgoing(device.Host, device.Port);
+        var conn = Connection.ForOutgoing(device.Host, device.Port, Identity, device.Fingerprint);
         var ctx = new ConnectionContext(conn,
             new ConnectionContext.RoleClient(device, new ConnectionContext.PayloadText(content)),
             ConnectionContext.StateAwaitingHelloAck)
@@ -328,7 +328,7 @@ public sealed partial class ShareEngine : ObservableObject
         // 「跨设备剪贴板同步」关闭 → 不发剪贴板（门控发送面）。默认开。
         if (!_settings.ClipboardSync) return;
         if (string.IsNullOrEmpty(content) || string.IsNullOrEmpty(device.Host)) return;
-        var conn = Connection.ForOutgoing(device.Host, device.Port);
+        var conn = Connection.ForOutgoing(device.Host, device.Port, Identity, device.Fingerprint);
         var ctx = new ConnectionContext(conn,
             new ConnectionContext.RoleClient(device, new ConnectionContext.PayloadClipboard(content, kind)),
             ConnectionContext.StateAwaitingHelloAck);
@@ -381,7 +381,7 @@ public sealed partial class ShareEngine : ObservableObject
 
             _ui.TryEnqueue(() =>
             {
-                var conn = Connection.ForOutgoing(device.Host!, device.Port);
+                var conn = Connection.ForOutgoing(device.Host!, device.Port, Identity, device.Fingerprint);
                 var payload = new ConnectionContext.PayloadFile(sourcePath, info.Length, sha, info.Name);
                 var ctx = new ConnectionContext(conn,
                     new ConnectionContext.RoleClient(device, payload),
@@ -469,7 +469,7 @@ public sealed partial class ShareEngine : ObservableObject
             var dir = DefaultSaveDir(offer.Peer);
             Directory.CreateDirectory(dir);
             var path = UniqueFilePath(dir, offer.FileName);
-            var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
+            var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
             ctx.OutputStream = stream;
             ctx.SavedPath = path;
             ctx.FileSize = offer.FileSize;
@@ -568,7 +568,7 @@ public sealed partial class ShareEngine : ObservableObject
 
     private Task AcceptIncomingAsync(TcpClient client)
     {
-        var conn = Connection.ForIncoming(client);
+        var conn = Connection.ForIncoming(client, Identity);
         var ctx = new ConnectionContext(conn, ConnectionContext.RoleServerSingleton,
             ConnectionContext.StateAwaitingHello);
         _contexts[ctx.Id] = ctx;
@@ -674,6 +674,8 @@ public sealed partial class ShareEngine : ObservableObject
         HelloMessage? hello = null;
         try { hello = MessageCodec.Decode<HelloMessage>(body); } catch { }
         if (hello is null) { await CloseContextAsync(ctx.Id, null); return; }
+        if (!TransportIdentity.MatchesHello(ctx.Connection.AuthenticatedFingerprint, hello.Fp))
+        { await CloseContextAsync(ctx.Id, new System.Security.Authentication.AuthenticationException("Device identity mismatch.")); return; }
         if (!hello.ProtocolVersions.Contains((byte)1)) { await CloseContextAsync(ctx.Id, null); return; }
 
         var os = DeviceOSExtensions.Parse(hello.Os) ?? DeviceOS.Linux;
@@ -723,6 +725,8 @@ public sealed partial class ShareEngine : ObservableObject
         HelloAckMessage? ack = null;
         try { ack = MessageCodec.Decode<HelloAckMessage>(body); } catch { }
         if (ack is null) { await CloseContextAsync(ctx.Id, null); return; }
+        if (!TransportIdentity.MatchesHello(ctx.Connection.AuthenticatedFingerprint, ack.Fp))
+        { await CloseContextAsync(ctx.Id, new System.Security.Authentication.AuthenticationException("Device identity mismatch.")); return; }
         if (ctx.Role is not ConnectionContext.RoleClient role) { await CloseContextAsync(ctx.Id, null); return; }
         if (ack.Fp != role.Target.Fingerprint) { await CloseContextAsync(ctx.Id, null); return; }
         ctx.Peer = role.Target;
@@ -1331,24 +1335,14 @@ public sealed partial class ShareEngine : ObservableObject
     private static string DefaultSaveDir(Device peer)
     {
         var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        var dir = Path.Combine(docs, "MeshDrop", string.IsNullOrEmpty(peer.Name) ? peer.Id : peer.Name);
+        var dir = ReceiveFilePaths.DirectoryFor(docs, string.IsNullOrEmpty(peer.Name) ? peer.Id : peer.Name);
         Directory.CreateDirectory(dir);
         return dir;
     }
 
     private static string UniqueFilePath(string dir, string fileName)
     {
-        var path = Path.Combine(dir, fileName);
-        if (!File.Exists(path)) return path;
-        var name = Path.GetFileNameWithoutExtension(fileName);
-        var ext = Path.GetExtension(fileName);
-        var n = 1;
-        while (true)
-        {
-            var p = Path.Combine(dir, $"{name} ({n}){ext}");
-            if (!File.Exists(p)) return p;
-            n++;
-        }
+        return ReceiveFilePaths.AvailableFile(dir, fileName);
     }
 }
 

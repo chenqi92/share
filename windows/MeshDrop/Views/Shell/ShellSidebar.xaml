@@ -211,7 +211,7 @@
                                    FontWeight="SemiBold"/>
                         <StackPanel Orientation="Horizontal" Spacing="6">
                             <ctrl:KindGlyph Size="10" Kind="Win"/>
-                            <TextBlock Text="Win 11 · LAN"
+                            <TextBlock Text="Windows · LAN"
                                        FontFamily="{StaticResource MdMonoFontFamily}"
                                        FontSize="9"
                                        Opacity="0.6"/>

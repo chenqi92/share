@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Reflection;
@@ -27,7 +26,7 @@ namespace MeshDrop.Gateway;
 ///   - POST /api/v1/upload      → multipart 暂存文件，返 token
 ///   - GET  /api/v1/download/{} → 接受 offer 后下载流（v0.1：本地保存路径）
 ///
-/// 用 TcpListener + SslStream + System.Net.WebSockets 手搭，
+/// 用 TcpListener + GatewayTls + System.Net.WebSockets 手搭，
 /// 不引第三方 web framework。
 /// </summary>
 public sealed class WebGatewayHost
@@ -129,14 +128,18 @@ public sealed class WebGatewayHost
     private async Task HandleClientAsync(TcpClient tcp, CancellationToken ct)
     {
         using var _ = tcp;
-        SslStream? ssl = null;
+        using var abort = ct.Register(() => { try { tcp.Close(); } catch { } });
+        using var tls = new GatewayTls(tcp.GetStream());
+        Stream? ssl = null;
         try
         {
-            ssl = new SslStream(tcp.GetStream(), leaveInnerStreamOpen: false);
-            // TLS 1.3 ONLY（protocol/security.md + README 声明）：不允许降级到 1.2。
-            await ssl.AuthenticateAsServerAsync(_cert!, clientCertificateRequired: false,
-                                                System.Security.Authentication.SslProtocols.Tls13,
-                                                checkCertificateRevocation: false);
+            using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                timeout.CancelAfter(TimeSpan.FromSeconds(12));
+                using var cancelHandshake = timeout.Token.Register(() => { try { tcp.Close(); } catch { } });
+                ssl = tls.Authenticate(_cert!);
+                timeout.Token.ThrowIfCancellationRequested();
+            }
 
             var (method, path, headers, reader) = await ReadHeadersAsync(ssl, ct);
             if (method is null || reader is null) return;
@@ -228,10 +231,6 @@ public sealed class WebGatewayHost
         {
             System.Diagnostics.Debug.WriteLine($"[gateway] handler error: {ex.Message}");
         }
-        finally
-        {
-            try { ssl?.Dispose(); } catch { }
-        }
     }
 
     // ─── /api/v1/download/<historyId> ──────────────────────────────────
@@ -240,7 +239,7 @@ public sealed class WebGatewayHost
     /// 流式下载已接收文件（companion-bridges.md §4.3）。
     /// path: /api/v1/download/<uuid>
     /// </summary>
-    private async Task HandleDownloadAsync(SslStream ssl, string path, CancellationToken ct)
+    private async Task HandleDownloadAsync(Stream ssl, string path, CancellationToken ct)
     {
         var idStr = path.Substring("/api/v1/download/".Length).Split('?')[0];
         if (!Guid.TryParse(idStr, out var historyId))
@@ -311,7 +310,7 @@ public sealed class WebGatewayHost
 
     // ─── WebSocket ─────────────────────────────────────────────────────
 
-    private async Task UpgradeAndServeWebSocketAsync(SslStream ssl, Dictionary<string, string> headers, CancellationToken ct)
+    private async Task UpgradeAndServeWebSocketAsync(Stream ssl, Dictionary<string, string> headers, CancellationToken ct)
     {
         if (!headers.TryGetValue("Sec-WebSocket-Key", out var key) || string.IsNullOrEmpty(key))
         {

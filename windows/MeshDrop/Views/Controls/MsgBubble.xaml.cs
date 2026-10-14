@@ -32,6 +32,12 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
     public static readonly DependencyProperty FileExtProperty = DependencyProperty.Register(
         nameof(FileExt), typeof(string), typeof(MsgBubble), new PropertyMetadata(""));
 
+    public static readonly DependencyProperty LocalPathProperty = DependencyProperty.Register(
+        nameof(LocalPath), typeof(string), typeof(MsgBubble), new PropertyMetadata(null));
+
+    public static readonly DependencyProperty StatusTextProperty = DependencyProperty.Register(
+        nameof(StatusText), typeof(string), typeof(MsgBubble), new PropertyMetadata(""));
+
     public string Side { get => (string)GetValue(SideProperty); set => SetValue(SideProperty, value); }
     public string Kind { get => (string)GetValue(KindProperty); set => SetValue(KindProperty, value); }
     public string Text { get => (string)GetValue(TextProperty); set => SetValue(TextProperty, value); }
@@ -40,11 +46,14 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
     public string FileName { get => (string)GetValue(FileNameProperty); set => SetValue(FileNameProperty, value); }
     public string FileSize { get => (string)GetValue(FileSizeProperty); set => SetValue(FileSizeProperty, value); }
     public string FileExt { get => (string)GetValue(FileExtProperty); set => SetValue(FileExtProperty, value); }
+    public string? LocalPath { get => (string?)GetValue(LocalPathProperty); set => SetValue(LocalPathProperty, value); }
+    public string? StatusText { get => (string?)GetValue(StatusTextProperty); set => SetValue(StatusTextProperty, value); }
 
     public MsgBubble()
     {
         InitializeComponent();
         Loaded += (_, _) => Apply();
+        ActualThemeChanged += (_, _) => Apply();
     }
 
     private void Apply()
@@ -53,6 +62,10 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
 
         var outgoing = Side == "out";
         Root.HorizontalAlignment = outgoing ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        var foreground = (Brush)Application.Current.Resources[outgoing ? "MdBubbleOutFgBrush" : "MdBubbleInFgBrush"];
+        FileNameText.Foreground = foreground;
+        FileSizeText.Foreground = foreground;
+        TransferStatusText.Foreground = foreground;
 
         if (outgoing)
         {
@@ -74,4 +87,11 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
         FileRow.Visibility = Kind == "file" ? Visibility.Visible : Visibility.Collapsed;
         DeliveredText.Visibility = (outgoing && Delivered) ? Visibility.Visible : Visibility.Collapsed;
     }
+
+
+    // 文件气泡左键点击=打开；右键菜单=打开/所在文件夹/转存。文件不存在时 FileActions 静默忽略。
+    private void OnFileTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs e) => FileActions.Open(LocalPath);
+    private void OnFileOpen(object sender, RoutedEventArgs e) => FileActions.Open(LocalPath);
+    private void OnFileReveal(object sender, RoutedEventArgs e) => FileActions.Reveal(LocalPath);
+    private void OnFileSaveCopy(object sender, RoutedEventArgs e) => FileActions.SaveCopy(LocalPath);
 }

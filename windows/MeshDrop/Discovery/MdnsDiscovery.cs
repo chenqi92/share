@@ -1,30 +1,30 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Makaretu.Dns;
 using MeshDrop.Models;
-// 项目内 MeshDrop.Models.TXTRecord 是 codec 静态类；Makaretu.Dns.TXTRecord 是
-// DNS RR 实例类。两个同名 → 用两个别名消歧
 using TXTRecord = MeshDrop.Models.TXTRecord;
-using DnsTXT = Makaretu.Dns.TXTRecord;
 
 namespace MeshDrop.Discovery;
 
-/// <summary>
-/// 只管 mDNS 注册 + browse；TCP listener 由 ShareEngine 持有，端口由外部传入。
-/// 解析得到的 IP 透传到 Device.Host。
-/// </summary>
+/// <summary>Advertise and resolve MeshDrop on physical LAN interfaces.</summary>
 public sealed class MdnsDiscovery : IDisposable
 {
     private readonly Identity _identity;
     private string _displayName;
     private readonly string? _model;
-
+    private readonly object _gate = new();
+    private readonly MdnsDeviceCache _cache = new();
+    private readonly Dictionary<string, DateTimeOffset> _queries = new();
+    private IReadOnlyList<Device> _devices = Array.Empty<Device>();
     private ServiceDiscovery? _sd;
-    private readonly ConcurrentDictionary<string, Device> _devices = new();
+    private MulticastService? _mdns;
+    private ServiceProfile? _profile;
+    private CancellationTokenSource? _stop;
 
     public event Action<IReadOnlyList<Device>>? DevicesChanged;
-
     public MdnsDiscovery(Identity identity, string displayName, string? model)
     {
         _identity = identity;
@@ -32,87 +32,106 @@ public sealed class MdnsDiscovery : IDisposable
         _model = model;
     }
 
-    /// <param name="advertise">
-    /// true=正常对外广告本机服务（被他人发现）；false=只 browse 不广告（「局域网可见」关闭，
-    /// 不再被发现，但仍能主动发现别人、已建连不受影响）。
-    /// </param>
     public void Start(ushort port, string? displayName = null, bool advertise = true)
     {
+        Dispose();
         if (!string.IsNullOrEmpty(displayName)) _displayName = displayName;
-
-        _sd = new ServiceDiscovery();
-        _sd.ServiceInstanceDiscovered += OnInstanceDiscovered;
-        _sd.ServiceInstanceShutdown += OnInstanceShutdown;
-
+        var mdns = new MulticastService(NetworkInterfaceSelector.FilterPreferred);
+        _mdns = mdns;
+        _sd = new ServiceDiscovery(mdns);
+        mdns.AnswerReceived += OnAnswer;
+        mdns.NetworkInterfaceDiscovered += (_, _) => Refresh(mdns, announce: true);
         if (advertise)
         {
-            var profile = new ServiceProfile(
-                instanceName: _identity.Id,
-                serviceName: TXTRecord.ServiceType,
-                port: port);
-            foreach (var (k, v) in TXTRecord.Encode(_identity, _displayName, DeviceOS.Windows, _model, port))
-                profile.AddProperty(k, v);
-
-            _sd.Advertise(profile);
-            _sd.Announce(profile);
+            // Default ServiceProfile addresses include VPNs even when sockets are filtered.
+            _profile = new ServiceProfile(_identity.Id, TXTRecord.ServiceType, port,
+                NetworkInterfaceSelector.GetPreferredIPv4Addresses());
+            foreach (var (key, value) in TXTRecord.Encode(_identity, _displayName, DeviceOS.Windows, _model, port))
+                _profile.AddProperty(key, value);
+            _sd.Advertise(_profile);
         }
+        mdns.Start();
+        _stop = new CancellationTokenSource();
+        _ = BrowseAsync(mdns, _stop.Token);
+    }
 
-        _sd.QueryServiceInstances(TXTRecord.ServiceType);
+    private async Task BrowseAsync(MulticastService mdns, CancellationToken token)
+    {
+        var delay = 2;
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(delay), token).ConfigureAwait(false);
+                Refresh(mdns, announce: false);
+                delay = Math.Min(delay * 2, 30);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private void Refresh(MulticastService mdns, bool announce)
+    {
+        lock (_gate)
+        {
+            if (!ReferenceEquals(mdns, _mdns)) return;
+            try
+            {
+                if (announce && _profile is not null) _sd?.Announce(_profile);
+                _sd?.QueryUnicastServiceInstances(TXTRecord.ServiceType);
+                Publish(DateTimeOffset.UtcNow);
+            }
+            catch (Exception ex) when (ex is ObjectDisposedException or System.Net.Sockets.SocketException or InvalidOperationException)
+            { System.Diagnostics.Debug.WriteLine($"mDNS refresh: {ex.Message}"); }
+        }
+    }
+
+    private void OnAnswer(object? sender, MessageEventArgs e)
+    {
+        lock (_gate)
+        {
+            if (!ReferenceEquals(sender, _mdns)) return;
+            var now = DateTimeOffset.UtcNow;
+            _cache.Update(e.Message, e.RemoteEndPoint, now);
+            Publish(now);
+            foreach (var key in _queries.Where(kv => now - kv.Value > TimeSpan.FromSeconds(30)).Select(kv => kv.Key).ToArray())
+                _queries.Remove(key);
+            foreach (var (name, type) in _cache.MissingQuestions().ToArray())
+            {
+                var key = $"{name}|{type}";
+                if (_queries.TryGetValue(key, out var last) && now - last < TimeSpan.FromSeconds(2)) continue;
+                _queries[key] = now;
+                _mdns?.SendUnicastQuery(name, type: type);
+            }
+        }
+    }
+
+    private void Publish(DateTimeOffset now)
+    {
+        var devices = _cache.Snapshot(_identity.Id, now);
+        if (_devices.SequenceEqual(devices)) return;
+        _devices = devices;
+        DevicesChanged?.Invoke(devices);
     }
 
     public void Stop() => Dispose();
-
     public void Dispose()
     {
-        _sd?.Dispose();
-        _sd = null;
-        _devices.Clear();
-        Notify();
-    }
-
-    private void OnInstanceDiscovered(object? sender, ServiceInstanceDiscoveryEventArgs e)
-    {
-        var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
-        string? host = null;
-        foreach (var record in e.Message.AdditionalRecords)
+        lock (_gate)
         {
-            switch (record)
-            {
-                case DnsTXT txt when txt.Name.ToCanonical().Equals(e.ServiceInstanceName.ToCanonical()):
-                    foreach (var s in txt.Strings)
-                    {
-                        var idx = s.IndexOf('=');
-                        if (idx > 0) attrs[s.Substring(0, idx)] = s.Substring(idx + 1);
-                    }
-                    break;
-                case ARecord a when host is null:
-                    host = a.Address.ToString();
-                    break;
-                case AAAARecord aaaa when host is null:
-                    host = aaaa.Address.ToString();
-                    break;
-            }
+            var mdns = _mdns;
+            _mdns = null;
+            _stop?.Cancel();
+            _stop?.Dispose();
+            _stop = null;
+            _sd?.Dispose();
+            _sd = null;
+            mdns?.Dispose();
+            _profile = null;
+            _cache.Clear();
+            _queries.Clear();
+            _devices = Array.Empty<Device>();
+            DevicesChanged?.Invoke(_devices);
         }
-        if (attrs.Count == 0) return;
-
-        var device = TXTRecord.Decode(attrs);
-        if (device is null) return;
-        if (device.Id == _identity.Id) return;
-
-        _devices[device.Id] = device with { Host = host };
-        Notify();
-    }
-
-    private void OnInstanceShutdown(object? sender, ServiceInstanceShutdownEventArgs e)
-    {
-        var instance = e.ServiceInstanceName.Labels[0];
-        if (_devices.TryRemove(instance, out _)) Notify();
-    }
-
-    private void Notify()
-    {
-        var list = new List<Device>(_devices.Values);
-        list.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
-        DevicesChanged?.Invoke(list);
     }
 }

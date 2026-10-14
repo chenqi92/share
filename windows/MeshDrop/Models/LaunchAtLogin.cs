@@ -1,11 +1,13 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Windows.ApplicationModel;
 
 namespace MeshDrop.Models;
 
 /// <summary>
-/// 开机自启（登录时启动）。unpackaged WinUI 没有 MSIX StartupTask，这里走传统
+/// 开机自启（登录时启动）。MSIX 使用清单声明的 StartupTask；unpackaged WinUI 使用
 /// 「启动」文件夹快捷方式：%AppData%\Microsoft\Windows\Start Menu\Programs\Startup\MeshDrop.lnk。
 ///
 /// 为什么用 Startup 文件夹 + .lnk 而非注册表 Run：注册表 Run 需 Microsoft.Win32.Registry，
@@ -15,11 +17,51 @@ namespace MeshDrop.Models;
 /// </summary>
 public static class LaunchAtLogin
 {
+    private const string StartupTaskId = "MeshDropStartup";
     private const string LinkName = "MeshDrop.lnk";
 
     private static string StartupDir => Environment.GetFolderPath(Environment.SpecialFolder.Startup);
     private static string LinkPath => Path.Combine(StartupDir, LinkName);
     private static readonly Guid ShellLinkClsid = new("00021401-0000-0000-C000-000000000046");
+
+    private static bool HasPackageIdentity
+    {
+        get
+        {
+            try { _ = Package.Current.Id; return true; }
+            catch (InvalidOperationException) { return false; }
+        }
+    }
+
+    public static async Task<bool> IsEnabledAsync()
+    {
+        if (!HasPackageIdentity) return IsEnabled;
+        try
+        {
+            var task = await StartupTask.GetAsync(StartupTaskId);
+            return task.State is StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy;
+        }
+        catch { return false; }
+    }
+
+    // Store installs must use a manifest startup task: an exe-path shortcut would
+    // become stale after the Store replaces the versioned installation folder.
+    public static async Task<bool> SetAsync(bool enabled)
+    {
+        if (!HasPackageIdentity) return Set(enabled);
+        try
+        {
+            var task = await StartupTask.GetAsync(StartupTaskId);
+            if (enabled)
+            {
+                var state = await task.RequestEnableAsync();
+                return state is StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy;
+            }
+            task.Disable();
+            return task.State is not (StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy);
+        }
+        catch { return false; }
+    }
 
     /// <summary>「启动」文件夹是否已有本机自启快捷方式。</summary>
     public static bool IsEnabled

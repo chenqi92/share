@@ -109,7 +109,8 @@ internal static class EngineProjection
                     Id: h.Id.ToString(), Dir: dir, Peer: h.Peer.Name,
                     Time: h.FormattedTime, Kind: MockHistoryKind.File,
                     Name: f.Name, Size: ByteFormat.Format(f.Size),
-                    Ext: ext, Status: StatusStr(h.Status), Progress: ProgressPct(h.Status));
+                    Ext: ext, Status: StatusStr(h.Status), Progress: ProgressPct(h.Status),
+                    LocalPath: AvailablePath(h, f));
             default:
                 return new MockHistory(
                     Id: h.Id.ToString(), Dir: dir, Peer: h.Peer.Name,
@@ -151,7 +152,8 @@ internal static class EngineProjection
             TransferStatus.Canceled => (MockTransferState.Failed, 0, (string?)null),
             _ => (MockTransferState.Queued, 0, (string?)null),
         };
-        return new MockTransfer(name, size, ext, from, to, progress, state, speed, Id: h.Id.ToString());
+        var localPath = h.Kind is HistoryKind.File hf ? AvailablePath(h, hf) : null;
+        return new MockTransfer(name, size, ext, from, to, progress, state, speed, Id: h.Id.ToString(), LocalPath: localPath);
     }
 
     public static MockMessage ToMessage(this HistoryItem h)
@@ -159,20 +161,32 @@ internal static class EngineProjection
         var side = h.Direction == TransferDirection.Outgoing ? "out" : "in";
         var delivered = h.Status is TransferStatus.Completed;
         var time = h.CreatedAt.ToString("HH:mm");
+        var status = h.Status switch
+        {
+            TransferStatus.Failed f => I18n.T("msg.failed") + ": " + f.Reason,
+            TransferStatus.Canceled => I18n.T("msg.canceled"),
+            TransferStatus.WaitingApproval => I18n.T("msg.waiting"),
+            TransferStatus.Pending => I18n.T("msg.sending"),
+            TransferStatus.Transferring tr => $"{tr.Fraction:P0}",
+            _ => "",
+        };
         switch (h.Kind)
         {
             case HistoryKind.Text t:
                 return new MockMessage(h.Id.ToString(), side, "text",
-                    Text: t.Content, Time: time, Delivered: delivered);
+                    Text: t.Content, Time: time, Delivered: delivered, StatusText: status);
             case HistoryKind.File f:
                 return new MockMessage(h.Id.ToString(), side, "file",
                     FileName: f.Name, FileSize: ByteFormat.Format(f.Size),
                     FileExt: System.IO.Path.GetExtension(f.Name).TrimStart('.'),
-                    Time: time, Delivered: delivered);
+                    Time: time, Delivered: delivered, LocalPath: AvailablePath(h, f), StatusText: status);
             default:
                 return new MockMessage(h.Id.ToString(), side, "text", Time: time, Delivered: delivered);
         }
     }
+
+    private static string? AvailablePath(HistoryItem h, HistoryKind.File file) =>
+        h.Direction == TransferDirection.Outgoing || h.Status is TransferStatus.Completed ? file.LocalPath : null;
 
     // ─── ClipboardEntry → MockClipboard ───────────────────────────
 
@@ -243,14 +257,17 @@ internal sealed class ProjectedCollection<TSource, TView> : ObservableCollection
     private readonly Func<TSource, TView> _map;
     private readonly ObservableCollection<TSource> _src;
     private readonly Func<TSource, bool>? _filter;
+    private readonly Func<System.Collections.Generic.IEnumerable<TSource>, System.Collections.Generic.IEnumerable<TSource>>? _order;
 
     public ProjectedCollection(ObservableCollection<TSource> source,
                                Func<TSource, TView> map,
-                               Func<TSource, bool>? filter = null)
+                               Func<TSource, bool>? filter = null,
+                               Func<System.Collections.Generic.IEnumerable<TSource>, System.Collections.Generic.IEnumerable<TSource>>? order = null)
     {
         _src = source;
         _map = map;
         _filter = filter;
+        _order = order;
         Rebuild();
         _src.CollectionChanged += OnSrcChanged;
     }
@@ -266,7 +283,7 @@ internal sealed class ProjectedCollection<TSource, TView> : ObservableCollection
     private void Rebuild()
     {
         Clear();
-        foreach (var s in _src)
+        foreach (var s in _order?.Invoke(_src) ?? _src)
             if (_filter is null || _filter(s))
                 Add(_map(s));
     }

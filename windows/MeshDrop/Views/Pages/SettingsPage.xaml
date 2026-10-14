@@ -94,10 +94,11 @@
                                     <TextBlock Text="{x:Bind ViewModel.Fingerprint}"
                                                FontFamily="{StaticResource MdMonoFontFamily}"
                                                FontSize="12"
-                                               Foreground="{ThemeResource MdLimeBrush}"/>
+                                               Foreground="{ThemeResource MdLimeBrush}"
+                                               IsTextSelectionEnabled="True"/>
                                 </Border>
                             </StackPanel>
-                            <!-- 诚实状态：v0.1 LAN 为明文 TCP（README 阶段取舍），不谎称 E2E。 -->
+                            <!-- 原生 LAN 连接使用 TLS 1.3 和设备身份双向认证。 -->
                             <StackPanel Spacing="2">
                                 <TextBlock x:Uid="settings/transportLabel" FontWeight="SemiBold" FontSize="12"/>
                                 <TextBlock x:Uid="settings/transportHint"
@@ -269,6 +270,21 @@
                             BorderThickness="1"
                             Padding="16">
                         <StackPanel Spacing="10">
+                            <TextBlock Text="MeshDrop" FontWeight="SemiBold" FontSize="18"/>
+                            <TextBlock x:Uid="settings/aboutScope" TextWrapping="Wrap" FontSize="13"/>
+                            <TextBlock x:Uid="settings/aboutCompatibility" TextWrapping="Wrap" FontSize="12" Opacity="0.7"/>
+                            <HyperlinkButton x:Uid="settings/appleStoreLink"
+                                             NavigateUri="https://apps.apple.com/app/meshdrop/id6772689903"
+                                             HorizontalAlignment="Left" Padding="0,6"/>
+                            <HyperlinkButton x:Uid="settings/sourceLink"
+                                             NavigateUri="https://github.com/chenqi92/share"
+                                             HorizontalAlignment="Left" Padding="0,6"/>
+                            <HyperlinkButton x:Uid="settings/websiteLink"
+                                             NavigateUri="https://kkape.com/tools/share"
+                                             HorizontalAlignment="Left" Padding="0,6"/>
+                            <HyperlinkButton x:Uid="settings/privacyLink"
+                                             NavigateUri="https://kkape.com/privacy/share/"
+                                             HorizontalAlignment="Left" Padding="0,6"/>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -277,7 +293,8 @@
                                 <TextBlock Grid.Column="0" Text="version" Style="{StaticResource MdTerminalLabelStyle}"/>
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.AppVersion}"
                                            FontFamily="{StaticResource MdMonoFontFamily}"
-                                           FontSize="11"/>
+                                           FontSize="11"
+                                           IsTextSelectionEnabled="True"/>
                             </Grid>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
@@ -287,7 +304,8 @@
                                 <TextBlock Grid.Column="0" Text="ip" Style="{StaticResource MdTerminalLabelStyle}"/>
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Ip}"
                                            FontFamily="{StaticResource MdMonoFontFamily}"
-                                           FontSize="11"/>
+                                           FontSize="11"
+                                           IsTextSelectionEnabled="True"/>
                             </Grid>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
@@ -297,7 +315,8 @@
                                 <TextBlock Grid.Column="0" Text="device" Style="{StaticResource MdTerminalLabelStyle}"/>
                                 <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.DeviceModel}"
                                            FontFamily="{StaticResource MdMonoFontFamily}"
-                                           FontSize="11"/>
+                                           FontSize="11"
+                                           IsTextSelectionEnabled="True"/>
                             </Grid>
                         </StackPanel>
                     </Border>

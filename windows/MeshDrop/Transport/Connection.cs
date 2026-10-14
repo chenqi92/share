@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using MeshDrop.Protocol;
+using MeshDrop.Models;
 
 namespace MeshDrop.Transport;
 
@@ -19,22 +20,27 @@ public sealed class Connection : IDisposable
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private readonly CancellationTokenSource _cts = new();
 
-    private NetworkStream? _stream;
+    private Stream? _stream;
+    private readonly Identity _identity;
+    private readonly string? _expectedFingerprint;
     private bool _closeNotified;
 
     public bool IsClosed => _cts.IsCancellationRequested;
+    public string? AuthenticatedFingerprint { get; private set; }
 
-    private Connection(TcpClient tcp, string? host, int port)
+    private Connection(TcpClient tcp, string? host, int port, Identity identity, string? expectedFingerprint)
     {
         _tcp = tcp;
         _host = host;
         _port = port;
+        _identity = identity;
+        _expectedFingerprint = expectedFingerprint;
     }
 
-    public static Connection ForIncoming(TcpClient tcp) => new(tcp, null, 0);
+    public static Connection ForIncoming(TcpClient tcp, Identity identity) => new(tcp, null, 0, identity, null);
 
-    public static Connection ForOutgoing(string host, int port) =>
-        new(new TcpClient(), host, port);
+    public static Connection ForOutgoing(string host, int port, Identity identity, string expectedFingerprint) =>
+        new(new TcpClient(), host, port, identity, expectedFingerprint);
 
     public void Start(
         Func<Task> onReady,
@@ -45,9 +51,17 @@ public sealed class Connection : IDisposable
         {
             try
             {
-                if (_host is not null)
-                    await _tcp.ConnectAsync(_host, _port, _cts.Token);
-                _stream = _tcp.GetStream();
+                using var secure = new SecureTransport(_identity, _expectedFingerprint);
+                using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token))
+                {
+                    timeout.CancelAfter(TimeSpan.FromSeconds(12));
+                    using var abort = timeout.Token.Register(() => { try { _tcp.Close(); } catch { } });
+                    if (_host is not null)
+                        await _tcp.ConnectAsync(_host, _port, timeout.Token);
+                    _stream = secure.Authenticate(_tcp.GetStream(), server: _host is null);
+                    timeout.Token.ThrowIfCancellationRequested();
+                    AuthenticatedFingerprint = secure.AuthenticatedFingerprint;
+                }
                 await onReady();
                 await ReadLoopAsync(onMessage, onClose);
             }
@@ -79,15 +93,14 @@ public sealed class Connection : IDisposable
     {
         if (_cts.IsCancellationRequested) return;
         _cts.Cancel();
-        try { _stream?.Close(); } catch { }
         try { _tcp.Close(); } catch { }
     }
 
     public void Dispose()
     {
         Close();
-        _sendLock.Dispose();
-        _cts.Dispose();
+        // Active send/read workers may still use these managed synchronization
+        // objects while socket cancellation unwinds. Let GC reclaim them.
     }
 
     private async Task ReadLoopAsync(

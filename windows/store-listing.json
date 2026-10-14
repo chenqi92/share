@@ -1,0 +1,25 @@
+{
+  "productName": "MeshDrop",
+  "storeId": "9P08D0SRNPZ2",
+  "version": "1.1.1",
+  "appleStore": "https://apps.apple.com/app/meshdrop/id6772689903",
+  "source": "https://github.com/chenqi92/share",
+  "website": "https://kkape.com/tools/share",
+  "privacy": "https://kkape.com/privacy/share/",
+  "listings": {
+    "zh-Hans": {
+      "description": "MeshDrop 是一款免费开源的附近设备分享工具，让 Windows、Mac、iPhone 和 iPad 通过同一局域网直接传送文字、链接、图片、视频和文件。无需注册账号，传输不经过云端中转。\n\n适用范围\n• Windows 10 1809 或更新版本，以及 Windows 11。\n• 与 Mac、iPhone、iPad 互传时，Apple 端需安装 MeshDrop 1.1 或更新版本。\n• 双方设备需连接同一 Wi-Fi 或局域网，并保持 MeshDrop 打开；网络必须允许设备之间互相访问。\n• Windows 版暂不支持蓝牙传输或 Apple 点对点 Wi-Fi。仓库中其他平台的开发进度请参阅 GitHub。\n\n主要功能\n• 自动发现局域网设备，发送与接收文字、链接和文件。\n• 文件选择与拖放发送，查看传输进度和本机会话历史。\n• TLS 1.3 加密与设备身份双向认证；首次连接核对设备指纹，可记住信任关系。\n• 系统托盘、传输通知，以及简体中文和英文界面。\n\n下载 Apple 版（iPhone / iPad / Mac）\nhttps://apps.apple.com/app/meshdrop/id6772689903\n\nGitHub 开源仓库与问题反馈（MIT 许可证）\nhttps://github.com/chenqi92/share\n\n官网与使用介绍\nhttps://kkape.com/tools/share\n\n实际传输速度取决于网络和设备性能。旧版明文协议客户端无法连接此版本。",
+      "features": [
+        "Windows 10 / 11 与 Mac、iPhone、iPad 在同一局域网互传",
+        "TLS 1.3 加密、双向设备认证与首次配对确认",
+        "发送文字、链接与文件，支持拖放和传输进度",
+        "本机会话历史、信任设备管理与系统托盘",
+        "免费开源（MIT），提供 Apple App Store 和 GitHub 入口"
+      ]
+    },
+    "en-US": {
+      "description": "MeshDrop is a free, open-source tool for sharing text, links, images, videos and files directly between Windows, Mac, iPhone and iPad over your local network. No account or cloud relay is required.\n\nCompatibility\n• Windows 10 version 1809 or later, and Windows 11.\n• Mac, iPhone and iPad need MeshDrop 1.1 or later for native encrypted transfers.\n• Keep MeshDrop open on both devices and connect them to the same Wi-Fi or LAN. The network must allow devices to reach each other.\n• The Windows app does not currently support Bluetooth transfer or Apple peer-to-peer Wi-Fi. See GitHub for the development status of other platforms.\n\nFeatures\n• Discover nearby devices on your LAN and send or receive text, links and files.\n• Choose or drag files to send, follow transfer progress and view local conversation history.\n• TLS 1.3 encryption and mutual device authentication. Compare fingerprints on first pairing and remember devices you trust.\n• System tray, transfer notifications, and Simplified Chinese and English interfaces.\n\nGet the Apple app (iPhone / iPad / Mac)\nhttps://apps.apple.com/app/meshdrop/id6772689903\n\nSource code and issue tracker (MIT license)\nhttps://github.com/chenqi92/share\n\nWebsite and guide\nhttps://kkape.com/tools/share\n\nTransfer speed depends on your network and devices. Older plaintext-protocol clients cannot connect to this version."
+    }
+  },
+  "certificationNotes": "MeshDrop is a free, open-source WinUI 3 desktop app for direct local-network text and file sharing. No account, subscription, paid feature, or test credentials are required.\n\nTesting: Install MeshDrop on two Windows PCs, or on a Windows PC and an Apple device running MeshDrop 1.1 or later. Keep both apps open on the same LAN/Wi-Fi with device-to-device communication allowed. Choose a discovered device, send text or a small file, and approve the first pairing/receive prompt on the recipient. Compare device fingerprints when pairing. Verify both transfer directions and local history. Native transfers require TLS 1.3; older plaintext clients cannot connect. Windows supports version 1809 and later of Windows 10, and Windows 11. Windows does not support Bluetooth transfer or Apple peer-to-peer Wi-Fi.\n\nApple app: https://apps.apple.com/app/meshdrop/id6772689903\nSource and issue tracker: https://github.com/chenqi92/share\nPrivacy policy: https://kkape.com/privacy/share/\n\nThe runFullTrust capability is needed by this packaged WinUI desktop application for its desktop process, local TCP/mDNS communication, file selection and transfer, and system tray integration. Startup at sign-in is optional and off by default. Settings > About includes platform scope, Apple download, GitHub, website and privacy links."
+}

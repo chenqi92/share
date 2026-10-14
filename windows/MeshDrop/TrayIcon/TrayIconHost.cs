@@ -7,7 +7,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace MeshDrop.TrayIcon;
 
@@ -18,6 +17,7 @@ namespace MeshDrop.TrayIcon;
 public sealed class TrayIconHost : IDisposable
 {
     private TaskbarIcon? _icon;
+    private System.Drawing.Icon? _nativeIcon;
 
     private ShareEngine? _engine;
     private DispatcherQueue? _ui;
@@ -43,13 +43,15 @@ public sealed class TrayIconHost : IDisposable
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(exitItem);
 
+        // Load ICO synchronously without routing a file URI through WinUI's
+        // BitmapImage loader (file URIs fail asynchronously in an MSIX app).
+        _nativeIcon = new System.Drawing.Icon(
+            System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
         _icon = new TaskbarIcon
         {
             ToolTipText = MeshDrop.I18n.T("tray.tooltipFormat", 0),
             ContextFlyout = menu,
-            // H.NotifyIcon 2.x 用 System.Drawing.Icon(stream) 需要 ICO；喂 PNG 会在 async-void 里抛异常崩溃。
-            // unpackaged 下 ms-appx 不可靠，用输出目录里的本地 .ico 文件绝对路径。
-            IconSource = new BitmapImage(new Uri(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"))),
+            Icon = _nativeIcon,
             NoLeftClickDelay = true,
             LeftClickCommand = new RelayCommand(_ => OpenMainRequested?.Invoke(this, EventArgs.Empty)),
         };
@@ -109,6 +111,8 @@ public sealed class TrayIconHost : IDisposable
         AppSettings.Changed -= RefreshTooltip;
         _icon?.Dispose();
         _icon = null;
+        _nativeIcon?.Dispose();
+        _nativeIcon = null;
     }
 }
 

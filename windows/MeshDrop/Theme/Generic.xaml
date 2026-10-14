@@ -66,7 +66,8 @@
         <Setter Property="CornerRadius" Value="10"/>
     </Style>
 
-    <!-- 主按钮（accent=lime） -->
+    <!-- 主按钮（accent=lime）。自带 ControlTemplate：不用 WinUI 默认模板，避免 PointerOver
+         时系统资源 ButtonBackgroundPointerOver 覆盖掉 lime 背景（浅色主题下会变系统灰）。 -->
     <Style x:Key="MdAccentButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{ThemeResource MdLimeBrush}"/>
         <Setter Property="Foreground" Value="#FF0A0A0A"/>
@@ -75,9 +76,52 @@
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="FontFamily" Value="{StaticResource MdBodyFontFamily}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="Root"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}"
+                          Padding="{TemplateBinding Padding}">
+                        <ContentPresenter x:Name="CP"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource MdLimeDeepBrush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource MdLimeDeepBrush}"/>
+                                        <Setter Target="Root.Opacity" Value="0.85"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource MdInk12Brush}"/>
+                                        <Setter Target="CP.Foreground" Value="{ThemeResource MdInk45Brush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
-    <!-- 次按钮（描边） -->
+    <!-- 次按钮（描边）。同样自带模板：PointerOver 用淡墨反馈而非系统色，并补 Disabled 态。 -->
     <Style x:Key="MdOutlineButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderBrush" Value="{ThemeResource MdLineBrush}"/>
@@ -86,6 +130,48 @@
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="FontFamily" Value="{StaticResource MdBodyFontFamily}"/>
         <Setter Property="Foreground" Value="{ThemeResource MdInkBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid x:Name="Root"
+                          Background="{TemplateBinding Background}"
+                          BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}"
+                          CornerRadius="{TemplateBinding CornerRadius}"
+                          Padding="{TemplateBinding Padding}">
+                        <ContentPresenter x:Name="CP"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Foreground="{TemplateBinding Foreground}"/>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal"/>
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource MdInk06Brush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="Root.Background" Value="{ThemeResource MdInk12Brush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="CP.Foreground" Value="{ThemeResource MdInk30Brush}"/>
+                                        <Setter Target="Root.BorderBrush" Value="{ThemeResource MdInk12Brush}"/>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

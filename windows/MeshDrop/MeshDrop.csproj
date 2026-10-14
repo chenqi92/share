@@ -5,6 +5,7 @@
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>MeshDrop</RootNamespace>
     <AssemblyName>MeshDrop</AssemblyName>
+    <Version>1.1.1</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x86;x64;ARM64</Platforms>
@@ -13,7 +14,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
-    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsPackageType Condition="'$(StorePackage)' != 'true'">None</WindowsPackageType>
     <!-- 默认语言 zh-Hans：缺失某语言时回退到该 resw；PRI 资源选择的兜底语言 -->
     <DefaultLanguage>zh-Hans</DefaultLanguage>
     <EnableDefaultPriItems>false</EnableDefaultPriItems>
@@ -30,7 +31,22 @@
     <NoWarn>$(NoWarn);MVVMTK0045;CS0067</NoWarn>
   </PropertyGroup>
 
+  <!-- Store builds opt in; dotnet run keeps the existing unpackaged workflow. -->
+  <PropertyGroup Condition="'$(StorePackage)' == 'true'">
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <GenerateAppxPackageOnBuild>true</GenerateAppxPackageOnBuild>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+    <AppxBundle>Never</AppxBundle>
+    <UapAppxPackageBuildMode>StoreUpload</UapAppxPackageBuildMode>
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <PublishTrimmed>false</PublishTrimmed>
+    <AppxAutoIncrementPackageRevision>false</AppxAutoIncrementPackageRevision>
+    <AppxPackageDir>$(MSBuildThisFileDirectory)..\artifacts\store\</AppxPackageDir>
+  </PropertyGroup>
+
   <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="Makaretu.Dns.Multicast.New" Version="0.38.0" />
@@ -45,7 +61,7 @@
 
   <ItemGroup>
     <None Remove="Assets\**" />
-    <Content Include="Assets\**" />
+    <Content Include="Assets\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- i18n 资源：两份 .resw 作为 PRIResource 打进 resources.pri，运行时按系统语言选择 -->

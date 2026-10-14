@@ -48,7 +48,8 @@
 
         <!-- 消息流 -->
         <Grid Grid.Row="1">
-            <ScrollViewer Padding="32,12,32,12" VerticalScrollMode="Enabled">
+            <ScrollViewer x:Name="MessagesScroll" Padding="32,12,32,12" VerticalScrollMode="Enabled"
+                          ViewChanged="OnMessagesViewChanged">
                 <ItemsControl ItemsSource="{x:Bind ViewModel.Messages, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -64,7 +65,9 @@
                                             Delivered="{x:Bind Delivered}"
                                             FileName="{x:Bind FileName}"
                                             FileSize="{x:Bind FileSize}"
-                                            FileExt="{x:Bind FileExt}"/>
+                                            FileExt="{x:Bind FileExt}"
+                                            StatusText="{x:Bind StatusText}"
+                                            LocalPath="{x:Bind LocalPath}"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -105,6 +108,7 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" Style="{StaticResource MdOutlineButtonStyle}"
+                        IsEnabled="{x:Bind ViewModel.HasPeer, Mode=OneWay}"
                         Command="{x:Bind ViewModel.PickAndSendFileCommand}">
                     <TextBlock x:Uid="chat/addFile"
                                FontFamily="{StaticResource MdBodyFontFamily}"/>
@@ -113,13 +117,18 @@
                          Text="{x:Bind ViewModel.Draft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          KeyDown="OnComposerKeyDown"
                          x:Uid="chat/composer"
+                         IsEnabled="{x:Bind ViewModel.HasPeer, Mode=OneWay}"
                          AcceptsReturn="False"
-                         Background="Transparent"
-                         BorderThickness="0"
+                         Background="{ThemeResource MdPaperBrush}"
+                         BorderBrush="{ThemeResource MdLineBrush}"
+                         BorderThickness="1"
+                         CornerRadius="8"
+                         Padding="12,8,12,8"
                          FontFamily="{StaticResource MdBodyFontFamily}"
                          FontSize="14"
                          VerticalContentAlignment="Center"/>
                 <Button Grid.Column="2" Style="{StaticResource MdAccentButtonStyle}"
+                        IsEnabled="{x:Bind ViewModel.HasPeer, Mode=OneWay}"
                         Command="{x:Bind ViewModel.SendTextCommand}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock x:Uid="common/send"/>

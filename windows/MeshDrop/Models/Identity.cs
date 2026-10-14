@@ -17,7 +17,7 @@ public sealed class Identity
     internal PublicKey PublicKey { get; }
     public string Fingerprint { get; }
 
-    private Identity(string id, Key privateKey)
+    internal Identity(string id, Key privateKey)
     {
         Id = id;
         PrivateKey = privateKey;

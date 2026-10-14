@@ -8,11 +8,19 @@
 
     <Grid x:Name="RootGrid" Background="{ThemeResource MdPaperBrush}">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0">
+        <InfoBar x:Name="IncomingFilesBar" Grid.Row="0" IsOpen="False" IsClosable="False"
+                 Severity="Informational">
+            <InfoBar.ActionButton>
+                <Button x:Name="ReviewIncomingFilesButton" Click="OnReviewIncomingFiles"/>
+            </InfoBar.ActionButton>
+        </InfoBar>
+
+        <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="280"/>
                 <ColumnDefinition Width="*"/>
@@ -31,6 +39,6 @@
             </Grid>
         </Grid>
 
-        <shell:ShellStatusBar Grid.Row="1"/>
+        <shell:ShellStatusBar Grid.Row="2"/>
     </Grid>
 </Window>

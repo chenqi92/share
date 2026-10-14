@@ -51,29 +51,31 @@
 
 | 平台 | 获取方式 |
 | --- | --- |
-| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.0, build 2） |
-| Android / Windows / Linux / Web | 从源码构建（预发布 `0.1.0`），见下方各端 README |
+| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903)（1.1） |
+| **Windows 10 1809+ / Windows 11** | `1.1.1`（x64 / ARM64）已于 2026-10-14 提交 Microsoft Store，等待认证；目前可[从源码构建](windows/README.md)。 |
+| Android / Linux / Web | 从源码构建（预发布 `0.1.0`），见下方各端 README |
 
 ## 平台覆盖
 
 | 平台 | 技术栈 | 状态 |
 | --- | --- | --- |
 | macOS | SwiftUI + Network.framework | 可构建 / MeshDropKit 测试通过 |
-| iOS 17+ / iPadOS | SwiftUI + Network.framework | ✅ 已上架 App Store（1.0, build 2） |
+| iOS 17+ / iPadOS | SwiftUI + Network.framework | ✅ 已上架 App Store（1.1） |
 | iOS 26 | + Liquid Glass (`.glassEffect()`) | UI 已接入 |
 | tvOS | SwiftUI focus engine（只接收） | 与 Apple core 共用实现 |
 | visionOS | SwiftUI spatial + glass | 已接 engine adapter（保留 preview mock） |
 | watchOS | SwiftUI + WatchConnectivity 桥到 iPhone | companion bridge |
 | Android | Jetpack Compose + `NsdManager` | build + 单元/截图测试 |
 | Wear OS | Compose for Wear + Wearable Data Layer 桥到 Android | 可构建 |
-| Windows | WinUI 3 (.NET 8) + `Makaretu.Dns` | .NET 8 + Windows App SDK 可构建 |
+| Windows 10 1809+ / Windows 11 | WinUI 3 (.NET 8) + `Makaretu.Dns` + Bouncy Castle TLS | 1.1.1 x64 / ARM64 MSIX，已提交商店认证 |
 | Linux GUI | Rust + gtk4-rs + libadwaita + `mdns-sd` | core 测试 + GUI 构建 |
 | Linux TUI | Rust + ratatui + `mdns-sd` | build/test 通过（10 个单测） |
 | Web | React + Vite，通过 Gateway 桥接 | 可构建；仅显式 `?mock=1` 才进入 mock |
 
-> **版本现状：** 只有 Apple 端（iOS / iPadOS / macOS / tvOS / visionOS / watchOS）已是
-> `1.0.0`（build 2）并上架 App Store；Android / Wear OS / Linux / Web 仍是 `0.1.0`
-> 预发布。
+> **版本现状：** Apple `1.1` 已上架 App Store，Windows `1.1.1` 等待 Microsoft Store
+> 认证；Android / Wear OS / Linux / Web 仍是 `0.1.0` 预发布。Windows 与 Apple `1.1+`
+> 需连接同一局域网并保持双方应用打开，才能互传文字与文件；Windows 不支持 Apple
+> 点对点 Wi-Fi 或蓝牙传输。
 >
 > **Bundle identifier 按平台各自命名，并非全局统一：** Apple = `com.welape.landrop`，
 > Android = `com.welape.meshdrop`，Wear OS = `com.welape.meshdrop.wear`。
@@ -91,17 +93,16 @@
 桌面端额外运行 Web Gateway（TLS 1.3 自签证书 + WebSocket 控制通道 + multipart 上传），
 让局域网内浏览器加入（见 [protocol/companion-bridges.md](protocol/companion-bridges.md)）。
 
-## 安全现状（v0.1）⚠️
+## 安全现状
 
-在用于敏感数据前请务必阅读：
+- Apple 与 Windows `1.1+` 强制使用 **TLS 1.3 和双向设备认证**，传输证书绑定设备的
+  Ed25519 身份；旧版明文客户端无法连接。
+- Windows 随包提供 Bouncy Castle，使 Windows 10 和 Windows 11 均可使用 TLS 1.3。
+- 首次配对仍需核对设备指纹；仅靠 mDNS 发现不能建立信任。
+- 其他平台需分别核对实现进度，不能假定其预发布客户端已支持 Apple / Windows 的加密协议。
+- 浏览器 Web Gateway 使用独立的自签 HTTPS 证书和配对码。
 
-- v0.1 的 LAN 传输是**明文 TCP**。
-- TOFU 指纹**只防误连，不抗主动 MITM**（`fp` 尚未与密钥/证书绑定）。
-- Web Gateway 自身用 TLS 1.3（自签），但设备到设备的通道不加密。
-- 端到端应用层加密在路线图中（v0.2 加入，v1.0 起强制）。
-
-**不要把当前版本宣传或当作「端到端加密 / 安全传输」。** 详见
-[protocol/security.md](protocol/security.md)。
+证书与信任模型详见 [protocol/security.md](protocol/security.md)。
 
 ## 从源码构建
 

@@ -9,6 +9,13 @@
             BorderBrush="{ThemeResource MdLineBrush}"
             BorderThickness="1"
             Padding="14,10,14,10">
+        <Border.ContextFlyout>
+            <MenuFlyout>
+                <MenuFlyoutItem x:Uid="file/open" Click="OnRowOpen"/>
+                <MenuFlyoutItem x:Uid="file/reveal" Click="OnRowReveal"/>
+                <MenuFlyoutItem x:Uid="file/saveCopy" Click="OnRowSaveCopy"/>
+            </MenuFlyout>
+        </Border.ContextFlyout>
         <Grid ColumnSpacing="14" RowSpacing="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -49,11 +56,13 @@
                 <TextBlock Text="{x:Bind Name, Mode=OneWay}"
                            FontFamily="{StaticResource MdBodyFontFamily}"
                            FontSize="14" FontWeight="SemiBold"
+                           IsTextSelectionEnabled="True"
                            TextTrimming="CharacterEllipsis"/>
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="{x:Bind Size, Mode=OneWay}"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="11"
+                               IsTextSelectionEnabled="True"
                                Foreground="{ThemeResource MdInk60Brush}"/>
                     <TextBlock Text="·"
                                FontFamily="{StaticResource MdMonoFontFamily}"
@@ -62,6 +71,7 @@
                     <TextBlock Text="{x:Bind FromTo, Mode=OneWay}"
                                FontFamily="{StaticResource MdMonoFontFamily}"
                                FontSize="11"
+                               IsTextSelectionEnabled="True"
                                Foreground="{ThemeResource MdInk60Brush}"/>
                 </StackPanel>
             </StackPanel>

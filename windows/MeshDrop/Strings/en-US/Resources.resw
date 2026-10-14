@@ -80,7 +80,7 @@
   <data name="shell/nav/clipboard.Text"><value>Clipboard</value></data>
   <data name="shell/nav/trust.Text"><value>Trust</value></data>
   <data name="shell/nav/settings.Text"><value>Settings</value></data>
-  <data name="shell/pairedDivider"><value>── PAIRED · 5 ──</value></data>
+  <data name="shell/pairedDivider"><value>── PAIRED ──</value></data>
   <data name="shell/selfTag.Text"><value>DEV-01 · Me</value></data>
 
   <!-- ── status bar ── -->
@@ -95,7 +95,7 @@
   <data name="discovery/sendFile.Text"><value>Send file…</value></data>
   <data name="discovery/newSession.Text"><value>+ New session</value></data>
   <data name="discovery/chipLive"><value>LIVE</value></data>
-  <data name="discovery/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
+  <data name="discovery/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="discovery/chipLanOnly"><value>LAN ONLY</value></data>
   <data name="discovery/scanningBanner.Text"><value>scanning LAN…</value></data>
   <data name="discovery/networkError.Text"><value>Network error</value></data>
@@ -112,7 +112,7 @@
   <data name="discovery/sweepFooterFormat"><value>── SWEEP 4.5s · PULSE 2.6s · {0} PEERS ──</value></data>
 
   <!-- ── chat ── -->
-  <data name="chat/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
+  <data name="chat/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="chat/dropToSend.Text"><value>Drop to send</value></data>
   <data name="chat/dropToSendCaption"><value>Drop to send</value></data>
   <data name="chat/dropOverlayFormat"><value>Drop to send · → {0}</value></data>
@@ -185,10 +185,10 @@
   <data name="settings/visibleToggle.OffContent"><value>OFF · stop advertising</value></data>
   <data name="settings/visibleToggle.OnContent"><value>ON · discoverable on LAN</value></data>
   <data name="settings/securityTag.Text"><value>SECURITY</value></data>
-  <data name="settings/securityHint.Text"><value>Ed25519 identity · SHA-256 fingerprint · LAN plaintext v0.1</value></data>
+  <data name="settings/securityHint.Text"><value>TLS 1.3 encryption · Ed25519 device identity</value></data>
   <data name="settings/fingerprintLabel.Text"><value>Fingerprint</value></data>
   <data name="settings/transportLabel.Text"><value>TRANSPORT</value></data>
-  <data name="settings/transportHint.Text"><value>LAN · plaintext TCP · v0.1. Identity and pairing are protected by Ed25519 + SHA-256 fingerprint.</value></data>
+  <data name="settings/transportHint.Text"><value>Direct LAN transfer · TLS 1.3 mutual authentication. Compare device fingerprints when pairing for the first time.</value></data>
   <data name="settings/tofuToggle.Header"><value>Confirm fingerprint on first pairing · TOFU</value></data>
   <data name="settings/tofuToggle.OnContent"><value>ON · always enabled</value></data>
   <data name="settings/trustedOnlyToggle.Header"><value>Only paired devices can connect</value></data>
@@ -255,14 +255,14 @@
   <data name="send/cancel"><value>Cancel</value></data>
   <data name="send/send"><value>Send →</value></data>
   <data name="send/toFormat.Text"><value>Send to · Lily</value></data>
-  <data name="send/chipPlaintext"><value>LAN · plaintext · v0.1</value></data>
+  <data name="send/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="send/kindDivider"><value>── KIND ──</value></data>
   <data name="send/kindText.Text"><value>Text</value></data>
   <data name="send/kindFile.Text"><value>File</value></data>
   <data name="send/kindNote.Text"><value>Note</value></data>
   <data name="send/editor.PlaceholderText"><value>Type something…</value></data>
   <data name="send/shortcutHint.Text"><value>Press Ctrl+Enter to send now · ESC to close</value></data>
-  <data name="send/securityNote.Text"><value>This message goes over LAN plaintext TCP directly to 192.168.1.31 (v0.1) · identity verified by Ed25519 fingerprint</value></data>
+  <data name="send/securityNote.Text"><value>Sent directly over your LAN with TLS 1.3 encryption and peer identity verification.</value></data>
 
   <!-- ── pairing dialog ── -->
   <data name="pairing/title.Text"><value>New device requests pairing</value></data>
@@ -307,4 +307,28 @@
   <data name="toast/copy"><value>Copy</value></data>
   <data name="toast/reply"><value>Reply</value></data>
   <data name="toast/clipboardPeerFormat"><value>{0} · clipboard</value></data>
+  <data name="newSession/title"><value>New session</value></data>
+  <data name="newSession/start"><value>Start session</value></data>
+  <data name="newSession/emptyTitle"><value>No MeshDrop devices nearby</value></data>
+  <data name="newSession/emptyHint"><value>Ask them to open MeshDrop on the same LAN</value></data>
+  <data name="common/clickToCopy"><value>Click to copy</value></data>
+  <data name="file/open.Text"><value>Open</value></data>
+  <data name="file/reveal.Text"><value>Show in folder</value></data>
+  <data name="file/saveCopy.Text"><value>Save a copy…</value></data>
+  <data name="settings/aboutScope.Text"><value>Share text, images, videos and files directly between Windows, Mac, iPhone and iPad. Free and open source, with no account or cloud relay.</value></data>
+  <data name="settings/aboutCompatibility.Text"><value>Windows 10 (1809 or later) and Windows 11. For Windows–Apple transfers, connect both devices to the same LAN and keep MeshDrop open. Apple devices need version 1.1 or later. Windows does not currently support Bluetooth transfer or Apple peer-to-peer Wi-Fi.</value></data>
+  <data name="settings/appleStoreLink.Content"><value>Apple App Store · iPhone / iPad / Mac</value></data>
+  <data name="settings/sourceLink.Content"><value>GitHub source · chenqi92/share (MIT)</value></data>
+  <data name="settings/websiteLink.Content"><value>MeshDrop website and guide</value></data>
+  <data name="settings/privacyLink.Content"><value>Privacy policy</value></data>
+  <data name="receive.review"><value>Review and receive</value></data>
+  <data name="receive.pendingFormat"><value>{0} files waiting to be received</value></data>
+  <data name="receive.pendingHint"><value>Confirm photos and files before their download starts.</value></data>
+  <data name="receive/waiting.Text"><value>Waiting for your approval</value></data>
+  <data name="receive/saveHint.Text"><value>Saved under Documents / MeshDrop / sender. SHA-256 is checked after the transfer completes.</value></data>
+  <data name="receive/accept.Text"><value>Receive file</value></data>
+  <data name="msg.failed"><value>Failed</value></data>
+  <data name="msg.canceled"><value>Canceled</value></data>
+  <data name="msg.waiting"><value>Waiting for recipient</value></data>
+  <data name="msg.sending"><value>Connecting…</value></data>
 </root>

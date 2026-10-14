@@ -67,7 +67,8 @@ public sealed record MockHistory(
     string? Content = null,
     int? Count = null,
     int? Progress = null,
-    string Status = "done")
+    string Status = "done",
+    string? LocalPath = null)
 {
     public string Id { get; set; } = Id;
     public string Dir { get; set; } = Dir;
@@ -81,6 +82,7 @@ public sealed record MockHistory(
     public int? Count { get; set; } = Count;
     public int? Progress { get; set; } = Progress;
     public string Status { get; set; } = Status;
+    public string? LocalPath { get; set; } = LocalPath;
 
     public string DirArrow => Dir == "outgoing" ? "↑" : "↓";
 
@@ -187,7 +189,8 @@ public sealed record MockTransfer(
     MockTransferState State,
     string? Speed = null,
     string Eta = "",
-    string Id = "")
+    string Id = "",
+    string? LocalPath = null)
 {
     public string Name { get; set; } = Name;
     public string Size { get; set; } = Size;
@@ -199,6 +202,7 @@ public sealed record MockTransfer(
     public string? Speed { get; set; } = Speed;
     public string Eta { get; set; } = Eta;
     public string Id { get; set; } = Id;
+    public string? LocalPath { get; set; } = LocalPath;
 
     public string FromToText => $"{From} → {To}";
 }
@@ -212,7 +216,9 @@ public sealed record MockMessage(
     bool Delivered = true,
     string? FileName = null,
     string? FileSize = null,
-    string? FileExt = null)
+    string? FileExt = null,
+    string? LocalPath = null,
+    string? StatusText = null)
 {
     public string Id { get; set; } = Id;
     public string Side { get; set; } = Side;
@@ -223,6 +229,8 @@ public sealed record MockMessage(
     public string? FileName { get; set; } = FileName;
     public string? FileSize { get; set; } = FileSize;
     public string? FileExt { get; set; } = FileExt;
+    public string? LocalPath { get; set; } = LocalPath;
+    public string? StatusText { get; set; } = StatusText;
 }
 
 public sealed record MockMe(

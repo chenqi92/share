@@ -87,7 +87,7 @@
   <data name="shell/nav/clipboard.Text"><value>剪贴板</value></data>
   <data name="shell/nav/trust.Text"><value>已配对</value></data>
   <data name="shell/nav/settings.Text"><value>设置</value></data>
-  <data name="shell/pairedDivider"><value>── 已配对 · 5 ──</value></data>
+  <data name="shell/pairedDivider"><value>── 已配对 ──</value></data>
   <data name="shell/selfTag.Text"><value>DEV-01 · 我</value></data>
 
   <!-- ── 状态栏 ── -->
@@ -102,7 +102,7 @@
   <data name="discovery/sendFile.Text"><value>发送文件…</value></data>
   <data name="discovery/newSession.Text"><value>+ 新会话</value></data>
   <data name="discovery/chipLive"><value>实时</value></data>
-  <data name="discovery/chipPlaintext"><value>LAN · 明文 · v0.1</value></data>
+  <data name="discovery/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="discovery/chipLanOnly"><value>仅局域网</value></data>
   <data name="discovery/scanningBanner.Text"><value>正在扫描局域网…</value></data>
   <data name="discovery/networkError.Text"><value>网络出错</value></data>
@@ -119,7 +119,7 @@
   <data name="discovery/sweepFooterFormat"><value>── 扫描 4.5s · 脉冲 2.6s · {0} 台 ──</value></data>
 
   <!-- ── chat 消息页 ── -->
-  <data name="chat/chipPlaintext"><value>LAN · 明文 · v0.1</value></data>
+  <data name="chat/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="chat/dropToSend.Text"><value>放手即发</value></data>
   <data name="chat/dropToSendCaption"><value>放手即发</value></data>
   <data name="chat/dropOverlayFormat"><value>放手即发 · → {0}</value></data>
@@ -192,10 +192,10 @@
   <data name="settings/visibleToggle.OffContent"><value>OFF · 停止广告</value></data>
   <data name="settings/visibleToggle.OnContent"><value>ON · 可被局域网发现</value></data>
   <data name="settings/securityTag.Text"><value>安全</value></data>
-  <data name="settings/securityHint.Text"><value>Ed25519 身份 · SHA-256 指纹 · 局域网明文 v0.1</value></data>
+  <data name="settings/securityHint.Text"><value>TLS 1.3 加密 · Ed25519 设备身份</value></data>
   <data name="settings/fingerprintLabel.Text"><value>本机指纹</value></data>
   <data name="settings/transportLabel.Text"><value>传输安全</value></data>
-  <data name="settings/transportHint.Text"><value>局域网 · 明文 TCP · v0.1。身份与配对由 Ed25519 + SHA-256 指纹保护。</value></data>
+  <data name="settings/transportHint.Text"><value>局域网直连 · TLS 1.3 双向认证。首次连接请核对双方设备指纹。</value></data>
   <data name="settings/tofuToggle.Header"><value>首次配对需确认指纹 · TOFU</value></data>
   <data name="settings/tofuToggle.OnContent"><value>ON · 始终启用</value></data>
   <data name="settings/trustedOnlyToggle.Header"><value>仅允许已配对设备连接</value></data>
@@ -262,14 +262,14 @@
   <data name="send/cancel"><value>取消</value></data>
   <data name="send/send"><value>发送 →</value></data>
   <data name="send/toFormat.Text"><value>发送到 · 李莉</value></data>
-  <data name="send/chipPlaintext"><value>LAN · 明文 · v0.1</value></data>
+  <data name="send/chipPlaintext"><value>LAN · TLS 1.3</value></data>
   <data name="send/kindDivider"><value>── 类型 ──</value></data>
   <data name="send/kindText.Text"><value>文本</value></data>
   <data name="send/kindFile.Text"><value>文件</value></data>
   <data name="send/kindNote.Text"><value>文字便签</value></data>
   <data name="send/editor.PlaceholderText"><value>说点什么…</value></data>
   <data name="send/shortcutHint.Text"><value>按 Ctrl+Enter 立即发送 · ESC 关闭</value></data>
-  <data name="send/securityNote.Text"><value>该消息将经局域网明文 TCP 直连 192.168.1.31（v0.1）· 身份由 Ed25519 指纹核对</value></data>
+  <data name="send/securityNote.Text"><value>通过局域网 TLS 1.3 加密直传，并验证对方设备身份。</value></data>
 
   <!-- ── pairing 配对对话框 ── -->
   <data name="pairing/title.Text"><value>新设备请求配对</value></data>
@@ -314,4 +314,28 @@
   <data name="toast/copy"><value>复制</value></data>
   <data name="toast/reply"><value>回复</value></data>
   <data name="toast/clipboardPeerFormat"><value>{0} · 剪贴板</value></data>
+  <data name="newSession/title"><value>新会话</value></data>
+  <data name="newSession/start"><value>开始会话</value></data>
+  <data name="newSession/emptyTitle"><value>附近没有 MeshDrop 设备</value></data>
+  <data name="newSession/emptyHint"><value>让对方也打开 MeshDrop，并保持在同一局域网</value></data>
+  <data name="common/clickToCopy"><value>点击复制</value></data>
+  <data name="file/open.Text"><value>打开</value></data>
+  <data name="file/reveal.Text"><value>打开所在文件夹</value></data>
+  <data name="file/saveCopy.Text"><value>转存…</value></data>
+  <data name="settings/aboutScope.Text"><value>在 Windows、Mac、iPhone 和 iPad 之间直接分享文字、图片、视频和文件。免费开源，无需注册，传输不经过云端中转。</value></data>
+  <data name="settings/aboutCompatibility.Text"><value>Windows 10（1809 或更新）和 Windows 11。跨 Windows 与 Apple 设备互传时，请连接同一局域网并保持双方 MeshDrop 打开；Apple 端需 1.1 或更新版本。Windows 暂不支持蓝牙传输或 Apple 点对点 Wi-Fi。</value></data>
+  <data name="settings/appleStoreLink.Content"><value>Apple App Store · iPhone / iPad / Mac</value></data>
+  <data name="settings/sourceLink.Content"><value>GitHub 开源仓库 · chenqi92/share（MIT）</value></data>
+  <data name="settings/websiteLink.Content"><value>MeshDrop 官网与使用介绍</value></data>
+  <data name="settings/privacyLink.Content"><value>隐私政策</value></data>
+  <data name="receive.review"><value>查看并接收</value></data>
+  <data name="receive.pendingFormat"><value>{0} 个文件等待接收</value></data>
+  <data name="receive.pendingHint"><value>照片和文件需要你确认后才会开始下载。</value></data>
+  <data name="receive/waiting.Text"><value>等待接收确认</value></data>
+  <data name="receive/saveHint.Text"><value>接收后保存在“文档 / MeshDrop / 发送设备”文件夹，完成后自动核对 SHA-256。</value></data>
+  <data name="receive/accept.Text"><value>接收文件</value></data>
+  <data name="msg.failed"><value>失败</value></data>
+  <data name="msg.canceled"><value>已取消</value></data>
+  <data name="msg.waiting"><value>等待对方接收</value></data>
+  <data name="msg.sending"><value>连接中…</value></data>
 </root>

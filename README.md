@@ -55,29 +55,31 @@ Electron, Flutter, or React Native — for the best performance and platform fee
 
 | Platform | How to get it |
 | --- | --- |
-| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.0, build 2) |
-| Android / Windows / Linux / Web | Build from source (pre-release `0.1.0`) — see the per-platform READMEs below |
+| **iOS / iPadOS / macOS / tvOS / visionOS / watchOS** | [**App Store**](https://apps.apple.com/cn/app/meshdrop/id6772689903) (1.1) |
+| **Windows 10 1809+ / Windows 11** | `1.1.1` (x64 / ARM64) submitted to Microsoft Store on 2026-10-14; awaiting certification. [Build from source](windows/README.md) in the meantime. |
+| Android / Linux / Web | Build from source (pre-release `0.1.0`) — see the per-platform READMEs below |
 
 ## Platforms
 
 | Platform | Stack | Status |
 | --- | --- | --- |
 | macOS | SwiftUI + Network.framework | Builds / MeshDropKit tests pass |
-| iOS 17+ / iPadOS | SwiftUI + Network.framework | ✅ Shipped on the App Store (1.0, build 2) |
+| iOS 17+ / iPadOS | SwiftUI + Network.framework | ✅ Shipped on the App Store (1.1) |
 | iOS 26 | + Liquid Glass (`.glassEffect()`) | UI wired |
 | tvOS | SwiftUI focus engine (receive-only) | Shares the Apple core |
 | visionOS | SwiftUI spatial + glass | Engine adapter wired (preview mock retained) |
 | watchOS | SwiftUI + WatchConnectivity bridge to iPhone | Companion bridge |
 | Android | Jetpack Compose + `NsdManager` | Build + unit/screenshot tests |
 | Wear OS | Compose for Wear + Wearable Data Layer bridge to Android | Builds |
-| Windows | WinUI 3 (.NET 8) + `Makaretu.Dns` | Builds with .NET 8 + Windows App SDK |
+| Windows 10 1809+ / Windows 11 | WinUI 3 (.NET 8) + `Makaretu.Dns` + Bouncy Castle TLS | 1.1.1 x64 / ARM64 MSIX; submitted for Store certification |
 | Linux GUI | Rust + gtk4-rs + libadwaita + `mdns-sd` | Core tests + GUI build |
 | Linux TUI | Rust + ratatui + `mdns-sd` | Build/test pass (10 unit tests) |
 | Web | React + Vite, via the Gateway bridge | Builds; mock only with explicit `?mock=1` |
 
-> **Versioning:** only the Apple targets (iOS / iPadOS / macOS / tvOS / visionOS /
-> watchOS) are at `1.0.0` (build 2) and shipped to the App Store. Android / Wear OS /
-> Linux / Web are still `0.1.0` pre-release.
+> **Versioning:** Apple `1.1` is available on the App Store. Windows `1.1.1` is
+> awaiting Microsoft Store certification; Android / Wear OS / Linux / Web remain
+> `0.1.0` pre-release. Windows and Apple `1.1+` share text and files over the same
+> LAN with both apps open; Windows does not support Apple peer-to-peer Wi-Fi or Bluetooth transfer.
 >
 > **Bundle identifiers are per-platform, not unified:** Apple = `com.welape.landrop`,
 > Android = `com.welape.meshdrop`, Wear OS = `com.welape.meshdrop.wear`.
@@ -99,19 +101,18 @@ Desktop clients additionally run a Web Gateway (TLS 1.3 self-signed cert + WebSo
 control channel + multipart upload) so browsers can join from the LAN
 (see [protocol/companion-bridges.md](protocol/companion-bridges.md)).
 
-## Security status (v0.1) ⚠️
+## Security status
 
-Please read before relying on this for sensitive data:
+- Apple and Windows `1.1+` require **TLS 1.3 with mutual device authentication**.
+  Transport certificates are bound to each device's Ed25519 identity; older
+  plaintext clients cannot connect.
+- Windows includes Bouncy Castle to provide TLS 1.3 on Windows 10 as well as 11.
+- Compare fingerprints on first pairing. mDNS discovery alone does not establish trust.
+- Other platforms have their own implementation status; do not assume their
+  pre-release clients support the encrypted Apple/Windows protocol.
+- The browser Web Gateway uses separate self-signed HTTPS and pairing codes.
 
-- LAN transport is **plaintext TCP** in v0.1.
-- The TOFU fingerprint **only prevents accidental mis-connection — it does not resist an
-  active MITM** (the `fp` is not yet bound to a key or certificate).
-- The Web Gateway itself uses TLS 1.3 (self-signed), but the device-to-device channel
-  does not.
-- End-to-end application-layer encryption is on the roadmap (added in v0.2, enforced from v1.0).
-
-**Do not market or treat the current version as "end-to-end encrypted / secure
-transport."** Details: [protocol/security.md](protocol/security.md).
+See [protocol/security.md](protocol/security.md) for the certificate and trust model.
 
 ## Build from source
 

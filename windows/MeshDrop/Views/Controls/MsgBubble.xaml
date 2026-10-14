@@ -2,7 +2,8 @@
 <UserControl
     x:Class="MeshDrop.Views.Controls.MsgBubble"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MeshDrop.Views.Controls">
 
     <Grid x:Name="Root" Margin="0,4,0,4">
         <Border x:Name="Bubble"
@@ -11,14 +12,22 @@
                 CornerRadius="16,16,16,6">
             <StackPanel x:Name="Body" Spacing="6">
                 <!-- 文本气泡 -->
-                <TextBlock x:Name="TextRun"
-                           Visibility="Collapsed"
-                           TextWrapping="Wrap"
-                           FontFamily="{StaticResource MdBodyFontFamily}"
-                           FontSize="14"
-                           Text="{x:Bind Text, Mode=OneWay}"/>
+                <RichTextBlock x:Name="TextRun"
+                               Visibility="Collapsed"
+                               TextWrapping="Wrap"
+                               FontFamily="{StaticResource MdBodyFontFamily}"
+                               FontSize="14"
+                               local:Linkify.Text="{x:Bind Text, Mode=OneWay}"/>
                 <!-- 文件气泡 -->
-                <Grid x:Name="FileRow" Visibility="Collapsed" ColumnSpacing="10">
+                <Grid x:Name="FileRow" Visibility="Collapsed" ColumnSpacing="10"
+                      Tapped="OnFileTapped">
+                    <Grid.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem x:Uid="file/open" Click="OnFileOpen"/>
+                            <MenuFlyoutItem x:Uid="file/reveal" Click="OnFileReveal"/>
+                            <MenuFlyoutItem x:Uid="file/saveCopy" Click="OnFileSaveCopy"/>
+                        </MenuFlyout>
+                    </Grid.ContextFlyout>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
@@ -37,17 +46,19 @@
                                    Foreground="{ThemeResource MdInk60Brush}"/>
                     </Border>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                        <TextBlock Text="{x:Bind FileName, Mode=OneWay}"
+                        <TextBlock x:Name="FileNameText" Text="{x:Bind FileName, Mode=OneWay}"
                                    FontFamily="{StaticResource MdBodyFontFamily}"
                                    FontSize="13" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{x:Bind FileSize, Mode=OneWay}"
+                        <TextBlock x:Name="FileSizeText" Text="{x:Bind FileSize, Mode=OneWay}"
                                    FontFamily="{StaticResource MdMonoFontFamily}"
                                    FontSize="10"
                                    Opacity="0.6"/>
                     </StackPanel>
                 </Grid>
                 <!-- 时间戳行 -->
+                <TextBlock x:Name="TransferStatusText" Text="{x:Bind StatusText, Mode=OneWay}"
+                           FontSize="11" TextWrapping="Wrap" Opacity="0.8"/>
                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
                     <TextBlock x:Name="TimeText"
                                Text="{x:Bind Time, Mode=OneWay}"

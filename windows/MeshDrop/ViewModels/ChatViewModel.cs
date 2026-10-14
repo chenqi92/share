@@ -44,6 +44,9 @@ public sealed partial class ChatViewModel : ObservableObject
     private Device? CurrentPeer =>
         string.IsNullOrEmpty(PeerId) ? null : _engine.Devices.FirstOrDefault(d => d.Id == PeerId);
 
+    /// <summary>是否已选中对端。未选中时 composer（输入框/文件/发送）整体禁用。</summary>
+    public bool HasPeer => !string.IsNullOrEmpty(PeerId);
+
     public string DropOverlayText
     {
         get
@@ -62,7 +65,9 @@ public sealed partial class ChatViewModel : ObservableObject
         _messages = new ProjectedCollection<HistoryItem, MockMessage>(
             _engine.History,
             h => h.ToMessage(),
-            h => string.IsNullOrEmpty(PeerId) || h.Peer.Id == PeerId);
+            h => string.IsNullOrEmpty(PeerId) || h.Peer.Id == PeerId
+                || (!string.IsNullOrEmpty(CurrentPeer?.Fingerprint) && h.Peer.Fingerprint == CurrentPeer.Fingerprint),
+            history => history.OrderBy(h => h.CreatedAt));
 
         if (string.IsNullOrEmpty(PeerId) && Devices.Count > 0)
         {
@@ -85,6 +90,7 @@ public sealed partial class ChatViewModel : ObservableObject
     partial void OnPeerIdChanged(string value)
     {
         _messages.Refresh();
+        OnPropertyChanged(nameof(HasPeer));
         var peer = _engine.Devices.FirstOrDefault(d => d.Id == value);
         if (peer is not null)
         {
@@ -152,5 +158,6 @@ public sealed partial class ChatViewModel : ObservableObject
         {
             PeerId = Devices[0].Id;
         }
+        _messages?.Refresh();
     }
 }
