@@ -1,20 +1,26 @@
 import Foundation
 import Network
+import Security
 import OSLog
 
 private let log = Logger(subsystem: "com.welape.meshdrop", category: "Connection")
 
-/// 包装一条 NWConnection，提供按帧 (`Frame`) 读写的串行化接口。
+/// 包装 TCP 或蓝牙 L2CAP 连接，提供按帧 (`Frame`) 读写的串行化接口。
 ///
 /// - 由 actor 保证串行；上层不需要自己加锁。
 /// - 读循环在 NWConnection 进入 `.ready` 后启动，按 [transport.md](../../../protocol/transport.md)
 ///   的 framing 规范解出 (type, body) 投给 `onMessage`。
 /// - 任一侧关闭、出错都会触发 `onClose`，触发后不再有任何回调。
 public actor Connection {
-    private let nw: NWConnection
+    private let nw: NWConnection?
+    private var stream: StreamTransport?
+    private let openStream: (@Sendable () async throws -> StreamTransport)?
+    public nonisolated let route: TransferRoute
+    private nonisolated let endpointName: String
     private var readBuffer = Data()
     private var isClosed = false
     private var becameReady = false
+    public private(set) var authenticatedFingerprint: String?
 
     /// 建连 + 进入 ready 的整体超时。service endpoint 解析不到对端 / 对端不可达时
     /// NWConnection 会停在 `.waiting`（不会自己 `.failed`），没有超时就会永远挂着，
@@ -27,24 +33,70 @@ public actor Connection {
 
     /// 远端 endpoint 字符串，主要用于日志。
     public nonisolated var endpointDescription: String {
-        String(describing: nw.endpoint)
+        endpointName
     }
 
-    public init(nwConnection: NWConnection) {
+    public init(nwConnection: NWConnection, route: TransferRoute = .lan) {
         self.nw = nwConnection
+        self.openStream = nil
+        self.route = route
+        self.endpointName = String(describing: nwConnection.endpoint)
+    }
+
+    init(bluetooth open: @escaping @Sendable () async throws -> StreamTransport) {
+        nw = nil
+        openStream = open
+        route = .bluetooth
+        endpointName = "Bluetooth L2CAP"
+    }
+
+    init(unavailable route: TransferRoute) {
+        nw = nil
+        openStream = { throw ConnectionError.routeUnavailable }
+        self.route = route
+        endpointName = route.rawValue
     }
 
     /// 用目标设备建一条出方连接。
-    public init(connectingTo device: Device) {
-        let params = NWParameters.tcp
+    public init(connectingTo device: Device, route: TransferRoute = .lan, identity: Identity = IdentityStore.loadOrCreate()) {
+        if route == .bluetooth || (route == .peerToPeer && device.peerToPeerEndpoint == nil) {
+            nw = nil
+            openStream = { throw ConnectionError.routeUnavailable }
+            self.route = route
+            endpointName = route.rawValue
+            return
+        }
+        let params: NWParameters
+        do { params = try TransportSecurity.parameters(identity: identity, expectedFingerprint: device.fingerprint) }
+        catch {
+            nw = nil
+            openStream = { throw TransportSecurity.Failure.invalidIdentity }
+            self.route = route
+            endpointName = route.rawValue
+            return
+        }
         params.includePeerToPeer = true
-        let endpoint = device.discoveryEndpoint ?? NWEndpoint.service(
+        let endpoint = (route == .peerToPeer ? device.peerToPeerEndpoint : device.discoveryEndpoint) ?? NWEndpoint.service(
             name: device.id,
             type: TXTRecord.serviceType,
             domain: "local",
             interface: nil
         )
+        if route == .peerToPeer {
+            guard case let .service(_, _, _, interface?) = endpoint,
+                  interface.name.hasPrefix("awdl") else {
+                nw = nil
+                openStream = { throw ConnectionError.routeUnavailable }
+                self.route = route
+                endpointName = route.rawValue
+                return
+            }
+            params.requiredInterface = interface
+        }
         self.nw = NWConnection(to: endpoint, using: params)
+        self.openStream = nil
+        self.route = route
+        self.endpointName = String(describing: endpoint)
     }
 
     public func start(
@@ -56,17 +108,35 @@ public actor Connection {
         self.onMessage = onMessage
         self.onClose = onClose
 
-        nw.stateUpdateHandler = { [weak self] state in
-            guard let self else { return }
-            Task { await self.handleNWState(state) }
+        if let nw {
+            nw.stateUpdateHandler = { [weak self] state in
+                guard let self else { return }
+                Task { await self.handleNWState(state) }
+            }
+            nw.start(queue: .global(qos: .userInitiated))
+        } else {
+            Task { await self.startStream() }
         }
-        nw.start(queue: .global(qos: .userInitiated))
 
         // 建连超时兜底：N 秒内没进入 ready 就按超时失败，避免停在 .waiting/.preparing 无限挂起。
         Task { [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(Self.establishTimeout * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64((self?.route == .bluetooth ? 95 : Self.establishTimeout) * 1_000_000_000))
             await self?.failIfNotReady()
         }
+    }
+
+    private func startStream() async {
+        do {
+            guard let openStream else { throw ConnectionError.alreadyClosed }
+            let transport = try await openStream()
+            guard !isClosed else { await transport.close(); return }
+            stream = transport
+            try await transport.start()
+            guard !isClosed else { return }
+            becameReady = true
+            await onReady?()
+            await readLoop()
+        } catch { await closeInternal(error: error) }
     }
 
     private func failIfNotReady() async {
@@ -82,25 +152,35 @@ public actor Connection {
         try await sendRaw(frame)
     }
 
-    public func close() {
-        guard !isClosed else { return }
-        isClosed = true
-        nw.cancel()
+    public func close() async {
+        await closeInternal(error: nil)
     }
 
     // MARK: - 内部
 
     private func handleNWState(_ state: NWConnection.State) async {
+        guard !isClosed else { return }
         switch state {
         case .ready:
+            guard let metadata = nw?.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata,
+                  let fingerprint = TransportSecurity.peerFingerprint(metadata.securityProtocolMetadata) else {
+                await closeInternal(error: TransportSecurity.Failure.invalidIdentity)
+                return
+            }
+            authenticatedFingerprint = fingerprint
             becameReady = true
-            log.debug("connection ready: \(self.endpointDescription)")
+            let interfaces = nw?.currentPath?.availableInterfaces.map(\.name).joined(separator: ",") ?? ""
+            log.info("connection ready route=\(self.route.rawValue, privacy: .public) interfaces=\(interfaces, privacy: .public) security=TLS1.3")
             await onReady?()
             await readLoop()
         case .failed(let err):
             log.info("connection failed (\(self.endpointDescription)): \(err.localizedDescription)")
-            await closeInternal(error: err)
+            await closeInternal(error: { if case .tls = err { return TransportSecurity.Failure.invalidIdentity }; return err }())
         case .waiting(let err):
+            if case .tls = err {
+                await closeInternal(error: TransportSecurity.Failure.invalidIdentity)
+                return
+            }
             // 解析不到对端 / 路径不可达：NWConnection 会停在 waiting 反复重试，不会自己失败。
             // 仅记录，由上面的 establishTimeout 兜底转成失败。
             log.info("connection waiting (\(self.endpointDescription)): \(err.localizedDescription)")
@@ -143,7 +223,9 @@ public actor Connection {
     }
 
     private func receiveChunk() async throws -> Data? {
-        try await withCheckedThrowingContinuation { cont in
+        if let stream { return try await stream.receive() }
+        guard let nw else { throw ConnectionError.alreadyClosed }
+        return try await withCheckedThrowingContinuation { cont in
             nw.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
                 if let error {
                     cont.resume(throwing: error)
@@ -157,6 +239,8 @@ public actor Connection {
     }
 
     private func sendRaw(_ data: Data) async throws {
+        if let stream { try await stream.send(data); return }
+        guard let nw else { throw ConnectionError.alreadyClosed }
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
             nw.send(content: data, completion: .contentProcessed { error in
                 if let error { cont.resume(throwing: error) }
@@ -168,7 +252,8 @@ public actor Connection {
     private func closeInternal(error: Error?) async {
         if isClosed { return }
         isClosed = true
-        nw.cancel()
+        nw?.cancel()
+        await stream?.close(error: error)
         await onClose?(error)
         onMessage = nil
         onClose = nil
@@ -176,7 +261,18 @@ public actor Connection {
     }
 }
 
-public enum ConnectionError: Error {
+public enum ConnectionError: Error, LocalizedError {
     case alreadyClosed
     case timeout
+    case bufferFull
+    case routeUnavailable
+
+    public var errorDescription: String? {
+        switch self {
+        case .alreadyClosed: return String(localized: "connection.closed", bundle: .module)
+        case .timeout: return String(localized: "connection.timeout", bundle: .module)
+        case .bufferFull: return String(localized: "connection.busy", bundle: .module)
+        case .routeUnavailable: return String(localized: "connection.routeUnavailable", bundle: .module)
+        }
+    }
 }

@@ -29,20 +29,31 @@ public actor HistoryStore {
         decoder.dateDecodingStrategy = .iso8601
         let items = (try? decoder.decode([HistoryItem].self, from: data)) ?? []
         // 防御：即使磁盘上的旧文件超限，读回也截断到上限。
-        return Array(items.prefix(Self.maxItems))
+        let restored = items.prefix(Self.maxItems).map { item -> HistoryItem in
+            guard case .file(let name, let size, let url) = item.kind,
+                  let restoredURL = LocalFileContent.restoredURL(url) else { return item }
+            var result = item
+            let retained = item.direction == .outgoing
+                ? (try? LocalFileContent.retainTemporaryAttachment(restoredURL, id: item.id))
+                : nil
+            result.kind = .file(name: name, size: size, url: retained ?? restoredURL)
+            return result
+        }
+        if restored != Array(items.prefix(Self.maxItems)) { save(restored) }
+        return restored
     }
 
     /// 整表覆盖写。传入的数组应是「最新在前」的当前内存历史；超过上限自动截断尾部（最旧）。
     public func save(_ items: [HistoryItem]) {
-        let capped = Array(items.prefix(Self.maxItems))
-        do {
-            let encoder = JSONEncoder()
-            encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(capped)
-            try data.write(to: url, options: .atomic)
-        } catch {
-            log.error("save failed: \(error.localizedDescription)")
-        }
+        do { try saveOrThrow(items) }
+        catch { log.error("save failed: \(error.localizedDescription)") }
+    }
+
+    func saveOrThrow(_ items: [HistoryItem]) throws {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(Array(items.prefix(Self.maxItems)))
+        try data.write(to: url, options: .atomic)
     }
 
     private static func defaultStoreURL() -> URL {

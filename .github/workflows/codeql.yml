@@ -31,7 +31,7 @@ jobs:
             runner: ubuntu-latest
           # Swift：apple/ MeshDropKit + 5 个 app target
           - language: swift
-            runner: macos-14
+            runner: macos-15
           # Kotlin：android/ + wearos/
           - language: kotlin
             runner: ubuntu-latest
@@ -44,6 +44,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Select Xcode (swift only)
+        if: matrix.language == 'swift'
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

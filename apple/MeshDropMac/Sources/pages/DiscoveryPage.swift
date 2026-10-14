@@ -3,6 +3,7 @@ import MeshDropKit
 
 struct DiscoveryPage: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var engine = ShareEngine.shared
     private var screenshotTime: Double? {
         ProcessInfo.processInfo.environment["MESHDROP_SCREENSHOT"] == "1" ? 1.4 : nil
     }
@@ -14,13 +15,9 @@ struct DiscoveryPage: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 10) {
                         Text(String(format: String(localized: "discovery.title"), state.engineDevices.count))
-                            .font(MeshDropFont.hero(34))
+                            .font(MeshDropFont.hero(26))
                             .tracking(-1)
                             .foregroundStyle(MeshDropColor.textPrimary)
-                        Text("discovery.title.suffix")
-                            .font(MeshDropFont.hero(34))
-                            .tracking(-1)
-                            .foregroundStyle(MeshDropColor.textMuted)
                         Spacer()
                         Button {
                             ShareEngine.shared.refreshDiscovery()
@@ -28,8 +25,7 @@ struct DiscoveryPage: View {
                             Label("discovery.refresh", systemImage: "arrow.clockwise")
                         }
                         .disabled(state.isScanning)
-                        Chip(text: String(localized: "discovery.tag.plaintext"), tone: .outline, mono: true)
-                        Chip(text: "LAN ONLY",         tone: .outline, mono: true)
+                        Chip(text: engine.routeLabel, tone: .outline, mono: true)
                     }
                     HStack(spacing: 6) {
                         Text("⟳")
@@ -65,9 +61,9 @@ struct DiscoveryPage: View {
                 // 主网格：左 stats + 右 radar
                 HStack(alignment: .top, spacing: 18) {
                     VStack(alignment: .leading, spacing: 14) {
-                        statBlock(label: "ONLINE",   value: "\(state.engineDevices.filter { $0.online }.count)", color: MeshDropColor.limeDeep)
-                        statBlock(label: "TRUSTED",  value: "\(state.engineTrusted.count)", color: MeshDropColor.flame)
-                        statBlock(label: "PENDING",  value: "\((state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0))", color: MeshDropColor.ink45)
+                        statBlock(label: String(localized: "status.online"),   value: "\(state.engineDevices.filter { $0.online }.count)", color: MeshDropColor.limeDeep)
+                        statBlock(label: String(localized: "status.trusted"),  value: "\(state.engineTrusted.count)", color: MeshDropColor.flame)
+                        statBlock(label: String(localized: "status.pending"),  value: "\((state.enginePairing != nil ? 1 : 0) + (state.engineOffer != nil ? 1 : 0))", color: MeshDropColor.ink45)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("discovery.quickActions")
@@ -79,18 +75,20 @@ struct DiscoveryPage: View {
                             quickAction(text: String(localized: "discovery.quick.pair")) { state.tab = .pairing }
                         }
                     }
-                    .frame(width: 220)
+                    .frame(width: 190)
 
                     VStack(spacing: 0) {
                         if state.engineDevices.isEmpty {
                             emptyDeviceCard
-                                .frame(height: 460)
+                                .frame(height: 300)
                         } else {
                             Radar(devices: state.engineDevices,
                                   variant: .sweep,
                                   selectedDeviceID: state.selectedDeviceID,
-                                  staticTime: screenshotTime)
-                                .frame(height: 460)
+                                  staticTime: screenshotTime,
+                                  onSelect: { id in state.selectedDeviceID = id; state.tab = .chat },
+                                  onFiles: { id, urls in state.sendFiles(toDeviceID: id, fileURLs: urls) })
+                                .frame(height: 300)
                         }
 
                         HStack(spacing: 8) {
@@ -100,11 +98,8 @@ struct DiscoveryPage: View {
                             Text("discovery.dropHint")
                                 .font(MeshDropFont.body(size: 12))
                                 .foregroundStyle(MeshDropColor.textSecondary)
-                            Text("discovery.dropHint.suffix")
-                                .font(MeshDropFont.body(size: 12))
-                                .foregroundStyle(MeshDropColor.textMuted)
                         }
-                        .padding(12)
+                        .padding(8)
                         .frame(maxWidth: .infinity)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
@@ -113,7 +108,7 @@ struct DiscoveryPage: View {
                         .padding(.top, 8)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(16)
+                    .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
                             .fill(MeshDropColor.cardBg)
@@ -268,10 +263,10 @@ struct DiscoveryPage: View {
     @ViewBuilder
     private func statusBadge(_ s: HistoryStatus) -> some View {
         switch s {
-        case .done:         Chip(text: "DONE",    tone: .lime,    mono: true)
-        case .transferring: Chip(text: "GOING…", tone: .flame,   mono: true)
-        case .queued:       Chip(text: "QUEUED",  tone: .outline, mono: true)
-        case .failed:       Chip(text: "FAILED",  tone: .flame,   mono: true)
+        case .done:         Chip(text: String(localized: "status.done"),    tone: .lime,    mono: true)
+        case .transferring: Chip(text: String(localized: "status.transferring"), tone: .flame,   mono: true)
+        case .queued:       Chip(text: String(localized: "status.queued"),  tone: .outline, mono: true)
+        case .failed:       Chip(text: String(localized: "status.failed"),  tone: .flame,   mono: true)
         }
     }
 }

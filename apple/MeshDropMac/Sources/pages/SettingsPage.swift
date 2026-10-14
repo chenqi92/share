@@ -20,10 +20,6 @@ struct SettingsPage: View {
                         .font(MeshDropFont.hero(34))
                         .tracking(-1)
                         .foregroundStyle(MeshDropColor.textPrimary)
-                    Text("settings.title.suffix")
-                        .font(MeshDropFont.hero(34))
-                        .tracking(-1)
-                        .foregroundStyle(MeshDropColor.textMuted)
                     Spacer()
                     Chip(text: "v 1.0.1", tone: .outline, mono: true)
                 }
@@ -45,6 +41,7 @@ struct SettingsPage: View {
                     .padding(.vertical, 10)
                     // 局域网可见：开=广告 mDNS 可被发现；关=停止广告（已建连接不强断）。即时生效。
                     toggle(String(localized: "settings.visibleOnLan"), on: $engine.visibleOnLan)
+                    TransportSettingsView(engine: engine).padding(14)
                     // 仅显示已配对设备（trusted-only）：开=只对信任库 fp 回 ACK，未知 fp 关连接。
                     toggle(String(localized: "settings.pairedOnly"), on: $engine.trustedOnly)
                     field(String(localized: "settings.deviceType"), trailing:

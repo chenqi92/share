@@ -186,10 +186,6 @@ struct TransfersPage: View {
                     .font(MeshDropFont.hero(34))
                     .tracking(-1)
                     .foregroundStyle(MeshDropColor.textPrimary)
-                Text("transfers.title.suffix")
-                    .font(MeshDropFont.hero(34))
-                    .tracking(-1)
-                    .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
                 filterChip(text: String(localized: "transfers.filter.all"), count: transfers.count, active: state.transferFilter == nil) { state.transferFilter = nil }
                 filterChip(text: String(localized: "transfers.filter.active"), count: transfers.filter { $0.state == .sending || $0.state == .receiving }.count, active: state.transferFilter == .sending) { state.transferFilter = .sending }
@@ -210,7 +206,7 @@ struct TransfersPage: View {
     @ViewBuilder
     private func filterChip(text: String, count: Int, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(text == "全部" ? text : "\(text) · \(count)")
+            Text(text == String(localized: "transfers.filter.all") ? text : "\(text) · \(count)")
                 .font(MeshDropFont.body(size: 11, weight: .semibold))
                 .tracking(0.1)
                 .padding(.horizontal, 8)

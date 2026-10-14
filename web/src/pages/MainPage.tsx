@@ -6,7 +6,7 @@ import { PeerRow } from '../components/PeerRow'
 import { StatusBar } from '../components/StatusBar'
 import { Chip } from '../components/Chip'
 import { AsciiDivider } from '../components/AsciiDivider'
-import { FileCard } from '../components/FileCard'
+import { TransferRow } from '../components/TransferRow'
 import { Modal } from '../components/Modal'
 import { useEngine } from '../hooks/useEngine'
 import { formatBytes } from '../lib/format'
@@ -26,12 +26,13 @@ export function MainPage() {
   const [dragOverPeer, setDragOverPeer] = useState<string | undefined>()
   const [pasteOpen, setPasteOpen] = useState(false)
   const [pasteText, setPasteText] = useState('')
+  const [uploading, setUploading] = useState(false)
   const [toast, setToast] = useState<string | undefined>()
   const shareHandled = useRef(false)
 
   const selected = devices.find((d) => d.id === selectedPeerId)
   const peerCount = devices.filter((d) => d.online).length
-  const session = transfers.filter((t) => t.state === 'sending' || t.state === 'queued').slice(0, 3)
+  const session = transfers.slice(0, 3)
 
   // 会话总量实算：求和 session 行的原始 totalBytes（host 上报时才有）；
   // 没有任何字节信息时只显示件数，不再写死 62.8 MB。
@@ -42,7 +43,6 @@ export function MainPage() {
 
   const fireToast = (msg: string) => {
     setToast(msg)
-    setTimeout(() => setToast(undefined), 2400)
   }
 
   // Web Share Target 入口：URL 上带 ?share_title / ?share_text / ?share_url 时
@@ -59,12 +59,16 @@ export function MainPage() {
   }, [])
 
   const handleDropFiles = async (peerId: string, files: File[]) => {
-    if (!files.length) return
+    if (!files.length || uploading) return
+    setUploading(true)
+    setToast(undefined)
     try {
       await sendFiles(peerId, files)
-      fireToast(t('toast.filesSent', { count: files.length, who: devices.find((d) => d.id === peerId)?.who ?? peerId }))
+      fireToast(t('toast.filesQueued', { count: files.length, who: devices.find((d) => d.id === peerId)?.who ?? peerId }))
     } catch (e) {
       fireToast(t('toast.sendFailed', { error: (e as Error).message }))
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -222,6 +226,7 @@ export function MainPage() {
           {/* Drop zone */}
           <DropZone
             selectedPeerName={selected?.who}
+            disabled={uploading || (mode === 'live' && conn !== 'open')}
             onFiles={(files) => {
               const peerId = selectedPeerId ?? devices[0]?.id
               if (!peerId) { fireToast(t('toast.selectDeviceFirst')); return }
@@ -229,7 +234,9 @@ export function MainPage() {
             }}
             onPasteText={() => setPasteOpen(true)}
             forceHighlight={!!dragOverPeer}
-          />
+          >
+            {(uploading || toast) && <p role="status" style={{ color: 'var(--text)', maxWidth: 520 }}>{uploading ? t('toast.uploading') : toast}</p>}
+          </DropZone>
         </div>
 
         {/* Session strip */}
@@ -267,25 +274,7 @@ export function MainPage() {
               gap: 12,
             }}
           >
-            {session.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  background: 'var(--bg)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12,
-                  padding: 12,
-                }}
-              >
-                <FileCard
-                  ext={s.ext}
-                  name={s.name}
-                  size={s.size}
-                  meta={`→ ${s.to}`}
-                  progress={s.state === 'sending' ? s.progress : undefined}
-                />
-              </div>
-            ))}
+            {session.map((s) => <TransferRow key={s.id} row={s} />)}
           </div>
         </div>
       </div>
@@ -348,29 +337,6 @@ export function MainPage() {
           </button>
         </div>
       </Modal>
-
-      {toast && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 56,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'var(--ink)',
-            color: 'var(--paper)',
-            padding: '10px 18px',
-            borderRadius: 999,
-            fontFamily: '"Geist Mono", monospace',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            zIndex: 60,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-          }}
-        >
-          ✓ {toast}
-        </div>
-      )}
     </div>
   )
 }

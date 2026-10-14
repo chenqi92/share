@@ -11,8 +11,8 @@
     "me": "Me",
     "sessionOnly": "This session only",
     "guest": "Guest",
-    "guestDuo": "Guest",
-    "destroyOnClose": "Destroyed on close",
+    "guestDuo": "Browser access",
+    "destroyOnClose": "LAN connection",
     "lanPlaintext": "LAN · plaintext v0.1",
     "lanOnly": "LAN ONLY",
     "sha256Verify": "SHA-256 verified",
@@ -20,7 +20,7 @@
     "noOnlineDevices": "No devices online"
   },
   "app": {
-    "previewBanner": "MESHDROP · WEB FALLBACK PREVIEW",
+    "previewBanner": "MESHDROP · WEB",
     "roomLiving": "Living Room",
     "nav": {
       "main": "Main",
@@ -50,10 +50,10 @@
   "hero": {
     "onlineCount": "{{n}} online",
     "noInstall": "No install",
-    "guest": "Guest mode",
+    "guest": "Browser access",
     "titleLine1": "Your browser",
-    "titleLine2": "is already a MeshDrop device.",
-    "body": "Linux / Chromebook / a colleague's laptop — any browser at <mono>{{host}}</mono> can send and receive files directly. Identities are verified with <mono>{{idScheme}}</mono> fingerprints, and everything is destroyed when you close the tab.",
+    "titleLine2": "Connected to nearby devices through your desktop.",
+    "body": "Send and receive through MeshDrop at <mono>{{host}}</mono>. Choose a nearby device and keep MeshDrop open there. The first transfer needs pairing approval on the receiving device.",
     "dragToSend": "Drag to send",
     "lanZeroCloud": "LAN ONLY · zero cloud",
     "pasteToShare": "Paste to share",
@@ -61,13 +61,13 @@
   },
   "discovery": {
     "nearby": "Nearby",
-    "whoAreYou": "Who are you",
-    "visibleStatus": "Visible to guests",
-    "anonymousVisitor": "Anonymous visitor · offline when you close the tab",
+    "whoAreYou": "Gateway device",
+    "visibleStatus": "Gateway connected",
+    "anonymousVisitor": "Files are forwarded by this device",
     "selectedHint": "Selected {{who}} — drag files or paste text to send"
   },
   "session": {
-    "title": "Session",
+    "title": "Recent transfers",
     "open": "open",
     "live": "live · {{state}}",
     "preview": "offline preview"
@@ -93,7 +93,9 @@
     "sendFailed": "Send failed: {{error}}",
     "noDevice": "No device to send to",
     "textSent": "Sent text to {{who}}",
-    "selectDeviceFirst": "Select a device first"
+    "selectDeviceFirst": "Select a device first",
+    "filesQueued": "{{count}} files queued for {{who}}. Follow the transfer status below and approve pairing or receipt on the phone.",
+    "uploading": "Uploading files to the Mac…"
   },
   "chat": {
     "peers": "Peers",
@@ -137,7 +139,9 @@
       "done": "Done",
       "failed": "Failed",
       "queued": "Queued"
-    }
+    },
+    "waitingApproval": "Waiting for connection, pairing or receipt. Open MeshDrop on the other device and confirm.",
+    "canceled": "Transfer canceled"
   },
   "speedChart": {
     "title": "Live throughput",
@@ -191,7 +195,7 @@
     "eyebrow": "Pairing",
     "titleLine1": "Add this browser",
     "titleLine2": "to your MeshDrop network",
-    "intro": "Anonymous guest transfers don't need pairing. You only pair this browser to your MeshDrop device when you want it to become \"long-term trusted\" — so next time it won't prompt you to accept.",
+    "intro": "Enter the six-character pairing code from Settings → Web access in the desktop app to use LAN transfers through this device.",
     "gateway": {
       "notConfigured": "No native Web Gateway configured. Enter the address of a running MeshDrop native client before pairing.",
       "placeholder": "https://192.168.1.12:7384",
@@ -222,7 +226,7 @@
       "reject": "Reject",
       "trust": "Trust and remember"
     },
-    "fingerprint": "FINGERPRINT · full 32 chars",
+    "fingerprint": "Gateway device fingerprint",
     "fingerprintPeerSame": "Peer should see the same 8 groups",
     "fingerprintUnknown": "Gateway hasn't reported a fingerprint yet — nothing to verify against.",
     "scanWithApp": "Scan with native app",
@@ -236,14 +240,17 @@
         "body": "Make sure both devices are on the same Wi-Fi or switch, with no client isolation."
       },
       "s2": {
-        "title": "Scan / enter code",
-        "body": "In the native app, tap \"Add device\", scan the QR on the right, or manually enter the 6-character code below."
+        "title": "Connect this browser",
+        "body": "Sign in with the address and code in Mac Settings → Web access. The browser does not generate a phone pairing code."
       },
       "s3": {
-        "title": "Check the fingerprint",
-        "body": "Both ends show the same 32-char fingerprint. Confirm they match, then tap \"Trust and remember\"."
+        "title": "Approve on your phone",
+        "body": "Open MeshDrop on your phone. Verify the gateway fingerprint, approve first-time pairing, then accept the file. Follow the result in Transfers."
       }
-    }
+    },
+    "connectedTitle": "Connected to",
+    "connectedBody": "This browser sends and receives through this device. On your first transfer to a phone, open MeshDrop there and approve pairing and receipt.",
+    "startSending": "Choose a device and send files"
   },
   "settings": {
     "eyebrow": "Settings",

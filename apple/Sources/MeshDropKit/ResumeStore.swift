@@ -52,6 +52,7 @@ public struct ResumeRecord: Codable, Sendable, Equatable {
 public actor ResumeStore {
     private var records: [String: ResumeRecord]
     private let url: URL
+    private var discardedTransfers: Set<UUID> = []
 
     public init(storeURL: URL? = nil) {
         self.url = storeURL ?? Self.defaultStoreURL()
@@ -63,6 +64,7 @@ public actor ResumeStore {
     }
 
     public func upsert(_ record: ResumeRecord) {
+        guard !discardedTransfers.contains(record.transferID) else { return }
         records[record.key] = record
         persist()
     }
@@ -70,6 +72,20 @@ public actor ResumeStore {
     public func clear(peerFingerprint: String, sha256: String) {
         records.removeValue(forKey: ResumeRecord.makeKey(peerFingerprint: peerFingerprint, sha256: sha256))
         persist()
+    }
+
+    func discard(savedPath: String?, transferIDs: Set<UUID>) throws {
+        discardedTransfers.formUnion(transferIDs)
+        let matching = records.values.filter {
+            let restoredPath = LocalFileContent.restoredURL(URL(fileURLWithPath: $0.savedPath))?.standardizedFileURL.resolvingSymlinksInPath().path
+            let target = savedPath.map { URL(fileURLWithPath: $0).standardizedFileURL.resolvingSymlinksInPath().path }
+            return transferIDs.contains($0.transferID) || (target != nil && restoredPath == target)
+        }
+        discardedTransfers.formUnion(matching.map(\.transferID))
+        for record in matching { records.removeValue(forKey: record.key) }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(records).write(to: url, options: .atomic)
     }
 
     public func snapshot() -> [ResumeRecord] {

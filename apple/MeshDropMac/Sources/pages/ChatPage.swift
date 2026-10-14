@@ -5,6 +5,7 @@ import MeshDropKit
 
 struct ChatPage: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var engine = ShareEngine.shared
     var forceDragOverlay: Bool = false
     @State private var composer: String = ""
 
@@ -27,16 +28,16 @@ struct ChatPage: View {
     private var dev: MockDevice { state.selectedDevice }
     private var canSend: Bool { state.canSendToSelectedDevice }
 
-    /// 当前对话 = engine.history 中 peer.id 匹配选中设备的所有项，按时间正序展示。
+    /// 按稳定指纹合并重启前后的会话历史。
     private var conversation: [HistoryItem] {
         state.engineHistoryItems
-            .filter { $0.peer.id == state.selectedDeviceID }
+            .filter { $0.peer.conversationID == state.selectedConversationID }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Avatar(initials: dev.initials, color: dev.color, size: 40)
+        HStack(spacing: 10) {
+            Avatar(initials: dev.initials, color: dev.color, size: 32)
             VStack(alignment: .leading, spacing: 1) {
                 Text(dev.who)
                     .font(MeshDropFont.body(size: 14.5, weight: .semibold))
@@ -44,43 +45,73 @@ struct ChatPage: View {
                 HStack(spacing: 5) {
                     KindGlyph(kind: dev.kind, size: 11)
                     Text(dev.os).font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
-                    Text("·").foregroundStyle(MeshDropColor.textMuted)
                     Circle()
                         .fill(dev.online ? MeshDropColor.limeDeep : MeshDropColor.textMuted)
                         .frame(width: 5, height: 5)
-                    Text(dev.online ? "ONLINE" : "OFFLINE")
-                        .meshTag()
+                    Text(dev.online ? "chat.device.online" : "chat.device.offline")
+                        .font(MeshDropFont.body(size: 10.5))
                         .foregroundStyle(dev.online ? MeshDropColor.limeDeep : MeshDropColor.textMuted)
-                    if dev.rtt > 0 {
-                        Text("·").foregroundStyle(MeshDropColor.textMuted)
-                        Text("\(dev.rtt)ms").font(MeshDropFont.mono(size: 10)).foregroundStyle(MeshDropColor.textMuted)
-                    }
                     Text("·").foregroundStyle(MeshDropColor.textMuted)
-                    // v0.1 明文 LAN，不宣称 E2E。
-                    Text("LAN").meshTag().foregroundStyle(MeshDropColor.textMuted)
+                    Text(engine.routeLabel(for: engine.devices.first { $0.conversationID == state.selectedConversationID }))
+                        .meshTag().foregroundStyle(MeshDropColor.textMuted)
                 }
             }
             Spacer()
-            IconBtn(systemName: "ellipsis", size: 28)
+            Menu {
+                Button("chat.picker.files.title", systemImage: "paperclip") { pickFiles(imagesOnly: false) }
+                    .disabled(!canSend)
+                Button("chat.picker.images.title", systemImage: "photo") { pickFiles(imagesOnly: true) }
+                    .disabled(!canSend)
+                Divider()
+                Picker("chat.route", selection: $engine.preferredRoute) {
+                    ForEach(TransferRoute.allCases) { route in Text(route.title).tag(route) }
+                }
+                Button("discovery.refresh", systemImage: "arrow.clockwise") { engine.refreshDiscovery() }
+                Divider()
+                Button("settings.security.copyFingerprint", systemImage: "doc.on.doc") {
+                    SystemClipboard.copy(dev.fingerprint)
+                }
+                .disabled(dev.fingerprint.isEmpty)
+                Button("chat.pairedDevices", systemImage: "person.2.badge.key") { state.tab = .trust }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .frame(width: 30, height: 30)
+                    .contentShape(Rectangle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("chat.more")
+            .accessibilityLabel("chat.more")
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 8)
         .background(MeshDropColor.background)
     }
 
     private var messages: some View {
-        PageScroll {
-            VStack(spacing: 14) {
+        ScrollViewReader { proxy in
+            PageScroll {
+                VStack(spacing: 12) {
                 if conversation.isEmpty {
                     emptyHint
                 } else {
                     ForEach(conversation) { item in
                         bubble(for: item)
+                            .id(item.id)
                     }
                 }
+                Color.clear.frame(height: 1).id("latest-message")
+                }
+                .frame(maxWidth: 860)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 18)
+            .defaultScrollAnchor(.bottom)
+            .onChange(of: state.selectedConversationID) { _, _ in proxy.scrollTo("latest-message", anchor: .bottom) }
+            .onChange(of: conversation.last?.id) { _, _ in proxy.scrollTo("latest-message", anchor: .bottom) }
         }
     }
 
@@ -108,14 +139,13 @@ struct ChatPage: View {
         let time = Self.timeFormatter.string(from: item.createdAt)
         switch item.kind {
         case .text(let content):
-            MsgBubble(side: side, time: time, delivered: isDelivered(item), copyText: content) {
-                Text(content)
+            MsgBubble(side: side, time: time, delivered: isDelivered(item), copyText: content, status: item.status, onRetry: retryAction(for: item), historyID: item.id) {
+                MarkdownContentView(content)
                     .font(MeshDropFont.body(size: 13))
-                    .textSelection(.enabled)
             }
         case .file(let name, let size, let url):
             if isImageFile(name: name, url: url) {
-                MsgBubble(side: side, kind: .image, time: time, delivered: isDelivered(item), fileURL: availableFile(item, url: url)) {
+                MsgBubble(side: side, kind: .image, time: time, delivered: isDelivered(item), fileURL: url, fileCompleted: item.status == .completed, status: item.status, onRetry: retryAction(for: item), historyID: item.id) {
                     VStack(alignment: .leading, spacing: 6) {
                         ImagePreview(url: url, base64: nil, cornerRadius: 12)
                             .frame(width: 280, height: 188)
@@ -134,13 +164,18 @@ struct ChatPage: View {
                     .frame(width: 288)
                 }
             } else {
-                MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item), fileURL: availableFile(item, url: url)) {
-                    FileChip(name: name,
+                MsgBubble(side: side, kind: .file, time: time, delivered: isDelivered(item), fileURL: url, fileCompleted: item.status == .completed, status: item.status, onRetry: retryAction(for: item), historyID: item.id) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if LocalFileContent.isVideo(name: name) {
+                            Image(systemName: "play.rectangle").font(.system(size: 32))
+                        }
+                        FileChip(name: name,
                              size: fileSizeLabel(size: size, status: item.status),
                              ext: fileExt(name),
                              progress: progressFraction(item.status),
                              dark: side == .outgoing)
                         .frame(width: 280)
+                    }
                 }
             }
         }
@@ -188,7 +223,13 @@ struct ChatPage: View {
                 .opacity(canSend ? 1 : 0.45)
         }
         .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.vertical, 10)
+    }
+
+    private func retryAction(for item: HistoryItem) -> (() -> Void)? {
+        guard canSend, item.direction == .outgoing else { return nil }
+        if case .file(_, _, let url) = item.kind, LocalFileContent.readableURL(url) == nil { return nil }
+        return { engine.retryTransfer(item.id) }
     }
 
     private var composerPlaceholder: String {
@@ -231,7 +272,7 @@ struct ChatPage: View {
     /// 弹 NSOpenPanel 让用户多选文件（imagesOnly=true 时限定图片类型），
     /// 选完后 batch 发给当前选中设备。
     private func pickFiles(imagesOnly: Bool) {
-        guard canSend else { return }
+        guard canSend, let target = engine.devices.first(where: { $0.conversationID == state.selectedConversationID }) else { return }
         let panel = NSOpenPanel()
         panel.canChooseFiles = true
         panel.canChooseDirectories = false
@@ -244,7 +285,7 @@ struct ChatPage: View {
         if panel.runModal() == .OK {
             let urls = panel.urls
             if !urls.isEmpty {
-                state.sendFiles(toDeviceID: state.selectedDeviceID, fileURLs: urls)
+                engine.sendFiles(to: target, sourceURLs: urls)
             }
         }
     }
@@ -253,11 +294,6 @@ struct ChatPage: View {
 
     private func isDelivered(_ item: HistoryItem) -> Bool {
         item.direction == .outgoing && item.status == .completed
-    }
-
-    private func availableFile(_ item: HistoryItem, url: URL?) -> URL? {
-        guard item.status == .completed, let url, FileManager.default.isReadableFile(atPath: url.path) else { return nil }
-        return url
     }
 
     private func progressFraction(_ status: TransferStatus) -> Double? {

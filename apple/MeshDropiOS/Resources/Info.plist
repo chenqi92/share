@@ -25,6 +25,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_meshdrop._tcp</string>
+		<string>_meshdrop-p2p._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>用于发现同一局域网下的 MeshDrop 设备</string>
@@ -48,5 +49,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>用于通过蓝牙发现附近设备并传输文本、图片和文件</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>用于通过蓝牙发现附近设备并传输文本、图片和文件</string>
 </dict>
 </plist>

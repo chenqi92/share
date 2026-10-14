@@ -14,6 +14,10 @@ struct MsgBubble<Content: View>: View {
     var delivered: Bool = false
     var copyText: String? = nil
     var fileURL: URL? = nil
+    var fileCompleted: Bool = false
+    var status: TransferStatus? = nil
+    var onRetry: (() -> Void)? = nil
+    var historyID: UUID? = nil
     @ViewBuilder var content: Content
     @State private var copied = false
 
@@ -30,7 +34,7 @@ struct MsgBubble<Content: View>: View {
                 .clipShape(BubbleShape(side: side, radius: radius, inset: inset))
                 .contextMenu {
                     if copyText != nil { copyButton }
-                    if let fileURL {
+                    if fileCompleted, let fileURL = LocalFileContent.readableURL(fileURL) {
                         Button("chat.file.copy", systemImage: "doc.on.doc") {
                             NSPasteboard.general.clearContents()
                             NSPasteboard.general.writeObjects([fileURL as NSURL])
@@ -53,18 +57,39 @@ struct MsgBubble<Content: View>: View {
                             .font(MeshDropFont.mono(size: 10))
                             .foregroundStyle(MeshDropColor.limeDeep)
                     }
-                    if copyText != nil {
-                        copyButton
-                            .buttonStyle(.plain)
+                    if let copyText {
+                        TextContentActions(copyText)
                             .font(MeshDropFont.mono(size: 10))
                     }
-                    if let fileURL {
-                        ShareLink(item: fileURL) { Label("common.share", systemImage: "square.and.arrow.up") }
-                            .buttonStyle(.plain)
+                    if kind != .text {
+                        FileContentActions(url: fileURL, completed: fileCompleted)
                             .font(MeshDropFont.mono(size: 10))
+                    }
+                    if let historyID {
+                        HistoryDeleteButton(id: historyID).labelStyle(.iconOnly)
                     }
                     if side == .incoming { Spacer() }
                 }
+            }
+            if let status {
+                HStack(spacing: 6) {
+                    switch status {
+                    case .failed(let reason):
+                        Image(systemName: "exclamationmark.circle")
+                        Text(reason).lineLimit(2).textSelection(.enabled)
+                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
+                    case .pending:
+                        Text("chat.sending")
+                    case .waitingApproval:
+                        Text("chat.waitingApproval")
+                    case .canceled:
+                        Text("chat.canceled")
+                        if let onRetry { Button("chat.retry", action: onRetry).buttonStyle(.plain).underline() }
+                    default: EmptyView()
+                    }
+                }
+                .font(MeshDropFont.body(size: 10.5))
+                .foregroundStyle(status.isFailure ? MeshDropColor.error : MeshDropColor.textMuted)
             }
         }
         .frame(maxWidth: .infinity, alignment: side == .outgoing ? .trailing : .leading)
@@ -106,6 +131,13 @@ struct MsgBubble<Content: View>: View {
         case .outgoing: return MeshDropColor.outgoingText
         case .incoming: return MeshDropColor.textPrimary
         }
+    }
+}
+
+private extension TransferStatus {
+    var isFailure: Bool {
+        if case .failed = self { return true }
+        return false
     }
 }
 

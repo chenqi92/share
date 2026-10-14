@@ -14,8 +14,11 @@ struct AppShell: View {
                     if showsSidebar {
                         Sidebar()
                     }
-                    contentRouter
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    GeometryReader { viewport in
+                        contentRouter
+                            .frame(width: viewport.size.width, height: viewport.size.height)
+                    }
+                    .clipped()
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 if showsStatusBar {
@@ -26,6 +29,7 @@ struct AppShell: View {
             GlobalOverlay()
         }
         .frame(minWidth: 1180, minHeight: 760)
+        .ignoresSafeArea(.container, edges: showsSidebar ? .top : [])
     }
 
     /// onboarding / receive / menubar 三个全屏视图不显示 sidebar。

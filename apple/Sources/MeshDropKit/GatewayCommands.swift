@@ -196,16 +196,22 @@ public final class GatewayCommands {
             }
             .store(in: &bag)
 
-        // history 变化：按 spec 发 history_added（新增项）。进度 / 完成走 transfer_progress/done。
+        // 排队、等待确认与连接失败也必须推送；这些状态可能尚未产生速率指标。
         // 以订阅时快照作种子，避免首帧把已在 state_snapshot 里的历史项重发（web 端不去重）。
         let seedHistory = engine.history
         engine.$history
             .dropFirst()
             .scan((seedHistory, seedHistory)) { state, new in (state.1, new) }
-            .sink { [weak self] previous, current in
-                guard let self else { return }
-                for h in current where !previous.contains(where: { $0.id == h.id }) {
-                    send(Self.encodeEvent(type: "history_added", payload: self.historyWire(h)))
+            .sink { previous, current in
+                for h in current {
+                    let old = previous.first { $0.id == h.id }
+                    if let old, case .transferring = old.status, case .transferring = h.status {
+                        continue
+                    }
+                    if old != h {
+                        send(Self.encodeEvent(type: old == nil ? "history_added" : "history_updated",
+                                              payload: Self.historyWire(h)))
+                    }
                 }
             }
             .store(in: &bag)
@@ -346,7 +352,7 @@ public final class GatewayCommands {
                 "hostIp": ip,
             ] as [String: Any],
             "devices": engine.devices.map(deviceWire),
-            "history": engine.history.map(historyWire),
+            "history": engine.history.map(Self.historyWire),
             "pendingPairings": engine.pendingPairings.map(pairingWire),
             "pendingOffers": engine.pendingFileOffers.map(offerWire),
         ]
@@ -373,7 +379,7 @@ public final class GatewayCommands {
         return obj
     }
 
-    private func historyWire(_ h: HistoryItem) -> [String: Any] {
+    nonisolated static func historyWire(_ h: HistoryItem) -> [String: Any] {
         var obj: [String: Any] = [
             "id": h.id.uuidString,
             "direction": h.direction == .outgoing ? "sent" : "received",
@@ -383,6 +389,18 @@ public final class GatewayCommands {
             }(),
             "completedAt": Int(h.createdAt.timeIntervalSince1970),
         ]
+        switch h.status {
+        case .pending: obj["status"] = "queued"
+        case .waitingApproval: obj["status"] = "waiting"
+        case .transferring(let done, _):
+            obj["status"] = h.direction == .outgoing ? "sending" : "receiving"
+            obj["bytesTransferred"] = Int(done)
+        case .completed: obj["status"] = "done"
+        case .failed(let reason):
+            obj["status"] = "failed"
+            obj["error"] = reason
+        case .canceled: obj["status"] = "canceled"
+        }
         switch h.kind {
         case .text(let t):
             obj["kind"] = "text"
@@ -390,7 +408,7 @@ public final class GatewayCommands {
         case .file(let name, let size, _):
             obj["kind"] = "file"
             obj["files"] = [["name": name, "sizeBytes": Int(size)]]
-            obj["bytesTransferred"] = Int(size)
+            if case .completed = h.status { obj["bytesTransferred"] = Int(size) }
         }
         return obj
     }

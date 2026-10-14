@@ -3,9 +3,7 @@ import Security
 import OSLog
 
 #if os(macOS)
-import Crypto
-import X509
-import SwiftASN1
+import CryptoKit
 import Network
 #endif
 
@@ -48,38 +46,11 @@ public enum GatewayCertStore {
 
     private static func generateAndStore(commonName: String) throws -> SecIdentity {
         let key = P256.Signing.PrivateKey()
-        let certKey = Certificate.PrivateKey(key)
-        let name = try DistinguishedName { CommonName(commonName) }
-
-        let extensions = try Certificate.Extensions {
-            Critical(BasicConstraints.notCertificateAuthority)
-            Critical(KeyUsage(digitalSignature: true, keyEncipherment: true))
-            try ExtendedKeyUsage([.serverAuth])
-            SubjectAlternativeNames([
-                .dnsName(commonName),
-                .dnsName("localhost"),
-                .ipAddress(ASN1OctetString(contentBytes: [127, 0, 0, 1])),
-            ])
-        }
-
-        let serial = Certificate.SerialNumber()
         let now = Date()
-        let cert = try Certificate(
-            version: .v3,
-            serialNumber: serial,
-            publicKey: certKey.publicKey,
-            notValidBefore: now.addingTimeInterval(-60),
-            notValidAfter: now.addingTimeInterval(2 * 365 * 24 * 3600),
-            issuer: name,
-            subject: name,
-            signatureAlgorithm: .ecdsaWithSHA256,
-            extensions: extensions,
-            issuerPrivateKey: certKey
-        )
-
-        var serializer = DER.Serializer()
-        try serializer.serialize(cert)
-        let certDER = Data(serializer.serializedBytes)
+        let certDER = try SystemCertificate.make(key: key, commonName: commonName,
+            notBefore: now.addingTimeInterval(-60), notAfter: now.addingTimeInterval(2 * 365 * 24 * 3600),
+            alternativeNames: [(0x82, Data(commonName.utf8)), (0x82, Data("localhost".utf8)),
+                               (0x87, Data([127, 0, 0, 1]))], keyEncipherment: true)
         let keyX963 = key.x963Representation
 
         // 写 Keychain（先删后写避免 duplicate）

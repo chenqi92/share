@@ -14,6 +14,7 @@ enum DeviceKind: String, CaseIterable {
 
 struct MockDevice: Identifiable, Hashable {
     let id: String
+    var fingerprint: String = ""
     let name: String          // "Lily's MacBook"
     let who: String           // "李莉"
     let kind: DeviceKind

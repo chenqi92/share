@@ -80,8 +80,20 @@ struct HistoryScreen: View {
                         .foregroundStyle(muted)
                 }
                 content(h)
+                if h.kind == .text {
+                    TextContentActions(h.content ?? "")
+                        .font(MeshDropFont.body(12))
+                        .padding(.top, 6)
+                } else {
+                    FileContentActions(url: h.fileURL, completed: h.status == .done)
+                        .font(MeshDropFont.body(12))
+                        .padding(.top, 6)
+                }
             }
-            statusChip(h)
+            VStack(spacing: 12) {
+                statusChip(h)
+                if let id = UUID(uuidString: h.id) { HistoryDeleteButton(id: id).labelStyle(.iconOnly) }
+            }
         }
         .padding(12)
         .background(
@@ -93,11 +105,12 @@ struct HistoryScreen: View {
                 .strokeBorder(scheme == .dark ? MeshDropColor.dline : MeshDropColor.line, lineWidth: 0.5)
         )
         .contextMenu {
-            Button(MD("common.delete"), role: .destructive) {
-                if let id = UUID(uuidString: h.id) {
-                    engine.removeHistoryItem(id)
+            if h.kind == .text {
+                Button(MD("common.copy"), systemImage: "doc.on.doc") {
+                    SystemClipboard.copy(h.content ?? "")
                 }
             }
+            if let id = UUID(uuidString: h.id) { HistoryDeleteButton(id: id) }
         }
     }
 
@@ -105,13 +118,14 @@ struct HistoryScreen: View {
     private func kindIcon(_ h: MockHistoryItem) -> some View {
         switch h.kind {
         case .file:
-            FileTile(ext: h.ext ?? "?", size: 30)
-        case .image:
-            ZStack {
-                Photo(hue: 280).frame(width: 30, height: 36)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+            if LocalFileContent.isVideo(name: h.name ?? "") {
+                Image(systemName: "play.rectangle.fill").font(.title2).frame(width: 30)
+            } else {
+                FileTile(ext: h.ext ?? "?", size: 30)
             }
-            .frame(width: 30, height: 36)
+        case .image:
+            ImagePreview(url: h.fileURL, base64: nil, cornerRadius: 6)
+                .frame(width: 40, height: 40)
         case .text:
             ZStack {
                 RoundedRectangle(cornerRadius: 6).fill(MeshDropColor.lime.opacity(0.5))
@@ -126,16 +140,15 @@ struct HistoryScreen: View {
     @ViewBuilder
     private func content(_ h: MockHistoryItem) -> some View {
         switch h.kind {
-        case .file:
+        case .file, .image:
             HStack(spacing: 4) {
                 Text(h.name ?? "").font(MeshDropFont.body(12)).lineLimit(1)
                 Text("· \(h.size ?? "")")
                     .font(MeshDropFont.mono(10.5)).foregroundStyle(muted)
             }
-        case .image:
-            Text(MD("history.imageCount", h.count ?? 1)).font(MeshDropFont.body(12)).foregroundStyle(muted)
         case .text:
-            Text(h.content ?? "").font(MeshDropFont.body(12)).lineLimit(1)
+            Text(verbatim: h.content ?? "").font(MeshDropFont.body(12)).lineLimit(3)
+                .textSelection(.enabled)
         }
     }
 

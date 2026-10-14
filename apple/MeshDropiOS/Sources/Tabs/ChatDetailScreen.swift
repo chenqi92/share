@@ -14,30 +14,30 @@ struct ChatDetailScreen: View {
     @FocusState private var composerFocused: Bool
 
     private var currentDevice: MockDevice {
-        if let online = engine.displayDevices.first(where: { $0.id == device.id }) {
+        if let online = engine.displayDevices.first(where: { $0.conversationID == device.conversationID }) {
             return online
         }
-        if let historical = engine.history.first(where: { $0.peer.id == device.id }) {
+        if let historical = engine.history.first(where: { $0.peer.conversationID == device.conversationID }) {
             return historical.peer.displayMock(isOnline: false)
         }
         return device
     }
 
     private var realTarget: Device? {
-        engine.devices.first(where: { $0.id == device.id })
+        engine.devices.first(where: { $0.conversationID == device.conversationID })
     }
 
-    /// 当前对话 = engine.history 中 peer.id 匹配的所有项，按时间正序展示。
+    /// 使用稳定身份匹配，包括重启前的历史和重新发现后的消息。
     private var messages: [MockMessage] {
         engine.history
-            .filter { $0.peer.id == device.id }
+            .filter { $0.peer.conversationID == device.conversationID }
             .sorted { $0.createdAt < $1.createdAt }
             .map { $0.displayMessage }
     }
 
     /// 收到本 peer 的 file offer 时自动弹 FileOfferSheet（之前 mock 是 timer，现在是真事件）。
     private var incomingOffer: PendingFileOffer? {
-        engine.pendingFileOffers.first(where: { $0.peer.id == currentDevice.id })
+        engine.pendingFileOffers.first(where: { $0.peer.conversationID == device.conversationID })
     }
 
     var body: some View {
@@ -51,7 +51,6 @@ struct ChatDetailScreen: View {
                     if messages.isEmpty {
                         emptyHint
                     } else {
-                        AsciiDivider(MD("common.today"))
                         ForEach(messages) { m in
                             MsgBubble(m)
                         }
@@ -77,7 +76,7 @@ struct ChatDetailScreen: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(currentDevice.who)
                             .font(MeshDropFont.body(14, weight: .semibold))
-                        Text(currentDevice.isOnline ? "\(currentDevice.os) · \(currentDevice.rtt)ms · LAN" : "\(currentDevice.os) · OFFLINE · LAN")
+                        Text(currentDevice.isOnline ? "\(currentDevice.os) · \(engine.routeLabel(for: realTarget))" : "\(currentDevice.os) · \(MD("status.offline"))")
                             .font(MeshDropFont.mono(9.5))
                             .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                     }
@@ -87,8 +86,8 @@ struct ChatDetailScreen: View {
         .onChange(of: incomingOffer?.id) { _, newID in
             if newID != nil { state.showOfferSheet = true }
         }
-        .onAppear { engine.markRead(peerID: device.id) }
-        .onChange(of: messages.count) { _, _ in engine.markRead(peerID: device.id) }
+        .onAppear(perform: markConversationRead)
+        .onChange(of: messages.count) { _, _ in markConversationRead() }
         .fileImporter(isPresented: $showFileImporter,
                       allowedContentTypes: [.data],
                       allowsMultipleSelection: true) { result in
@@ -100,12 +99,19 @@ struct ChatDetailScreen: View {
         }
     }
 
+    private func markConversationRead() {
+        let peerIDs = engine.history
+            .filter { $0.peer.conversationID == device.conversationID }
+            .map { $0.peer.id }
+        for id in Set(peerIDs + [device.id, currentDevice.id]) { engine.markRead(peerID: id) }
+    }
+
     private var chatHeader: some View {
         HStack(spacing: 8) {
-            Chip(currentDevice.isOnline ? "ONLINE" : "OFFLINE",
+            Chip(currentDevice.isOnline ? MD("status.online") : MD("status.offline"),
                  tone: currentDevice.isOnline ? .lime : .outline,
                  mono: true, uppercased: true, icon: "circle.fill")
-            Chip("LAN", tone: .outline, mono: true, uppercased: true)
+            Chip(engine.routeLabel(for: realTarget), tone: .outline, mono: true, uppercased: true)
             Spacer()
             if currentDevice.isOnline {
                 Text("RTT \(currentDevice.rtt)ms")

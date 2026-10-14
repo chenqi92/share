@@ -70,7 +70,7 @@ struct TrustManagerScreen: View {
                     .font(MeshDropFont.mono(10.5))
                     .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
                 Spacer()
-                Chip("TRUSTED", tone: .lime, mono: true, uppercased: true)
+                Chip(MD("status.trusted"), tone: .lime, mono: true, uppercased: true)
             }
             Text(t.fingerprint)
                 .font(MeshDropFont.mono(12, weight: .medium))

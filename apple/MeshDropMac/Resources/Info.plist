@@ -20,13 +20,20 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>用于通过蓝牙发现附近设备并传输文本、图片和文件</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>用于通过蓝牙发现附近设备并传输文本、图片和文件</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_meshdrop._tcp</string>
+		<string>_meshdrop-p2p._tcp</string>
 	</array>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 MeshDrop</string>

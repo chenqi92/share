@@ -17,9 +17,8 @@ final class GatewayService: ObservableObject {
     private let gateway: WebGateway
 
     init() {
-        // v0.1：用 WebGateway 内置 fallback HTML。后续真正的 web 端 build 产物
-        // 会落到 apple/MeshDropMac/Resources/web-fallback/，那时再把 staticRoot 指过去。
-        let cfg = WebGateway.Config(host: "0.0.0.0", port: 7384, staticRoot: nil)
+        let root = Bundle.main.resourceURL?.appendingPathComponent("web-fallback", isDirectory: true)
+        let cfg = WebGateway.Config(host: "0.0.0.0", port: 7384, staticRoot: root)
         let gw = WebGateway(config: cfg, engine: ShareEngine.shared)
         self.gateway = gw
         self.pairingCode = gw.pairingCode

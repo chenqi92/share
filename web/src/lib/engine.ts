@@ -53,6 +53,8 @@ export interface WireHistoryItem {
   files?: Array<{ name: string; sizeBytes: number; mime?: string }>
   bytesTransferred?: number
   ok: boolean
+  status?: 'queued' | 'waiting' | 'sending' | 'receiving' | 'done' | 'failed' | 'canceled'
+  error?: string
   completedAt: number
 }
 
@@ -107,7 +109,7 @@ type WsEvent =
   | { v: 1; type: 'offer_resolved'; payload: { id: string } }
   | { v: 1; type: 'transfer_progress'; payload: WireTransferProgress }
   | { v: 1; type: 'transfer_done'; payload: { id: string; ok: boolean; error?: string } }
-  | { v: 1; type: 'history_added'; payload: WireHistoryItem }
+  | { v: 1; type: 'history_added' | 'history_updated'; payload: WireHistoryItem }
   | { v: 1; type: 'clipboard_received'; payload: WireClipboardItem }
 
 type CmdAck = {
@@ -180,7 +182,9 @@ function timeOf(ts: number): string {
 export function adaptHistory(h: WireHistoryItem): HistoryEntry {
   const first = h.files?.[0]
   const dir = h.direction === 'sent' ? 'outgoing' : 'incoming'
-  const status = h.ok ? 'done' : 'failed'
+  const status: HistoryEntry['status'] = h.status === 'queued' || h.status === 'waiting' ? 'queued'
+    : h.status === 'sending' || h.status === 'receiving' ? 'transferring'
+    : h.ok ? 'done' : 'failed'
   if (h.kind === 'text') {
     return { id: h.id, dir, peer: h.peerName, time: timeOf(h.completedAt), kind: 'text', content: h.text ?? '', status }
   }
@@ -192,6 +196,23 @@ export function adaptHistory(h: WireHistoryItem): HistoryEntry {
     kind: 'file',
     name: first?.name, size: formatBytes(first?.sizeBytes), ext: extOf(first?.name),
     status,
+  }
+}
+
+export function adaptHistoryTransfer(h: WireHistoryItem): TransferRow {
+  const file = h.files?.[0]
+  const state: TransferState = h.status === 'waiting' || h.status === 'queued' ? 'queued'
+    : h.status === 'sending' || h.status === 'receiving' ? h.status
+    : h.ok ? 'done' : 'failed'
+  const total = file?.sizeBytes ?? 0
+  return {
+    id: h.id, name: file?.name ?? h.text ?? '', size: formatBytes(total), ext: extOf(file?.name),
+    from: h.direction === 'sent' ? '我' : h.peerName,
+    to: h.direction === 'sent' ? h.peerName : '我', state,
+    progress: h.ok ? 100 : total > 0 ? Math.min(100, Math.round((h.bytesTransferred ?? 0) / total * 100)) : 0,
+    totalBytes: total,
+    statusDetail: h.status === 'waiting' ? i18n.t('transfer.waitingApproval')
+      : h.status === 'canceled' ? i18n.t('transfer.canceled') : h.error,
   }
 }
 
@@ -323,6 +344,7 @@ export interface EngineListener {
   onTransferProgress?(t: WireTransferProgress): void
   onTransferDone?(id: string, ok: boolean, error?: string): void
   onHistoryAdded?(h: WireHistoryItem): void
+  onHistoryUpdated?(h: WireHistoryItem): void
   onClipboardReceived?(c: WireClipboardItem): void
   onConn?(s: EngineConnState): void
 }
@@ -335,6 +357,7 @@ export class GatewayClient {
   private pending = new Map<string, { resolve: (r: CmdAck) => void; reject: (e: Error) => void; timer: number }>()
   private state: EngineConnState = 'idle'
   private retryTimer?: number
+  private connectionTimer?: number
   private gateway: string
   private session?: string
 
@@ -355,19 +378,27 @@ export class GatewayClient {
 
   /** 用 6 字符配对代码换 session cookie。返回 true 表示已配对。 */
   async pair(code: string): Promise<boolean> {
-    const r = await fetch(`${this.gateway}/api/v1/pair`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ code }),
-      credentials: 'include',
-    })
-    if (!r.ok) return false
-    const body = await r.json().catch(() => null) as { token?: string } | null
-    if (body?.token) {
-      this.session = body.token
-      try { localStorage.setItem('meshdrop.session', body.token) } catch { /* ignore */ }
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), CMD_TIMEOUT_MS)
+    try {
+      const r = await fetch(`${this.gateway}/api/v1/pair`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: code.replace(/[\s·-]/g, '').toUpperCase() }),
+        credentials: 'include',
+        signal: controller.signal,
+      })
+      if (!r.ok) return false
+      const body = await r.json().catch(() => null) as { token?: string } | null
+      if (body?.token) {
+        this.disconnect()
+        this.session = body.token
+        try { localStorage.setItem('meshdrop.session', body.token) } catch { /* ignore */ }
+      }
+      return !!body?.token
+    } finally {
+      clearTimeout(timer)
     }
-    return true
   }
 
   hasSession(): boolean {
@@ -388,6 +419,8 @@ export class GatewayClient {
   }
 
   async connect(): Promise<void> {
+    if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) return
+    if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
     if (!this.session) {
       this.setState('unpaired')
       return
@@ -399,20 +432,45 @@ export class GatewayClient {
 
     const ws = new WebSocket(url)
     this.ws = ws
+    let opened = false
+    this.connectionTimer = window.setTimeout(() => {
+      if (this.ws !== ws || opened) return
+      this.disconnect()
+      this.forgetSession()
+      this.setState('unpaired')
+    }, CMD_TIMEOUT_MS)
 
-    ws.addEventListener('open', () => { this.setState('open') })
+    ws.addEventListener('open', () => {
+      if (this.ws !== ws) return
+      opened = true
+      clearTimeout(this.connectionTimer)
+      this.connectionTimer = undefined
+      this.setState('open')
+    })
     ws.addEventListener('close', () => {
-      this.setState('closed')
-      this.scheduleRetry()
+      if (this.ws !== ws) return
+      this.ws = undefined
+      clearTimeout(this.connectionTimer)
+      this.connectionTimer = undefined
+      if (!opened) {
+        this.forgetSession()
+        this.setState('unpaired')
+      } else {
+        this.setState('closed')
+        this.scheduleRetry()
+      }
     })
     ws.addEventListener('error', () => { /* close handler will retry */ })
-    ws.addEventListener('message', (e) => this.onMessage(e.data))
+    ws.addEventListener('message', (e) => { if (this.ws === ws) this.onMessage(e.data) })
   }
 
   disconnect(): void {
     if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = undefined }
-    this.ws?.close()
+    clearTimeout(this.connectionTimer)
+    this.connectionTimer = undefined
+    const ws = this.ws
     this.ws = undefined
+    ws?.close()
     this.setState('closed')
   }
 
@@ -428,6 +486,7 @@ export class GatewayClient {
   }
 
   async sendFile(peerId: string, file: File, opts?: { noteText?: string }): Promise<CmdAck> {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('gateway not connected')
     const fd = new FormData()
     fd.append('file', file, file.name)
     const r = await fetch(`${this.gateway}/api/v1/upload`, {
@@ -436,6 +495,7 @@ export class GatewayClient {
     })
     if (!r.ok) throw new Error(`upload failed: HTTP ${r.status}`)
     const { token } = await r.json() as { token: string }
+    if (typeof token !== 'string' || !token) throw new Error('upload did not return a file reference')
     return this.cmd('send_file_ref', {
       peerId, fileRef: token, name: file.name, sizeBytes: file.size, mime: file.type,
       noteText: opts?.noteText,
@@ -497,7 +557,8 @@ export class GatewayClient {
       if (p) {
         clearTimeout(p.timer)
         this.pending.delete(msg.id)
-        p.resolve(msg as CmdAck)
+        if (msg.ok) p.resolve(msg as CmdAck)
+        else p.reject(new Error(msg.error || 'command failed'))
       }
       return
     }
@@ -517,6 +578,7 @@ export class GatewayClient {
         case 'transfer_progress': l.onTransferProgress?.(ev.payload); break
         case 'transfer_done': l.onTransferDone?.(ev.payload.id, ev.payload.ok, ev.payload.error); break
         case 'history_added': l.onHistoryAdded?.(ev.payload); break
+        case 'history_updated': l.onHistoryUpdated?.(ev.payload); break
         case 'clipboard_received': l.onClipboardReceived?.(ev.payload); break
       }
     }

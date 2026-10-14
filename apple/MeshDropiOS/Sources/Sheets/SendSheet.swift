@@ -129,7 +129,7 @@ struct SendSheet: View {
                 }
             }
             Spacer()
-            Chip("LAN", tone: .outline, mono: true, uppercased: true)
+            Chip(engine.routeLabel(for: realTarget), tone: .outline, mono: true, uppercased: true)
         }
         .padding(12)
         .background(

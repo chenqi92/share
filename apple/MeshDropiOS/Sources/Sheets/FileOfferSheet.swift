@@ -42,11 +42,6 @@ struct FileOfferSheet: View {
                     }
                     .navigationTitle(MD("offer.title"))
                     .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Chip("LAN", tone: .outline, mono: true, uppercased: true)
-                        }
-                    }
                 }
                 .presentationDetents([.medium, .large])
             } else {

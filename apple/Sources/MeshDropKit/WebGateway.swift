@@ -72,6 +72,7 @@ public final class WebGateway: @unchecked Sendable {
         let conn: NWConnection
         let send: (Data) -> Void
         var cancellables: Set<AnyCancellable>
+        var commands: GatewayCommands?
     }
 
     public init(config: Config = .init(), engine: ShareEngine? = nil) {
@@ -191,11 +192,12 @@ public final class WebGateway: @unchecked Sendable {
 
     private func route(_ conn: NWConnection, request: HTTPRequest) {
         let req = request
+        let path = req.path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? req.path
         let sessionToken = Self.extractToken(request: req)
         let isAuth = sessionToken.flatMap { isSessionValid($0) ? $0 : nil } != nil
 
         // 公开路由
-        switch (req.method, req.path) {
+        switch (req.method, path) {
         case ("GET", "/"):
             serveStaticIndex(conn)
             return
@@ -208,6 +210,15 @@ public final class WebGateway: @unchecked Sendable {
             return
         default:
             break
+        }
+
+        if req.method == "GET", !path.hasPrefix("/api/") {
+            if let root = config.staticRoot, let resource = GatewayStaticFiles.load(path: req.path, root: root) {
+                respond(conn, status: 200, body: resource.body, contentType: resource.contentType, close: true)
+            } else {
+                respond(conn, status: 404, body: Data("not found".utf8), close: true)
+            }
+            return
         }
 
         // 鉴权门
@@ -412,7 +423,7 @@ public final class WebGateway: @unchecked Sendable {
 
         // 先注册一个空 cancellables 的 client，避免与 read loop 竞争
         lock.lock()
-        wsClients[clientID] = WSClient(conn: conn, send: sendFrame, cancellables: [])
+        wsClients[clientID] = WSClient(conn: conn, send: sendFrame, cancellables: [], commands: nil)
         lock.unlock()
 
         // 异步在 main actor 上订阅 engine 事件（推 state_snapshot 首帧 + 后续变化）
@@ -423,6 +434,7 @@ public final class WebGateway: @unchecked Sendable {
                 self?.lock.lock()
                 if var client = self?.wsClients[clientID] {
                     client.cancellables = bag
+                    client.commands = commands
                     self?.wsClients[clientID] = client
                 }
                 self?.lock.unlock()
@@ -658,9 +670,11 @@ public final class WebGateway: @unchecked Sendable {
             .appendingPathComponent("uploads", isDirectory: true)
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         // 文件名由客户端控制，绝不直接拼路径：剥到最后一段并剔除分隔符 / .. / 控制字符，
-        // 永远落盘到 uploads 目录下（UUID 前缀防重名 + 防覆盖）。
+        // 每次上传独立目录，防止重名覆盖，同时保留传给接收方的原文件名。
         let safeName = Self.sanitizedUploadName(part.filename)
-        let target = dir.appendingPathComponent("\(UUID().uuidString)-\(safeName)")
+        let uploadDir = dir.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fm.createDirectory(at: uploadDir, withIntermediateDirectories: true)
+        let target = uploadDir.appendingPathComponent(safeName)
 
         // 纵深校验：canonicalize 后必须仍在 uploads 目录前缀内，否则拒绝写入。
         let uploadsRoot = dir.standardizedFileURL.path
@@ -721,8 +735,8 @@ public final class WebGateway: @unchecked Sendable {
     private func serveStaticIndex(_ conn: NWConnection) {
         let html: Data
         if let root = config.staticRoot,
-           let data = try? Data(contentsOf: root.appendingPathComponent("index.html")) {
-            html = data
+           let resource = GatewayStaticFiles.load(path: "/", root: root) {
+            html = resource.body
         } else {
             html = Self.builtInFallbackHTML().data(using: .utf8) ?? Data()
         }
@@ -742,6 +756,8 @@ public final class WebGateway: @unchecked Sendable {
         head += "Content-Type: \(contentType)\r\n"
         head += "Content-Length: \(body.count)\r\n"
         head += "Server: MeshDrop-Gateway/0.1\r\n"
+        head += "X-Content-Type-Options: nosniff\r\n"
+        head += "Cache-Control: no-store\r\n"
         head += "Connection: close\r\n"
         for (k, v) in extraHeaders { head += "\(k): \(v)\r\n" }
         head += "\r\n"
@@ -892,7 +908,10 @@ public final class WebGateway: @unchecked Sendable {
               msg.className = 'ok';
               const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
               const ws = new WebSocket(scheme + '://' + location.host + '/api/v1/control?token=' + encodeURIComponent(j.token || ''));
-              ws.onmessage = (e) => console.log('[meshdrop] evt', e.data);
+              const timer = setTimeout(() => { ws.close(); msg.textContent = '连接超时，请重试。'; msg.className = 'err'; }, 10000);
+              ws.onopen = () => { clearTimeout(timer); msg.textContent = '已连接，但此版本缺少 Web 界面。请更新桌面端。'; };
+              ws.onerror = () => { clearTimeout(timer); msg.textContent = '连接失败，请重试。'; msg.className = 'err'; };
+              ws.onclose = () => { clearTimeout(timer); msg.textContent = '连接已断开，请重试。'; msg.className = 'err'; };
             } else {
               msg.textContent = '× 配对码不对';
               msg.className = 'err';

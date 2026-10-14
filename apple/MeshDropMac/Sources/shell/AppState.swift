@@ -64,8 +64,8 @@ final class AppState: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] list in
                 guard let self else { return }
-                self.engineDevices = list.map { MockDevice.from($0, online: true) }
                 self.repairSelectedDevice(liveDevices: list)
+                self.engineDevices = list.map { MockDevice.from($0, online: true) }
             }
             .store(in: &cancellables)
 
@@ -165,10 +165,10 @@ final class AppState: ObservableObject {
     // MARK: - 视觉用：本机 / 选中设备投影
 
     var selectedDevice: MockDevice {
-        if let dev = engineDevices.first(where: { $0.id == selectedDeviceID }) {
-            return dev
+        if let dev = liveDevice(for: selectedDeviceID) {
+            return MockDevice.from(dev, online: true)
         }
-        if let historical = engineHistoryItems.first(where: { $0.peer.id == selectedDeviceID }) {
+        if let historical = engineHistoryItems.first(where: { $0.peer.conversationID == selectedConversationID }) {
             return MockDevice.from(historical.peer, online: false)
         }
         if selectedDeviceID.isEmpty, let historical = engineHistoryItems.first {
@@ -178,7 +178,22 @@ final class AppState: ObservableObject {
     }
 
     var canSendToSelectedDevice: Bool {
-        !selectedDeviceID.isEmpty && engine.devices.contains(where: { $0.id == selectedDeviceID })
+        !selectedDeviceID.isEmpty && liveDevice(for: selectedDeviceID) != nil
+    }
+
+    var selectedConversationID: String { conversationID(for: selectedDeviceID) }
+
+    private func conversationID(for selectionID: String) -> String {
+        if let device = engineDevices.first(where: { $0.id == selectionID }) {
+            return Device.conversationID(id: device.id, fingerprint: device.fingerprint)
+        }
+        return engineHistoryItems.first(where: { $0.peer.id == selectionID || $0.peer.conversationID == selectionID })?
+            .peer.conversationID ?? selectionID
+    }
+
+    private func liveDevice(for selectionID: String) -> Device? {
+        let key = conversationID(for: selectionID)
+        return engine.devices.first { $0.id == selectionID || $0.conversationID == key }
     }
 
     /// 本机信息（IP / OS / 指纹 / 可见性）。
@@ -213,18 +228,18 @@ final class AppState: ObservableObject {
     // MARK: - 命令转发
 
     func sendText(toDeviceID deviceID: String, content: String) {
-        guard let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+        guard let dev = liveDevice(for: deviceID) else { return }
         engine.sendText(to: dev, content: content)
     }
 
     func sendFile(toDeviceID deviceID: String, fileURL: URL) {
-        guard let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+        guard let dev = liveDevice(for: deviceID) else { return }
         engine.sendFile(to: dev, sourceURL: fileURL)
     }
 
     /// 把一段剪贴板内容推给指定设备（显式动作）。kind 自动按内容推断。
     func pushClipboard(toDeviceID deviceID: String, content: String) {
-        guard let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+        guard let dev = liveDevice(for: deviceID) else { return }
         engine.pushClipboard(to: dev, content: content, kind: Self.clipKind(for: content))
     }
 
@@ -241,7 +256,7 @@ final class AppState: ObservableObject {
     /// 批量发送（NSOpenPanel multi-select / 多文件 drag-drop 走这条）。
     func sendFiles(toDeviceID deviceID: String, fileURLs: [URL]) {
         guard !fileURLs.isEmpty,
-              let dev = engine.devices.first(where: { $0.id == deviceID }) else { return }
+              let dev = liveDevice(for: deviceID) else { return }
         engine.sendFiles(to: dev, sourceURLs: fileURLs)
     }
 
@@ -341,6 +356,15 @@ final class AppState: ObservableObject {
     // MARK: - 网络辅助
 
     private func repairSelectedDevice(liveDevices: [Device]) {
+        let key = selectedConversationID
+        if let live = liveDevices.first(where: { $0.id == selectedDeviceID || $0.conversationID == key }) {
+            selectedDeviceID = live.id
+            return
+        }
+        if let historical = engineHistoryItems.first(where: { $0.peer.conversationID == key }) {
+            selectedDeviceID = historical.peer.id
+            return
+        }
         if selectedDeviceID.isEmpty {
             selectedDeviceID = liveDevices.first?.id ?? engineHistoryItems.first?.peer.id ?? ""
             return

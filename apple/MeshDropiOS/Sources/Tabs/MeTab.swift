@@ -166,7 +166,7 @@ struct MeTab: View {
         if let offer = firstOffer {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
-                    Chip("OFFER", tone: .flame, mono: true, uppercased: true)
+                    Chip(MD("status.offer"), tone: .flame, mono: true, uppercased: true)
                     Text(MD("me.offer.fromPeer", offer.peer))
                         .font(MeshDropFont.body(13, weight: .semibold))
                     Spacer()

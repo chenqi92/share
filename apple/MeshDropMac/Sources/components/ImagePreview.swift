@@ -19,17 +19,22 @@ struct ImagePreview: View {
     }
 
     var body: some View {
-        Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Photo(hue: 210)
+        GeometryReader { bounds in
+            ZStack {
+                if let image {
+                    Image(nsImage: image)
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    Image(systemName: "photo")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(12)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(width: bounds.size.width, height: bounds.size.height)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .clipped()
     }
 }
