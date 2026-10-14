@@ -83,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        architecture: [x64, ARM64]
+        architecture: [x64]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -92,6 +92,14 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - uses: microsoft/setup-msbuild@v3
+      - name: Check out release tooling
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts
+      - name: Test package validation
+        run: python -m unittest discover -s .release-tools/scripts/tests -p test_windows_package.py
       - name: Test transport and receive preferences
         run: dotnet test windows/MeshDrop.Transport.Tests/MeshDrop.Transport.Tests.csproj -c Release --verbosity minimal
       - name: Build portable ZIP and Store upload package
@@ -99,6 +107,11 @@ jobs:
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
           RELEASE_ARCH: ${{ matrix.architecture }}
         run: ./windows/build-release.ps1 -Architecture $env:RELEASE_ARCH -Tag $env:RELEASE_TAG
+      - name: Validate portable runtime
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_ARCH: ${{ matrix.architecture }}
+        run: python .release-tools/scripts/check-windows-package.py "windows/artifacts/release/MeshDrop-$env:RELEASE_TAG-windows-$($env:RELEASE_ARCH.ToLowerInvariant()).zip" $env:RELEASE_ARCH
       - uses: actions/upload-artifact@v7
         with:
           name: portable-${{ matrix.architecture }}
@@ -127,6 +140,12 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.sha }}
           fetch-depth: 0
+      - name: Check out release tooling
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: .release-tools
+          sparse-checkout: scripts
       - uses: actions/download-artifact@v8
         with:
           pattern: portable-*
@@ -137,10 +156,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
         run: |
-          python3 scripts/release-notes.py "$RELEASE_TAG" > release-assets/CHANGELOG.md
+          python3 .release-tools/scripts/release-notes.py "$RELEASE_TAG" > release-assets/CHANGELOG.md
           cd release-assets
           test -f "MeshDrop-$RELEASE_TAG-windows-x64.zip"
-          test -f "MeshDrop-$RELEASE_TAG-windows-arm64.zip"
           sha256sum ./*.zip CHANGELOG.md > SHA256SUMS.txt
       - name: Publish complete release
         env:

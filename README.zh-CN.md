@@ -116,10 +116,11 @@ git tag v1.1.2
 git push origin v1.1.2
 ```
 
-Apple 测试和应用构建、Windows 测试及 x64 / ARM64 打包全部通过后，自动发布到
-[GitHub Releases](https://github.com/chenqi92/share/releases)，附带 Windows 便携 ZIP、
+Apple 测试和应用构建、Windows 测试及 x64 包完整性检查全部通过后，自动发布到
+[GitHub Releases](https://github.com/chenqi92/share/releases)，附带 Windows x64 便携 ZIP、
 按 PR 分类及完整提交生成的 `CHANGELOG.md` 和 `SHA256SUMS.txt`。`-rc.N`、`-beta.N` 和 `-alpha.N` 标签发布为预发布版本。
 Windows 包自带运行时，完整解压后运行 `MeshDrop.exe`；Microsoft Store 上传包保留为 Actions 产物 14 天。
+Windows ARM64 原生包暂不提供，需先补齐加密依赖对应的本机运行库。
 Apple 下载入口为 [App Store](https://apps.apple.com/app/meshdrop/id6772689903)，商店审核及提交独立进行。
 
 ## 从源码构建

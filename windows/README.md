@@ -62,14 +62,14 @@ dotnet run --project MeshDrop -c Debug -p:Platform=x64
 
 ## 版本发布包
 
-[GitHub Releases](https://github.com/chenqi92/share/releases) 提供 x64 / ARM64 便携 ZIP、自动更新日志与 SHA-256 校验文件。
+[GitHub Releases](https://github.com/chenqi92/share/releases) 提供 x64 便携 ZIP、自动更新日志与 SHA-256 校验文件。
 便携包包含 .NET 和 Windows App SDK 运行时，完整解压后运行 `MeshDrop.exe`。
+当前加密依赖缺少 Windows ARM64 本机库，暂不发布 ARM64 原生包。
 
 本地打包需在 Visual Studio Developer PowerShell 中运行（版本号须与项目一致）：
 
 ```powershell
 .\windows\build-release.ps1 -Architecture x64 -Tag v1.1.2
-.\windows\build-release.ps1 -Architecture ARM64 -Tag v1.1.2
 ```
 
 便携包位于 `windows/artifacts/release/`，商店上传包位于 `windows/artifacts/store/`。

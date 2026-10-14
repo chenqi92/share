@@ -22,7 +22,7 @@ def notes(tag):
     return f'''# MeshDrop {tag}
 
 - Apple：[App Store](https://apps.apple.com/app/meshdrop/id6772689903)
-- Windows：下载对应 x64 或 ARM64 的 ZIP，完整解压后运行 `MeshDrop.exe`。包含 .NET 和 Windows App SDK 运行时，无需另外安装。
+- Windows：下载 x64 便携 ZIP，完整解压后运行 `MeshDrop.exe`。包含 .NET 和 Windows App SDK 运行时，无需另外安装。
 - 校验：使用 `SHA256SUMS.txt` 检查下载文件。
 - Apple 商店版本独立审核，版本以 App Store 页面为准。
 

@@ -126,11 +126,12 @@ git tag v1.1.2
 git push origin v1.1.2
 ```
 
-After Apple tests and app builds, Windows tests, and both x64 / ARM64 packages pass, the workflow publishes
-[GitHub Releases](https://github.com/chenqi92/share/releases) with Windows portable ZIPs,
+After Apple tests and app builds, Windows tests, and x64 package validation pass, the workflow publishes
+[GitHub Releases](https://github.com/chenqi92/share/releases) with a Windows x64 portable ZIP,
 a generated `CHANGELOG.md` covering categorized PRs and all commits, and `SHA256SUMS.txt`.
 Tags ending in `-rc.N`, `-beta.N`, or `-alpha.N` produce prereleases.
 Windows ZIPs include the runtimes; extract the whole archive and run `MeshDrop.exe`.
+Native Windows ARM64 downloads are unavailable until the cryptography dependency includes the required runtime.
 Microsoft Store upload packages are retained as Actions artifacts for 14 days.
 Apple downloads link to the [App Store](https://apps.apple.com/app/meshdrop/id6772689903); Store submission and review are separate.
 
