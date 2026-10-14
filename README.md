@@ -139,6 +139,7 @@ A convenience script runs whatever the current machine can build/test:
 ```
 share/
 ├── protocol/   # Protocol spec (language-agnostic) — the source of truth for all clients
+├── prompts/    # Development prompt templates and generated/backend/ snapshots
 ├── apple/      # Swift Package MeshDropKit + macOS / iOS / iPadOS / tvOS / visionOS / watchOS
 ├── android/    # Gradle project (Kotlin + Compose)
 ├── wearos/     # Wear OS (Kotlin)
@@ -146,6 +147,8 @@ share/
 ├── linux/      # Cargo workspace (Rust + GTK4 + ratatui)
 └── web/        # React + Vite
 ```
+
+See [prompts/README.md](prompts/README.md) for the prompt index and export commands.
 
 ## Roadmap (v0.2)
 

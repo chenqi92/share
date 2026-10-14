@@ -2,6 +2,9 @@
 
 每端一份独立 prompt，可以同时投给多个 AI 并行开发 MeshDrop 的不同端 UI。
 
+这里保留 UI 开发和 Backend 接入两个阶段的模板，以及当时导出的完整提示词。
+这些是开发任务资料，使用前请核对当前代码和 `protocol/` 中的实现说明。
+
 ## 文件
 
 | 文件 | 用途 |
@@ -10,7 +13,29 @@
 | `DESIGN_SPEC.md` | 更深的设计规范权威参考（细节版） |
 | `01-macos.md` ~ `10-web.md` | 10 个端各自的特定指令 |
 | `TESTING_AND_ACCEPTANCE.md` | 跨端测试矩阵 + 8 个互通用例 + 验收 checklist |
-| `feed.sh` | 一键拼接 `COMMON.md + 端 prompt` 输出完整 prompt |
+| `B-COMMON.md`、`B-TESTING.md` | Backend 接入阶段的共享上下文与验收要求 |
+| `B01-macos.md` ~ `B11-web.md` | 11 个端的 Backend 接入模板 |
+| [`generated/backend/`](generated/backend/) | 从仓库根目录迁入的 11 份完整 Backend 提示词快照 |
+| `feed.sh` | 将共享上下文、平台模板和验收要求拼接到标准输出，支持 UI / Backend 两种模式 |
+
+## 完整 Backend 提示词
+
+以下文件保留原始内容；修改模板后需要重新导出，快照不会自动同步。
+文件中的仓库路径以仓库根目录为基准。
+
+| 平台 | 完整提示词 |
+| --- | --- |
+| macOS | [macos.md](generated/backend/macos.md) |
+| iOS / iPadOS | [ios.md](generated/backend/ios.md) |
+| Android | [android.md](generated/backend/android.md) |
+| Windows | [windows.md](generated/backend/windows.md) |
+| Linux GUI | [linux-gui.md](generated/backend/linux-gui.md) |
+| Linux TUI | [linux-tui.md](generated/backend/linux-tui.md) |
+| tvOS | [tvos.md](generated/backend/tvos.md) |
+| visionOS | [visionos.md](generated/backend/visionos.md) |
+| Apple Watch | [watch.md](generated/backend/watch.md) |
+| Wear OS | [wearos.md](generated/backend/wearos.md) |
+| Web | [web.md](generated/backend/web.md) |
 
 ## 怎么用（推荐：feed.sh 一键拼）
 
@@ -19,10 +44,18 @@ cd prompts
 ./feed.sh macos | pbcopy        # macOS：直接拷到剪贴板
 ./feed.sh ios                   # 打印到 stdout
 ./feed.sh android > /tmp/p.md   # 写文件
+./feed.sh backend-windows      # 打印完整 Backend 接入提示词
 ./feed.sh                       # 不带参数：列出可用 platform
 ```
 
 然后把剪贴板内容粘给 Claude / GPT / 任意 AI。
+
+需要保留导出文件时，统一放在 `generated/` 下，避免再次散落到仓库根目录：
+
+```bash
+mkdir -p generated/backend
+./feed.sh backend-windows > generated/backend/windows.md
+```
 
 ## 备选 1：手动 cat 拼接
 

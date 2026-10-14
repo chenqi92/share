@@ -129,6 +129,7 @@
 ```
 share/
 ├── protocol/   # 协议规范（语言无关）—— 所有端实现的真相
+├── prompts/    # 开发提示词模板与 generated/backend/ 完整快照
 ├── apple/      # Swift Package MeshDropKit + macOS / iOS / iPadOS / tvOS / visionOS / watchOS
 ├── android/    # Gradle 项目（Kotlin + Compose）
 ├── wearos/     # Wear OS（Kotlin）
@@ -136,6 +137,8 @@ share/
 ├── linux/      # Cargo workspace（Rust + GTK4 + ratatui）
 └── web/        # React + Vite
 ```
+
+提示词索引与导出命令见 [prompts/README.md](prompts/README.md)。
 
 ## 路线图（v0.2）
 
