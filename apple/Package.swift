@@ -16,7 +16,7 @@ let package = Package(
     ],
     dependencies: [
         // ASN.1 encoding only; cryptography is provided by Apple system frameworks.
-        .package(url: "https://github.com/apple/swift-asn1.git", exact: "1.7.1"),
+        .package(url: "https://github.com/apple/swift-asn1.git", exact: "1.7.3"),
     ],
     targets: [
         .target(
