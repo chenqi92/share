@@ -49,7 +49,7 @@
     <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="8.0.34" />
     <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2957" />
     <PackageReference Include="Makaretu.Dns.Multicast.New" Version="0.38.0" />
     <PackageReference Include="NSec.Cryptography" Version="24.4.0" />
     <!-- DPAPI (ProtectedData) 在 .NET Core 之后剥离到独立包，需显式引用 -->
