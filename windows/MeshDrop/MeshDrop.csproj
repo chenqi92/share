@@ -56,7 +56,7 @@
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="CommunityToolkit.WinUI.Notifications" Version="7.1.2" />
-    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.1.4" />
+    <PackageReference Include="H.NotifyIcon.WinUI" Version="2.3.2" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
