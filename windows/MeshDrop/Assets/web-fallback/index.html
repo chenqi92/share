@@ -68,7 +68,7 @@ $('f').addEventListener('submit', async (e) => {
   }
 });
 function connect() {
-  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/v1/control';
+  const url = 'wss://' + location.host + '/api/v1/control';
   const ws = new WebSocket(url);
   ws.onopen = () => log('[ws] open ' + url);
   ws.onmessage = (ev) => log('[ws] ' + ev.data);

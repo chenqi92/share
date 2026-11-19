@@ -87,19 +87,19 @@ public final class WebGateway: @unchecked Sendable {
     public func start() throws {
         guard listener == nil else { return }
 
-        // TLS 1.3 + 自签证书（meshdrop.local），与 Windows / Linux gateway 对齐
-        let identity = try GatewayCertStore.loadOrCreate()
+        try start(identity: GatewayCertStore.loadOrCreate())
+    }
+
+    func start(identity: SecIdentity) throws {
+        guard listener == nil else { return }
         let tlsOpts = NWProtocolTLS.Options()
         let secOpts = tlsOpts.securityProtocolOptions
         // TLS 1.3 ONLY：min 与 max 都钉死在 1.3，拒绝任何 1.2- 降级
         // （与 Windows/Linux gateway 口径统一，companion-bridges.md §4.3）。
         sec_protocol_options_set_min_tls_protocol_version(secOpts, .TLSv13)
         sec_protocol_options_set_max_tls_protocol_version(secOpts, .TLSv13)
-        if let secIdentity = sec_identity_create(identity) {
-            sec_protocol_options_set_local_identity(secOpts, secIdentity)
-        } else {
-            log.error("sec_identity_create failed for gateway SecIdentity")
-        }
+        guard let secIdentity = sec_identity_create(identity) else { throw TransportSecurity.Failure.invalidIdentity }
+        sec_protocol_options_set_local_identity(secOpts, secIdentity)
         // 告诉浏览器走 HTTP/1.1（我们手实装的 HTTP 不支持 h2）
         sec_protocol_options_add_tls_application_protocol(secOpts, "http/1.1")
 
@@ -108,11 +108,13 @@ public final class WebGateway: @unchecked Sendable {
         params.includePeerToPeer = false
 
         let port = NWEndpoint.Port(rawValue: config.port) ?? .any
-        let l = try NWListener(using: params, on: port)
-        l.stateUpdateHandler = { [weak self] state in
+        params.requiredLocalEndpoint = .hostPort(host: NWEndpoint.Host(config.host), port: port)
+        let l = try NWListener(using: params)
+        l.stateUpdateHandler = { [weak self, weak l] state in
             switch state {
             case .ready:
                 log.info("WebGateway ready on :\(self?.config.port ?? 0)")
+                if let port = l?.port { self?.config.port = port.rawValue }
                 self?.isRunning = true
             case .failed(let err):
                 log.error("WebGateway failed: \(err.localizedDescription)")
@@ -190,10 +192,28 @@ public final class WebGateway: @unchecked Sendable {
         }
     }
 
+    private static let developerOrigin = "http://localhost:5173"
+
     private func route(_ conn: NWConnection, request: HTTPRequest) {
         let req = request
         let path = req.path.split(separator: "?", maxSplits: 1).first.map(String.init) ?? req.path
-        let sessionToken = Self.extractToken(request: req)
+        if req.method == "OPTIONS", path.hasPrefix("/api/v1/"), req.headers["origin"] == Self.developerOrigin {
+            respond(conn, status: 204, body: Data(), extraHeaders: [
+                "Access-Control-Allow-Methods": "GET, POST",
+                "Access-Control-Allow-Headers": "Content-Type, X-MeshDrop-Token",
+            ], close: true)
+            return
+        }
+        let origin = req.headers["origin"]
+        let developerRequest = origin == Self.developerOrigin
+        if path.hasPrefix("/api/v1/"), let origin, !developerRequest,
+           origin.lowercased() != "https://" + (req.headers["host"] ?? "").lowercased() {
+            respond(conn, status: 403, body: Data(), close: true)
+            return
+        }
+        let sessionToken = developerRequest
+            ? (Self.isWebSocketUpgrade(req) ? Self.webSocketToken(req) : req.headers["x-meshdrop-token"])
+            : Self.extractToken(request: req)
         let isAuth = sessionToken.flatMap { isSessionValid($0) ? $0 : nil } != nil
 
         // 公开路由
@@ -290,7 +310,7 @@ public final class WebGateway: @unchecked Sendable {
                 self.sessions[token] = Date(timeIntervalSinceNow: self.config.sessionTTL)
                 self.lock.unlock()
                 let body = #"{"ok":true,"token":"\#(token)"}"#
-                let cookie = "meshdrop_session=\(token); Path=/; HttpOnly; Max-Age=86400; SameSite=Strict"
+                let cookie = "meshdrop_session=\(token); Path=/; HttpOnly; Secure; Max-Age=86400; SameSite=Strict"
                 self.respond(conn, status: 200,
                              body: Data(body.utf8),
                              contentType: "application/json",
@@ -402,6 +422,7 @@ public final class WebGateway: @unchecked Sendable {
         var head = "HTTP/1.1 101 Switching Protocols\r\n"
         head += "Upgrade: websocket\r\n"
         head += "Connection: Upgrade\r\n"
+        if Self.webSocketToken(request) != nil { head += "Sec-WebSocket-Protocol: meshdrop.v1\r\n" }
         head += "Sec-WebSocket-Accept: \(accept)\r\n\r\n"
 
         conn.send(content: Data(head.utf8), completion: .contentProcessed { [weak self] err in
@@ -613,6 +634,7 @@ public final class WebGateway: @unchecked Sendable {
         }
         let safeName = Self.rfc5987Encode(name)
         var head = "HTTP/1.1 200 OK\r\n"
+        head += "Access-Control-Allow-Origin: \(Self.developerOrigin)\r\n"
         head += "Content-Type: application/octet-stream\r\n"
         head += "Content-Length: \(size)\r\n"
         head += "Content-Disposition: attachment; filename*=UTF-8''\(safeName)\r\n"
@@ -661,13 +683,15 @@ public final class WebGateway: @unchecked Sendable {
         return s.addingPercentEncoding(withAllowedCharacters: allowed) ?? s
     }
 
+    static func uploadsDirectory() throws -> URL {
+        try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                    appropriateFor: nil, create: false)
+            .appendingPathComponent("MeshDrop/uploads", isDirectory: true)
+    }
+
     private func saveUpload(part: MultipartParser.FilePart) throws -> String {
         let fm = FileManager.default
-        let appSupport = try fm.url(for: .applicationSupportDirectory, in: .userDomainMask,
-                                    appropriateFor: nil, create: true)
-        let dir = appSupport
-            .appendingPathComponent("MeshDrop", isDirectory: true)
-            .appendingPathComponent("uploads", isDirectory: true)
+        let dir = try Self.uploadsDirectory()
         try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         // 文件名由客户端控制，绝不直接拼路径：剥到最后一段并剔除分隔符 / .. / 控制字符，
         // 每次上传独立目录，防止重名覆盖，同时保留传给接收方的原文件名。
@@ -753,6 +777,7 @@ public final class WebGateway: @unchecked Sendable {
     ) {
         let reason = Self.reason(for: status)
         var head = "HTTP/1.1 \(status) \(reason)\r\n"
+        head += "Access-Control-Allow-Origin: \(Self.developerOrigin)\r\n"
         head += "Content-Type: \(contentType)\r\n"
         head += "Content-Length: \(body.count)\r\n"
         head += "Server: MeshDrop-Gateway/0.1\r\n"
@@ -781,7 +806,17 @@ public final class WebGateway: @unchecked Sendable {
     }
 
     /// 从 request 抽 token（cookie / query / header）。
+    private static func webSocketToken(_ req: HTTPRequest) -> String? {
+        guard isWebSocketUpgrade(req),
+              let offered = req.headers["sec-websocket-protocol"] else { return nil }
+        let protocols = offered.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        let prefix = "meshdrop.auth."
+        guard protocols.count == 2, protocols[0] == "meshdrop.v1", protocols[1].hasPrefix(prefix) else { return nil }
+        return String(protocols[1].dropFirst(prefix.count))
+    }
+
     private static func extractToken(request: HTTPRequest) -> String? {
+        if let token = webSocketToken(request) { return token }
         if let cookie = request.headers["cookie"] {
             for part in cookie.split(separator: ";") {
                 let kv = part.trimmingCharacters(in: .whitespaces)
@@ -906,8 +941,7 @@ public final class WebGateway: @unchecked Sendable {
             if (r.ok && j.ok) {
               msg.textContent = '✓ 配对码正确，正在连接 WS…';
               msg.className = 'ok';
-              const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-              const ws = new WebSocket(scheme + '://' + location.host + '/api/v1/control?token=' + encodeURIComponent(j.token || ''));
+              const ws = new WebSocket('wss://' + location.host + '/api/v1/control');
               const timer = setTimeout(() => { ws.close(); msg.textContent = '连接超时，请重试。'; msg.className = 'err'; }, 10000);
               ws.onopen = () => { clearTimeout(timer); msg.textContent = '已连接，但此版本缺少 Web 界面。请更新桌面端。'; };
               ws.onerror = () => { clearTimeout(timer); msg.textContent = '连接失败，请重试。'; msg.className = 'err'; };

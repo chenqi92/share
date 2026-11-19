@@ -358,13 +358,26 @@ function gatewayOrigin(raw: string): string {
   } catch {
     throw new Error(i18n.t('pairing.gateway.urlInvalid'))
   }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+  if (url.protocol !== 'https:') {
     throw new Error(i18n.t('pairing.gateway.urlScheme'))
   }
-  if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+  // Require a literal origin before URL can normalize away path segments or userinfo.
+  const authority = /^https:\/\/(\[[a-f\d:]+\]|[a-z\d.-]+)(?::\d+)?\/?$/i.exec(raw)
+  if (!authority || url.port === '0' ||
+      (!url.hostname.startsWith('[') && authority[1].toLowerCase() !== url.hostname)) {
     throw new Error(i18n.t('pairing.gateway.urlInvalid'))
   }
+  if (url.origin !== window.location.origin && !isLocalGatewayHost(url.hostname)) {
+    throw new Error(i18n.t('pairing.gateway.urlLocal'))
+  }
   return url.origin
+}
+
+function isLocalGatewayHost(host: string): boolean {
+  if (host === 'localhost' || host === '[::1]' || /^\[f[cd][0-9a-f]{2}:/.test(host)) return true
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(host)) return false
+  const [a, b] = host.split('.').map(Number)
+  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
 }
 
 export class GatewayClient {
@@ -427,7 +440,7 @@ export class GatewayClient {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ code: code.replace(/[\s·-]/g, '').toUpperCase() }),
-        credentials: 'include',
+        credentials: 'same-origin',
         redirect: 'error',
         signal: controller.signal,
       })
@@ -450,13 +463,21 @@ export class GatewayClient {
     return !!this.session
   }
 
-  /** 已接收文件的下载 URL（GET /api/v1/download/<offerId>，协议见 engine 顶部注释；
-   *  server 带 Content-Disposition: attachment）。带 ?token= 兼容无 cookie 场景。
-   *  注意：传入的是 history item id —— 协议约定它与对应 offerId 等值，server 端按此路由。 */
   downloadURL(offerId: string): string {
     if (!/^[a-zA-Z0-9_-]+$/.test(offerId)) throw new Error('Invalid offer ID')
-    const base = this.endpoint(`/api/v1/download/${encodeURIComponent(offerId)}`)
-    return this.session ? `${base}?token=${encodeURIComponent(this.session)}` : base
+    return this.endpoint(`/api/v1/download/${encodeURIComponent(offerId)}`)
+  }
+
+  async downloadFile(offerId: string): Promise<Blob> {
+    if (!this.session) throw new Error('gateway disconnected')
+    const generation = this.generation
+    const response = await fetch(this.downloadURL(offerId), {
+      credentials: 'same-origin', redirect: 'error', headers: { 'x-meshdrop-token': this.session },
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const file = await response.blob()
+    if (this.generation !== generation) throw new Error('gateway disconnected')
+    return file
   }
 
   forgetSession(): void {
@@ -475,10 +496,10 @@ export class GatewayClient {
     }
     this.setState('connecting')
     const url = new URL(this.endpoint('/api/v1/control'))
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    url.searchParams.set('token', this.session)
-
-    const ws = new WebSocket(url.toString())
+    url.protocol = 'wss:'
+    const ws = this.gateway === window.location.origin
+      ? new WebSocket(url.toString())
+      : new WebSocket(url.toString(), ['meshdrop.v1', `meshdrop.auth.${this.session}`])
     this.ws = ws
     let opened = false
     this.connectionTimer = window.setTimeout(() => {
@@ -545,7 +566,7 @@ export class GatewayClient {
     const fd = new FormData()
     fd.append('file', file, file.name)
     const r = await fetch(this.endpoint('/api/v1/upload'), {
-      method: 'POST', body: fd, credentials: 'include',
+      method: 'POST', body: fd, credentials: 'same-origin',
       redirect: 'error',
       headers: this.session ? { 'x-meshdrop-token': this.session } : undefined,
     })
@@ -651,9 +672,12 @@ function detectGateway(): string {
     if (stored) return gatewayOrigin(stored)
   } catch { /* ignore */ }
   // 2) gateway 把 web fallback 嵌在自己进程里：当前 origin 就是 gateway
-  if (typeof window !== 'undefined' && window.location.origin && !window.location.origin.startsWith('http://localhost')) {
-    try { return gatewayOrigin(window.location.origin) } catch { /* ignore */ }
-  }
+  try {
+    const page = new URL(window.location.origin)
+    const localDev = ['localhost', '127.0.0.1', '[::1]'].includes(page.hostname)
+      && ['5173', '4173'].includes(page.port)
+    if (!localDev) return gatewayOrigin(page.origin)
+  } catch { /* no HTTP(S) page origin */ }
   // 3) dev 模式默认占位
   return ''
 }

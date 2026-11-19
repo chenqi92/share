@@ -196,7 +196,7 @@ export function ReceivePage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: 14 }}>
-            <Chip tone="outline" mono>● {t('common.lanPlaintext')}</Chip>
+            <Chip tone="outline" mono>● {t('common.gatewayTLS')}</Chip>
             <Chip tone="outline" mono>{t('common.sha256Verify')}</Chip>
             <Chip tone="outline" mono>{t('common.lanOnly')}</Chip>
             <Chip tone="outline" mono>{offer.fileSize}</Chip>

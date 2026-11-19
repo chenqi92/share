@@ -69,8 +69,12 @@ public final class GatewayCommands {
             guard let dev = engine.devices.first(where: { $0.id == peerId }) else {
                 return Self.makeReply(id: cmdID, ok: false, error: "peer_not_found")
             }
-            let url = URL(fileURLWithPath: fileRef)
-            guard FileManager.default.fileExists(atPath: url.path) else {
+            let url = URL(fileURLWithPath: fileRef).standardizedFileURL.resolvingSymlinksInPath()
+            let directory = url.deletingLastPathComponent()
+            guard let root = try? WebGateway.uploadsDirectory().standardizedFileURL.resolvingSymlinksInPath(),
+                  directory.deletingLastPathComponent().path == root.path,
+                  UUID(uuidString: directory.lastPathComponent) != nil,
+                  (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
                 return Self.makeReply(id: cmdID, ok: false, error: "file_ref_invalid")
             }
             engine.sendFile(to: dev, sourceURL: url)

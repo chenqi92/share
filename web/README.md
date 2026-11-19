@@ -12,20 +12,9 @@ npm install
 npm run dev               # vite dev server，默认 http://localhost:5173
 ```
 
-dev 模式需要手工指定 gateway URL。可以在配对页输入并保存，也可以用 URL：
-
-```
-http://localhost:5173?gw=https://<lan-ip>:7384
-```
-
-或在浏览器 console 里：
-
-```js
-localStorage.setItem('meshdrop.gateway', 'https://<lan-ip>:7384')
-```
-
-之后再刷新页面即可。token 会自动持久化在 localStorage。没有 gateway 时 live 模式不会
-自动回退到假数据；需要截图/演示数据请显式加 `?mock=1`。
+从本机 `http://localhost:5173` 打开开发或预览页面，在配对页输入局域网网关地址（例如 `https://192.168.1.20:7384`）并保存，再输入主机显示的配对码。
+网关地址必须使用 HTTPS。跨源手动配置支持 localhost、回环地址、IPv4 私有地址和 IPv6 ULA。浏览器按网关源分别保存会话。
+截图或演示可以显式使用 `?mock=1`。
 
 ## 构建
 
@@ -44,21 +33,20 @@ npm run preview           # 起 vite preview 看构建后的产物
 
 `src/lib/engine.ts` 里 `detectGateway()` 的顺序：
 
-1. URL `?gw=<url>` 显式覆盖
-2. `localStorage['meshdrop.gateway']` 上次配置
-3. 当前 `window.location.origin`（gateway 把 web 嵌在自己 host 上时这一步直接命中）
-4. 否则返回空串，由配对页提示配置 gateway
+1. 使用通过相同地址校验的已保存配置。
+2. 内置页面默认连接当前源。本机 Vite 开发和预览页面等待手动配置。
+3. 页面链接中的 `?gw` 参数不参与选择网关。
 
 API 与 gateway 之间走（按 `companion-bridges.md §4.3`）：
 
 | 端点 | 说明 |
 | --- | --- |
 | `POST /api/v1/pair` | 6 字符配对码 → 24h session token + Set-Cookie |
-| `WS /api/v1/control?token=<sid>` | 双向命令 / 事件通道 |
+| `WSS /api/v1/control` | 双向命令 / 事件通道 |
 | `POST /api/v1/upload` | multipart 上传 → `{token:"<path>"}` 作为 `send_file_ref.fileRef` |
 | `GET /api/v1/download/<historyId>` | 流式下载已接收文件 |
 
-`Cookie meshdrop_session`、`?token=`、`x-meshdrop-token` header 任一都能鉴权（与 Apple / Linux / Windows gateway 三端约定一致）。
+同源使用 Secure、HttpOnly 会话 cookie。手动配置的本机开发页通过 `x-meshdrop-token` 认证上传和下载，WebSocket 握手通过子协议传递会话。
 
 ## 调试 TLS 自签证书
 

@@ -13,7 +13,7 @@
     "guest": "Guest",
     "guestDuo": "Browser access",
     "destroyOnClose": "LAN connection",
-    "lanPlaintext": "LAN · plaintext v0.1",
+    "gatewayTLS": "HTTPS · TLS 1.3",
     "lanOnly": "LAN ONLY",
     "sha256Verify": "SHA-256 verified",
     "count": "{{n}} items",
@@ -114,7 +114,7 @@
     "confirmAccept": "Accept this?",
     "reject": "× Decline",
     "acceptAndOpen": "Accept and open →",
-    "fileMeta": "{{pages}} pages · LAN · plaintext v0.1"
+    "fileMeta": "{{pages}} pages · HTTPS · TLS 1.3"
   },
   "transfer": {
     "eyebrow": "Transfers",
@@ -201,7 +201,7 @@
       "placeholder": "https://192.168.1.12:7384",
       "save": "Save gateway",
       "saved": "gateway · {{endpoint}}",
-      "example": "e.g. https://192.168.1.12:7384 or http://127.0.0.1:7384",
+      "example": "e.g. https://192.168.1.12:7384 or https://127.0.0.1:7384",
       "online": "● ONLINE · gateway connected",
       "unpaired": "○ Unpaired · UNPAIRED",
       "connecting": "◌ Connecting · CONNECTING",
@@ -209,7 +209,8 @@
       "unpair": "Unpair · UNPAIR",
       "needGateway": "Set the native Web Gateway address first",
       "urlInvalid": "Invalid gateway URL",
-      "urlScheme": "Gateway URL must start with http:// or https://"
+      "urlLocal": "Use the page origin, localhost, or a private LAN IP address.",
+      "urlScheme": "Gateway URL must start with https://"
     },
     "code": {
       "placeholder": "LR · 4K7M",
@@ -310,7 +311,7 @@
     },
     "about": {
       "section": "About",
-      "engine": "engine · Native Web Gateway · LAN plaintext v0.1 · {{mode}}",
+      "engine": "engine · Native Web Gateway · TLS 1.3 · {{mode}}",
       "modeLive": "LIVE MODE",
       "modeMock": "MOCK MODE"
     }

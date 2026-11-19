@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -12,6 +13,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Channels;
+using MeshDrop.Models;
 using MeshDrop.Transport;
 
 namespace MeshDrop.Gateway;
@@ -31,6 +34,7 @@ namespace MeshDrop.Gateway;
 /// </summary>
 public sealed class WebGatewayHost
 {
+    private const string DeveloperOrigin = "http://localhost:5173";
     public const ushort DefaultPort = 7384;
 
     /// <summary>未鉴权请求体上限（仅 /api/v1/pair 这类 pre-auth 路由用）。
@@ -41,12 +45,13 @@ public sealed class WebGatewayHost
     private const int PairMaxFailures = 5;
     private static readonly TimeSpan PairLockout = TimeSpan.FromMinutes(5);
 
+    private readonly SynchronizationContext _ui;
     private readonly ShareEngine _engine;
     private readonly GatewayCommands _commands;
     private readonly PairingCodeStore _pairingStore = new();
     private readonly ConcurrentDictionary<string, DateTimeOffset> _sessions = new();
     // 死连接必须真正移除（fix #79）：ConcurrentBag 无 Remove，会单调泄漏。
-    private readonly ConcurrentDictionary<Guid, WebSocket> _wsClients = new();
+    private readonly ConcurrentDictionary<Guid, BrowserSession> _wsClients = new();
     // per-IP 配对失败计数（fix #93）：(失败次数, 锁定截止时刻)。
     private readonly ConcurrentDictionary<string, (int fails, DateTimeOffset until)> _pairFailures = new();
     private readonly ushort _port;
@@ -70,6 +75,7 @@ public sealed class WebGatewayHost
 
     public WebGatewayHost(ShareEngine engine, ushort port = DefaultPort)
     {
+        _ui = SynchronizationContext.Current ?? throw new InvalidOperationException("Create the gateway on the engine UI thread.");
         _engine = engine;
         _port = port;
         _commands = new GatewayCommands(engine);
@@ -86,6 +92,10 @@ public sealed class WebGatewayHost
             _cts = new CancellationTokenSource();
             _ = AcceptLoopAsync(_cts.Token);
             _engine.Event += OnEngineEvent;
+            _engine.History.CollectionChanged += OnHistoryChanged;
+            _engine.PendingPairings.CollectionChanged += OnPendingChanged;
+            _engine.PendingFileOffers.CollectionChanged += OnPendingChanged;
+            _engine.Trusted.CollectionChanged += OnTrustedChanged;
             IsRunning = true;
         }
         catch (Exception ex)
@@ -101,15 +111,14 @@ public sealed class WebGatewayHost
     {
         if (!IsRunning) return;
         _engine.Event -= OnEngineEvent;
+        _engine.History.CollectionChanged -= OnHistoryChanged;
+        _engine.PendingPairings.CollectionChanged -= OnPendingChanged;
+        _engine.PendingFileOffers.CollectionChanged -= OnPendingChanged;
+        _engine.Trusted.CollectionChanged -= OnTrustedChanged;
         try { _cts?.Cancel(); } catch { }
         try { _listener?.Stop(); } catch { }
         _listener = null;
         IsRunning = false;
-        foreach (var ws in _wsClients.Values)
-        {
-            try { ws.Abort(); } catch { }
-            try { ws.Dispose(); } catch { }
-        }
         _wsClients.Clear();
     }
 
@@ -144,12 +153,33 @@ public sealed class WebGatewayHost
             var (method, path, headers, reader) = await ReadHeadersAsync(ssl, ct);
             if (method is null || reader is null) return;
 
-            var sessionId = ExtractSessionToken(path, headers);
+            var origin = headers.GetValueOrDefault("Origin");
+            bool developerRequest = origin == DeveloperOrigin;
+            if (path.StartsWith("/api/v1/", StringComparison.Ordinal) && origin != null && !developerRequest &&
+                !string.Equals(origin, "https://" + headers.GetValueOrDefault("Host"), StringComparison.OrdinalIgnoreCase))
+            {
+                await WriteJsonAsync(ssl, 403, "{\"error\":\"invalid_origin\"}", ct);
+                return;
+            }
+            var sessionId = developerRequest
+                ? (IsWebSocketUpgrade(headers) ? WebSocketToken(headers) : headers.GetValueOrDefault("X-MeshDrop-Token"))
+                : ExtractSessionToken(path, headers);
+            path = path.Split('?', 2)[0];
+            if (method == "OPTIONS" && path.StartsWith("/api/v1/", StringComparison.Ordinal)
+                && headers.GetValueOrDefault("Origin") == DeveloperOrigin)
+            {
+                await WriteResponseAsync(ssl, 204, "No Content", new()
+                {
+                    ["Access-Control-Allow-Methods"] = "GET, POST",
+                    ["Access-Control-Allow-Headers"] = "Content-Type, X-MeshDrop-Token",
+                }, Array.Empty<byte>(), ct);
+                return;
+            }
             var isAuth = !string.IsNullOrEmpty(sessionId) && IsSessionValid(sessionId);
 
             // 已声明的 body 长度（用于按鉴权状态分级限流，pre-auth 严格上限防 DoS）。
-            var declaredLen = 0;
-            if (headers.TryGetValue("Content-Length", out var clStr)) int.TryParse(clStr, out declaredLen);
+            long declaredLen = 0;
+            if (headers.TryGetValue("Content-Length", out var clStr)) long.TryParse(clStr, out declaredLen);
 
             // 路由
             if (method == "GET" && path == "/")
@@ -168,12 +198,12 @@ public sealed class WebGatewayHost
                     return;
                 }
                 // pre-auth：拒绝超大 body，避免匿名 OOM。
-                if (declaredLen > MaxPreAuthBodyBytes)
+                if (declaredLen < 0 || declaredLen > MaxPreAuthBodyBytes)
                 {
                     await WriteJsonAsync(ssl, 413, "{\"ok\":false,\"error\":\"payload_too_large\"}", ct);
                     return;
                 }
-                var body = await reader.ReadBytesAsync(declaredLen, ct);
+                var body = await reader.ReadBytesAsync((int)declaredLen, ct);
                 var code = ExtractAuthCode(body);
                 if (_pairingStore.Verify(code))
                 {
@@ -207,13 +237,26 @@ public sealed class WebGatewayHost
 
             if (method == "GET" && path == "/api/v1/control" && IsWebSocketUpgrade(headers))
             {
-                await UpgradeAndServeWebSocketAsync(ssl, headers, ct);
+                await UpgradeAndServeWebSocketAsync(ssl, headers, ct, tcp.Close);
                 return; // WebSocket 用完之后流由 WS 关闭，外层不再 dispose
             }
             if (method == "POST" && path == "/api/v1/upload")
             {
-                // 流式落盘到 LocalAppData/uploads/<guid>，不把整个 body 读进内存（避免大文件 OOM）。
-                var tokenPath = await SaveUploadAsync(reader, declaredLen, ct);
+                if (declaredLen <= 0 || declaredLen > GatewayUpload.MaxRequestSize)
+                {
+                    await WriteJsonAsync(ssl, 413, "{\"error\":\"invalid_length\"}", ct);
+                    return;
+                }
+                string tokenPath;
+                try
+                {
+                    tokenPath = await GatewayUpload.SaveAsync(ssl, headers.GetValueOrDefault("Content-Type"), declaredLen, GatewayUpload.Root, ct);
+                }
+                catch (InvalidDataException)
+                {
+                    await WriteJsonAsync(ssl, 400, "{\"error\":\"multipart_malformed\"}", ct);
+                    return;
+                }
                 var escapedToken = tokenPath.Replace("\\", "\\\\").Replace("\"", "\\\"");
                 await WriteJsonAsync(ssl, 200,
                     $"{{\"ok\":true,\"token\":\"{escapedToken}\",\"uploadToken\":\"{escapedToken}\"}}", ct);
@@ -248,13 +291,10 @@ public sealed class WebGatewayHost
             return;
         }
 
-        // 扫 ObservableCollection 找 incoming file（只读，访问主线程更安全；engine.History
-        // 是 ObservableCollection 直接 LINQ 在当前线程读够用，跨端约定主线程改写、子线程读）
-        var item = _engine.History.FirstOrDefault(h =>
-            h.Id == historyId &&
-            h.Direction == Models.TransferDirection.Incoming);
-        if (item is null || item.Kind is not Models.HistoryKind.File file ||
-            string.IsNullOrEmpty(file.LocalPath) || !System.IO.File.Exists(file.LocalPath))
+        var file = await OnUiAsync(() => _engine.History.FirstOrDefault(h =>
+            h.Id == historyId && h.Direction == TransferDirection.Incoming &&
+            h.Status is TransferStatus.Completed)?.Kind as HistoryKind.File, ct);
+        if (string.IsNullOrEmpty(file?.LocalPath) || !File.Exists(file.LocalPath))
         {
             await WriteJsonAsync(ssl, 404, "{\"ok\":false,\"error\":\"file_not_found\"}", ct);
             return;
@@ -263,6 +303,7 @@ public sealed class WebGatewayHost
         var info = new FileInfo(file.LocalPath);
         var safeName = Rfc5987Encode(file.Name);
         var head = "HTTP/1.1 200 OK\r\n"
+                 + $"Access-Control-Allow-Origin: {DeveloperOrigin}\r\n"
                  + "Content-Type: application/octet-stream\r\n"
                  + $"Content-Length: {info.Length}\r\n"
                  + $"Content-Disposition: attachment; filename*=UTF-8''{safeName}\r\n"
@@ -310,7 +351,7 @@ public sealed class WebGatewayHost
 
     // ─── WebSocket ─────────────────────────────────────────────────────
 
-    private async Task UpgradeAndServeWebSocketAsync(Stream ssl, Dictionary<string, string> headers, CancellationToken ct)
+    private async Task UpgradeAndServeWebSocketAsync(Stream ssl, Dictionary<string, string> headers, CancellationToken ct, Action abort)
     {
         if (!headers.TryGetValue("Sec-WebSocket-Key", out var key) || string.IsNullOrEmpty(key))
         {
@@ -318,77 +359,123 @@ public sealed class WebGatewayHost
             return;
         }
         var accept = ComputeWsAccept(key);
-        var resp = $"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n\r\n";
+        var subProtocol = WebSocketToken(headers) != null ? "meshdrop.v1" : null;
+        var selected = subProtocol == null ? "" : $"Sec-WebSocket-Protocol: {subProtocol}\r\n";
+        var resp = $"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {accept}\r\n{selected}\r\n";
         var bytes = Encoding.ASCII.GetBytes(resp);
         await ssl.WriteAsync(bytes, 0, bytes.Length, ct);
         await ssl.FlushAsync(ct);
 
-        var ws = WebSocket.CreateFromStream(ssl, isServer: true, subProtocol: null, keepAliveInterval: TimeSpan.FromSeconds(30));
-        var wsId = Guid.NewGuid();
-        _wsClients[wsId] = ws;
-
-        // 初始 push 全状态快照
+        using var ws = WebSocket.CreateFromStream(ssl, isServer: true, subProtocol: subProtocol, keepAliveInterval: TimeSpan.FromSeconds(30));
+        var id = Guid.NewGuid();
+        var client = new BrowserSession(abort);
+        var writer = client.WriteAsync(ws, ct);
         try
         {
-            var snapshot = _commands.Dispatch("{\"v\":1,\"id\":\"boot\",\"type\":\"get_state\"}");
-            await SendTextAsync(ws, snapshot, ct);
-        }
-        catch { }
-
-        var buf = new byte[64 * 1024];
-        try
-        {
-            while (!ct.IsCancellationRequested && ws.State == WebSocketState.Open)
+            // Snapshot and subscription share one UI turn; every subsequent update follows the snapshot.
+            await OnUiAsync(() =>
             {
-                using var ms = new MemoryStream();
-                WebSocketReceiveResult res;
+                client.Post(_commands.InitialSnapshot());
+                return _wsClients.TryAdd(id, client);
+            }, ct);
+
+            var buffer = new byte[64 * 1024];
+            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
+            {
+                using var message = new MemoryStream();
+                WebSocketReceiveResult received;
                 do
                 {
-                    res = await ws.ReceiveAsync(buf, ct);
-                    if (res.MessageType == WebSocketMessageType.Close)
-                    {
-                        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-                        return;
-                    }
-                    ms.Write(buf, 0, res.Count);
-                } while (!res.EndOfMessage);
-
-                if (res.MessageType != WebSocketMessageType.Text) continue;
-                var text = Encoding.UTF8.GetString(ms.ToArray());
-                var reply = _commands.Dispatch(text);
-                await SendTextAsync(ws, reply, ct);
+                    received = await ws.ReceiveAsync(buffer, ct);
+                    if (received.MessageType == WebSocketMessageType.Close) return;
+                    if (message.Length + received.Count > MeshDrop.Protocol.Frame.MaxLength) return;
+                    message.Write(buffer, 0, received.Count);
+                } while (!received.EndOfMessage);
+                if (received.MessageType != WebSocketMessageType.Text) continue;
+                var text = Encoding.UTF8.GetString(message.GetBuffer(), 0, (int)message.Length);
+                var reply = await OnUiAsync(() => _commands.Dispatch(text), ct);
+                client.Post(reply);
             }
         }
-        catch { }
         finally
         {
-            // 断开时真正从集合移除（fix #79），避免死连接累积。
-            _wsClients.TryRemove(wsId, out _);
-            try { ws.Dispose(); } catch { }
+            _wsClients.TryRemove(id, out _);
+            client.Complete();
+            await writer;
+            if (ws.State == WebSocketState.CloseReceived)
+                await ws.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "bye", ct);
         }
     }
 
-    private async Task SendTextAsync(WebSocket ws, string text, CancellationToken ct)
+    private Task<T> OnUiAsync<T>(Func<T> action, CancellationToken ct)
     {
-        var bytes = Encoding.UTF8.GetBytes(text);
-        await ws.SendAsync(bytes, WebSocketMessageType.Text, endOfMessage: true, ct);
+        var result = new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ui.Post(_ =>
+        {
+            if (ct.IsCancellationRequested) { result.TrySetCanceled(ct); return; }
+            try { result.TrySetResult(action()); }
+            catch (Exception e) { result.TrySetException(e); }
+        }, null);
+        return result.Task.WaitAsync(ct);
+    }
+
+    private sealed class BrowserSession(Action abort)
+    {
+        private readonly Channel<string> _outgoing = Channel.CreateBounded<string>(
+            new BoundedChannelOptions(256) { SingleReader = true });
+
+        internal void Post(string message)
+        {
+            if (!_outgoing.Writer.TryWrite(message)) abort();
+        }
+
+        internal void Complete() => _outgoing.Writer.TryComplete();
+
+        internal async Task WriteAsync(WebSocket socket, CancellationToken ct)
+        {
+            try
+            {
+                await foreach (var message in _outgoing.Reader.ReadAllAsync(ct))
+                    await socket.SendAsync(Encoding.UTF8.GetBytes(message), WebSocketMessageType.Text, true, ct);
+            }
+            catch { abort(); }
+        }
+    }
+
+    private void Broadcast(string json)
+    {
+        foreach (var client in _wsClients.Values) client.Post(json);
     }
 
     private void OnEngineEvent(EngineEvent ev)
     {
-        var json = _commands.EncodeEvent(ev);
-        var bytes = Encoding.UTF8.GetBytes(json);
-        foreach (var kv in _wsClients)
-        {
-            var ws = kv.Value;
-            if (ws.State != WebSocketState.Open)
-            {
-                _wsClients.TryRemove(kv.Key, out _);
-                continue;
-            }
-            try { _ = ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
-            catch { _wsClients.TryRemove(kv.Key, out _); }
-        }
+        if (_wsClients.IsEmpty) return;
+        Broadcast(_commands.EncodeEvent(ev));
+        if (ev is EngineEvent.TransferDone done && _engine.History.FirstOrDefault(h => h.Id == done.Id) is { } h)
+            Broadcast(GatewayWire.Event("history_updated", BridgeHistory.From(h)));
+    }
+
+    private void OnHistoryChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_wsClients.IsEmpty) return;
+        if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Reset)
+            Broadcast(_commands.InitialSnapshot());
+        else if (e.Action == NotifyCollectionChangedAction.Replace && e.NewItems?[0] is HistoryItem item &&
+            item.Status is TransferStatus.Pending or TransferStatus.WaitingApproval or TransferStatus.Transferring &&
+            !(item.Status is TransferStatus.Transferring && e.OldItems?[0] is HistoryItem { Status: TransferStatus.Transferring }))
+            Broadcast(GatewayWire.Event("history_updated", BridgeHistory.From(item)));
+    }
+
+    private void OnPendingChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_wsClients.IsEmpty) return;
+        if (e.Action is NotifyCollectionChangedAction.Remove or NotifyCollectionChangedAction.Reset)
+            Broadcast(_commands.InitialSnapshot());
+    }
+
+    private void OnTrustedChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (!_wsClients.IsEmpty) Broadcast(_commands.DeviceSnapshot());
     }
 
     private static string ComputeWsAccept(string key)
@@ -439,6 +526,7 @@ public sealed class WebGatewayHost
     {
         var sb = new StringBuilder();
         sb.Append($"HTTP/1.1 {status} {reason}\r\n");
+        sb.Append($"Access-Control-Allow-Origin: {DeveloperOrigin}\r\n");
         if (!extraHeaders.ContainsKey("Content-Length")) extraHeaders["Content-Length"] = body.Length.ToString();
         if (!extraHeaders.ContainsKey("Connection")) extraHeaders["Connection"] = "close";
         foreach (var (k, v) in extraHeaders) sb.Append($"{k}: {v}\r\n");
@@ -466,8 +554,18 @@ public sealed class WebGatewayHost
     /// 2. Header `x-meshdrop-token`（multipart upload 等 fetch 调用用）
     /// 3. Cookie `meshdrop_session=<sid>`（与 Linux / Apple 对齐）
     /// 4. Cookie `meshdrop_sid=<sid>`（旧名，向后兼容）
+    private static string? WebSocketToken(Dictionary<string, string> headers)
+    {
+        if (!headers.TryGetValue("Sec-WebSocket-Protocol", out var offered)) return null;
+        var protocols = offered.Split(',', StringSplitOptions.TrimEntries);
+        const string prefix = "meshdrop.auth.";
+        return protocols.Length == 2 && protocols[0] == "meshdrop.v1"
+            && protocols[1].StartsWith(prefix, StringComparison.Ordinal) ? protocols[1][prefix.Length..] : null;
+    }
+
     private static string ExtractSessionToken(string path, Dictionary<string, string> headers)
     {
+        if (IsWebSocketUpgrade(headers) && WebSocketToken(headers) is string token) return token;
         // query
         var q = path.IndexOf('?');
         if (q >= 0)
@@ -572,18 +670,6 @@ public sealed class WebGatewayHost
 
     // ─── upload / fallback ────────────────────────────────────────────
 
-    private static async Task<string> SaveUploadAsync(ByteLineReader reader, int contentLength, CancellationToken ct)
-    {
-        var dir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MeshDrop", "uploads");
-        Directory.CreateDirectory(dir);
-        var path = Path.Combine(dir, Guid.NewGuid().ToString("N"));
-        await using var fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        await reader.CopyBodyToAsync(fs, contentLength, ct);
-        return path;
-    }
-
     private string FallbackHtml()
     {
         // 优先从 Assets\web-fallback\index.html 加载；不存在则内嵌兜底
@@ -648,7 +734,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   } catch (err) { msg.textContent = '请求失败: ' + err.message; msg.className = 'msg err'; }
 });
 function connect() {
-  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/v1/control');
+  const ws = new WebSocket('wss://' + location.host + '/api/v1/control');
   ws.onopen = () => console.log('[meshdrop] ws open');
   ws.onmessage = (ev) => console.log('[meshdrop] evt', ev.data);
   ws.onclose = () => console.log('[meshdrop] ws closed');
@@ -696,19 +782,5 @@ function connect() {
             return read == total ? data : data.AsSpan(0, read).ToArray();
         }
 
-        /// <summary>把声明长度的 body 分块拷到目标流，不在内存里整段缓存。</summary>
-        public async Task CopyBodyToAsync(Stream dest, int contentLength, CancellationToken ct)
-        {
-            var remaining = contentLength;
-            var buf = new byte[64 * 1024];
-            while (remaining > 0)
-            {
-                var toRead = Math.Min(buf.Length, remaining);
-                var n = await _s.ReadAsync(buf, 0, toRead, ct);
-                if (n <= 0) break;
-                await dest.WriteAsync(buf, 0, n, ct);
-                remaining -= n;
-            }
-        }
     }
 }

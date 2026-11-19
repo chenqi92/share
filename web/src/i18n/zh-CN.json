@@ -13,7 +13,7 @@
     "guest": "访客身份",
     "guestDuo": "浏览器访问",
     "destroyOnClose": "局域网连接",
-    "lanPlaintext": "LAN · 明文 v0.1",
+    "gatewayTLS": "HTTPS · TLS 1.3",
     "lanOnly": "LAN ONLY",
     "sha256Verify": "SHA-256 校验",
     "count": "{{n}} 件",
@@ -114,7 +114,7 @@
     "confirmAccept": "你确认接收吗？",
     "reject": "× 不接收",
     "acceptAndOpen": "接收并打开 →",
-    "fileMeta": "{{pages}} 页 · LAN · 明文 v0.1"
+    "fileMeta": "{{pages}} 页 · HTTPS · TLS 1.3"
   },
   "transfer": {
     "eyebrow": "传输",
@@ -201,7 +201,7 @@
       "placeholder": "https://192.168.1.12:7384",
       "save": "保存 gateway",
       "saved": "gateway · {{endpoint}}",
-      "example": "例: https://192.168.1.12:7384 或 http://127.0.0.1:7384",
+      "example": "例: https://192.168.1.12:7384 或 https://127.0.0.1:7384",
       "online": "● ONLINE · 已连接 gateway",
       "unpaired": "○ 未配对 · UNPAIRED",
       "connecting": "◌ 连接中 · CONNECTING",
@@ -209,7 +209,8 @@
       "unpair": "解配 · UNPAIR",
       "needGateway": "请先设置 native Web Gateway 地址",
       "urlInvalid": "gateway URL 无效",
-      "urlScheme": "gateway URL 必须以 http:// 或 https:// 开头"
+      "urlLocal": "请输入当前页面的源地址、localhost 或局域网私有 IP 地址。",
+      "urlScheme": "gateway URL 必须以 https:// 开头"
     },
     "code": {
       "placeholder": "LR · 4K7M",
@@ -310,7 +311,7 @@
     },
     "about": {
       "section": "关于 · ABOUT",
-      "engine": "engine · Native Web Gateway · LAN 明文 v0.1 · {{mode}}",
+      "engine": "engine · Native Web Gateway · TLS 1.3 · {{mode}}",
       "modeLive": "LIVE MODE",
       "modeMock": "MOCK MODE"
     }

@@ -22,7 +22,11 @@ use tokio_rustls::server::TlsStream;
 use tokio::net::TcpStream;
 use uuid::Uuid;
 
+pub(super) const DEVELOPER_ORIGIN: &str = "http://localhost:5173";
 const FALLBACK_HTML: &str = include_str!("../../../../data/web-fallback/index.html");
+
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub(super) enum Origin { Direct, Developer, Foreign }
 
 pub struct Request<'a> {
     pub method: &'a str,
@@ -35,6 +39,28 @@ impl<'a> Request<'a> {
         self.headers.iter()
             .find(|(k, _)| k.eq_ignore_ascii_case(name))
             .map(|(_, v)| v.as_str())
+    }
+
+    pub(super) fn origin(&self) -> Origin {
+        let mut origins = self.headers.iter().filter(|(name, _)| name.eq_ignore_ascii_case("Origin"));
+        let Some((_, origin)) = origins.next() else { return Origin::Direct };
+        if origins.next().is_some() { return Origin::Foreign; }
+        if origin == DEVELOPER_ORIGIN { return Origin::Developer; }
+        if let (Some(authority), Some(host)) = (origin.strip_prefix("https://"), self.header("Host")) {
+            fn without_default_port(s: &str) -> &str { s.strip_suffix(":443").unwrap_or(s) }
+            if without_default_port(authority).eq_ignore_ascii_case(without_default_port(host)) {
+                return Origin::Direct;
+            }
+        }
+        Origin::Foreign
+    }
+
+    pub(super) fn session_token(&self) -> Option<&str> {
+        if let Some(token) = self.header("X-MeshDrop-Token").filter(|t| !t.is_empty()) {
+            return Some(token);
+        }
+        if self.origin() != Origin::Direct { return None; }
+        self.header("Cookie")?.split(';').find_map(|part| part.trim().strip_prefix("meshdrop_session="))
     }
 }
 
@@ -76,6 +102,16 @@ pub async fn handle(
     // 不能让 token 经 URL 落进日志。
     debug!("gateway request {} {}", r.method, path_for_log(&path));
 
+    if r.path.starts_with("/api/v1/") && r.origin() == Origin::Foreign {
+        return write_response(&mut tls, 403, "Forbidden", &[], b"").await;
+    }
+    if r.method == "OPTIONS" && r.path.starts_with("/api/v1/") && r.origin() == Origin::Developer {
+        return write_response(&mut tls, 204, "No Content", &[
+            ("Access-Control-Allow-Methods", "GET, POST"),
+            ("Access-Control-Allow-Headers", "Content-Type, X-MeshDrop-Token"),
+        ], b"").await;
+    }
+
     // WebSocket upgrade
     if is_ws_upgrade(&r) && r.path == "/api/v1/control" {
         return ws::accept(tls, &r, engine, gate).await;
@@ -107,7 +143,7 @@ pub async fn handle(
                     let payload = serde_json::json!({"ok": true, "token": token});
                     write_response(&mut tls, 200, "OK",
                         &[("Content-Type", "application/json"),
-                          ("Set-Cookie", &format!("meshdrop_session={}; HttpOnly; Path=/; Max-Age=86400; SameSite=Strict", token))],
+                          ("Set-Cookie", &format!("meshdrop_session={}; HttpOnly; Secure; Path=/; Max-Age=86400; SameSite=Strict", token))],
                         payload.to_string().as_bytes()).await
                 }
                 None => {
@@ -119,7 +155,6 @@ pub async fn handle(
             }
         }
         ("POST", "/api/v1/upload") => {
-            // 鉴权（companion-bridges.md §4.3）—— 沿用 ws.rs 的 extract_token 逻辑
             if !is_authenticated(&r, &gate) {
                 return write_unauthorized(&mut tls).await;
             }
@@ -142,29 +177,7 @@ pub async fn handle(
 // ─── 鉴权 ──────────────────────────────────────────────────────────
 
 fn is_authenticated(r: &Request, gate: &PairingGate) -> bool {
-    if let Some(token) = extract_token(r) {
-        gate.is_valid_session(&token)
-    } else {
-        false
-    }
-}
-
-fn extract_token(r: &Request) -> Option<String> {
-    // token 只走 Cookie / header，绝不接受 query string —— 防止经 URL 泄漏 / 落日志。
-    // 1. cookie meshdrop_session
-    if let Some(cookie) = r.header("Cookie") {
-        for part in cookie.split(';') {
-            let kv = part.trim();
-            if let Some(rest) = kv.strip_prefix("meshdrop_session=") {
-                return Some(rest.to_string());
-            }
-        }
-    }
-    // 2. header x-meshdrop-token
-    if let Some(t) = r.header("x-meshdrop-token") {
-        if !t.is_empty() { return Some(t.to_string()); }
-    }
-    None
+    r.session_token().is_some_and(|token| gate.is_valid_session(token))
 }
 
 /// 去掉 query string 的路径，用于日志（避免历史上的 ?token= 落盘）。
@@ -172,7 +185,7 @@ fn path_for_log(path: &str) -> &str {
     path.split('?').next().unwrap_or(path)
 }
 
-async fn write_unauthorized(tls: &mut TlsStream<TcpStream>) -> Result<()> {
+pub(super) async fn write_unauthorized(tls: &mut TlsStream<TcpStream>) -> Result<()> {
     write_response(tls, 401, "Unauthorized",
         &[("Content-Type", "application/json")],
         br#"{"ok":false,"error":"unauthorized"}"#).await
@@ -217,23 +230,9 @@ async fn handle_upload(
     }
     // 只取文件名最后一段，剥掉任何路径成分（防 ../ 或绝对路径穿越）。
     let safe_name = sanitize_filename(&part.filename);
-    let target = dir.join(format!("{}-{}", Uuid::new_v4(), safe_name));
-    // canonicalize 校验：落盘目标必须仍在 upload_dir 内（防符号链接 / 残留穿越）。
-    let canon_dir = match tokio::fs::canonicalize(&dir).await {
-        Ok(d) => d,
-        Err(e) => {
-            warn!("canonicalize uploads dir failed: {e}");
-            return write_response(tls, 500, "Internal Error",
-                &[("Content-Type", "application/json")],
-                br#"{"ok":false,"error":"io"}"#).await;
-        }
-    };
-    if target.parent().map(|p| p.to_path_buf()) != Some(canon_dir) {
-        warn!("upload target escapes uploads dir: {}", target.display());
-        return write_response(tls, 400, "Bad Request",
-            &[("Content-Type", "application/json")],
-            br#"{"ok":false,"error":"bad_filename"}"#).await;
-    }
+    let directory = dir.join(Uuid::new_v4().to_string());
+    tokio::fs::create_dir(&directory).await.context("create upload directory")?;
+    let target = directory.join(safe_name);
     if let Err(e) = tokio::fs::write(&target, &part.body).await {
         warn!("write upload failed: {e}");
         return write_response(tls, 500, "Internal Error",
@@ -319,6 +318,7 @@ async fn handle_download(
     let head = format!(
         "HTTP/1.1 200 OK\r\n\
          Content-Type: application/octet-stream\r\n\
+         Access-Control-Allow-Origin: {DEVELOPER_ORIGIN}\r\n\
          Content-Length: {size}\r\n\
          Content-Disposition: attachment; filename*=UTF-8''{safe_name}\r\n\
          Server: MeshDrop-Gateway-Linux/0.1\r\n\
@@ -494,6 +494,7 @@ async fn write_response(
     body: &[u8],
 ) -> Result<()> {
     let mut h = format!("HTTP/1.1 {} {}\r\n", code, reason);
+    h.push_str(&format!("Access-Control-Allow-Origin: {DEVELOPER_ORIGIN}\r\n"));
     let has_len = headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("Content-Length"));
     for (k, v) in headers {
         h.push_str(&format!("{}: {}\r\n", k, v));

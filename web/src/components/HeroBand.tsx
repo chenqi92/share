@@ -86,7 +86,7 @@ export function HeroBand({ peerCount, hostIp }: Props) {
         }}
       >
         <span>⤓ {t('hero.dragToSend')}</span>
-        <span>● {t('common.lanPlaintext')}</span>
+        <span>● {t('common.gatewayTLS')}</span>
         <span>● {t('hero.lanZeroCloud')}</span>
         <span>● {t('hero.pasteToShare')}</span>
       </div>

@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using MeshDrop.Models;
 using MeshDrop.Transport;
+using static MeshDrop.Gateway.GatewayWire;
 
 namespace MeshDrop.Gateway;
 
@@ -30,16 +31,9 @@ internal sealed class GatewayCommands
             switch (cmd.Type)
             {
                 case "list_devices":
-                    return Reply(cmd.Id, true, null, new { devices = _engine.Devices.Select(d => BridgeDevice.From(d, _engine)).ToArray() });
+                    return Reply(cmd.Id, true, null, new { devices = _engine.Devices.Select(DeviceWire).ToArray() });
                 case "get_state":
-                    return Reply(cmd.Id, true, null, new
-                    {
-                        self = BridgeDevice.From(_engine.SelfDevice, _engine),
-                        devices = _engine.Devices.Select(d => BridgeDevice.From(d, _engine)).ToArray(),
-                        history = _engine.History.Select(BridgeHistory.From).ToArray(),
-                        pendingPairings = _engine.PendingPairings.Select(BridgePairing.From).ToArray(),
-                        pendingOffers = _engine.PendingFileOffers.Select(BridgeOffer.From).ToArray(),
-                    });
+                    return Reply(cmd.Id, true, null, Snapshot());
                 case "send_text":
                     {
                         var p = cmd.Payload.Deserialize<SendTextPayload>() ?? new SendTextPayload();
@@ -64,9 +58,9 @@ internal sealed class GatewayCommands
                         var p = cmd.Payload.Deserialize<SendFileRefPayload>() ?? new SendFileRefPayload();
                         var dev = _engine.Devices.FirstOrDefault(d => d.Id == p.PeerId);
                         if (dev is null) return Reply(cmd.Id, false, "peer_not_found");
-                        if (string.IsNullOrEmpty(p.FileRef) || !System.IO.File.Exists(p.FileRef))
+                        if (!GatewayUpload.IsUpload(p.FileRef))
                             return Reply(cmd.Id, false, "file_ref_invalid");
-                        _engine.SendFile(dev, p.FileRef);
+                        _engine.SendFile(dev, p.FileRef!);
                         return Reply(cmd.Id, true);
                     }
                 case "accept_offer":
@@ -98,7 +92,16 @@ internal sealed class GatewayCommands
                         return Reply(cmd.Id, true);
                     }
                 case "clear_history":
-                    _engine.ClearHistory();
+                    var scope = cmd.Payload.ValueKind == JsonValueKind.Object && cmd.Payload.TryGetProperty("scope", out var value)
+                        ? value.GetString() : "all";
+                    if (scope == "all") _engine.ClearHistory();
+                    else if (scope is "sent" or "received")
+                    {
+                        var direction = scope == "sent" ? TransferDirection.Outgoing : TransferDirection.Incoming;
+                        foreach (var item in _engine.History.Where(h => h.Direction == direction).ToArray())
+                            _engine.RemoveHistoryItem(item.Id);
+                    }
+                    else return Reply(cmd.Id, false, "bad_scope");
                     return Reply(cmd.Id, true);
                 case "delete_history_item":
                     {
@@ -132,6 +135,24 @@ internal sealed class GatewayCommands
         }
     }
 
+    private BridgeDevice DeviceWire(Device d) => BridgeDevice.From(d,
+        _engine.Trusted.Any(t => t.Fingerprint == d.Fingerprint),
+        _engine.History.Any(h => h.Peer.Id == d.Id && h.Status is TransferStatus.Transferring));
+
+    private object Snapshot() => new
+    {
+        self = DeviceWire(_engine.SelfDevice),
+        me = new { displayName = _engine.DisplayName, fingerprint = _engine.Identity.Fingerprint, ip = _engine.LocalIp, hostIp = _engine.LocalIp },
+        devices = _engine.Devices.Select(DeviceWire).ToArray(),
+        history = _engine.History.Select(BridgeHistory.From).ToArray(),
+        pendingPairings = _engine.PendingPairings.Select(BridgePairing.From).ToArray(),
+        pendingOffers = _engine.PendingFileOffers.Select(BridgeOffer.From).ToArray(),
+    };
+
+    internal string DeviceSnapshot() => Event("device_snapshot", _engine.Devices.Select(DeviceWire).ToArray());
+
+    internal string InitialSnapshot() => Event("state_snapshot", Snapshot());
+
     /// <summary>
     /// 把 engine 事件转成 protocol/companion-bridges.md §2 的 event JSON。
     /// </summary>
@@ -139,12 +160,12 @@ internal sealed class GatewayCommands
     {
         object? payload = ev switch
         {
-            EngineEvent.DeviceAdded a => BridgeDevice.From(a.Device, _engine),
+            EngineEvent.DeviceAdded a => DeviceWire(a.Device),
             EngineEvent.DeviceRemoved r => new { id = r.Id },
-            EngineEvent.DeviceUpdated u => BridgeDevice.From(u.Device, _engine),
+            EngineEvent.DeviceUpdated u => DeviceWire(u.Device),
             EngineEvent.PairingPending p => BridgePairing.From(p.Pairing),
             EngineEvent.OfferPending o => BridgeOffer.From(o.Offer),
-            EngineEvent.TransferProgress t => new { id = t.Id.ToString(), bytesSent = t.BytesSent, totalBytes = t.TotalBytes, speedBps = t.SpeedBps },
+            EngineEvent.TransferProgress t => Progress(t),
             EngineEvent.TransferDone t => new { id = t.Id.ToString(), ok = t.Ok, error = t.Error },
             EngineEvent.HistoryAdded h => BridgeHistory.From(h.Item),
             EngineEvent.ClipboardReceived c => BridgeClipboard.From(c.Entry),
@@ -163,26 +184,14 @@ internal sealed class GatewayCommands
             EngineEvent.ClipboardReceived => "clipboard_received",
             _ => "unknown",
         };
-        return JsonSerializer.Serialize(new
-        {
-            v = 1,
-            id = "evt-" + Guid.NewGuid().ToString("N").Substring(0, 12),
-            type,
-            ts = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            payload,
-        });
+        return Event(type, payload);
     }
 
-    private static string Reply(string id, bool ok, string? error = null, object? result = null)
+    private object Progress(EngineEvent.TransferProgress t)
     {
-        return JsonSerializer.Serialize(new
-        {
-            v = 1,
-            id,
-            ok,
-            error,
-            result,
-        });
+        var item = _engine.History.FirstOrDefault(h => h.Id == t.Id);
+        return new { id = t.Id, peerName = item?.Peer.Name, fileName = (item?.Kind as HistoryKind.File)?.Name,
+            bytesSent = t.BytesSent, totalBytes = t.TotalBytes, speedBps = t.SpeedBps };
     }
 
     private sealed class Cmd
@@ -231,70 +240,4 @@ internal sealed class GatewayCommands
     {
         [JsonPropertyName("itemId")] public string ItemId { get; set; } = "";
     }
-}
-
-internal sealed record BridgeDevice(string Id, string DisplayName, string Kind, string Model,
-                                    string Ip, int RttMs, bool Online, bool Trusted, bool Busy)
-{
-    public static BridgeDevice From(Device d, ShareEngine engine) => new(
-        d.Id, d.Name,
-        d.Os switch
-        {
-            DeviceOS.Macos => "mac",
-            DeviceOS.Windows => "win",
-            DeviceOS.Ios => "ios",
-            DeviceOS.Android => "android",
-            DeviceOS.Linux => "linux",
-            _ => "linux",
-        },
-        d.Model ?? "",
-        d.Host ?? "",
-        0,
-        true,
-        // trusted 查信任库；busy 由"该 peer 存在进行中传输"推导（companion-bridges.md §3.1）。
-        engine.Trusted.Any(t => t.Fingerprint == d.Fingerprint),
-        engine.History.Any(h => h.Peer.Id == d.Id && h.Status is TransferStatus.Transferring));
-}
-
-internal sealed record BridgePairing(string Id, string PeerName, string Fingerprint, long CreatedAt)
-{
-    public static BridgePairing From(PendingPairing p) => new(
-        p.Id.ToString(), p.Peer.Name, p.Peer.HumanFingerprint,
-        new DateTimeOffset(p.ReceivedAt).ToUnixTimeSeconds());
-}
-
-internal sealed record BridgeOffer(string Id, string PeerId, string PeerName, string Kind,
-                                   object[] Files, long CreatedAt)
-{
-    public static BridgeOffer From(PendingFileOffer o) => new(
-        o.Id.ToString(), o.Peer.Id, o.Peer.Name, "file",
-        new object[] { new { name = o.FileName, sizeBytes = o.FileSize } },
-        new DateTimeOffset(o.ReceivedAt).ToUnixTimeSeconds());
-}
-
-internal sealed record BridgeHistory(string Id, string Direction, string PeerName,
-                                     string Kind, string? Text, object[]? Files,
-                                     long? BytesTransferred, bool Ok, long CompletedAt)
-{
-    public static BridgeHistory From(HistoryItem h)
-    {
-        var dir = h.Direction == TransferDirection.Outgoing ? "sent" : "received";
-        var ok = h.Status is TransferStatus.Completed;
-        var completed = new DateTimeOffset(h.CreatedAt).ToUnixTimeSeconds();
-        return h.Kind switch
-        {
-            HistoryKind.Text t => new(h.Id.ToString(), dir, h.Peer.Name, "text", t.Content, null, null, ok, completed),
-            HistoryKind.File f => new(h.Id.ToString(), dir, h.Peer.Name, "file", null,
-                new object[] { new { name = f.Name, sizeBytes = f.Size } },
-                f.Size, ok, completed),
-            _ => new(h.Id.ToString(), dir, h.Peer.Name, "text", null, null, null, ok, completed),
-        };
-    }
-}
-
-internal sealed record BridgeClipboard(string Id, string PeerName, string Kind, string Content, long Ts)
-{
-    public static BridgeClipboard From(ClipboardEntry e) => new(
-        e.Id.ToString(), e.PeerName, e.Kind, e.Content,
-        new DateTimeOffset(e.ReceivedAt).ToUnixTimeSeconds());
 }

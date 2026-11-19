@@ -242,7 +242,7 @@ export function SettingsPage() {
             }}
           >
             <Chip tone={mode === 'live' ? 'lime' : 'outline'} mono>
-              {mode === 'live' ? `● ${t('common.lanPlaintext')}` : t('settings.security.mockSession')}
+              {mode === 'live' ? `● ${t('common.gatewayTLS')}` : t('settings.security.mockSession')}
             </Chip>
             <Chip tone="outline" mono>{t('settings.security.fingerprintVerify')}</Chip>
             <Chip tone="outline" mono>{t('settings.security.gatewayWss')}</Chip>

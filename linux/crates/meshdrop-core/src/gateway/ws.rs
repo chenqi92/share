@@ -2,7 +2,7 @@
 //! 不能再交给 tokio-tungstenite 自己处理握手），然后包成 WebSocketStream
 //! 接收 companion-bridges §1 命令、推送 §2 事件。
 
-use crate::gateway::http::Request;
+use crate::gateway::http::{Origin, Request};
 use crate::gateway::pairing::PairingGate;
 use crate::history::{HistoryItem, HistoryKind, TransferDirection, TransferStatus};
 use crate::ClipboardEntry;
@@ -34,26 +34,21 @@ pub async fn accept(
     engine: ShareEngine,
     gate: Arc<PairingGate>,
 ) -> Result<()> {
-    let token = extract_token(req).unwrap_or_default();
-    if !gate.is_valid_session(&token) {
-        let body = b"401 Unauthorized\n";
-        let resp = format!(
-            "HTTP/1.1 401 Unauthorized\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-            body.len());
-        tls.write_all(resp.as_bytes()).await.ok();
-        tls.write_all(body).await.ok();
-        anyhow::bail!("ws auth failed");
+    let protocol_token = ws_protocol_token(req);
+    if !ws_token(req, protocol_token).is_some_and(|token| gate.is_valid_session(token)) {
+        return super::http::write_unauthorized(&mut tls).await;
     }
 
     let key = req.header("Sec-WebSocket-Key")
         .context("missing Sec-WebSocket-Key")?
         .trim().to_string();
     let accept_key = compute_accept(&key);
+    let selected = if protocol_token.is_some() { "Sec-WebSocket-Protocol: meshdrop.v1\r\n" } else { "" };
     let resp = format!(
         "HTTP/1.1 101 Switching Protocols\r\n\
          Upgrade: websocket\r\n\
          Connection: Upgrade\r\n\
-         Sec-WebSocket-Accept: {}\r\n\r\n", accept_key);
+         Sec-WebSocket-Accept: {}\r\n{selected}\r\n", accept_key);
     tls.write_all(resp.as_bytes()).await.context("write 101")?;
     tls.flush().await?;
     info!("gateway WS connected");
@@ -257,20 +252,19 @@ pub async fn accept(
     Ok(())
 }
 
-fn extract_token(req: &Request) -> Option<String> {
-    // token 只走 Cookie / header，不接受 query string（防经 URL 泄漏 / 落日志）。
-    if let Some(cookie) = req.header("Cookie") {
-        for part in cookie.split(';') {
-            let kv = part.trim();
-            if let Some(rest) = kv.strip_prefix("meshdrop_session=") {
-                return Some(rest.to_string());
-            }
-        }
+fn ws_token<'a>(req: &'a Request<'_>, protocol_token: Option<&'a str>) -> Option<&'a str> {
+    match req.origin() {
+        Origin::Direct => protocol_token.or_else(|| req.session_token()),
+        Origin::Developer => protocol_token,
+        Origin::Foreign => None,
     }
-    if let Some(t) = req.header("x-meshdrop-token") {
-        if !t.is_empty() { return Some(t.to_string()); }
-    }
-    None
+}
+
+fn ws_protocol_token<'a>(req: &'a Request<'_>) -> Option<&'a str> {
+    let offer = req.header("Sec-WebSocket-Protocol")?;
+    let (protocol, auth) = offer.split_once(',')?;
+    if protocol.trim() != "meshdrop.v1" { return None; }
+    auth.trim().strip_prefix("meshdrop.auth.").filter(|t| !t.is_empty() && !t.contains(','))
 }
 
 /// 把客户端给的 fileRef 解析成一个受限的可发送路径：
@@ -601,4 +595,31 @@ fn history_json(h: &HistoryItem) -> Value {
         "status": status,
         "completedAt": h.created_at.unix_ms / 1000,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn browser_credentials_stay_bound_to_the_origin() {
+        let mut req = Request {
+            method: "GET", path: "/api/v1/control",
+            headers: vec![("Host".into(), "meshdrop.local:7384".into()),
+                          ("Cookie".into(), "meshdrop_session=cookie".into())],
+        };
+        assert_eq!(ws_token(&req, None), Some("cookie")); // native client, no Origin
+        req.headers.push(("Origin".into(), "https://meshdrop.local:7384".into()));
+        assert_eq!(ws_token(&req, None), Some("cookie"));
+        req.headers.last_mut().unwrap().1 = super::super::http::DEVELOPER_ORIGIN.into();
+        assert_eq!(ws_token(&req, None), None);
+        assert_eq!(req.session_token(), None);
+        req.headers.push(("X-MeshDrop-Token".into(), "http".into()));
+        assert_eq!(req.session_token(), Some("http"));
+        assert_eq!(ws_token(&req, None), None);
+        req.headers.push(("Sec-WebSocket-Protocol".into(), "meshdrop.v1, meshdrop.auth.session".into()));
+        assert_eq!(ws_token(&req, ws_protocol_token(&req)), Some("session"));
+        req.headers[2].1 = "https://meshdrop.local:443".into();
+        assert_eq!(ws_token(&req, ws_protocol_token(&req)), None);
+    }
 }

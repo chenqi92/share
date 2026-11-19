@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { getClient } from '../lib/engine'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { AsciiDivider } from '../components/AsciiDivider'
@@ -19,6 +21,7 @@ function statusChip(item: HistoryEntry, t: TFunction) {
 
 function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?: string }) {
   const { t } = useTranslation()
+  const [downloadError, setDownloadError] = useState('')
   const isImage = item.kind === 'image'
   const isText = item.kind === 'text'
 
@@ -141,6 +144,21 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
           {downloadHref && (
             <a
               href={downloadHref}
+              onClick={async (event) => {
+                if (new URL(downloadHref).origin === window.location.origin) return
+                event.preventDefault()
+                setDownloadError('')
+                try {
+                  const blob = await getClient().downloadFile(item.id)
+                  const link = document.createElement('a')
+                  link.href = URL.createObjectURL(blob)
+                  link.download = item.name || 'download'
+                  link.click()
+                  window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000)
+                } catch (error) {
+                  setDownloadError((error as Error).message)
+                }
+              }}
               download={item.name}
               title={t('history.download')}
               style={{
@@ -158,6 +176,7 @@ function HistoryCell({ item, downloadHref }: { item: HistoryEntry; downloadHref?
               ↓ DOWNLOAD
             </a>
           )}
+          {downloadError && <span role="alert">{downloadError}</span>}
           <span
             style={{
               fontFamily: '"Geist Mono", monospace',

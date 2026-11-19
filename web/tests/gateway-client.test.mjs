@@ -25,7 +25,7 @@ function fixture(fetchOverride, options = {}) {
     handlers = new Map()
     sent = []
     send(frame) { this.sent.push(JSON.parse(frame)) }
-    constructor(url) { this.url = url; sockets.push(this) }
+    constructor(url, protocols) { this.url = url; this.protocols = protocols; sockets.push(this) }
     addEventListener(type, callback) { this.handlers.set(type, callback) }
     emit(type, event = {}) {
       if (type === 'open') this.readyState = 1
@@ -46,7 +46,7 @@ function fixture(fetchOverride, options = {}) {
     localStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: (k) => storage.delete(k) },
     fetch: fetchOverride ?? (async (url, options) => { requests.push({ url, options }); return { ok: true, json: async () => ({ token: 'fresh' }) } }),
   })
-  const client = new exports.GatewayClient('https://host:7384')
+  const client = new exports.GatewayClient(exports.getGatewayEndpoint())
   const states = []
   client.subscribe({ onConn: (state) => states.push(state) })
   return { client, states, storage, sockets, requests, timers, api: exports, fire(delay) {
@@ -62,7 +62,7 @@ test('pairing accepts the displayed code format and uses the new session once', 
   await f.client.connect()
   await f.client.connect()
   assert.equal(f.sockets.length, 1)
-  assert.match(f.sockets[0].url, /token=fresh$/)
+  assert.equal(f.sockets[0].url, 'wss://host:7384/api/v1/control')
   let snapshot
   f.client.subscribe({ onState: (state) => { snapshot = state } })
   f.sockets[0].emit('open')
@@ -165,7 +165,7 @@ test('a gateway query parameter cannot redirect an existing session', async () =
   const f = fixture(undefined, { location: { origin: 'https://host:7384', search: '?gw=https%3A%2F%2Fevil.example' } })
   assert.equal(f.api.getGatewayEndpoint(), 'https://host:7384')
   await f.api.getClient().connect()
-  assert.equal(f.sockets[0].url, 'wss://host:7384/api/v1/control?token=session')
+  assert.equal(f.sockets[0].url, 'wss://host:7384/api/v1/control')
   await f.api.getClient().pair('ABCDEF')
   assert.equal(f.requests[0].url, 'https://host:7384/api/v1/pair')
 })
@@ -187,22 +187,22 @@ test('gateway changes isolate tokens and keep listeners on the active client', a
   client.subscribe({ onConn: (state) => states.push(state) })
   await client.connect()
   f.sockets[0].emit('open')
-  f.api.setGatewayEndpoint('https://other:7384/')
+  f.api.setGatewayEndpoint('https://192.168.1.23:7384/')
   assert.equal(f.api.getClient(), client)
   assert.equal(f.sockets[0].readyState, 3)
   await client.connect()
   assert.equal(client.hasSession(), false)
   assert.equal(f.sockets.length, 1)
   assert.equal(await client.pair('ABCDEF'), true)
-  assert.equal(f.requests[0].url, 'https://other:7384/api/v1/pair')
+  assert.equal(f.requests[0].url, 'https://192.168.1.23:7384/api/v1/pair')
   assert.equal(f.storage.get(sessionKey), 'session')
-  assert.equal(f.storage.get('meshdrop.session:https://other:7384'), 'fresh')
+  assert.equal(f.storage.get('meshdrop.session:https://192.168.1.23:7384'), 'fresh')
   await client.connect()
   f.sockets[1].emit('open')
   assert.equal(states.at(-1), 'open')
   client.forgetSession()
   assert.equal(f.sockets[1].readyState, 3)
-  assert.equal(f.storage.has('meshdrop.session:https://other:7384'), false)
+  assert.equal(f.storage.has('meshdrop.session:https://192.168.1.23:7384'), false)
   f.api.setGatewayEndpoint('https://host:7384')
   assert.equal(client.hasSession(), true)
 })
@@ -236,24 +236,24 @@ test('download identifiers cannot change the endpoint or inject a token', () => 
   for (const id of ['.', '..', '../pair', '%2e%2e', 'file?token=other', 'file#fragment', 'a/b', '']) {
     assert.throws(() => f.client.downloadURL(id), /Invalid offer ID/)
   }
-  assert.equal(f.client.downloadURL('offer-123'), 'https://host:7384/api/v1/download/offer-123?token=session')
+  assert.equal(f.client.downloadURL('offer-123'), 'https://host:7384/api/v1/download/offer-123')
 })
 
 test('late pairing and upload responses cannot cross a gateway change', async () => {
   let reply
   const f = fixture(() => new Promise((resolve) => { reply = resolve }))
   const pairing = f.client.pair('ABCDEF')
-  f.client.setGateway('https://other:7384')
+  f.client.setGateway('https://192.168.1.23:7384')
   reply({ ok: true, json: async () => ({ token: 'old-origin-token' }) })
   assert.equal(await pairing, false)
   assert.equal(f.client.hasSession(), false)
-  assert.equal(f.storage.has('meshdrop.session:https://other:7384'), false)
+  assert.equal(f.storage.has('meshdrop.session:https://192.168.1.23:7384'), false)
 
   f.client.setGateway('https://host:7384')
   await f.client.connect()
   f.sockets[0].emit('open')
   const upload = f.client.sendFile('phone', new File(['secret'], 'private.txt'))
-  f.client.setGateway('https://other:7384')
+  f.client.setGateway('https://192.168.1.23:7384')
   reply({ ok: true, json: async () => ({ token: 'old-file-reference' }) })
   await assert.rejects(upload, /disconnected/)
   assert.equal(f.sockets[0].sent.length, 0)
@@ -274,12 +274,58 @@ test('HTTP redirects never forward pairing codes or upload credentials', async (
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   t.after(() => new Promise((resolve) => server.close(resolve)))
-  const origin = `http://127.0.0.1:${server.address().port}`
-  const f = fixture(fetch, { storage: [[`meshdrop.session:${origin}`, 'secret-token']] })
+  const origin = 'https://127.0.0.1:7384'
+  const localServer = `http://127.0.0.1:${server.address().port}`
+  const f = fixture((url, options) => fetch(localServer + new URL(url).pathname, options),
+    { storage: [[`meshdrop.session:${origin}`, 'secret-token']] })
   const client = new f.api.GatewayClient(origin)
   await assert.rejects(client.pair('ABCDEF'), /fetch failed/)
   await client.connect()
   f.sockets[0].emit('open')
   await assert.rejects(client.sendFile('phone', new File(['secret'], 'private.txt')), /fetch failed/)
   assert.equal(redirectedRequests, 0)
+})
+
+test('only locally configured LAN origins or the page origin can be used', () => {
+  const f = fixture()
+  for (const origin of ['https://10.4.5.6', 'https://172.16.0.1', 'https://172.31.255.254',
+    'https://localhost:7384', 'https://[fd12::1]:7384', 'https://[::1]:7384']) {
+    f.api.setGatewayEndpoint(origin)
+    assert.equal(f.api.getGatewayEndpoint(), origin)
+  }
+  f.api.setGatewayEndpoint('https://[fd12:0000:0000:0000:0000:0000:0000:0001]:7384')
+  assert.equal(f.api.getGatewayEndpoint(), 'https://[fd12::1]:7384')
+  for (const origin of ['http://localhost:7384', 'http://192.168.1.23', 'http://[::1]:7384', 'https://172.15.0.1', 'https://172.32.0.1', 'https://example.com',
+    'https://192.168.0.1.example', 'https://169.254.1.1', 'https://[2001:db8::1]', 'http://0x7f000001']) {
+    assert.throws(() => f.api.setGatewayEndpoint(origin))
+    assert.throws(() => new f.api.GatewayClient(origin))
+    const stored = fixture(undefined, { storage: [['meshdrop.gateway', origin]] })
+    assert.equal(stored.api.getGatewayEndpoint(), 'https://host:7384')
+  }
+})
+
+test('a LAN link cannot configure an unpaired developer client', async () => {
+  const f = fixture(undefined, { location: { origin: 'http://localhost:5173', search: '?gw=https://10.1.2.3:7384' } })
+  await f.api.getClient().connect()
+  await assert.rejects(f.api.getClient().pair('ABCDEF'), /needGateway/)
+  assert.deepEqual(f.requests, [])
+  assert.deepEqual(f.sockets, [])
+})
+
+test('developer gateway uses explicit credentials over TLS for control and download', async () => {
+  const page = { origin: 'http://localhost:5173' }
+  const gateway = 'https://192.168.1.20:7384'
+  const requests = []
+  const f = fixture(async (url, options) => {
+    requests.push({ url, options })
+    return { ok: true, blob: async () => new Blob(['received']) }
+  }, { location: page, storage: [['meshdrop.gateway', gateway], [`meshdrop.session:${gateway}`, 'scoped']] })
+  await f.client.connect()
+  assert.equal(f.sockets[0].url, 'wss://192.168.1.20:7384/api/v1/control')
+  assert.deepEqual(Array.from(f.sockets[0].protocols), ['meshdrop.v1', 'meshdrop.auth.scoped'])
+  assert.equal(await (await f.client.downloadFile('file-id')).text(), 'received')
+  assert.equal(requests[0].url, gateway + '/api/v1/download/file-id')
+  assert.equal(requests[0].options.headers['x-meshdrop-token'], 'scoped')
+  assert.equal(requests[0].options.credentials, 'same-origin')
+  assert.equal(requests[0].options.redirect, 'error')
 })
