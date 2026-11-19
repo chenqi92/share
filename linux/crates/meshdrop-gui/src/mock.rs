@@ -346,7 +346,7 @@ pub struct ShellStatus {
 pub fn shell_status() -> ShellStatus {
     ShellStatus {
         mdns: "_meshdrop._tcp · 5 peers",
-        e2e: "LAN · 明文 · v0.1",
+        e2e: "LAN · TLS 1.3",
         clip: "剪贴板同步 · 5 条",
         trace: "LAN · 192.168.1.0/24 · MTU 1500",
     }

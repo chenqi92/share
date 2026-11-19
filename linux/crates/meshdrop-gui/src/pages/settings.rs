@@ -144,7 +144,6 @@ pub fn build(handle: Option<&Rc<AppHandle>>) -> gtk::Widget {
     // ── 安全
     root.append(&ascii_divider::divider(&t!("settings.security_divider")));
     let g2 = adw::PreferencesGroup::new();
-    // v0.1 LAN 传输为明文 TCP，尚未上 TLS / 应用层 E2E；文案如实标注，chip 用 PLANNED。
     let e1 = adw::ActionRow::builder()
         .title(t!("settings.tls_title").as_ref())
         .subtitle(t!("settings.tls_sub").as_ref())

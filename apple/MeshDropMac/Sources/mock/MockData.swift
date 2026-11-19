@@ -77,6 +77,7 @@ struct MockPendingPairing {
     let peer: String
     let deviceName: String
     let fingerprint: String
+    var canRemember = true
     let receivedAt: String
 
     static let sample = MockPendingPairing(

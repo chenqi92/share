@@ -88,7 +88,7 @@ settings:
 
 help:
   subtitle: "Key reference"
-  tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
+  tagline: "An intranet drop · radar discovery · drag-to-send · TLS 1.3"
   keybindings_divider: "KEYBINDINGS · 按键"
   k_move: "Move up / down within the focused pane"
   k_focus: "Switch focus (devices ↔ history ↔ transfers)"
@@ -100,7 +100,7 @@ help:
   k_cancel: "Cancel selected in-progress transfer (Transfers focus only)"
   k_retry: "Retry selected failed send (Transfers focus only)"
   k_pages: "Switch pages (1-6 jump / Tab·] next / Shift-Tab·[ prev / F1-F6)"
-  k_demo_pairing: "Show pairing demo modal"
+  k_pair_selected: "Pair with selected device"
   k_demo_offer: "Show file offer demo modal"
   k_help: "Open / close this help"
   k_quit: "Quit (or exit the current mode)"
@@ -123,9 +123,12 @@ offer:
   trust: " Accept & trust"
 
 status:
+  pair_saved: "Paired with %{name}"
+  pair_unsaved: "Pairing with %{name} was not saved"
+  pair_waiting: "Waiting for %{name} to confirm pairing"
   sent_to: "Sent to %{name} · %{preview}"
   history_cleared: "History cleared"
-  trust_hint: "Use the :pair flow to trust a device (press t after a pairing request)"
+  trust_hint: "Select a nearby device and press p to pair. Press t to trust an incoming request."
   revoke_usage: "Usage: :revoke <fingerprint>"
   revoked: "Trust revoked: %{fp}"
   not_in_trust: "Fingerprint not in trust list: %{fp}"

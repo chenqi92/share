@@ -140,8 +140,8 @@ public final class ShareEngine: ObservableObject {
     #if os(iOS) || os(macOS)
     private var bluetoothDiscovery: BluetoothDiscovery?
     #endif
-    private let trustStore = TrustStore()
-    private let resumeStore = ResumeStore()
+    private let trustStore: TrustStore
+    private let resumeStore: ResumeStore
     private let historyStore = HistoryStore()
     /// 历史落盘订阅：监听 `history` 任何变更（新增 / 状态更新 / 删除 / 清空）整表覆盖写。
     private var historyCancellable: AnyCancellable?
@@ -189,12 +189,15 @@ public final class ShareEngine: ObservableObject {
     /// 4 MiB ≈ 16 个 256 KiB chunk —— 平衡崩溃时丢失上限和 I/O 频次。
     private static let resumePersistInterval: UInt64 = 4 * 1024 * 1024
 
-    private init() {
-        self.identity = IdentityStore.loadOrCreate()
+    init(identity: Identity = IdentityStore.loadOrCreate(), trustStore: TrustStore = TrustStore(),
+         resumeStore: ResumeStore = ResumeStore(), receiveDirectory: URL? = nil) {
+        self.identity = identity
+        self.trustStore = trustStore
+        self.resumeStore = resumeStore
         self.displayName = Self.defaultDisplayName()
-        self.receiveDirectoryURL = Self.defaultReceiveDirectory()
+        self.receiveDirectoryURL = receiveDirectory ?? Self.defaultReceiveDirectory()
         #if os(macOS)
-        if let restoredURL = Self.restoreReceiveDirectoryBookmark() {
+        if receiveDirectory == nil, let restoredURL = Self.restoreReceiveDirectoryBookmark() {
             self.receiveDirectoryURL = restoredURL
             self.receiveDirectoryBookmarkIsUsable = true
         }
@@ -208,7 +211,8 @@ public final class ShareEngine: ObservableObject {
     @MainActor
     public func seedPreviewData(route: String) {
         func dev(_ id: String, who: String, model: String, _ os: DeviceOS, _ fp: String) -> Device {
-            Device(id: id, name: who, os: os, model: model, fingerprint: fp, port: 9580)
+            Device(id: id, name: who, os: os, model: model, fingerprint: fp, port: 9580,
+                   discoveryEndpoint: .service(name: id, type: TXTRecord.serviceType, domain: "local.", interface: nil))
         }
         // 演示数据语言跟随 app 实际本地化（zh-Hans / en），保证截图内容与 UI 同语言。
         let zh = (Bundle.main.preferredLocalizations.first ?? "en").lowercased().hasPrefix("zh")
@@ -498,14 +502,18 @@ public final class ShareEngine: ObservableObject {
         devices = []
         isStarting = false
         let active = Array(contexts.values)
+        pendingPairings.removeAll()
+        pendingFileOffers.removeAll()
         for ctx in active {
+            ctx.pairingResult?.resume(returning: false)
+            ctx.pairingResult = nil
             try? ctx.fileHandle?.close()
             ctx.fileHandle = nil
             ctx.receiveSecurityScopedURL?.stopAccessingSecurityScopedResource()
             ctx.receiveSecurityScopedURL = nil
         }
         contexts.removeAll()
-        Task { for ctx in active { await ctx.connection.close() } }
+        Task { for ctx in active { await ctx.connection.abort() } }
     }
 
     /// 清空最近的错误（UI toast 关闭时调用）。
@@ -802,6 +810,19 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 配对决定
 
+    public func requestPairing(to device: Device) async -> Bool {
+        let target = DeviceRoutes.currentDevice(for: device, in: devices) ?? device
+        guard target.discoveryEndpoint != nil, !target.fingerprint.isEmpty else { return false }
+        let conn = Connection(connectingTo: target, route: .lan, identity: identity)
+        return await withCheckedContinuation { result in
+            let ctx = ConnectionContext(connection: conn, role: .client(target: target, payload: .pair),
+                                        state: .awaitingHelloAck)
+            ctx.pairingResult = result
+            contexts[ctx.id] = ctx
+            startConnection(ctx)
+        }
+    }
+
     public func respondToPairing(_ requestID: UUID, decision: PairingDecision) {
         guard let req = pendingPairings.first(where: { $0.id == requestID }) else { return }
         pendingPairings.removeAll { $0.id == requestID }
@@ -810,16 +831,34 @@ public final class ShareEngine: ObservableObject {
             if case .awaitingPairApproval(let r) = c.state, r.id == requestID { return true }
             return false
         }
-        guard let (ctxID, _) = entry else { return }
+        guard let (ctxID, ctx) = entry else { return }
         Task {
             switch decision {
             case .reject:
                 await closeContext(id: ctxID, error: nil)
             case .allowOnce:
                 await sendAckAndReady(contextID: ctxID, peer: req.peer)
-            case .trust:
-                await trustStore.trust(fingerprint: req.peer.fingerprint, name: req.peer.name)
+            case .trust where ctx.verifiedIdentity:
+                guard await trustStore.trust(fingerprint: req.peer.fingerprint, name: req.peer.name) else {
+                    await sendAckAndReady(contextID: ctxID, peer: req.peer)
+                    return
+                }
                 await refreshTrusted()
+                // Several files may already be waiting on separate authenticated connections.
+                let pendingIDs = Set(pendingPairings.map(\.id))
+                let waiting = contexts.values.compactMap { other -> (UUID, PairingRequest)? in
+                    guard other.verifiedIdentity, case .awaitingPairApproval(let pending) = other.state,
+                          pending.peer.fingerprint == req.peer.fingerprint,
+                          pendingIDs.contains(pending.id) else { return nil }
+                    return (other.id, pending)
+                }
+                let approved = Set(waiting.map { $0.1.id })
+                pendingPairings.removeAll { approved.contains($0.id) }
+                for (id, pending) in waiting {
+                    await sendAckAndReady(contextID: id, peer: pending.peer, remembered: true)
+                }
+                await sendAckAndReady(contextID: ctxID, peer: req.peer, remembered: true)
+            case .trust:
                 await sendAckAndReady(contextID: ctxID, peer: req.peer)
             }
         }
@@ -949,14 +988,13 @@ public final class ShareEngine: ObservableObject {
             ctx.historyID = item.id
 
             Task {
-                let body = try? MessageCodec.encode(FileAcceptMessage(
-                    transfer_id: offer.id.uuidString,
-                    index: 0,
-                    resume_offset: 0
-                ))
-                if let body {
-                    try? await ctx.connection.send(type: MessageType.fileAccept, body: body)
-                }
+                do {
+                    let body = try MessageCodec.encode(FileAcceptMessage(
+                        transfer_id: offer.id.uuidString, index: 0, resume_offset: 0
+                    ))
+                    try await ctx.connection.send(type: MessageType.fileAccept, body: body)
+                    if offer.fileSize == 0 { await finishReceivedFile(ctx) }
+                } catch { await closeContext(id: ctxID, error: error) }
             }
         } catch {
             log.error("open save handle failed: \(error.localizedDescription)")
@@ -966,7 +1004,7 @@ public final class ShareEngine: ObservableObject {
 
     // MARK: - 入站连接
 
-    private func acceptIncoming(_ nwConn: NWConnection, route: TransferRoute = .lan) async {
+    func acceptIncoming(_ nwConn: NWConnection, route: TransferRoute = .lan) async {
         let conn = Connection(nwConnection: nwConn, route: route)
         await acceptIncomingConnection(conn)
     }
@@ -1045,10 +1083,7 @@ public final class ShareEngine: ObservableObject {
         case (.receivingFile, MessageType.fileChunk):
             await handleReceivedChunk(body: body, contextID: contextID)
 
-        case (_, MessageType.ping):
-            try? await ctx.connection.send(type: MessageType.pong, body: Data("{}".utf8))
-
-        case (_, MessageType.pong):
+        case (_, MessageType.ping), (_, MessageType.pong):
             break
 
         case (_, MessageType.fileCancel):
@@ -1106,7 +1141,7 @@ public final class ShareEngine: ObservableObject {
             await closeContext(id: contextID, error: nil); return
         }
         let authenticated = await ctx.connection.authenticatedFingerprint
-        guard ctx.connection.route == .bluetooth || authenticated == hello.fp.lowercased() else {
+        guard authenticated == hello.fp.lowercased() else {
             await closeContext(id: contextID, error: TransportSecurity.Failure.invalidIdentity); return
         }
         let peer = Device(
@@ -1114,27 +1149,28 @@ public final class ShareEngine: ObservableObject {
             fingerprint: hello.fp, port: 0, protocolVersion: 1
         )
         ctx.peer = peer
-        if await trustStore.isTrusted(hello.fp) {
+        ctx.verifiedIdentity = authenticated == hello.fp.lowercased()
+        if ctx.verifiedIdentity, await trustStore.isTrusted(hello.fp) {
             await trustStore.touch(fingerprint: hello.fp)
             await refreshTrusted()
-            await sendAckAndReady(contextID: contextID, peer: peer)
+            await sendAckAndReady(contextID: contextID, peer: peer, remembered: true)
         } else if trustedOnly {
             // 仅信任设备可见：未知 fp 不进配对待审，直接关连接（security.md「仅信任设备可见」）。
             log.info("trustedOnly: reject unknown fp")
             await closeContext(id: contextID, error: nil)
         } else {
-            let req = PairingRequest(peer: peer)
+            let req = PairingRequest(peer: peer, canRemember: ctx.verifiedIdentity)
             ctx.state = .awaitingPairApproval(req)
             pendingPairings.append(req)
         }
     }
 
-    private func sendAckAndReady(contextID: UUID, peer: Device) async {
+    private func sendAckAndReady(contextID: UUID, peer: Device, remembered: Bool = false) async {
         guard let ctx = contexts[contextID] else { return }
         let ack = HelloAckMessage(
             id: identity.id, name: displayName, os: .current,
             model: Self.systemModel(), fp: identity.fingerprint,
-            protocol_versions: [1], selected_version: 1
+            protocol_versions: [1], selected_version: 1, pairing_remembered: remembered
         )
         do {
             let body = try MessageCodec.encode(ack)
@@ -1148,14 +1184,15 @@ public final class ShareEngine: ObservableObject {
 
     private func clientReceivedAck(body: Data, contextID: UUID) async {
         guard let ctx = contexts[contextID] else { return }
-        guard let ack = try? MessageCodec.decode(HelloAckMessage.self, from: body) else {
+        guard let ack = try? MessageCodec.decode(HelloAckMessage.self, from: body),
+              ack.selected_version == 1, ack.protocol_versions.contains(1) else {
             await closeContext(id: contextID, error: nil); return
         }
         guard case .client(let target, let payload) = ctx.role else {
             await closeContext(id: contextID, error: nil); return
         }
         let authenticated = await ctx.connection.authenticatedFingerprint
-        guard ctx.connection.route == .bluetooth || authenticated == target.fingerprint.lowercased() else {
+        guard authenticated == target.fingerprint.lowercased() else {
             await closeContext(id: contextID, error: TransportSecurity.Failure.invalidIdentity); return
         }
         guard ack.fp == target.fingerprint else {
@@ -1164,6 +1201,17 @@ public final class ShareEngine: ObservableObject {
         }
         ctx.peer = target
         ctx.state = .ready
+        if case .pair = payload {
+            var remembered = false
+            if ack.pairing_remembered == true && authenticated == target.fingerprint.lowercased() {
+                remembered = await trustStore.trust(fingerprint: target.fingerprint, name: target.name)
+                await refreshTrusted()
+            }
+            ctx.pairingResult?.resume(returning: remembered)
+            ctx.pairingResult = nil
+            await closeContext(id: contextID, error: nil)
+            return
+        }
         // Keep receiving PING/PONG while a slow Bluetooth write is backpressured.
         Task { await sendPendingPayload(payload, contextID: contextID) }
     }
@@ -1171,6 +1219,7 @@ public final class ShareEngine: ObservableObject {
     private func sendPendingPayload(_ payload: ConnectionContext.ClientPayload, contextID: UUID) async {
         guard let ctx = contexts[contextID], !ctx.state.isClosed else { return }
         switch payload {
+        case .pair: return
         case .text(let content):
             // 发文本 → 等 200ms 让对方读完缓冲 → 关
             let msg = TextMessage(
@@ -1405,7 +1454,7 @@ public final class ShareEngine: ObservableObject {
             directoryAccess.securityScopedURL?.stopAccessingSecurityScopedResource()
 
             guard let ctx = self.contexts[contextID] else { return }
-            if canResume, let r = resume {
+            if ctx.verifiedIdentity, canResume, let r = resume {
                 self.startAutoResumeReceive(
                     contextID: contextID,
                     ctx: ctx,
@@ -1427,7 +1476,7 @@ public final class ShareEngine: ObservableObject {
                 let isTrusted = await self.trustStore.isTrusted(peer.fingerprint)
                 guard self.contexts[contextID] === ctx else { return }
                 ctx.pendingOfferID = pending.id
-                if ReceivePolicy.shouldAutoAccept(isTrusted: isTrusted, enabled: self.autoAcceptFromTrusted) {
+                if ReceivePolicy.shouldAutoAccept(isTrusted: isTrusted && ctx.verifiedIdentity, enabled: self.autoAcceptFromTrusted) {
                     self.respondToFileOffer(pending, accept: true)
                 } else {
                     self.pendingFileOffers.append(pending)
@@ -1574,45 +1623,50 @@ public final class ShareEngine: ObservableObject {
             Task { await self.resumeStore.upsert(record) }
         }
 
-        if ctx.receivedBytes >= ctx.fileSize {
-            try? handle.close()
-            ctx.fileHandle = nil
-            // 校验 sha256
-            if let saved = ctx.savedURL, let expected = ctx.expectedSHA256 {
-                let actual = (try? Self.sha256OfFile(at: saved)) ?? ""
-                if actual != expected {
-                    if let hid = ctx.historyID {
-                        updateHistoryStatus(hid, status: .failed(L10n.failChecksum))
-                    }
-                    try? FileManager.default.removeItem(at: saved)
-                    if let peer = ctx.peer {
-                        await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
-                    }
-                    await closeContext(id: contextID, error: nil)
-                    return
+        if ctx.receivedBytes == ctx.fileSize { await finishReceivedFile(ctx) }
+    }
+
+    private func finishReceivedFile(_ ctx: ConnectionContext) async {
+        guard contexts[ctx.id] != nil, let handle = ctx.fileHandle else { return }
+        try? handle.close()
+        ctx.fileHandle = nil
+        // 校验 sha256
+        if let saved = ctx.savedURL, let expected = ctx.expectedSHA256 {
+            let actual = (try? Self.sha256OfFile(at: saved)) ?? ""
+            if actual != expected {
+                if let hid = ctx.historyID {
+                    updateHistoryStatus(hid, status: .failed(L10n.failChecksum))
                 }
-                // 完成 → 清掉 ResumeStore 中对应记录
+                try? FileManager.default.removeItem(at: saved)
                 if let peer = ctx.peer {
                     await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
                 }
+                await closeContext(id: ctx.id, error: nil)
+                return
             }
-            // 发 FILE_COMPLETE
-            if let tid = ctx.transferID {
-                let complete = FileCompleteMessage(transfer_id: tid.uuidString, index: 0)
-                if let cbody = try? MessageCodec.encode(complete) {
-                    try? await ctx.connection.send(type: MessageType.fileComplete, body: cbody)
-                }
+            // 完成 → 清掉 ResumeStore 中对应记录
+            if let peer = ctx.peer {
+                await resumeStore.clear(peerFingerprint: peer.fingerprint, sha256: expected)
             }
-            if let hid = ctx.historyID { updateHistoryStatus(hid, status: .completed) }
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            await closeContext(id: contextID, error: nil)
         }
+        // 发 FILE_COMPLETE
+        if let tid = ctx.transferID {
+            let complete = FileCompleteMessage(transfer_id: tid.uuidString, index: 0)
+            if let cbody = try? MessageCodec.encode(complete) {
+                try? await ctx.connection.send(type: MessageType.fileComplete, body: cbody)
+            }
+        }
+        if let hid = ctx.historyID { updateHistoryStatus(hid, status: .completed) }
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        await closeContext(id: ctx.id, error: nil)
     }
 
     // MARK: - 关闭与辅助
 
     private func closeContext(id: UUID, error: Error?) async {
         guard let ctx = contexts.removeValue(forKey: id) else { return }
+        ctx.pairingResult?.resume(returning: false)
+        ctx.pairingResult = nil
         // 释放本连接占用的 transfer_id 归属，允许后续合法连接复用该 id。
         transferOwners = transferOwners.filter { $0.value != id }
         if case .awaitingPairApproval(let req) = ctx.state {
@@ -1678,7 +1732,8 @@ public final class ShareEngine: ObservableObject {
         ctx.receiveSecurityScopedURL?.stopAccessingSecurityScopedResource()
         ctx.receiveSecurityScopedURL = nil
         ctx.state = .closed
-        await ctx.connection.close()
+        if error == nil { await ctx.connection.close() }
+        else { await ctx.connection.abort() }
         if let error {
             log.debug("ctx \(id) closed with error: \(error.localizedDescription)")
         }
@@ -2043,6 +2098,7 @@ final class ConnectionContext {
     }
 
     enum ClientPayload {
+        case pair
         case text(String)
         case clipboard(content: String, kind: String)
         case file(sourceURL: URL, fileSize: UInt64, sha256: String, needsSecurityScope: Bool)
@@ -2068,6 +2124,8 @@ final class ConnectionContext {
     let role: Role
     var state: State
     var peer: Device?
+    var verifiedIdentity = false
+    var pairingResult: CheckedContinuation<Bool, Never>?
 
     /// ctx 创建时刻：握手超时判定基准。
     let createdAt: Date = Date()

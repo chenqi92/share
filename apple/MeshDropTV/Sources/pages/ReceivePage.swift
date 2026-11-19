@@ -292,7 +292,7 @@ struct ReceivePage: View {
                     .foregroundStyle(MeshDropColor.dpaperMute)
                 HStack(spacing: 8) {
                     Chip(text: "● LAN", tone: .lime, mono: true, size: 13)
-                    Chip(text: L10n.receivePlaintextTag, tone: .outline, mono: true, size: 13)
+                    Chip(text: L10n.receiveTLSTag, tone: .outline, mono: true, size: 13)
                 }
                 .padding(.top, 4)
             }

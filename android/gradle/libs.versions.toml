@@ -13,7 +13,11 @@ junit = "4.13.2"
 playServicesWearable = "18.2.0"
 securityCrypto = "1.1.0"
 
+bouncyCastle = "1.87"
+
 [libraries]
+bc-tls = { module = "org.bouncycastle:bctls-jdk15to18", version.ref = "bouncyCastle" }
+bc-pkix = { module = "org.bouncycastle:bcpkix-jdk15to18", version.ref = "bouncyCastle" }
 androidx-core-ktx                = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen       = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 androidx-lifecycle-runtime-ktx   = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "lifecycle" }

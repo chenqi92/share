@@ -248,8 +248,7 @@ public sealed partial class ShareEngine : ObservableObject
         _tpDown.Clear();
         ThroughputUp = Array.Empty<double>();
         ThroughputDown = Array.Empty<double>();
-        foreach (var ctx in _contexts.Values) ctx.Connection.Close();
-        _contexts.Clear();
+        foreach (var id in _contexts.Keys) _ = CloseContextAsync(id, null);
         IsRunning = false;
         OnPropertyChanged(nameof(SelfDevice));
     }
@@ -379,6 +378,20 @@ public sealed partial class ShareEngine : ObservableObject
 
     // ─── 决定 ────────────────────────────────────────────────────────────
 
+    public async Task<bool> RequestPairingAsync(Device device)
+    {
+        if (string.IsNullOrEmpty(device.Host) || string.IsNullOrEmpty(device.Fingerprint)) return false;
+        var conn = Connection.ForOutgoing(device.Host, device.Port, Identity, device.Fingerprint);
+        var pair = new ConnectionContext.PayloadPair(new(TaskCreationOptions.RunContinuationsAsynchronously));
+        var ctx = new ConnectionContext(conn, new ConnectionContext.RoleClient(device, pair),
+            ConnectionContext.StateAwaitingHelloAck);
+        _contexts[ctx.Id] = ctx;
+        StartConnection(ctx);
+        try { return await pair.Result.Task.WaitAsync(TimeSpan.FromMinutes(2)); }
+        catch (TimeoutException) { return false; }
+        finally { await CloseContextAsync(ctx.Id, null); }
+    }
+
     public void RespondToPairing(Guid requestId, PairingDecision decision)
     {
         var req = PendingPairings.FirstOrDefault(p => p.Id == requestId);
@@ -397,12 +410,18 @@ public sealed partial class ShareEngine : ObservableObject
                 _ = CloseContextAsync(ctx.Id, null);
                 break;
             case PairingDecision.AllowOnce:
-                _ = SendAckAndReadyAsync(ctx, req.Peer);
+                _ = SendAckAndReadyAsync(ctx, req.Peer, remembered: _trustStore.IsTrusted(req.Peer.Fingerprint));
                 break;
             case PairingDecision.Trust:
-                _trustStore.Trust(req.Peer.Fingerprint, req.Peer.Name);
+                if (!_trustStore.Trust(req.Peer.Fingerprint, req.Peer.Name))
+                {
+                    _ = SendAckAndReadyAsync(ctx, req.Peer, remembered: false);
+                    break;
+                }
                 RefreshTrusted();
-                _ = SendAckAndReadyAsync(ctx, req.Peer);
+                _ = SendAckAndReadyAsync(ctx, req.Peer, remembered: true);
+                foreach (var other in PendingPairings.Where(p => p.Peer.Fingerprint == req.Peer.Fingerprint).ToList())
+                    RespondToPairing(other.Id, PairingDecision.AllowOnce);
                 break;
         }
     }
@@ -474,7 +493,11 @@ public sealed partial class ShareEngine : ObservableObject
             _ = Task.Run(async () =>
             {
                 var body = MessageCodec.Encode(new FileAcceptMessage(offer.Id.ToString(), 0, 0));
-                try { await ctx.Connection.SendAsync(MessageType.FILE_ACCEPT, body); }
+                try
+                {
+                    await ctx.Connection.SendAsync(MessageType.FILE_ACCEPT, body);
+                    if (offer.FileSize == 0) await FinishReceivedFileAsync(ctx);
+                }
                 catch (Exception ex) { await CloseContextAsync(ctx.Id, ex); }
             });
         }
@@ -670,7 +693,7 @@ public sealed partial class ShareEngine : ObservableObject
         {
             _trustStore.Touch(hello.Fp);
             _ui.TryEnqueue(RefreshTrusted);
-            await SendAckAndReadyAsync(ctx, peer);
+            await SendAckAndReadyAsync(ctx, peer, remembered: true);
         }
         else if (_settings.TrustedOnly)
         {
@@ -685,21 +708,27 @@ public sealed partial class ShareEngine : ObservableObject
             ctx.PendingPairingId = req.Id;
             _ui.TryEnqueue(() =>
             {
+                if (!_contexts.ContainsKey(ctx.Id)) return;
+                if (_trustStore.IsTrusted(peer.Fingerprint))
+                {
+                    _ = SendAckAndReadyAsync(ctx, peer, remembered: true);
+                    return;
+                }
                 PendingPairings.Add(req);
                 RaiseEvent(new EngineEvent.PairingPending(req));
             });
         }
     }
 
-    private async Task SendAckAndReadyAsync(ConnectionContext ctx, Device peer)
+    private async Task SendAckAndReadyAsync(ConnectionContext ctx, Device peer, bool remembered)
     {
         var ack = new HelloAckMessage(Identity.Id, DisplayName, "windows",
-            Identity.Fingerprint, new() { 1 }, 1, Model);
+            Identity.Fingerprint, new() { 1 }, 1, Model, remembered);
         try
         {
-            await ctx.Connection.SendAsync(MessageType.HELLO_ACK, MessageCodec.Encode(ack));
             ctx.State = ConnectionContext.StateReady;
             ctx.Peer = peer;
+            await ctx.Connection.SendAsync(MessageType.HELLO_ACK, MessageCodec.Encode(ack));
         }
         catch (Exception ex) { await CloseContextAsync(ctx.Id, ex); }
     }
@@ -708,7 +737,8 @@ public sealed partial class ShareEngine : ObservableObject
     {
         HelloAckMessage? ack = null;
         try { ack = MessageCodec.Decode<HelloAckMessage>(body); } catch { }
-        if (ack is null) { await CloseContextAsync(ctx.Id, null); return; }
+        if (ack is null || ack.SelectedVersion != 1 || ack.ProtocolVersions?.Contains((byte)1) != true)
+        { await CloseContextAsync(ctx.Id, null); return; }
         if (!TransportIdentity.MatchesHello(ctx.Connection.AuthenticatedFingerprint, ack.Fp))
         { await CloseContextAsync(ctx.Id, new System.Security.Authentication.AuthenticationException("Device identity mismatch.")); return; }
         if (ctx.Role is not ConnectionContext.RoleClient role) { await CloseContextAsync(ctx.Id, null); return; }
@@ -717,6 +747,18 @@ public sealed partial class ShareEngine : ObservableObject
 
         switch (role.Payload)
         {
+            case ConnectionContext.PayloadPair pair:
+                if (!_ui.TryEnqueue(() =>
+                {
+                    if (!_contexts.ContainsKey(ctx.Id)) return;
+                    var remembered = ack.PairingRemembered == true
+                        && _trustStore.Trust(role.Target.Fingerprint, role.Target.Name);
+                    if (remembered) RefreshTrusted();
+                    pair.Result.TrySetResult(remembered);
+                    _ = CloseContextAsync(ctx.Id, null);
+                }))
+                    await CloseContextAsync(ctx.Id, null);
+                break;
             case ConnectionContext.PayloadText t:
                 {
                     var msg = new TextMessage(Guid.NewGuid().ToString(), t.Content,
@@ -930,7 +972,9 @@ public sealed partial class ShareEngine : ObservableObject
         _ui.TryEnqueue(() =>
         {
             // 5min 窗口重放丢弃：同一 offer 被重放不再重复弹窗 / 重复入库
-            if (!RegisterMessageId(peer.Fingerprint, offerId)) return;
+            if (!_contexts.ContainsKey(ctx.Id) || ctx.State != ConnectionContext.StateReady
+                || ctx.PendingOfferId.HasValue || _contexts.Values.Any(c => c.PendingOfferId == tid || c.TransferId == tid)
+                || !RegisterMessageId(peer.Fingerprint, offerId)) return;
 
             var resume = FindValidResumeRecord(peer, first);
             if (resume is not null && StartAutoResumeReceive(ctx, peer, tid, first, resume))
@@ -1052,38 +1096,41 @@ public sealed partial class ShareEngine : ObservableObject
             && ctx.ReceivedBytes - ctx.LastPersistedBytes >= ResumePersistInterval)
             PersistResumeRecord(ctx);
 
-        if (ctx.ReceivedBytes >= ctx.FileSize)
+        if (ctx.ReceivedBytes == ctx.FileSize) await FinishReceivedFileAsync(ctx);
+    }
+
+    private async Task FinishReceivedFileAsync(ConnectionContext ctx)
+    {
+        if (Interlocked.Exchange(ref ctx.ReceiveFinished, 1) != 0) return;
+        try { ctx.OutputStream?.Dispose(); } catch { }
+        ctx.OutputStream = null;
+
+        if (ctx.SavedPath is { } path && ctx.ExpectedSha256 is { } expected)
         {
-            try { output.Dispose(); } catch { }
-            ctx.OutputStream = null;
-
-            if (ctx.SavedPath is { } path && ctx.ExpectedSha256 is { } expected)
+            var actual = "";
+            try { actual = await ComputeSha256Async(path); } catch { }
+            if (actual != expected)
             {
-                var actual = "";
-                try { actual = await ComputeSha256Async(path); } catch { }
-                if (actual != expected)
-                {
-                    _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed("校验失败")); });
-                    ClearResumeRecord(ctx);
-                    try { File.Delete(path); } catch { }
-                    await CloseContextAsync(ctx.Id, null); return;
-                }
+                _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Failed("校验失败")); });
                 ClearResumeRecord(ctx);
+                try { File.Delete(path); } catch { }
+                await CloseContextAsync(ctx.Id, null); return;
             }
-
-            if (ctx.TransferId is { } tid)
-            {
-                try
-                {
-                    var complete = new FileCompleteMessage(tid.ToString(), 0);
-                    await ctx.Connection.SendAsync(MessageType.FILE_COMPLETE, MessageCodec.Encode(complete));
-                }
-                catch { }
-            }
-            _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Completed()); });
-            await Task.Delay(150);
-            await CloseContextAsync(ctx.Id, null);
+            ClearResumeRecord(ctx);
         }
+
+        if (ctx.TransferId is { } tid)
+        {
+            try
+            {
+                var complete = new FileCompleteMessage(tid.ToString(), 0);
+                await ctx.Connection.SendAsync(MessageType.FILE_COMPLETE, MessageCodec.Encode(complete));
+            }
+            catch { }
+        }
+        _ui.TryEnqueue(() => { if (ctx.HistoryId is { } h) UpdateHistory(h, new TransferStatus.Completed()); });
+        await Task.Delay(150);
+        await CloseContextAsync(ctx.Id, null);
     }
 
     // ─── 关闭与辅助 ─────────────────────────────────────────────────────
@@ -1091,6 +1138,8 @@ public sealed partial class ShareEngine : ObservableObject
     private Task CloseContextAsync(Guid id, Exception? ex)
     {
         if (!_contexts.TryRemove(id, out var ctx)) return Task.CompletedTask;
+        if (ctx.Role is ConnectionContext.RoleClient { Payload: ConnectionContext.PayloadPair pair })
+            pair.Result.TrySetResult(false);
         if (ctx.PendingPairingId is { } pp)
             _ui.TryEnqueue(() => { var x = PendingPairings.FirstOrDefault(p => p.Id == pp); if (x is not null) PendingPairings.Remove(x); });
         if (ctx.PendingOfferId is { } po)
@@ -1352,6 +1401,7 @@ internal sealed class ConnectionContext
 
     public FileStream? InputStream { get; set; }
     public FileStream? OutputStream { get; set; }
+    public int ReceiveFinished;
     public long FileSize { get; set; }
     public long SentBytes { get; set; }
     public long ReceivedBytes { get; set; }
@@ -1376,6 +1426,7 @@ internal sealed class ConnectionContext
     public sealed record RoleClient(Device Target, Payload Payload) : RoleBase;
 
     public abstract record Payload;
+    public sealed record PayloadPair(TaskCompletionSource<bool> Result) : Payload;
     public sealed record PayloadText(string Content) : Payload;
     public sealed record PayloadClipboard(string Content, string Kind) : Payload;
     public sealed record PayloadFile(string SourcePath, long FileSize, string Sha256, string FileName) : Payload;

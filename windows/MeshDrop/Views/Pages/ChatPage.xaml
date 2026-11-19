@@ -49,8 +49,8 @@
         <!-- 消息流 -->
         <Grid Grid.Row="1">
             <ScrollViewer x:Name="MessagesScroll" Padding="32,12,32,12" VerticalScrollMode="Enabled"
-                          ViewChanged="OnMessagesViewChanged">
-                <ItemsControl ItemsSource="{x:Bind ViewModel.Messages, Mode=OneWay}">
+                          HorizontalContentAlignment="Stretch" ViewChanged="OnMessagesViewChanged">
+                <ItemsControl HorizontalContentAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Messages, Mode=OneWay}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Spacing="0"/>

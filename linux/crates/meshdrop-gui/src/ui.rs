@@ -411,7 +411,6 @@ fn build_sidebar(handle: Option<&Rc<AppHandle>>) -> Sidebar {
     me_col.append(&fp);
     me_col.set_hexpand(true);
     me_row.append(&me_col);
-    // v0.1 LAN 传输为明文 TCP；不宣称 E2E。诚实标注当前阶段状态。
     me_row.append(&chip::chip(&t!("shell.me_chip"), chip::Tone::Outline, true));
     root.append(&me_row);
 
@@ -443,7 +442,6 @@ fn build_statusbar(handle: Option<&Rc<AppHandle>>) -> Statusbar {
     let mdns_label = mk("_meshdrop._tcp · 0 peers");
     row.append(&mdns_label);
     row.append(&sep());
-    // 传输层现状：明文 TCP（v0.1）。身份用 Ed25519 + SHA-256 指纹做 TOFU 信任。
     row.append(&mk(&t!("shell.statusbar_transport")));
     row.append(&sep());
 

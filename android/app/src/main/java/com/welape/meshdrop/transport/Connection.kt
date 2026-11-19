@@ -1,5 +1,6 @@
 package com.welape.meshdrop.transport
 
+import com.welape.meshdrop.data.Identity
 import com.welape.meshdrop.protocol.Frame
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,24 +25,22 @@ import java.net.Socket
  */
 class Connection private constructor(
     private val socket: Socket,
-    private val outgoingTarget: String?,    // 用于日志
+    private val identity: Identity,
+    private val expectedFingerprint: String?,
+    private val target: InetSocketAddress? = null,
 ) {
     companion object {
-        fun forIncoming(socket: Socket): Connection =
-            Connection(socket, outgoingTarget = null)
+        fun forIncoming(socket: Socket, identity: Identity): Connection =
+            Connection(socket, identity, expectedFingerprint = null)
 
-        fun forOutgoing(host: String, port: Int): Connection {
-            val socket = Socket()
-            // 实际连接发生在 start() 内（不阻塞主线程）
-            return Connection(socket, outgoingTarget = "$host:$port").apply {
-                pendingConnect = InetSocketAddress(host, port)
-            }
-        }
+        fun forOutgoing(host: String, port: Int, identity: Identity, expectedFingerprint: String) =
+            Connection(Socket(), identity, expectedFingerprint, InetSocketAddress(host, port))
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val sendMutex = Mutex()
-    private var pendingConnect: InetSocketAddress? = null
+    @Volatile var authenticatedFingerprint: String? = null
+        private set
 
     @Volatile var isClosed: Boolean = false
         private set
@@ -63,9 +62,13 @@ class Connection private constructor(
 
         scope.launch {
             try {
-                pendingConnect?.let { socket.connect(it, 5000) }
-                output = socket.getOutputStream()
-                input = socket.getInputStream()
+                target?.let { socket.connect(it, 5000) }
+                socket.soTimeout = 10_000
+                val tls = SecureTransport.authenticate(socket, identity, expectedFingerprint)
+                socket.soTimeout = 0
+                authenticatedFingerprint = tls.fingerprint
+                input = tls.input
+                output = tls.output
                 onReady()
                 readLoop()
             } catch (t: Throwable) {

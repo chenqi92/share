@@ -3,6 +3,7 @@ import Foundation
 /// 一个等待用户决定的入站文件请求。由 ShareEngine 在收到 FILE_OFFER 时投递。
 public struct PendingFileOffer: Identifiable, Sendable, Equatable {
     public let id: UUID                      // = transfer_id
+    let decisionID = UUID()
     public let peer: Device
     public let fileName: String
     public let fileSize: UInt64

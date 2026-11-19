@@ -23,6 +23,8 @@ final class WatchSessionController: NSObject, ObservableObject {
     static let shared = WatchSessionController()
 
     private weak var engine: ShareEngine?
+    private nonisolated let outbox = WatchFileOutbox(root: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("com.welape.meshdrop.watchbridge"))
     private var subs: Set<AnyCancellable> = []
     private var lastReachableAt: Date = .distantPast
     private var hasStarted = false
@@ -72,6 +74,9 @@ final class WatchSessionController: NSObject, ObservableObject {
                 for id in lastDevices.keys where next[id] == nil {
                     self.sendEvent(type: .deviceRemoved, payload: ["id": id])
                 }
+                if next.contains(where: { id, device in
+                    device["fingerprint"] as? String != lastDevices[id]?["fingerprint"] as? String
+                }) { self.forwardWatchFiles(to: devices) }
                 lastDevices = next
             }
             .store(in: &subs)
@@ -161,8 +166,6 @@ final class WatchSessionController: NSObject, ObservableObject {
         let session = WCSession.default
         guard session.activationState == .activated else { return }
 
-        // inbox_text / inbox_file_ready 的 payload 仍把收件项放在 `inbox` 子键下
-        // （watch 端 ingestInbox 读 payload["inbox"]），与其它 FLAT 事件约定不同，这是有意保留。
         switch item.kind {
         case .text(let content):
             let inbox: [String: Any] = [
@@ -172,7 +175,7 @@ final class WatchSessionController: NSObject, ObservableObject {
                 "text": content,
                 "receivedAt": Int64(item.createdAt.timeIntervalSince1970),
             ]
-            sendEvent(type: .inboxText, payload: ["inbox": inbox])
+            sendEvent(type: .inboxText, payload: inbox)
 
         case .file(let name, let size, let url):
             guard let fileURL = url, FileManager.default.fileExists(atPath: fileURL.path) else {
@@ -196,13 +199,15 @@ final class WatchSessionController: NSObject, ObservableObject {
                 let metadata: [String: Any] = [
                     "ref": ref,
                     "kind": "inbox_file",
+                    "sizeBytes": size,
+                    "receivedAt": Int64(item.createdAt.timeIntervalSince1970),
                     "name": name,
                     "peerName": item.peer.name,
                     "historyId": item.id.uuidString,
                 ]
                 session.transferFile(fileURL, metadata: metadata)
             }
-            sendEvent(type: .inboxFileReady, payload: ["inbox": inbox])
+            sendEvent(type: .inboxFileReady, payload: inbox)
         }
     }
 
@@ -272,19 +277,16 @@ final class WatchSessionController: NSObject, ObservableObject {
             return Self.ack(id: command.id, ok: true)
 
         case .sendFileRef:
-            guard let pid = command.payload?.peerId,
-                  let ref = command.payload?.fileRef,
-                  let peer = engine.devices.first(where: { $0.id == pid }) else {
+            guard let pid = command.payload?.peerId, let ref = command.payload?.fileRef else {
                 return Self.ack(id: command.id, ok: false, error: "peer_or_fileref_missing")
             }
-            // watch 在 transferFile 时把文件写到 phone container 的 ref URL（metadata.ref = 裸 token），
-            // 这里按约定从 `Library/Caches/com.welape.meshdrop.watchbridge/<ref>` 读取。
-            let url = Self.fileRefURL(for: ref)
-            guard FileManager.default.fileExists(atPath: url.path) else {
-                return Self.ack(id: command.id, ok: false, error: "fileref_not_found")
+            do {
+                try outbox.record(ref: ref, peerID: pid, name: command.payload?.name)
+                forwardWatchFiles(to: engine.devices)
+                return Self.ack(id: command.id, ok: true)
+            } catch {
+                return Self.ack(id: command.id, ok: false, error: "invalid_file_ref")
             }
-            engine.sendFile(to: peer, sourceURL: url)
-            return Self.ack(id: command.id, ok: true)
 
         case .acceptOffer:
             guard let oid = command.payload?.offerId, let uuid = UUID(uuidString: oid) else {
@@ -350,6 +352,7 @@ final class WatchSessionController: NSObject, ObservableObject {
         [
             "id": device.id,
             "displayName": device.name,
+            "fingerprint": device.fingerprint.lowercased(),
             "kind": WatchBridge.kindLabel(for: device.os),
             "model": device.model ?? "",
             "ip": "",
@@ -427,18 +430,16 @@ final class WatchSessionController: NSObject, ObservableObject {
         return da == db
     }
 
-    // MARK: - file ref 落盘约定
-
-    /// `transferFile(_:metadata:)` 完成后 watch 端把文件放到 phone 的 cache 子目录。
-    /// 此函数返回约定的本地路径。
-    nonisolated static func fileRefURL(for ref: String) -> URL {
-        let fm = FileManager.default
-        let base = (try? fm.url(for: .cachesDirectory, in: .userDomainMask,
-                                appropriateFor: nil, create: true)) ?? fm.temporaryDirectory
-        let dir = base.appendingPathComponent("com.welape.meshdrop.watchbridge", isDirectory: true)
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent(ref)
+    private func forwardWatchFiles(to devices: [Device]) {
+        guard let engine else { return }
+        let peers = Dictionary(devices.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        outbox.forward(available: peers.mapValues { $0.fingerprint.lowercased() }) { file in
+            if let peer = peers[file.peerID] { engine.sendFile(to: peer, sourceURL: file.url) }
+        } onError: { error in
+            log.error("watch 文件代发失败：\(error.localizedDescription)")
+        }
     }
+
 }
 
 // MARK: - WCSessionDelegate
@@ -492,42 +493,22 @@ extension WatchSessionController: WCSessionDelegate {
         log.debug("收到 watch 无回执消息（忽略）：\(message.keys.sorted())")
     }
 
-    /// 大对象通道：watch 端用 transferFile 把文件传到 phone container 后会触发。
-    ///
-    /// 约定（companion-bridges.md §4.1）：watch 的 metadata 里带
-    /// `ref`（裸 token）/`type`/`peerId`/`name`。文件先按 ref 落盘到约定路径；
-    /// 若 metadata 已带 `type == send_file_ref` 且有 `peerId`，则直接路由发送
-    /// （watch 端 transferFile 后不再单发 send_file_ref 命令，故这里兜底直发）。
-    /// 若没带 peerId，则只落盘，等随后的 send_file_ref 命令凭同一 ref 取文件发送。
     nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        let fm = FileManager.default
-        let metadata = file.metadata ?? [:]
-        let ref = metadata["ref"] as? String ?? UUID().uuidString
-        let dst = WatchSessionController.fileRefURL(for: ref)
+        guard let metadata = file.metadata, let ref = metadata["ref"] as? String else { return }
+        let peer = (metadata["type"] as? String) == WatchBridge.CommandType.sendFileRef.rawValue
+            ? metadata["peerId"] as? String : nil
         do {
-            if fm.fileExists(atPath: dst.path) {
-                try fm.removeItem(at: dst)
-            }
-            try fm.moveItem(at: file.fileURL, to: dst)
-            log.info("watch 文件落盘 ref=\(ref)")
-        } catch {
-            log.error("watch 文件移动失败：\(error.localizedDescription)")
-            return
-        }
-
-        // watch 出站代发：metadata 已带 peerId 时直接路由（不等命令）。
-        if (metadata["type"] as? String) == WatchBridge.CommandType.sendFileRef.rawValue,
-           let peerId = metadata["peerId"] as? String {
+            // WatchConnectivity removes this URL as soon as the delegate returns.
+            try outbox.record(ref: ref, peerID: peer, name: metadata["name"] as? String,
+                              fingerprint: metadata["fingerprint"] as? String, file: file.fileURL)
             Task { @MainActor in
-                guard let engine = Self.shared.engine,
-                      let peer = engine.devices.first(where: { $0.id == peerId }) else {
-                    log.error("watch 代发：peerId=\(peerId) 不在当前设备列表，已落盘等命令兜底")
-                    return
-                }
-                engine.sendFile(to: peer, sourceURL: dst)
+                if let engine { forwardWatchFiles(to: engine.devices) }
             }
+        } catch {
+            log.error("watch 文件落盘失败：\(error.localizedDescription)")
         }
     }
+
 }
 
 #else

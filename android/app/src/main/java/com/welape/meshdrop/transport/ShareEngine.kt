@@ -44,6 +44,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.getAndUpdate
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -104,6 +106,9 @@ class ShareEngine(private val context: Context) {
     private val _pendingFileOffers = MutableStateFlow<List<PendingFileOffer>>(emptyList())
     val pendingFileOffers: StateFlow<List<PendingFileOffer>> = _pendingFileOffers.asStateFlow()
 
+    private val _pairingTargets = MutableStateFlow(emptySet<String>())
+    val pairingTargets = _pairingTargets.asStateFlow()
+
     private val _trusted = MutableStateFlow<List<TrustRecord>>(emptyList())
     val trusted: StateFlow<List<TrustRecord>> = _trusted.asStateFlow()
 
@@ -140,7 +145,7 @@ class ShareEngine(private val context: Context) {
     private val settingsPrefs =
         context.getSharedPreferences("meshdrop_settings", Context.MODE_PRIVATE)
     private val _autoAcceptFromTrusted =
-        MutableStateFlow(settingsPrefs.getBoolean("autoAcceptTrusted", false))
+        MutableStateFlow(settingsPrefs.getBoolean("autoAcceptTrusted", true))
     val autoAcceptFromTrusted: StateFlow<Boolean> = _autoAcceptFromTrusted.asStateFlow()
     fun setAutoAcceptFromTrusted(value: Boolean) {
         _autoAcceptFromTrusted.value = value
@@ -210,7 +215,7 @@ class ShareEngine(private val context: Context) {
                     while (!sock.isClosed) {
                         try {
                             val client = sock.accept()
-                            launch { acceptIncoming(Connection.forIncoming(client)) }
+                            launch { acceptIncoming(Connection.forIncoming(client, identity)) }
                         } catch (e: Exception) {
                             if (!sock.isClosed) Log.e(TAG, "accept failed", e)
                             break
@@ -243,6 +248,7 @@ class ShareEngine(private val context: Context) {
         _sessionThroughput.value = SessionThroughput()
         val active = contexts.values.toList()
         contexts.clear()
+        _pairingTargets.value = emptySet()
         for (ctx in active) ctx.connection.close()
         _devices.value = emptyList()
         _isStarting.value = false
@@ -354,12 +360,28 @@ class ShareEngine(private val context: Context) {
         }
     }
 
+    fun requestPairing(device: Device) {
+        val connection = newOutgoingConnection(device) ?: return
+        val pending = _pairingTargets.getAndUpdate { it + device.fingerprint }
+        if (device.fingerprint in pending) {
+            connection.close()
+            return
+        }
+        val ctx = ConnectionContext(
+            connection = connection,
+            role = ConnectionContext.Role.Client(device, ConnectionContext.Payload.Pair),
+            state = ConnectionContext.State.AwaitingHelloAck,
+        )
+        contexts[ctx.id] = ctx
+        startConnection(ctx)
+    }
+
     private fun newOutgoingConnection(device: Device): Connection? {
         val host = device.host ?: return null
         // defense-in-depth：建连构造（InetSocketAddress）对越界端口等会抛异常，
         // 这里兜底转 null，由调用方按"无法建连"处理，绝不让异常逃到主线程。
         return try {
-            Connection.forOutgoing(host, device.port)
+            Connection.forOutgoing(host, device.port, identity, device.fingerprint)
         } catch (_: IllegalArgumentException) {
             null
         }
@@ -368,8 +390,8 @@ class ShareEngine(private val context: Context) {
     // MARK: - 决定
 
     fun respondToPairing(requestId: UUID, decision: PairingDecision) {
-        val req = _pendingPairings.value.firstOrNull { it.id == requestId } ?: return
-        _pendingPairings.value = _pendingPairings.value.filter { it.id != requestId }
+        val req = _pendingPairings.getAndUpdate { pending -> pending.filter { it.id != requestId } }
+            .firstOrNull { it.id == requestId } ?: return
 
         val entry = contexts.entries.firstOrNull { (_, c) ->
             val s = c.state
@@ -383,55 +405,58 @@ class ShareEngine(private val context: Context) {
                 PairingDecision.TRUST -> {
                     trustStore.trust(req.peer.fingerprint, req.peer.name)
                     _trusted.value = trustStore.snapshot()
-                    sendAckAndReady(ctx, req.peer)
+                    sendAckAndReady(ctx, req.peer, remembered = true)
                 }
             }
         }
     }
 
     fun respondToFileOffer(offerId: UUID, accept: Boolean) {
-        val offer = _pendingFileOffers.value.firstOrNull { it.id == offerId } ?: return
-        _pendingFileOffers.value = _pendingFileOffers.value.filter { it.id != offerId }
+        val offer = _pendingFileOffers.getAndUpdate { pending -> pending.filter { it.id != offerId } }
+            .firstOrNull { it.id == offerId } ?: return
 
         val ctx = contexts.values.firstOrNull { it.pendingOfferId == offerId } ?: return
-        scope.launch {
-            if (!accept) {
-                try {
-                    val body = MessageCodec.encode(FileRejectMessage(offerId.toString(), 0, "user_declined"))
-                    ctx.connection.send(MessageType.FILE_REJECT, body)
-                } catch (_: Exception) {}
-                closeContext(ctx.id, null)
-                return@launch
-            }
-            // 接受：开 file handle + 发 ACCEPT + 进入 receiving
-            val saveFile = uniqueFile(defaultSaveDir(offer.peer), offer.fileName)
+        scope.launch { resolveFileOffer(ctx, offer, accept) }
+    }
+
+    private suspend fun resolveFileOffer(ctx: ConnectionContext, offer: PendingFileOffer, accept: Boolean) {
+        val offerId = offer.id
+        if (!accept) {
             try {
-                val output = FileOutputStream(saveFile)
-                ctx.output = output
-                ctx.savedFile = saveFile
-                ctx.fileSize = offer.fileSize
-                ctx.expectedSha256 = offer.sha256
-                ctx.transferId = offer.id
-                ctx.pendingOfferId = null
-                ctx.state = ConnectionContext.State.ReceivingFile
+                val body = MessageCodec.encode(FileRejectMessage(offerId.toString(), 0, "user_declined"))
+                ctx.connection.send(MessageType.FILE_REJECT, body)
+            } catch (_: Exception) {}
+            closeContext(ctx.id, null)
+            return
+        }
+        // 接受：开 file handle + 发 ACCEPT + 进入 receiving
+        val saveFile = uniqueFile(defaultSaveDir(offer.peer), offer.fileName)
+        try {
+            val output = FileOutputStream(saveFile)
+            ctx.output = output
+            ctx.savedFile = saveFile
+            ctx.fileSize = offer.fileSize
+            ctx.expectedSha256 = offer.sha256
+            ctx.transferId = offer.id
+            ctx.pendingOfferId = null
+            ctx.state = ConnectionContext.State.ReceivingFile
 
-                val item = HistoryItem(
-                    peer = offer.peer,
-                    direction = TransferDirection.INCOMING,
-                    kind = HistoryKind.File(offer.fileName, offer.fileSize, Uri.fromFile(saveFile)),
-                    status = TransferStatus.Transferring(0, offer.fileSize),
-                )
-                insertHistory(item)
-                ctx.historyId = item.id
+            val item = HistoryItem(
+                peer = offer.peer,
+                direction = TransferDirection.INCOMING,
+                kind = HistoryKind.File(offer.fileName, offer.fileSize, Uri.fromFile(saveFile)),
+                status = TransferStatus.Transferring(0, offer.fileSize),
+            )
+            insertHistory(item)
+            ctx.historyId = item.id
 
-                val body = MessageCodec.encode(FileAcceptMessage(offer.id.toString(), 0, 0))
-                ctx.connection.send(MessageType.FILE_ACCEPT, body)
-                // 零字节文件不会产生任何 FILE_CHUNK：立即完成，避免发送方与接收方互等死锁。
-                if (offer.fileSize == 0L) finishReceive(ctx)
-            } catch (e: Exception) {
-                Log.e(TAG, "accept file failed", e)
-                closeContext(ctx.id, e)
-            }
+            val body = MessageCodec.encode(FileAcceptMessage(offer.id.toString(), 0, 0))
+            ctx.connection.send(MessageType.FILE_ACCEPT, body)
+            // 零字节文件不会产生任何 FILE_CHUNK：立即完成，避免发送方与接收方互等死锁。
+            if (offer.fileSize == 0L) finishReceive(ctx)
+        } catch (e: Exception) {
+            Log.e(TAG, "accept file failed", e)
+            closeContext(ctx.id, e)
         }
     }
 
@@ -613,27 +638,31 @@ class ShareEngine(private val context: Context) {
     private suspend fun serverReceivedHello(ctx: ConnectionContext, body: ByteArray) {
         val hello = runCatching { MessageCodec.decode<HelloMessage>(body) }.getOrNull()
         if (hello == null) { closeContext(ctx.id, null); return }
-        if (!hello.protocol_versions.contains(1)) { closeContext(ctx.id, null); return }
+        val fingerprint = ctx.connection.authenticatedFingerprint
+        if (fingerprint == null || !fingerprint.equals(hello.fp, ignoreCase = true) || 1 !in hello.protocol_versions) {
+            closeContext(ctx.id, null)
+            return
+        }
         val os = DeviceOS.parse(hello.os) ?: DeviceOS.LINUX
         val peer = Device(
             id = hello.id, name = hello.name, os = os,
-            model = hello.model, fingerprint = hello.fp,
+            model = hello.model, fingerprint = fingerprint,
             port = 0, protocolVersion = 1,
         )
         ctx.peer = peer
 
-        if (trustStore.isTrusted(hello.fp)) {
-            trustStore.touch(hello.fp)
+        if (trustStore.isTrusted(fingerprint)) {
+            trustStore.touch(fingerprint)
             _trusted.value = trustStore.snapshot()
-            sendAckAndReady(ctx, peer)
+            sendAckAndReady(ctx, peer, remembered = true)
         } else {
             val req = PendingPairing(peer = peer)
             ctx.state = ConnectionContext.State.AwaitingPairApproval(req)
-            _pendingPairings.value = _pendingPairings.value + req
+            _pendingPairings.update { it + req }
         }
     }
 
-    private suspend fun sendAckAndReady(ctx: ConnectionContext, peer: Device) {
+    private suspend fun sendAckAndReady(ctx: ConnectionContext, peer: Device, remembered: Boolean = false) {
         val ack = HelloAckMessage(
             id = identity.id,
             name = displayName,
@@ -642,11 +671,12 @@ class ShareEngine(private val context: Context) {
             fp = identity.fingerprint,
             protocol_versions = listOf(1),
             selected_version = 1,
+            pairing_remembered = remembered,
         )
         try {
-            ctx.connection.send(MessageType.HELLO_ACK, MessageCodec.encode(ack))
-            ctx.state = ConnectionContext.State.Ready
             ctx.peer = peer
+            ctx.state = ConnectionContext.State.Ready
+            ctx.connection.send(MessageType.HELLO_ACK, MessageCodec.encode(ack))
         } catch (e: Exception) {
             closeContext(ctx.id, e)
         }
@@ -656,12 +686,22 @@ class ShareEngine(private val context: Context) {
         val ack = runCatching { MessageCodec.decode<HelloAckMessage>(body) }.getOrNull()
             ?: return closeContext(ctx.id, null)
         val role = ctx.role as? ConnectionContext.Role.Client ?: return closeContext(ctx.id, null)
-        if (ack.fp != role.target.fingerprint) {
+        val fingerprint = ctx.connection.authenticatedFingerprint
+        if (fingerprint == null || !fingerprint.equals(ack.fp, ignoreCase = true) ||
+            !fingerprint.equals(role.target.fingerprint, ignoreCase = true) ||
+            ack.selected_version != 1 || 1 !in ack.protocol_versions) {
             Log.i(TAG, "server fp mismatch"); closeContext(ctx.id, null); return
         }
         ctx.peer = role.target
 
         when (val payload = role.payload) {
+            ConnectionContext.Payload.Pair -> {
+                if (ack.pairing_remembered == true) {
+                    trustStore.trust(fingerprint, role.target.name)
+                    _trusted.value = trustStore.snapshot()
+                }
+                closeContext(ctx.id, null)
+            }
             is ConnectionContext.Payload.Text -> {
                 val msg = TextMessage(
                     id = UUID.randomUUID().toString(),
@@ -845,7 +885,7 @@ class ShareEngine(private val context: Context) {
 
         // 命中 ResumeStore 且半成品仍在 → 自动接受，发 resume_offset > 0；否则走正常审批。
         val resume = resumeStore.find(peer.fingerprint, first.sha256)
-        if (resume != null &&
+        if (_autoAcceptFromTrusted.value && trustStore.isTrusted(peer.fingerprint) && resume != null &&
             resume.fileSize == first.size &&
             resume.bytesDone < first.size &&
             File(resume.savedPath).exists()) {
@@ -858,11 +898,11 @@ class ShareEngine(private val context: Context) {
             id = tid, peer = peer,
             fileName = sanitizeReceivedName(first.name), fileSize = first.size, sha256 = first.sha256,
         )
-        ctx.pendingOfferId = pending.id
-        _pendingFileOffers.value = _pendingFileOffers.value + pending
-        // 设置开启且对端已信任 → 自动接受（复用标准接受流程，会把该项移出 pending）。
         if (_autoAcceptFromTrusted.value && trustStore.isTrusted(peer.fingerprint)) {
-            respondToFileOffer(pending.id, true)
+            resolveFileOffer(ctx, pending, true)
+        } else {
+            ctx.pendingOfferId = pending.id
+            _pendingFileOffers.update { it + pending }
         }
     }
 
@@ -1019,12 +1059,24 @@ class ShareEngine(private val context: Context) {
 
     private suspend fun closeContext(id: UUID, t: Throwable?) {
         val ctx = contexts.remove(id) ?: return
+        val role = ctx.role
+        if (role is ConnectionContext.Role.Client && role.payload == ConnectionContext.Payload.Pair) {
+            _pairingTargets.update { it - role.target.fingerprint }
+        }
         val state = ctx.state
+        if (state is ConnectionContext.State.AwaitingHelloAck || state is ConnectionContext.State.AwaitingFileAccept) {
+            ctx.historyId?.let { historyId ->
+                val item = _history.value.firstOrNull { it.id == historyId }
+                if (item?.status == TransferStatus.Pending || item?.status == TransferStatus.WaitingApproval) {
+                    failHistory(historyId, t?.message ?: context.getString(R.string.engine_conn_lost))
+                }
+            }
+        }
         if (state is ConnectionContext.State.AwaitingPairApproval) {
-            _pendingPairings.value = _pendingPairings.value.filter { it.id != state.request.id }
+            _pendingPairings.update { pending -> pending.filter { it.id != state.request.id } }
         }
         ctx.pendingOfferId?.let { pid ->
-            _pendingFileOffers.value = _pendingFileOffers.value.filter { it.id != pid }
+            _pendingFileOffers.update { pending -> pending.filter { it.id != pid } }
         }
 
         // 接收态被异常关闭（output 仍持有 + 字节未收齐）→ 视为「连接中断」：
@@ -1238,6 +1290,7 @@ class ConnectionContext(
     }
 
     sealed interface Payload {
+        data object Pair : Payload
         data class Text(val content: String) : Payload
         data class Clipboard(val content: String, val kind: String) : Payload
         data class File(

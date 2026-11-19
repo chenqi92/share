@@ -114,7 +114,8 @@ internal class WearSessionClient(private val context: Context) {
                     Log.w(TAG, "sendMessage failed", it)
                     return CmdResp(id = cmd.id, ok = false, error = "send_failed: ${it.message}")
                 }
-            return withTimeoutOrNull(BridgeProtocol.CMD_TIMEOUT_MS) { waiter.await() }
+            val timeout = if (type == CmdType.SEND_FILE_REF) 90_000L else BridgeProtocol.CMD_TIMEOUT_MS
+            return withTimeoutOrNull(timeout) { waiter.await() }
                 ?: CmdResp(id = cmd.id, ok = false, error = "timeout")
         } finally {
             pending.remove(cmd.id)

@@ -27,6 +27,8 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
+import com.welape.meshdrop.transport.ShareEngine
 import com.welape.meshdrop.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -72,6 +75,7 @@ fun ChatDetailScreen(
     useMockFallback: Boolean = true,
     onSendText: (String) -> Unit = {},
     onAttachFile: () -> Unit = {},
+    engine: ShareEngine? = null,
 ) {
     val mesh = MeshTheme.colors
     val displayDevice = device ?: if (useMockFallback) MockDeviceById(deviceId) else null
@@ -129,7 +133,21 @@ fun ChatDetailScreen(
                     )
                 }
             }
-            MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
+            if (engine == null) {
+                MeshChip(text = "LAN", tone = ChipTone.OUTLINE, mono = true)
+            } else {
+                val devices by engine.devices.collectAsState()
+                val trusted by engine.trusted.collectAsState()
+                val pending by engine.pairingTargets.collectAsState()
+                val online = devices.firstOrNull { it.fingerprint == deviceId }
+                if (trusted.any { it.fingerprint == deviceId }) {
+                    MeshChip(text = stringResource(R.string.pairing_paired), tone = ChipTone.OUTLINE)
+                } else if (online != null) {
+                    TextButton(onClick = { engine.requestPairing(online) }, enabled = deviceId !in pending) {
+                        Text(stringResource(if (deviceId in pending) R.string.pairing_waiting else R.string.pairing_request))
+                    }
+                }
+            }
         }
 
         Box(modifier = Modifier.weight(1f)) {

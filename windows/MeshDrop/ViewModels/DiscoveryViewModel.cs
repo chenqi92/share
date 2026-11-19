@@ -41,10 +41,13 @@ public sealed partial class DiscoveryViewModel : ObservableObject
             OnPropertyChanged(nameof(DetailVisibility));
             OnPropertyChanged(nameof(EmptyDetailVisibility));
             OnPropertyChanged(nameof(IsEmpty));
-            if (Devices.Count > 0 && string.IsNullOrEmpty(SelectedId))
-                SelectedId = Devices[0].Id;
         };
 
+        _engine.Devices.CollectionChanged += (_, _) =>
+        {
+            if (Selected is null) SelectedId = Devices.FirstOrDefault()?.Id ?? "";
+        };
+        SelectedId = Devices.FirstOrDefault()?.Id ?? "";
         IsScanning = _engine.IsStarting;
         LastError = _engine.LastError;
         _engine.PropertyChanged += OnEnginePropertyChanged;

@@ -60,19 +60,19 @@
         }
       }
     },
-    "chip.plaintext" : {
+    "chip.tls" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plaintext · v0.1"
+            "value" : "TLS 1.3"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "明文 · v0.1"
+            "value" : "TLS 1.3"
           }
         }
       }
@@ -1197,19 +1197,19 @@
         }
       }
     },
-    "receive.plaintext.tag" : {
+    "receive.tls.tag" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Plaintext · v0.1"
+            "value" : "TLS 1.3"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "明文 · v0.1"
+            "value" : "TLS 1.3"
           }
         }
       }

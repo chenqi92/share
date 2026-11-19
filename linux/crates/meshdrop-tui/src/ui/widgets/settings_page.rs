@@ -115,7 +115,6 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, set
         .split(area);
     ascii_divider::render(f, rows[0], theme, &t!("settings.security_divider"));
 
-    // v0.1 局域网传输为明文 TCP；身份用 Ed25519 + SHA-256 指纹做 TOFU。不宣称 E2E。
     // 安全开关随 settings 真实反映（:set 可改，engine 持久化）。
     let lines = vec![
         Line::from(""),
@@ -124,11 +123,7 @@ fn section_security(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, set
         kv(theme, "trusted only  ", on_off(settings.trusted_only), true),
         kv(theme, "verify recv   ", on_off(settings.verify_before_receive), true),
         kv(theme, "auto stranger ", on_off(settings.auto_accept_stranger), true),
-        kv(theme, "transport     ", "LAN plaintext (v0.1)", false),
-        Line::from(vec![
-            Span::raw("  "),
-            chip::chip(theme, "TLS 1.3 mTLS · PLANNED", chip::Tone::Outline),
-        ]),
+        kv(theme, "transport     ", "TLS 1.3 mTLS", false),
     ];
     f.render_widget(Paragraph::new(lines), rows[2]);
 

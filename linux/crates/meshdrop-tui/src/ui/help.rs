@@ -67,7 +67,7 @@ pub fn render(f: &mut Frame, full: Rect, theme: &Theme) {
         keyrow(theme, "x",            &t!("help.k_cancel")),
         keyrow(theme, "R",            &t!("help.k_retry")),
         keyrow(theme, "1..6 Tab [ ]", &t!("help.k_pages")),
-        keyrow(theme, "p",            &t!("help.k_demo_pairing")),
+        keyrow(theme, "p",            &t!("help.k_pair_selected")),
         keyrow(theme, "o",            &t!("help.k_demo_offer")),
         keyrow(theme, "?",            &t!("help.k_help")),
         keyrow(theme, "q  Esc",       &t!("help.k_quit")),

@@ -93,12 +93,11 @@ class WearBridgeService : WearableListenerService() {
                     val fileRef = payload.stringField("fileRef")
                         ?: return replyError(sourceNodeId, env.id, "missing_fileRef")
                     val name = payload.stringField("name") ?: "wear-file.bin"
-                    val sizeBytes = payload.longField("sizeBytes") ?: 0L
                     val device = engine.devices.value.firstOrNull { it.id == peerId }
                         ?: return replyError(sourceNodeId, env.id, "peer_not_found")
-                    val uri: Uri? = assetTransfer.fetchAssetToLocal(fileRef, name)
-                    if (uri == null) return replyError(sourceNodeId, env.id, "asset_fetch_failed")
-                    engine.sendFile(device, uri, name, sizeBytes)
+                    val file = assetTransfer.fetchAssetToLocal(sourceNodeId, fileRef)
+                        ?: return replyError(sourceNodeId, env.id, "asset_fetch_failed")
+                    engine.sendFile(device, Uri.fromFile(file), name, file.length())
                     reply(sourceNodeId, env.id, ok = true, result = JsonNull)
                 }
                 WearCmdType.ACCEPT_OFFER -> {
@@ -177,9 +176,6 @@ class WearBridgeService : WearableListenerService() {
     /** 工具：JSON field 取值。 */
     private fun JsonObject.stringField(name: String): String? =
         get(name)?.jsonPrimitive?.contentOrNull
-
-    private fun JsonObject.longField(name: String): Long? =
-        get(name)?.jsonPrimitive?.contentOrNull?.toLongOrNull()
 
     private fun JsonObject.boolField(name: String): Boolean? =
         get(name)?.jsonPrimitive?.contentOrNull?.toBooleanStrictOrNull()

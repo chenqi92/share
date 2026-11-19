@@ -94,6 +94,8 @@ pub struct HelloAckMessage {
     pub fp: String,
     pub protocol_versions: Vec<u8>,
     pub selected_version: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pairing_remembered: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

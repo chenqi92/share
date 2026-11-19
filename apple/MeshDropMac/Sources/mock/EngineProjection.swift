@@ -113,6 +113,7 @@ extension MockPendingPairing {
             peer: req.peer.name,
             deviceName: req.peer.model ?? req.peer.name,
             fingerprint: req.peer.humanFingerprint,
+            canRemember: req.canRemember,
             receivedAt: shortAgo(from: req.receivedAt)
         )
     }

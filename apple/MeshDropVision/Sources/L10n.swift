@@ -125,7 +125,7 @@ enum L10n {
     static func statusVisibleCount(_ n: Int) -> String {
         String(localized: "status.visible.count \(n)")
     }
-    static let statusLanPlaintext = String(localized: "status.lan.plaintext")
+    static let statusLanTLS = String(localized: "status.lan.tls")
     static let resetMenu = String(localized: "reset.menu")
     static let resetConfirm = String(localized: "reset.confirm")
     static let resetAction = String(localized: "reset.action")

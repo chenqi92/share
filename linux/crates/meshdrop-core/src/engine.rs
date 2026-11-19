@@ -21,7 +21,7 @@ use std::time::{Duration, Instant};
 use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio::net::TcpListener;
-use tokio::sync::{mpsc, watch};
+use tokio::sync::{mpsc, oneshot, watch};
 use uuid::Uuid;
 
 const CHUNK_SIZE: usize = 256 * 1024;
@@ -103,7 +103,7 @@ pub struct ShareEngine {
 /// 引擎附加式开关集合。全部默认安全值：
 /// - trusted_only: false（现状 = 未知 fp 走配对确认）
 /// - auto_accept_stranger: false（现状 = 陌生 offer 不自动接受）
-/// - verify_before_receive: true（更安全 = 禁用一切自动接受）
+/// - verify_before_receive: 开启后，每个文件都由用户确认。
 /// - confirm_stranger: 始终 true（TOFU 不可关；保留字段仅为持久化展示一致）
 #[derive(Clone)]
 struct EngineFlags {
@@ -340,6 +340,12 @@ impl ShareEngine {
     pub fn clipboard_rx(&self) -> watch::Receiver<Vec<ClipboardEntry>> { self.clipboard_rx.clone() }
     pub fn throughput_rx(&self) -> watch::Receiver<SessionThroughput> { self.throughput_rx.clone() }
 
+    pub fn request_pairing(&self, peer: Device) -> oneshot::Receiver<bool> {
+        let (reply, result) = oneshot::channel();
+        let _ = self.cmd_tx.send(UserCmd::Pair { peer, reply });
+        result
+    }
+
     pub fn send_text(&self, peer: Device, content: String) {
         let _ = self.cmd_tx.send(UserCmd::SendText { peer, content });
     }
@@ -393,6 +399,7 @@ impl ShareEngine {
 // ─── 命令枚举 ──────────────────────────────────────────────────────────
 
 enum UserCmd {
+    Pair { peer: Device, reply: oneshot::Sender<bool> },
     SendText { peer: Device, content: String },
     PushClipboard { peer: Device, content: String, kind: String },
     SendFile { peer: Device, path: PathBuf },
@@ -483,6 +490,7 @@ struct ConnCtx {
     #[allow(dead_code)] // 保留备日志 / debug；构造时存但当前无读取者
     id: Uuid,
     connection: Connection,
+    authenticated_fp: Option<String>,
     role: Role,
     state: ConnState,
     peer: Option<Device>,
@@ -518,6 +526,7 @@ enum Role {
 }
 
 enum ClientPayload {
+    Pair { reply: Option<oneshot::Sender<bool>> },
     Text(String),
     Clipboard { content: String, kind: String },
     // path 当前由 ConnCtx.source_path 持有；这里冗余但保留写法清晰
@@ -623,7 +632,12 @@ async fn sweep_timeouts(state: &mut State) {
 async fn handle_user_cmd(state: &mut State, cmd: UserCmd) {
     match cmd {
         UserCmd::SendText { peer, content } => start_send_text(state, peer, content).await,
-        UserCmd::PushClipboard { peer, content, kind } => start_push_clipboard(state, peer, content, kind).await,
+        UserCmd::Pair { peer, reply } => start_control_connection(state, peer, ClientPayload::Pair { reply: Some(reply) }),
+        UserCmd::PushClipboard { peer, content, kind } => {
+            if !content.is_empty() && state.flags.clipboard_sync.load(Ordering::Relaxed) {
+                start_control_connection(state, peer, ClientPayload::Clipboard { content, kind });
+            }
+        }
         UserCmd::SendFile { peer, path } => start_send_file(state, peer, path).await,
         UserCmd::RespondPairing { id, decision } => respond_pairing(state, id, decision).await,
         UserCmd::RespondOffer { id, accept } => respond_offer(state, id, accept).await,
@@ -684,7 +698,7 @@ async fn cancel_transfer(state: &mut State, history_id: Uuid) {
         };
         let body = serde_json::to_vec(&cancel).unwrap_or_default();
         if let Some(ctx) = state.contexts.get(&ctx_id) {
-            let _ = ctx.connection.send(msg_type::FILE_CANCEL, body);
+            let _ = ctx.connection.send_and_flush(msg_type::FILE_CANCEL, body).await;
         }
     }
 
@@ -701,13 +715,13 @@ async fn handle_internal_cmd(state: &mut State, cmd: InternalCmd) {
                 drop(stream);
                 return;
             }
-            let conn = Connection::from_stream(stream, addr);
+            let conn = Connection::from_stream(stream, addr, state.identity.clone());
             let ctx_id = Uuid::new_v4();
             spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
             state.contexts.insert(ctx_id, ConnCtx::new_server(ctx_id, conn));
         }
         InternalCmd::ConnEvent { ctx_id, event } => match event {
-            ConnEvent::Ready => on_ready(state, ctx_id).await,
+            ConnEvent::Ready { fingerprint } => on_ready(state, ctx_id, fingerprint).await,
             ConnEvent::Frame { msg_type, body } => on_frame(state, ctx_id, msg_type, body).await,
             ConnEvent::Closed(reason) => close_ctx(state, ctx_id, reason).await,
         }
@@ -732,7 +746,7 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
         update_status(state, item.id, TransferStatus::Failed("无可用 IP".into()));
         return;
     };
-    let conn = Connection::connect(host, peer.port);
+    let conn = Connection::connect(host, peer.port, state.identity.clone(), peer.fingerprint.clone());
     let ctx_id = Uuid::new_v4();
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
 
@@ -743,20 +757,13 @@ async fn start_send_text(state: &mut State, peer: Device, content: String) {
     state.contexts.insert(ctx_id, ctx);
 }
 
-/// 显式推送剪贴板：建客户端连接，HELLO/ACK 后发 CLIPBOARD，不留 history。
-async fn start_push_clipboard(state: &mut State, peer: Device, content: String, kind: String) {
-    if content.is_empty() { return; }
-    // 剪贴板同步关闭时不发送（门控已有能力，默认关）。
-    if !state.flags.clipboard_sync.load(Ordering::Relaxed) {
-        debug!("clipboard sync 关闭，跳过推送");
-        return;
-    }
+fn start_control_connection(state: &mut State, peer: Device, payload: ClientPayload) {
     let Some(host) = peer.host.clone() else { return };
-    let conn = Connection::connect(host, peer.port);
+    let conn = Connection::connect(host, peer.port, state.identity.clone(), peer.fingerprint.clone());
     let ctx_id = Uuid::new_v4();
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
     let ctx = ConnCtx::new_client(ctx_id, conn,
-        Role::Client { target: Box::new(peer), payload: ClientPayload::Clipboard { content, kind } },
+        Role::Client { target: Box::new(peer), payload },
         ConnState::AwaitingHelloAck);
     state.contexts.insert(ctx_id, ctx);
 }
@@ -835,7 +842,7 @@ async fn on_file_hash_ready(
         update_status(state, history_id, TransferStatus::Failed("无可用 IP".into()));
         return;
     };
-    let conn = Connection::connect(host, peer.port);
+    let conn = Connection::connect(host, peer.port, state.identity.clone(), peer.fingerprint.clone());
     let ctx_id = Uuid::new_v4();
     spawn_event_forwarder(&state.internal_tx, ctx_id, conn.events_rx.clone());
 
@@ -896,7 +903,7 @@ async fn respond_offer(state: &mut State, offer_id: Uuid, accept: bool) {
                 transfer_id: offer.id.to_string(), index: 0,
                 reason: "user_declined".into(),
             }).unwrap_or_default();
-            let _ = ctx.connection.send(msg_type::FILE_REJECT, body);
+            let _ = ctx.connection.send_and_flush(msg_type::FILE_REJECT, body).await;
         }
         close_ctx(state, ctx_id, None).await;
         return;
@@ -939,13 +946,17 @@ async fn respond_offer(state: &mut State, offer_id: Uuid, accept: bool) {
         }).unwrap_or_default();
         let _ = ctx.connection.send(msg_type::FILE_ACCEPT, body);
     }
+    if offer.file_size == 0 {
+        finish_receive(state, ctx_id).await;
+    }
 }
 
 // ─── 连接事件处理 ────────────────────────────────────────────────────
 
-async fn on_ready(state: &mut State, ctx_id: Uuid) {
+async fn on_ready(state: &mut State, ctx_id: Uuid, fingerprint: String) {
     // 出方：连上后立即发 HELLO；入方：等对方 HELLO 即可
-    let Some(ctx) = state.contexts.get(&ctx_id) else { return };
+    let Some(ctx) = state.contexts.get_mut(&ctx_id) else { return };
+    ctx.authenticated_fp = Some(fingerprint);
     if matches!(ctx.role, Role::Client { .. }) {
         let hello = HelloMessage {
             id: state.identity.id.clone(),
@@ -1044,9 +1055,9 @@ async fn server_recv_hello(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         Ok(h) => h, Err(_) => { close_ctx(state, ctx_id, None).await; return; }
     };
     if !hello.protocol_versions.contains(&1) { close_ctx(state, ctx_id, None).await; return; }
-    // 入站 fp 必须是 32 位小写 hex，否则拒绝（防污染指纹显示与 trust.json 键）。
-    if !is_valid_fingerprint(&hello.fp) {
-        warn!("拒绝非法 fp 的 HELLO: {}", hello.fp);
+    let authenticated = state.contexts.get(&ctx_id).and_then(|ctx| ctx.authenticated_fp.as_deref());
+    if !is_valid_fingerprint(&hello.fp) || authenticated != Some(hello.fp.as_str()) {
+        warn!("拒绝身份未通过验证的 HELLO");
         close_ctx(state, ctx_id, None).await;
         return;
     }
@@ -1084,6 +1095,7 @@ async fn send_ack_and_ready(state: &mut State, ctx_id: Uuid, peer: Device) {
         fp: state.identity.fingerprint.clone(),
         protocol_versions: vec![1],
         selected_version: 1,
+        pairing_remembered: Some(state.trust_store.is_trusted(&peer.fingerprint)),
     };
     let body = serde_json::to_vec(&ack).unwrap_or_default();
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
@@ -1105,11 +1117,25 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         }
     };
     let Some((target, payload_sum)) = target_fp_payload else { return };
-    if ack.fp != target.fingerprint { close_ctx(state, ctx_id, None).await; return; }
+    let authenticated = state.contexts.get(&ctx_id).and_then(|ctx| ctx.authenticated_fp.as_deref());
+    if authenticated != Some(ack.fp.as_str()) || ack.fp != target.fingerprint || ack.selected_version != 1 {
+        close_ctx(state, ctx_id, None).await;
+        return;
+    }
 
     if let Some(ctx) = state.contexts.get_mut(&ctx_id) { ctx.peer = Some(target.clone()); }
 
     match payload_sum {
+        PayloadSummary::Pair => {
+            let remembered = ack.pairing_remembered == Some(true)
+                && state.trust_store.trust(&ack.fp, &target.name);
+            if let Some(ctx) = state.contexts.get_mut(&ctx_id) {
+                if let Role::Client { payload: ClientPayload::Pair { reply }, .. } = &mut ctx.role {
+                    if let Some(reply) = reply.take() { let _ = reply.send(remembered); }
+                }
+            }
+            close_ctx(state, ctx_id, None).await;
+        }
         PayloadSummary::Text(content) => {
             let msg = TextMessage {
                 id: Uuid::new_v4().to_string(),
@@ -1118,10 +1144,12 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
             let body = serde_json::to_vec(&msg).unwrap_or_default();
             let history_id = state.contexts.get(&ctx_id).and_then(|c| c.history_id);
             if let Some(ctx) = state.contexts.get(&ctx_id) {
-                let _ = ctx.connection.send(msg_type::TEXT, body);
+                if let Err(e) = ctx.connection.send_and_flush(msg_type::TEXT, body).await {
+                    close_ctx(state, ctx_id, Some(e.to_string())).await;
+                    return;
+                }
             }
             if let Some(h) = history_id { update_status(state, h, TransferStatus::Completed); }
-            tokio::time::sleep(Duration::from_millis(200)).await;
             close_ctx(state, ctx_id, None).await;
         }
         PayloadSummary::Clipboard { content, kind } => {
@@ -1131,9 +1159,8 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
             };
             let body = serde_json::to_vec(&msg).unwrap_or_default();
             if let Some(ctx) = state.contexts.get(&ctx_id) {
-                let _ = ctx.connection.send(msg_type::CLIPBOARD, body);
+                let _ = ctx.connection.send_and_flush(msg_type::CLIPBOARD, body).await;
             }
-            tokio::time::sleep(Duration::from_millis(200)).await;
             close_ctx(state, ctx_id, None).await;
         }
         PayloadSummary::File { name, size, sha256 } => {
@@ -1154,12 +1181,14 @@ async fn client_recv_ack(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
 }
 
 enum PayloadSummary {
+    Pair,
     Text(String),
     Clipboard { content: String, kind: String },
     File { name: String, size: u64, sha256: String },
 }
 fn payload_summary(p: &ClientPayload) -> PayloadSummary {
     match p {
+        ClientPayload::Pair { .. } => PayloadSummary::Pair,
         ClientPayload::Text(s) => PayloadSummary::Text(s.clone()),
         ClientPayload::Clipboard { content, kind } => PayloadSummary::Clipboard {
             content: content.clone(), kind: kind.clone(),
@@ -1349,11 +1378,17 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
 
     let trusted = state.trust_store.is_trusted(&peer.fingerprint);
 
-    if let Some(record) = valid_resume_record(state, &peer, &meta).await {
-        if start_auto_resume_receive(state, ctx_id, &peer, tid, &meta, record).await {
-            return;
+    let verify = state.flags.verify_before_receive.load(Ordering::Relaxed);
+    let auto_trusted = state.auto_accept.load(Ordering::Relaxed);
+    let auto_stranger = state.flags.auto_accept_stranger.load(Ordering::Relaxed);
+    let may_auto = !verify && if trusted { auto_trusted } else { auto_stranger };
+    if may_auto && trusted {
+        if let Some(record) = valid_resume_record(state, &peer, &meta).await {
+            if start_auto_resume_receive(state, ctx_id, &peer, tid, &meta, record).await {
+                return;
+            }
+            clear_resume_record(state, &peer, &meta.sha256);
         }
-        clear_resume_record(state, &peer, &meta.sha256);
     }
 
     let pending = PendingFileOffer {
@@ -1364,17 +1399,10 @@ async fn handle_received_offer(state: &mut State, ctx_id: Uuid, body: Vec<u8>) {
         ctx.pending_offer_id = Some(tid);
     }
     state.pending_offers.push(pending);
-    let _ = state.po_tx.send(state.pending_offers.clone());
-    // 自动接受判定（复用标准流程，会把该项移出 pending）：
-    // - verify_before_receive 开（默认）→ 禁用一切自动接受，offer 一律待确认；
-    // - 否则：(已信任 && auto_accept_trusted) || (陌生 && auto_accept_stranger)。
-    let verify = state.flags.verify_before_receive.load(Ordering::Relaxed);
-    let auto_trusted = state.auto_accept.load(Ordering::Relaxed);
-    let auto_stranger = state.flags.auto_accept_stranger.load(Ordering::Relaxed);
-    let may_auto = !verify
-        && ((trusted && auto_trusted) || (!trusted && auto_stranger));
     if may_auto {
         respond_offer(state, tid, true).await;
+    } else {
+        let _ = state.po_tx.send(state.pending_offers.clone());
     }
 }
 
@@ -1552,14 +1580,13 @@ async fn on_receive_hash_verified(state: &mut State, ctx_id: Uuid, ok: bool) {
         let complete = FileCompleteMessage { transfer_id: tid.to_string(), index: 0 };
         let body = serde_json::to_vec(&complete).unwrap_or_default();
         if let Some(ctx) = state.contexts.get(&ctx_id) {
-            let _ = ctx.connection.send(msg_type::FILE_COMPLETE, body);
+            let _ = ctx.connection.send_and_flush(msg_type::FILE_COMPLETE, body).await;
         }
     }
     if let Some(h) = history_id { update_status(state, h, TransferStatus::Completed); }
     if let (Some(peer), Some(sha)) = (&peer, &expected_sha) {
         clear_resume_record(state, peer, sha);
     }
-    tokio::time::sleep(Duration::from_millis(150)).await;
     close_ctx(state, ctx_id, None).await;
 }
 
@@ -1593,6 +1620,11 @@ async fn close_ctx(state: &mut State, ctx_id: Uuid, reason: Option<String>) {
             if !history_is_terminal(state, h) {
                 update_status(state, h, TransferStatus::Failed("连接中断".into()));
             }
+        }
+    }
+    if let Some(h) = ctx.history_id {
+        if !history_is_terminal(state, h) {
+            update_status(state, h, TransferStatus::Failed(reason.clone().unwrap_or_else(|| "连接已关闭".into())));
         }
     }
     ctx.connection.close();
@@ -1823,7 +1855,7 @@ fn load_auto_accept() -> bool {
     auto_accept_path()
         .and_then(|p| std::fs::read_to_string(p).ok())
         .map(|s| s.trim() == "1")
-        .unwrap_or(false)
+        .unwrap_or(true)
 }
 
 fn save_auto_accept(value: bool) -> std::io::Result<()> {
@@ -1846,7 +1878,7 @@ struct EngineConfig {
     trusted_only: bool,
     /// 陌生设备 offer 自动接受（危险）。默认 false。
     auto_accept_stranger: bool,
-    /// 接收前必须验证对方指纹：开=禁用一切自动接受。默认 true（更安全）。
+    /// 接收前逐次确认文件。
     verify_before_receive: bool,
     /// 跨设备剪贴板同步：关=不发不收剪贴板。默认 false（不主动同步，保护隐私）。
     clipboard_sync: bool,
@@ -1861,7 +1893,7 @@ impl Default for EngineConfig {
         Self {
             trusted_only: false,
             auto_accept_stranger: false,
-            verify_before_receive: true,
+            verify_before_receive: false,
             clipboard_sync: false,
             visible_on_lan: true,
             save_dir: None,
@@ -1913,7 +1945,7 @@ impl ConnCtx {
     fn new_server(id: Uuid, connection: Connection) -> Self {
         let now = Instant::now();
         Self {
-            id, connection,
+            id, connection, authenticated_fp: None,
             role: Role::Server,
             state: ConnState::AwaitingHello,
             peer: None, history_id: None, transfer_id: None, pending_offer_id: None,
@@ -1927,7 +1959,7 @@ impl ConnCtx {
     fn new_client(id: Uuid, connection: Connection, role: Role, state: ConnState) -> Self {
         let now = Instant::now();
         Self {
-            id, connection, role, state,
+            id, connection, authenticated_fp: None, role, state,
             peer: None, history_id: None, transfer_id: None, pending_offer_id: None,
             source_path: None, save_path: None, expected_sha256: None,
             file_size: 0, sent_bytes: 0, received_bytes: 0, last_persisted_bytes: 0,

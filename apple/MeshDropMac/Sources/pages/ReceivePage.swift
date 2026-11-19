@@ -77,7 +77,7 @@ struct ReceivePage: View {
                     .font(MeshDropFont.mono(size: 10.5))
                     .foregroundStyle(MeshDropColor.textMuted)
                 Spacer()
-                Button { state.rejectCurrentOffer() } label: {
+                Button { state.respondToOffer(offer.id, accept: false) } label: {
                     Text("receive.reject")
                         .font(MeshDropFont.body(size: 13, weight: .semibold))
                         .padding(.horizontal, 18)
@@ -89,7 +89,7 @@ struct ReceivePage: View {
                         .foregroundStyle(MeshDropColor.textSecondary)
                 }
                 .buttonStyle(.plain)
-                Button { state.acceptCurrentOffer() } label: {
+                Button { state.respondToOffer(offer.id, accept: true) } label: {
                     Text("receive.accept")
                         .font(MeshDropFont.body(size: 13, weight: .semibold))
                         .padding(.horizontal, 18)

@@ -28,6 +28,7 @@ public struct HelloAckMessage: Codable, Sendable {
     public var fp: String
     public var protocol_versions: [UInt8]
     public var selected_version: UInt8
+    public var pairing_remembered: Bool?
 }
 
 public struct TextMessage: Codable, Sendable {

@@ -56,6 +56,26 @@ pub fn build_with_handle(
 
     // 真实 engine 模式：附发送按钮（discovery 右栏列表用）。
     if let Some(h) = handle {
+        if let Some(peer) = h.devices().into_iter().find(|peer| peer.id == d.id && !h.engine.is_trusted(&peer.fingerprint)) {
+            let pair = gtk::Button::with_label(&t!("shell.pair_btn"));
+            pair.set_valign(gtk::Align::Center);
+            let engine = h.engine.clone();
+            pair.connect_clicked(move |button| {
+                button.set_sensitive(false);
+                button.set_label(&t!("common.pending"));
+                let reply = engine.request_pairing(peer.clone());
+                let button = button.clone();
+                gtk::glib::MainContext::default().spawn_local(async move {
+                    if reply.await.unwrap_or(false) {
+                        button.set_label(&t!("device_row.paired"));
+                    } else {
+                        button.set_label(&t!("common.retry"));
+                        button.set_sensitive(true);
+                    }
+                });
+            });
+            row.append(&pair);
+        }
         let send = icon_btn::icon_btn(&t!("common.send"), &t!("device_row.send_tip"), icon_btn::IconBtnTone::Accent);
         send.set_valign(gtk::Align::Center);
         let h_c = h.clone();

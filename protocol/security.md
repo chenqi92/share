@@ -37,18 +37,16 @@
      接放行。
 4. **已命中**：直接回 HELLO_ACK 进入业务消息。
 
-Apple 与 Windows 1.1.2 起，已信任且通过连接身份校验的设备默认自动接收文件。
+当前原生客户端中，已信任且通过连接身份校验的设备默认自动接收文件。
 接收设置中关闭「自动接收已信任设备」后，每次文件传输需要确认；文本在连接获准后直接接收。
 「允许一次」不会记住信任，也不会启用文件自动接收。撤销信任或指纹变化后需要重新配对。
 
 **指纹显示规则**：所有 UI 上的指纹用 4 字符分组、空格分隔、全大写、共 8 组 32
 字符（来自 32 hex 的 `fp` 完整长度），便于人工口头核对。
 
-## 加密（Apple / Windows 1.1）
+## 原生设备间加密
 
-Apple 与 Windows 原生连接强制 TLS 1.3，不回退到旧版明文 TCP。Windows 使用
-Bouncy Castle，在 Windows 10 与 Windows 11 上提供相同的 TLS 1.3 能力。
-仓库中的其他平台实现应分别核对进度，不能仅由此文档推断已支持加密互通。
+macOS、iOS、iPadOS、tvOS、visionOS、Android、Windows 及 Linux GUI/TUI 的原生连接使用同一套 TLS 1.3 双向设备认证。Apple 的 Wi-Fi 点对点与蓝牙 L2CAP 路径也在传输业务帧前验证设备身份。Android 和 Windows 使用随应用提供的 Bouncy Castle，Linux 使用 rustls。
 
 ### 证书
 
@@ -71,7 +69,7 @@ SAN 只有一个 URI：`urn:meshdrop:identity:` 后接标准 Base64 编码的 96
 
 - TLS 1.3 ONLY；双向证书认证。Windows 原生连接允许
   `TLS_AES_256_GCM_SHA384` / `TLS_CHACHA20_POLY1305_SHA256`。
-- ALPN 为 `meshdrop/1`；Windows 在缺失或不匹配时关闭连接。
+- ALPN 为 `meshdrop/1`；缺失或不匹配时关闭原生连接。
 - 不复用 TLS 会话，不发送应用层早期数据。
 - 不依赖公共 CA，也不向系统根证书库安装设备证书。
 - 从验证后的证明中取 Ed25519 公钥计算 `fp`；出站连接必须与发现记录中的
@@ -81,8 +79,7 @@ SAN 只有一个 URI：`urn:meshdrop:identity:` 后接标准 Base64 编码的 96
 mDNS 本身没有认证。首次使用仍需用户核对双方设备指纹，不能仅把“与广播中
 的指纹相同”当作对陌生设备的信任；记住信任后使用稳定的设备身份识别对端。
 
-浏览器 Web Gateway 使用独立的 HTTPS 自签证书和配对码，不使用原生连接的
-设备 mTLS。Windows 的 Web Gateway 也通过 Bouncy Castle 提供 TLS 1.3。
+浏览器通过 TLS 1.3 HTTPS/WSS 及配对码访问桌面主机。Apple Watch 与 Wear OS 分别通过 WatchConnectivity 和 Wearable Data Layer 的系统加密通道连接配对手机。主机可读取、保存内容，再用自身的设备身份与目标设备建立原生 mTLS 连接。
 
 ## 重放与时序
 

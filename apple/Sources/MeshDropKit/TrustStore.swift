@@ -19,8 +19,8 @@ public actor TrustStore {
     private var records: [String: TrustRecord]
     private let url: URL
 
-    public init() {
-        self.url = Self.storeURL()
+    public init(storeURL: URL? = nil) {
+        self.url = storeURL ?? Self.storeURL()
         self.records = Self.load(from: url)
     }
 
@@ -28,7 +28,9 @@ public actor TrustStore {
         records[fingerprint] != nil
     }
 
-    public func trust(fingerprint: String, name: String) {
+    @discardableResult
+    public func trust(fingerprint: String, name: String) -> Bool {
+        let previous = records[fingerprint]
         let now = Date()
         if var existing = records[fingerprint] {
             existing.lastSeen = now
@@ -42,7 +44,11 @@ public actor TrustStore {
                 lastSeen: now
             )
         }
-        persist()
+        guard persist() else {
+            records[fingerprint] = previous
+            return previous != nil
+        }
+        return true
     }
 
     public func touch(fingerprint: String) {
@@ -63,12 +69,15 @@ public actor TrustStore {
 
     // MARK: - 持久化
 
-    private func persist() {
+    @discardableResult
+    private func persist() -> Bool {
         do {
             let data = try JSONEncoder().encode(records)
             try data.write(to: url, options: .atomic)
+            return true
         } catch {
             log.error("persist failed: \(error.localizedDescription)")
+            return false
         }
     }
 

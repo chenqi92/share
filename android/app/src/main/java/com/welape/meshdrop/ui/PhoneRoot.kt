@@ -125,6 +125,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     MeshTab.DISCOVER -> if (inChatDetail && state.openChatDeviceId != null) {
                         val chatId = state.openChatDeviceId!!
                         ChatDetailScreen(
+                            engine = engine,
                             deviceId = chatId,
                             onBack = { inChatDetail = false },
                             showDropOverlay = state.showDropOverlay,
@@ -155,6 +156,7 @@ fun PhoneRoot(state: MeshAppState, engine: ShareEngine? = null) {
                     MeshTab.CHAT -> if (inChatDetail && state.openChatDeviceId != null) {
                         val chatId = state.openChatDeviceId!!
                         ChatDetailScreen(
+                            engine = engine,
                             deviceId = chatId,
                             onBack = { inChatDetail = false },
                             showDropOverlay = state.showDropOverlay,

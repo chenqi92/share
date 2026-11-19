@@ -78,6 +78,7 @@ struct BridgeEvent: Codable {
 struct BridgeDevice: Codable, Identifiable, Hashable {
     let id: String
     var displayName: String
+    var fingerprint: String?
     var kind: String
     var model: String?
     var ip: String?

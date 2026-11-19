@@ -106,7 +106,6 @@ struct ChatPage: View {
                 }
                 Color.clear.frame(height: 1).id("latest-message")
                 }
-                .frame(maxWidth: 860)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity)

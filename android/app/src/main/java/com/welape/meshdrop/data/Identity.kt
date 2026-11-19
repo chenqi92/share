@@ -5,12 +5,12 @@ import android.content.SharedPreferences
 import android.util.Base64
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.MessageDigest
 import java.security.PrivateKey
 import java.security.PublicKey
-import java.security.SecureRandom
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
 import java.util.UUID
@@ -29,6 +29,7 @@ data class Identity(
 )
 
 object IdentityStore {
+    internal val provider = BouncyCastleProvider()
     // 加密库（新）；明文库（旧）仅用于一次性迁移后清空。
     private const val PREFS = "meshdrop.identity.secure"
     private const val LEGACY_PREFS = "meshdrop.identity"
@@ -102,21 +103,16 @@ object IdentityStore {
         return Identity(id, kp, computeFingerprint(kp.public))
     }
 
-    private fun generate(): KeyPair {
-        // Ed25519 要求 Android 11+ (API 30) 的 java.security 内置 provider；
-        // 较老版本可换 BouncyCastle，骨架阶段先用平台默认。
-        val gen = KeyPairGenerator.getInstance("Ed25519")
-        gen.initialize(255, SecureRandom())
-        return gen.generateKeyPair()
-    }
+    internal fun generate(): KeyPair =
+        KeyPairGenerator.getInstance("Ed25519", provider).generateKeyPair()
 
     private fun decodePrivate(encoded: ByteArray): PrivateKey {
-        val kf = java.security.KeyFactory.getInstance("Ed25519")
+        val kf = java.security.KeyFactory.getInstance("Ed25519", provider)
         return kf.generatePrivate(PKCS8EncodedKeySpec(encoded))
     }
 
     private fun decodePublic(encoded: ByteArray): PublicKey {
-        val kf = java.security.KeyFactory.getInstance("Ed25519")
+        val kf = java.security.KeyFactory.getInstance("Ed25519", provider)
         return kf.generatePublic(X509EncodedKeySpec(encoded))
     }
 

@@ -102,6 +102,10 @@
   <data name="discovery/networkErrorFormat"><value>Network error — {0}</value></data>
   <data name="discovery/emptyTitle.Text"><value>No MeshDrop devices nearby</value></data>
   <data name="discovery/emptyHint.Text"><value>open it on a peer</value></data>
+  <data name="discovery/actionPair.Text"><value>Request pairing</value></data>
+  <data name="discovery/pairWaiting"><value>Waiting for approval</value></data>
+  <data name="discovery/pairSaved"><value>Trusted device</value></data>
+  <data name="discovery/pairFailed"><value>Pairing was not saved on both devices</value></data>
   <data name="discovery/actionSend.Text"><value>→ Send file</value></data>
   <data name="discovery/actionChat.Text"><value>◌ Start chat</value></data>
   <data name="discovery/actionClipboard.Text"><value>⌶ Sync clipboard</value></data>

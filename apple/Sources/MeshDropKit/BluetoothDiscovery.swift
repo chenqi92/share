@@ -96,7 +96,7 @@ final class BluetoothDiscovery: NSObject, @preconcurrency CBCentralManagerDelega
         Connection(bluetooth: { [weak self] in
             guard let self else { throw ConnectionError.routeUnavailable }
             return try await self.open(device)
-        })
+        }, identity: identity, role: .client(expectedFingerprint: device.fingerprint))
     }
 
     private func open(_ device: Device) async throws -> StreamTransport {
@@ -313,7 +313,7 @@ final class BluetoothDiscovery: NSObject, @preconcurrency CBCentralManagerDelega
         }
         let stream = transport(channel)
         bluetoothLog.info("incoming L2CAP ready PSM=\(channel.psm)")
-        onIncoming?(Connection(bluetooth: { stream }))
+        onIncoming?(Connection(bluetooth: { stream }, identity: identity, role: .server))
     }
 
     private func transport(_ channel: CBL2CAPChannel) -> StreamTransport {

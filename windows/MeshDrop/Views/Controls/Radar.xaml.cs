@@ -34,6 +34,8 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
     public string? SelectedId { get => (string?)GetValue(SelectedIdProperty); set => SetValue(SelectedIdProperty, value); }
     public string Variant { get => (string)GetValue(VariantProperty); set => SetValue(VariantProperty, value); }
 
+    public event EventHandler<string>? DeviceSelected;
+
     private Storyboard? _sweepStory;
 
     public Radar()
@@ -60,7 +62,7 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
             CenterIp.Text = MeshDrop.Transport.ShareEngine.Shared.LocalIp;
     }
 
-    private void Rebuild()
+    internal void Rebuild()
     {
         if (GridLayer is null) return;
 
@@ -195,14 +197,15 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
             var dotColor = selected
                 ? Color.FromArgb(0xFF, 0xFF, 0x5A, 0x2C)
                 : ParseHex(dev.ColorHex);
-            var dot = new Border
+            var dot = new Button
             {
                 Width = 34, Height = 34,
                 CornerRadius = new CornerRadius(999),
                 Background = new SolidColorBrush(dotColor),
                 BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0x0A, 0x0A, 0x0A)),
                 BorderThickness = new Thickness(1.4),
-                Child = new TextBlock
+                Padding = new Thickness(0),
+                Content = new TextBlock
                 {
                     Text = dev.Initials,
                     HorizontalAlignment = HorizontalAlignment.Center,
@@ -213,6 +216,8 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
                     Foreground = new SolidColorBrush(Color.FromArgb(0xFF, 0x0A, 0x0A, 0x0A)),
                 },
             };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(dot, dev.Name);
+            dot.Click += (_, _) => DeviceSelected?.Invoke(this, dev.Id);
             Canvas.SetLeft(dot, cx - 17);
             Canvas.SetTop(dot, cy - 17);
             DotsLayer.Children.Add(dot);
@@ -238,6 +243,7 @@ public sealed partial class Radar : Microsoft.UI.Xaml.Controls.UserControl
                 FontSize = 9,
                 Opacity = 0.6,
             });
+            label.Tapped += (_, _) => DeviceSelected?.Invoke(this, dev.Id);
             Canvas.SetLeft(label, cx + 22);
             Canvas.SetTop(label, cy - 8);
             DotsLayer.Children.Add(label);

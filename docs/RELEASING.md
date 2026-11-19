@@ -56,7 +56,7 @@ Windows ARM64 在固定的官方 libsodium `1.0.19` 源码提交上构建缺失�
 
 目前 Android / Wear OS / Linux / Web 仍是 `0.1.0` 实验组件，tvOS / visionOS 保留各自应用版本。
 GitHub 标签表示整仓快照，不会只通过打包更改各端内嵌版本或假设它们已经协议互通。
-Apple / Windows 使用 TLS 1.3 双向设备认证；Android / Linux 原生传输尚为明文，不能连接上述 TLS 客户端。
+当前源码中的 Apple、Windows、Android、Linux 原生传输共用 TLS 1.3 双向设备认证。旧版明文客户端需升级后才能互通。
 各端版本与互通能力升级应在打标签之前落实到源码中。
 
 补齐已有版本时，手动运行 Release 并填写现有标签。

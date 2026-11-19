@@ -12,6 +12,9 @@ struct ChatDetailScreen: View {
     @State private var composerText: String = ""
     @State private var showFileImporter: Bool = false
     @State private var photoSelection: [PhotosPickerItem] = []
+    @State private var pairTarget: Device?
+    @State private var pairing = Set<String>()
+    @State private var pairingFailed = Set<String>()
     @FocusState private var composerFocused: Bool
 
     private var currentDevice: MockDevice {
@@ -36,11 +39,6 @@ struct ChatDetailScreen: View {
             .map { $0.displayMessage }
     }
 
-    /// 收到本 peer 的 file offer 时自动弹 FileOfferSheet（之前 mock 是 timer，现在是真事件）。
-    private var incomingOffer: PendingFileOffer? {
-        engine.pendingFileOffers.first(where: { $0.peer.conversationID == device.conversationID })
-    }
-
     var body: some View {
         ZStack(alignment: .bottom) {
             (scheme == .dark ? MeshDropColor.dink : MeshDropColor.paper)
@@ -49,6 +47,9 @@ struct ChatDetailScreen: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     chatHeader
+                    if let target = realTarget, pairingFailed.contains(target.fingerprint) {
+                        Text(MD("pairing.notRemembered")).font(.footnote)
+                    }
                     if messages.isEmpty {
                         emptyHint
                     } else {
@@ -85,8 +86,16 @@ struct ChatDetailScreen: View {
                 }
             }
         }
-        .onChange(of: incomingOffer?.id) { _, newID in
-            if newID != nil { state.showOfferSheet = true }
+        .alert(item: $pairTarget) { target in
+            Alert(title: Text(target.name), message: Text(target.humanFingerprint),
+                  primaryButton: .default(Text(MD("pairing.request"))) {
+                      pairing.insert(target.fingerprint)
+                      pairingFailed.remove(target.fingerprint)
+                      Task {
+                          if !(await engine.requestPairing(to: target)) { pairingFailed.insert(target.fingerprint) }
+                          pairing.remove(target.fingerprint)
+                      }
+                  }, secondaryButton: .cancel(Text(MD("common.cancel"))))
         }
         .onAppear(perform: markConversationRead)
         .onChange(of: messages.count) { _, _ in markConversationRead() }
@@ -115,10 +124,19 @@ struct ChatDetailScreen: View {
                  mono: true, uppercased: true, icon: "circle.fill")
             Chip(engine.routeLabel(for: realTarget), tone: .outline, mono: true, uppercased: true)
             Spacer()
-            if currentDevice.isOnline {
-                Text("RTT \(currentDevice.rtt)ms")
+            if let target = realTarget, target.discoveryEndpoint != nil {
+                if pairing.contains(target.fingerprint) {
+                    ProgressView().accessibilityLabel(MD("pairing.waiting"))
+                } else {
+                    if engine.trusted.contains(where: { $0.fingerprint == target.fingerprint }) {
+                        Label(MD("pairing.saved"), systemImage: "checkmark.shield")
+                    } else {
+                        Button(MD("pairing.request")) { pairTarget = target }
+                    }
+                }
+            } else if currentDevice.isOnline {
+                Text(currentDevice.os)
                     .font(MeshDropFont.mono(10))
-                    .foregroundStyle(scheme == .dark ? Color.white.opacity(0.5) : MeshDropColor.ink45)
             } else {
                 Text(MD("chat.header.offlineHint"))
                     .font(MeshDropFont.mono(10))

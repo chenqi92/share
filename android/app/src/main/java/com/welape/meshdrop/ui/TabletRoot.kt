@@ -180,6 +180,7 @@ fun TabletRoot(state: MeshAppState, engine: ShareEngine? = null) {
                 )
                 MeshTab.CHAT -> state.openChatDeviceId?.let { id ->
                     ChatDetailScreen(
+                        engine = engine,
                         deviceId = id,
                         onBack = null,
                         showDropOverlay = state.showDropOverlay,

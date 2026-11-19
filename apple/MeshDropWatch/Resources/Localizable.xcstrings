@@ -622,6 +622,18 @@
         }
       }
     },
+    "receive.file.forward" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Forward File" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "转发文件" } }
+      }
+    },
+    "receive.file.onPhone" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "View on iPhone" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在 iPhone 上查看" } }
+      }
+    },
     "receive.file.saved" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -24,7 +24,8 @@ public sealed record HelloAckMessage(
     [property: JsonPropertyName("fp")] string Fp,
     [property: JsonPropertyName("protocol_versions")] List<byte> ProtocolVersions,
     [property: JsonPropertyName("selected_version")] byte SelectedVersion,
-    [property: JsonPropertyName("model")] string? Model = null);
+    [property: JsonPropertyName("model")] string? Model = null,
+    [property: JsonPropertyName("pairing_remembered")] bool? PairingRemembered = null);
 
 public sealed record TextMessage(
     [property: JsonPropertyName("id")] string Id,

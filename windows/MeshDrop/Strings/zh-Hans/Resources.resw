@@ -109,6 +109,10 @@
   <data name="discovery/networkErrorFormat"><value>网络出错 — {0}</value></data>
   <data name="discovery/emptyTitle.Text"><value>附近没有 MeshDrop 设备</value></data>
   <data name="discovery/emptyHint.Text"><value>让朋友也打开 MeshDrop</value></data>
+  <data name="discovery/actionPair.Text"><value>请求配对</value></data>
+  <data name="discovery/pairWaiting"><value>等待对方确认</value></data>
+  <data name="discovery/pairSaved"><value>已信任此设备</value></data>
+  <data name="discovery/pairFailed"><value>未完成双向配对</value></data>
   <data name="discovery/actionSend.Text"><value>→ 发送文件</value></data>
   <data name="discovery/actionChat.Text"><value>◌ 开始聊天</value></data>
   <data name="discovery/actionClipboard.Text"><value>⌶ 同步剪贴板</value></data>

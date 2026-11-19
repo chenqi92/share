@@ -60,15 +60,20 @@ impl TrustStore {
         self.inner.lock().unwrap().records.contains_key(fp)
     }
 
-    pub fn trust(&self, fp: &str, name: &str) {
+    pub fn trust(&self, fp: &str, name: &str) -> bool {
         let mut guard = self.inner.lock().unwrap();
         let now = unix_ms();
-        guard.records.insert(fp.to_string(), TrustRecord {
+        let previous = guard.records.insert(fp.to_string(), TrustRecord {
             fingerprint: fp.to_string(),
             name: name.to_string(),
             last_seen_ms: now,
         });
-        let _ = persist(&guard);
+        if persist(&guard).is_ok() { return true; }
+        match previous {
+            Some(record) => { guard.records.insert(fp.to_string(), record); }
+            None => { guard.records.remove(fp); }
+        }
+        false
     }
 
     pub fn touch(&self, fp: &str) {
@@ -95,7 +100,10 @@ impl TrustStore {
 
 fn persist(inner: &TrustInner) -> Result<()> {
     let s = serde_json::to_string(&inner.records)?;
-    fs::write(&inner.path, s)?;
+    let temporary = inner.path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
+    let result = fs::write(&temporary, s).and_then(|_| fs::rename(&temporary, &inner.path));
+    if result.is_err() { let _ = fs::remove_file(&temporary); }
+    result?;
     Ok(())
 }
 

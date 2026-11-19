@@ -42,7 +42,7 @@
 
     <!-- ========== Chat list ========== -->
     <string name="chat.title">Chats</string>
-    <string name="chat.subtitle">%1$d conversations · LAN · plaintext · v0.1</string>
+    <string name="chat.subtitle">%1$d conversations · Encrypted LAN transfers</string>
     <string name="chat.section_today">TODAY · %1$d</string>
     <string name="chat.empty">No conversations yet</string>
     <string name="chat.badge_file">FILE  </string>
@@ -81,7 +81,7 @@
 
     <!-- ========== History / Library ========== -->
     <string name="history.title">Library</string>
-    <string name="history.subtitle">%1$d recent · LAN · plaintext · on-device</string>
+    <string name="history.subtitle">%1$d recent · Stored on this device</string>
     <string name="history.filter_all">All</string>
     <string name="history.filter_image">Images</string>
     <string name="history.filter_file">Files</string>
@@ -112,7 +112,7 @@
     <string name="me.visible_in_nearby">Show me in Nearby</string>
     <string name="me.visible_in_nearby_sub">Other devices can see this device</string>
     <string name="me.allow_stranger_pairing">Allow unknown devices to pair</string>
-    <string name="me.allow_stranger_pairing_sub">First time shows a 6-character code to confirm</string>
+    <string name="me.allow_stranger_pairing_sub">Confirm the device fingerprint on the first connection</string>
     <string name="me.vibrate_on_receive">Vibrate on receive</string>
     <string name="me.vibrate_on_receive_sub">incoming · vibrate</string>
     <string name="me.auto_accept">Auto-accept from paired devices</string>
@@ -121,8 +121,8 @@
     <string name="me.paired_devices">Paired devices</string>
     <string name="me.paired_devices_sub">%1$d devices · revoke individually</string>
     <string name="me.my_fingerprint">My fingerprint · Fingerprint</string>
-    <string name="me.scan_pair">Scan / 6-character pairing</string>
-    <string name="me.scan_pair_sub">Start with a new device</string>
+    <string name="me.scan_pair">Pairing requests</string>
+    <string name="me.scan_pair_sub">View pending requests</string>
     <string name="me.reset_identity">Reset identity…</string>
     <string name="me.reset_identity_sub">Deletes current ID and Ed25519 keys; peers must re-pair</string>
     <string name="me.reset_dialog_title">Reset identity</string>
@@ -137,7 +137,7 @@
     <string name="me.section_about">ABOUT</string>
     <string name="me.about_version">meshdrop · v0.1.0</string>
     <string name="me.about_fonts">Space Grotesk · Geist · Geist Mono</string>
-    <string name="me.about_tagline">Direct LAN transfer · radar discovery · drag to send · LAN · plaintext · v0.1</string>
+    <string name="me.about_tagline">Encrypted LAN transfers · Nearby device discovery</string>
 
     <!-- ========== Onboarding ========== -->
     <string name="onboarding.step1_tag">STEP 1 · DISCOVERY</string>
@@ -148,7 +148,7 @@
     <string name="onboarding.step2_body">Drag a file onto a device row, or long-press to pick several. The native Android Share Intent is supported too.</string>
     <string name="onboarding.step3_tag">STEP 3 · PAIRING</string>
     <string name="onboarding.step3_title">Pairing and fingerprint trust</string>
-    <string name="onboarding.step3_body">Identity is a long-lived Ed25519 key; the fingerprint is the SHA-256 prefix of the public key. The first connection prompts a 6-character confirmation (TOFU); after pairing both sides trust each other\'s fingerprint. In v0.1 LAN transfer is plaintext TCP; encryption comes in a later version.</string>
+    <string name="onboarding.step3_body">When pairing for the first time, compare the device fingerprints before allowing the connection or remembering the device. TLS 1.3 encrypts text and files in transit.</string>
     <string name="onboarding.step4_tag">STEP 4 · SHORTCUTS</string>
     <string name="onboarding.step4_title">Notifications / background / system share</string>
     <string name="onboarding.step4_body">Large files stay alive via a Foreground Service, incoming items raise a heads-up notification with three quick actions.</string>
@@ -161,7 +161,6 @@
     <string name="pairing.title">Pairing</string>
     <string name="pairing.empty">No pairing requests</string>
     <string name="pairing.requested_at">Requested to pair with you %1$s</string>
-    <string name="pairing.pin_label">6-character code · PIN</string>
     <string name="pairing.requested_by">REQUESTED BY</string>
     <string name="pairing.section_fingerprint">FINGERPRINT (SHA-256/16)</string>
     <string name="pairing.section_choices">CHOICES</string>
@@ -262,4 +261,7 @@
     <string name="headsup.accept">Accept</string>
     <string name="headsup.reject">Reject</string>
     <string name="headsup.to_photos">Save to Photos</string>
+    <string name="pairing.request">Pair</string>
+    <string name="pairing.waiting">Awaiting response</string>
+    <string name="pairing.paired">Paired</string>
 </resources>

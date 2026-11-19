@@ -8,11 +8,13 @@ import Foundation
 public struct PairingRequest: Identifiable, Sendable, Equatable {
     public let id: UUID
     public let peer: Device
+    public let canRemember: Bool
     public let receivedAt: Date
 
-    public init(id: UUID = UUID(), peer: Device, receivedAt: Date = Date()) {
+    public init(id: UUID = UUID(), peer: Device, receivedAt: Date = Date(), canRemember: Bool = true) {
         self.id = id
         self.peer = peer
+        self.canRemember = canRemember
         self.receivedAt = receivedAt
     }
 }

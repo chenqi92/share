@@ -72,6 +72,7 @@ pub struct App {
     pub tp_session: Vec<u8>,
     pub pending_pairing: Option<mock::PendingPairing>,
     pub pending_offer: Option<mock::PendingOffer>,
+    pairing_reply: Option<(String, tokio::sync::oneshot::Receiver<bool>)>,
 
     // Engine 原始列表：执行命令时拿对应 CoreDevice / Pending* / history UUID
     pub core_devices: Vec<CoreDevice>,
@@ -127,6 +128,7 @@ impl App {
             tp_session: Vec::new(),
             pending_pairing: None,
             pending_offer: None,
+            pairing_reply: None,
             core_devices: Vec::new(),
             core_history: Vec::new(),
             core_pairings: Vec::new(),
@@ -182,6 +184,7 @@ impl App {
             tp_session: Vec::new(),
             pending_pairing: None,
             pending_offer: None,
+            pairing_reply: None,
             core_devices: Vec::new(),
             core_history: Vec::new(),
             core_pairings: Vec::new(),
@@ -640,6 +643,16 @@ pub async fn run<B: ratatui::backend::Backend>(
     let tick = Duration::from_millis(100);
 
     loop {
+        if let Some((name, reply)) = &mut app.pairing_reply {
+            match reply.try_recv() {
+                Err(tokio::sync::oneshot::error::TryRecvError::Empty) => {}
+                result => {
+                    app.status = if result.unwrap_or(false) { t!("status.pair_saved", name = name.as_str()) }
+                                 else { t!("status.pair_unsaved", name = name.as_str()) }.to_string();
+                    app.pairing_reply = None;
+                }
+            }
+        }
         terminal
             .draw(|f| ui(f, &mut app))
             .map_err(|error| anyhow::anyhow!("{error}"))?;
@@ -743,8 +756,15 @@ fn apply(app: &mut App, action: Action) {
             app.filter.clear();
         }
         Action::OpenHelp => app.mode = Mode::Help,
-        Action::DemoPairing => {
-            if app.engine.is_none() {
+        Action::PairSelected => {
+            if let Some(engine) = &app.engine {
+                if app.pairing_reply.is_none() && app.page == Page::Discovery {
+                    if let Some(peer) = app.selected_core_device() {
+                        app.status = t!("status.pair_waiting", name = peer.name.as_str()).to_string();
+                        app.pairing_reply = Some((peer.name.clone(), engine.request_pairing(peer)));
+                    }
+                }
+            } else {
                 app.pending_pairing = Some(mock::pending_pairing());
                 app.mode = Mode::Pairing;
             }

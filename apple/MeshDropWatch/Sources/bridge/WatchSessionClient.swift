@@ -45,8 +45,8 @@ final class WatchSessionClient: NSObject {
     var onReachabilityChanged: ((Bool) -> Void)?
     var onEvent: ((BridgeEvent) -> Void)?
     var onActivationCompleted: ((Bool, String?) -> Void)?
-    /// iPhone 经 transferFile 中转来的入站文件落盘完成：(ref, 本地副本 URL)。
-    var onFileReceived: ((String, URL) -> Void)?
+    /// 后台文件与实时收件事件共用 history ID。
+    var onFileReceived: ((BridgeInboxItem) -> Void)?
 
     // MARK: - 内部
 
@@ -100,25 +100,26 @@ final class WatchSessionClient: NSObject {
         }
     }
 
-    /// 传文件：metadata 里放 `ref`（裸 token）+ peerId + name。
-    /// iPhone 端 didReceive 按 `ref` 落盘到 Caches/com.welape.meshdrop.watchbridge/<ref>，
-    /// 待随后到达的 `send_file_ref` 命令（payload.fileRef 同 ref）凭 ref 取文件 + peerId 交 ShareEngine。
-    /// 见 companion-bridges.md §4.1。返回本次 transfer 用的 ref，供调用方发命令时复用。
-    @discardableResult
-    func transferFile(at url: URL, peerId: String, name: String) throws -> String {
+    /// The single background transfer carries its routing information even when the phone is asleep.
+    func transferFile(at url: URL, peerId: String, name: String, fingerprint: String?) throws {
         guard let session, session.activationState == .activated else {
             throw BridgeError.sessionUnsupported
         }
         let ref = "ref-" + UUID().uuidString.lowercased()
-        let metadata: [String: Any] = [
+        var metadata: [String: Any] = [
             "v": BridgeProtocol.version,
             "ref": ref,
             "type": BridgeCommandType.sendFileRef.rawValue,
             "peerId": peerId,
             "name": name,
         ]
-        session.transferFile(url, metadata: metadata)
-        return ref
+        metadata["fingerprint"] = fingerprint
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("com.welape.meshdrop.watch-outbox")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let staged = folder.appendingPathComponent(ref)
+        do { try FileManager.default.linkItem(at: url, to: staged) }
+        catch { try FileManager.default.copyItem(at: url, to: staged) }
+        session.transferFile(staged, metadata: metadata)
     }
 }
 
@@ -165,30 +166,37 @@ extension WatchSessionClient: WCSessionDelegate {
         }
     }
 
-    /// iPhone transferFile 中转来的入站文件。WCSession 会在 inbox 临时目录给一个 fileURL，
-    /// 必须在本回调返回前把它移走（系统随后清理）。落到 caches 下按 ref 命名。
+    func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
+        if let ref = fileTransfer.file.metadata?["ref"] as? String, ref.hasPrefix("ref-"),
+           UUID(uuidString: String(ref.dropFirst(4))) != nil {
+            let folder = FileManager.default.temporaryDirectory.appendingPathComponent("com.welape.meshdrop.watch-outbox")
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent(ref))
+        }
+        if let error { log.error("watch 文件传递失败：\(error.localizedDescription)") }
+    }
+
     func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        let ref = (file.metadata?["ref"] as? String) ?? UUID().uuidString
-        let name = (file.metadata?["name"] as? String) ?? ref
-        let dst = Self.inboxFileURL(ref: ref, name: name)
+        guard let metadata = file.metadata, let ref = metadata["ref"] as? String,
+              UUID(uuidString: ref) != nil else { return }
+        let raw = metadata["name"] as? String ?? ref
+        let leaf = raw.split(whereSeparator: { $0 == "/" || $0 == "\\" }).last.map(String.init) ?? ""
+        let cleaned = String(leaf.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+        let name = ["", ".", ".."].contains(cleaned) ? ref : cleaned
         let fm = FileManager.default
         do {
-            if fm.fileExists(atPath: dst.path) { try fm.removeItem(at: dst) }
-            try fm.moveItem(at: file.fileURL, to: dst)
-            log.info("收到入站文件 ref=\(ref, privacy: .public)")
-            onFileReceived?(ref, dst)
+            let base = try fm.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let dir = base.appendingPathComponent("com.welape.meshdrop.inbox").appendingPathComponent(ref)
+            try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+            let dst = dir.appendingPathComponent(name)
+            if !fm.fileExists(atPath: dst.path) { try fm.moveItem(at: file.fileURL, to: dst) }
+            let size = (try? dst.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(UInt64.init)
+            let item = BridgeInboxItem(id: ref, peerName: metadata["peerName"] as? String ?? "iPhone",
+                kind: "file", text: nil, fileName: name, sizeBytes: size, fileRef: ref,
+                receivedAt: (metadata["receivedAt"] as? NSNumber)?.int64Value ?? Int64(Date().timeIntervalSince1970),
+                localPath: dst.path)
+            onFileReceived?(item)
         } catch {
             log.error("入站文件落盘失败：\(error.localizedDescription)")
         }
-    }
-
-    /// 入站文件本地落盘约定路径（caches/com.welape.meshdrop.inbox/<ref>-<name>）。
-    static func inboxFileURL(ref: String, name: String) -> URL {
-        let fm = FileManager.default
-        let base = (try? fm.url(for: .cachesDirectory, in: .userDomainMask,
-                                appropriateFor: nil, create: true)) ?? fm.temporaryDirectory
-        let dir = base.appendingPathComponent("com.welape.meshdrop.inbox", isDirectory: true)
-        try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("\(ref)-\(name)")
     }
 }

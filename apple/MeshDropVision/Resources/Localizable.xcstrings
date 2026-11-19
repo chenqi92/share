@@ -893,19 +893,19 @@
         }
       }
     },
-    "status.lan.plaintext" : {
+    "status.lan.tls" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LAN · plaintext"
+            "value" : "LAN · TLS 1.3"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LAN · 明文"
+            "value" : "LAN · TLS 1.3"
           }
         }
       }
@@ -1358,13 +1358,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LAN · plaintext · v0.1"
+            "value" : "LAN · TLS 1.3"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "LAN · 明文 · v0.1"
+            "value" : "LAN · TLS 1.3"
           }
         }
       }

@@ -81,7 +81,7 @@
 > 点对点 Wi-Fi 或蓝牙传输。
 >
 > **Bundle identifier 按平台各自命名，并非全局统一：** Apple = `com.welape.landrop`，
-> Android = `com.welape.meshdrop`，Wear OS = `com.welape.meshdrop.wear`。
+> Android 和 Wear OS 共用 `com.welape.meshdrop` 应用 ID 以连接配对手机。
 
 ## 工作原理
 
@@ -98,11 +98,11 @@
 
 ## 安全现状
 
-- Apple 与 Windows `1.1+` 强制使用 **TLS 1.3 和双向设备认证**，传输证书绑定设备的
+- 当前 Apple、Android、Windows 和 Linux 原生客户端统一使用 **TLS 1.3 和双向设备认证**，传输证书绑定设备的
   Ed25519 身份；旧版明文客户端无法连接。
 - Windows 随包提供 Bouncy Castle，使 Windows 10 和 Windows 11 均可使用 TLS 1.3。
 - 首次配对仍需核对设备指纹；仅靠 mDNS 发现不能建立信任。
-- 其他平台需分别核对实现进度，不能假定其预发布客户端已支持 Apple / Windows 的加密协议。
+- Apple Watch 和 Wear OS 通过系统加密通道连接配对手机，由手机代为收发。
 - 浏览器 Web Gateway 使用独立的自签 HTTPS 证书和配对码。
 
 证书与信任模型详见 [protocol/security.md](protocol/security.md)。

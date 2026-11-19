@@ -52,6 +52,7 @@ final class StreamTransport: NSObject, StreamDelegate {
 
     func send(_ data: Data) async throws {
         guard !closed else { throw terminalError ?? ConnectionError.alreadyClosed }
+        guard !data.isEmpty else { return }
         guard writes.reduce(0, { $0 + $1.data.count - $1.offset }) + data.count <= Frame.maxLength * 2 else {
             throw ConnectionError.bufferFull
         }

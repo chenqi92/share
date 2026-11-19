@@ -34,11 +34,10 @@ pub fn render_top(f: &mut Frame, area: Rect, theme: &Theme, me: &SelfCard, peer_
     ]);
     f.render_widget(Paragraph::new(mid), chunks[1]);
 
-    // 右侧 chips：LIVE 5 · 明文 · LAN ONLY（v0.1 传输为明文 TCP，不宣称 E2E）
     let right = Line::from(vec![
         chip::chip(theme, &format!("LIVE {}", peer_count), chip::Tone::Lime),
         Span::raw(" "),
-        chip::chip(theme, "PLAINTEXT", chip::Tone::Outline),
+        chip::chip(theme, "TLS 1.3", chip::Tone::Outline),
         Span::raw(" "),
         chip::chip(theme, "LAN ONLY", chip::Tone::Outline),
     ]);

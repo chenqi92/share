@@ -77,7 +77,7 @@ struct TVRoot: View {
                 ) {
                     HStack(spacing: 10) {
                         Chip(text: "● LAN", tone: .lime, mono: true, size: 14)
-                        Chip(text: L10n.chipPlaintext, tone: .outline, mono: true, size: 14)
+                        Chip(text: L10n.chipTLS, tone: .outline, mono: true, size: 14)
                     }
                 }
             } else {
@@ -136,7 +136,7 @@ struct TVRoot: View {
             ) {
                 HStack(spacing: 10) {
                     Chip(text: "● LAN ONLY", tone: .lime, mono: true, size: 14)
-                    Chip(text: L10n.chipPlaintext, tone: .outline, mono: true, size: 14)
+                    Chip(text: L10n.chipTLS, tone: .outline, mono: true, size: 14)
                     Chip(text: "tvOS 17+", tone: .outline, mono: true, size: 14)
                 }
             }

@@ -32,6 +32,7 @@ env_logger = "0.11"
 rust-i18n = "4"
 
 # Web Gateway 依赖（backend 接入轮新增）
+x509-parser = { version = "0.18", features = ["verify"] }
 rustls = "0.23"
 rustls-pemfile = "2"
 tokio-rustls = "0.26"

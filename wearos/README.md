@@ -33,7 +33,7 @@ cd wearos
   但尚未接入可达的发送 UI 入口（表上无文件选择器）；当前仅作为接口预留，需发文件请用 phone。
 - ❌ 单独身份（身份与 phone 共享）
 
-> 传输安全：v0.1 LAN 为明文 TCP，UI 不宣称端到端加密；身份/指纹为 Ed25519 + SHA-256。
+> 传输安全：手表通过 Wearable Data Layer 加密连接配对的 Android 手机，手机使用 TLS 1.3 双向设备认证与局域网对端收发。
 
 ## 与 Apple Watch 的对应关系
 

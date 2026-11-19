@@ -77,7 +77,7 @@ enum L10n {
     static let receiveAcceptSaveSub = String(localized: "receive.accept.save.sub")
     static let receiveDecline = String(localized: "receive.decline")
     static let receiveDeclineSub = String(localized: "receive.decline.sub")
-    static let receivePlaintextTag = String(localized: "receive.plaintext.tag")
+    static let receiveTLSTag = String(localized: "receive.tls.tag")
 
     // MARK: Gallery（收件箱）
 
@@ -179,7 +179,7 @@ enum L10n {
     static func chipPendingCount(_ n: Int) -> String {
         String(localized: "chip.pending.count \(n)")
     }
-    static let chipPlaintext = String(localized: "chip.plaintext")
+    static let chipTLS = String(localized: "chip.tls")
     static let netTagScanning = String(localized: "net.tag.scanning")
     static let netTagLivingRoom = String(localized: "net.tag.livingroom")
 }

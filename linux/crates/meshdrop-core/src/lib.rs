@@ -12,6 +12,7 @@ pub mod protocol;
 pub mod history;
 pub mod trust;
 pub mod connection;
+mod transport_security;
 pub mod engine;
 pub mod gateway;
 mod resume;

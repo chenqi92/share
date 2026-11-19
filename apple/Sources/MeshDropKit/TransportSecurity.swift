@@ -38,12 +38,15 @@ enum TransportSecurity {
 
     static func peerFingerprint(_ metadata: sec_protocol_metadata_t) -> String? {
         var leaf: Data?
+        var count = 0
         sec_protocol_metadata_access_peer_certificate_chain(metadata) { certificate in
-            if leaf == nil {
+            count += 1
+            if count == 1 {
                 leaf = SecCertificateCopyData(sec_certificate_copy_ref(certificate).takeRetainedValue()) as Data
             }
         }
-        return leaf.flatMap { try? verifyCertificate($0) }
+        guard count == 1, let leaf else { return nil }
+        return try? verifyCertificate(leaf)
     }
 
     static func certificate(identity: Identity, now: Date = Date()) throws -> (der: Data, key: P256.Signing.PrivateKey) {

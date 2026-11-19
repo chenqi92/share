@@ -89,7 +89,7 @@ pub enum Action {
     Cancel,
 
     OpenHelp,
-    DemoPairing,
+    PairSelected,
     DemoOffer,
 
     Accept,
@@ -162,7 +162,7 @@ fn translate_normal(key: KeyEvent) -> Action {
         KeyCode::Char(':') => Action::EnterCommand,
         KeyCode::Char('/') => Action::EnterSearch,
         KeyCode::Char('?') => Action::OpenHelp,
-        KeyCode::Char('p') => Action::DemoPairing,
+        KeyCode::Char('p') => Action::PairSelected,
         KeyCode::Char('o') => Action::DemoOffer,
         KeyCode::Char('d') => Action::DeleteSelected,
         KeyCode::Char('c') => Action::ClearHistory,

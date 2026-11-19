@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -9,7 +10,6 @@ using MeshDrop.Models;
 using MeshDrop.Transport;
 using MeshDrop.TrayIcon;
 using MeshDrop.ViewModels;
-using MeshDrop.Views.Dialogs;
 using MeshDrop.Views.Shell;
 using WinRT.Interop;
 
@@ -18,8 +18,7 @@ namespace MeshDrop;
 public sealed partial class MainWindow : Window
 {
     private readonly TrayIconHost _tray = new();
-    private bool _isActive;
-    private bool _pairingDialogOpen;
+    internal bool IsWindowActive { get; private set; }
 
     public MainWindow()
     {
@@ -39,18 +38,18 @@ public sealed partial class MainWindow : Window
         Activated += OnActivated;
         Closed += OnClosed;
 
-        // 窗口在前台时，TOFU 待审配对直接弹审批对话框（后台时由 Toast 承接）。
-        ShareEngine.Shared.Event += OnEngineEvent;
-        ShareEngine.Shared.PendingFileOffers.CollectionChanged += OnPendingFilesChanged;
-        ReviewIncomingFilesButton.Content = I18n.T("receive.review");
-        RefreshPendingFiles();
+        ShareEngine.Shared.PendingPairings.CollectionChanged += OnPendingChanged;
+        ShareEngine.Shared.PendingFileOffers.CollectionChanged += OnPendingChanged;
+        AllowOnceButton.Content = I18n.T("toast.allowOnce");
+        RejectButton.Content = I18n.T("toast.reject");
+        RefreshIncoming();
     }
 
     private bool _trayReady;
 
     private void OnActivated(object? sender, WindowActivatedEventArgs args)
     {
-        _isActive = args.WindowActivationState != WindowActivationState.Deactivated;
+        IsWindowActive = args.WindowActivationState != WindowActivationState.Deactivated;
 
         if (_trayReady) return;
         _trayReady = true;
@@ -68,51 +67,45 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
-        ShareEngine.Shared.Event -= OnEngineEvent;
-        ShareEngine.Shared.PendingFileOffers.CollectionChanged -= OnPendingFilesChanged;
+        ShareEngine.Shared.PendingPairings.CollectionChanged -= OnPendingChanged;
+        ShareEngine.Shared.PendingFileOffers.CollectionChanged -= OnPendingChanged;
         _tray.Dispose();
     }
 
-    private void OnPendingFilesChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshPendingFiles();
+    private void OnPendingChanged(object? sender, NotifyCollectionChangedEventArgs e) => RefreshIncoming();
 
-    private void RefreshPendingFiles()
+    private void RefreshIncoming()
     {
-        var count = ShareEngine.Shared.PendingFileOffers.Count;
-        IncomingFilesBar.Title = I18n.T("receive.pendingFormat", count);
-        IncomingFilesBar.Message = I18n.T("receive.pendingHint");
-        IncomingFilesBar.IsOpen = count > 0;
-    }
-
-    private void OnReviewIncomingFiles(object sender, RoutedEventArgs e)
-    {
-        Sidebar.SetActiveSection(ShellSection.Transfers);
-        ShowSection(ShellSection.Transfers);
-    }
-
-    private void OnEngineEvent(EngineEvent ev)
-    {
-        if (ev is not EngineEvent.PairingPending p) return;
-        // Event 可能来自后台连接线程，切回 UI 线程再弹 ContentDialog。
-        DispatcherQueue.TryEnqueue(() => _ = TryShowPairingDialogAsync(p.Pairing));
-    }
-
-    private async System.Threading.Tasks.Task TryShowPairingDialogAsync(PendingPairing pairing)
-    {
-        // 仅在窗口前台且当前没有其它配对对话框时弹（避免与 Toast 重复打扰 / 多弹叠加）。
-        if (!_isActive || _pairingDialogOpen) return;
-        if (Content is not FrameworkElement root || root.XamlRoot is null) return;
-
-        _pairingDialogOpen = true;
-        try
+        var engine = ShareEngine.Shared;
+        var pairing = engine.PendingPairings.FirstOrDefault();
+        var offer = engine.PendingFileOffers.FirstOrDefault();
+        IncomingBar.Tag = (object?)pairing ?? offer;
+        IncomingBar.IsOpen = IncomingBar.Tag is not null;
+        AllowOnceButton.Visibility = pairing is null ? Visibility.Collapsed : Visibility.Visible;
+        if (pairing is not null)
         {
-            var dialog = new PairingDialog(PendingPairingVM.From(pairing)) { XamlRoot = root.XamlRoot };
-            await dialog.ShowAsync();
-            // 用户已选 → 回传引擎；外部关闭（Decision==null）则不动，留给 Trust 页 / Toast。
-            if (dialog.Decision is { } decision)
-                ShareEngine.Shared.RespondToPairing(pairing.Id, decision);
+            IncomingBar.Title = I18n.T("toast.pairingTitleFormat", pairing.Peer.Name);
+            IncomingBar.Message = I18n.T("toast.fingerprintFormat", pairing.Peer.HumanFingerprint);
+            AcceptButton.Content = I18n.T("toast.allowRemember");
         }
-        catch { /* XamlRoot 失效 / 已有对话框时容忍 */ }
-        finally { _pairingDialogOpen = false; }
+        else if (offer is not null)
+        {
+            IncomingBar.Title = I18n.T("toast.incomingFileTitleFormat", offer.Peer.Name);
+            IncomingBar.Message = $"{offer.FileName} · {offer.FormattedSize}";
+            AcceptButton.Content = I18n.T("toast.accept");
+        }
+    }
+
+    private void OnIncomingDecision(object sender, RoutedEventArgs e)
+    {
+        if (IncomingBar.Tag is PendingPairing pairing)
+        {
+            var decision = sender == AcceptButton ? PairingDecision.Trust
+                : sender == AllowOnceButton ? PairingDecision.AllowOnce : PairingDecision.Reject;
+            ShareEngine.Shared.RespondToPairing(pairing.Id, decision);
+        }
+        else if (IncomingBar.Tag is PendingFileOffer offer)
+            ShareEngine.Shared.RespondToFileOffer(offer.Id, sender == AcceptButton);
     }
 
     private void OnSectionChanged(object? sender, ShellSection section) => ShowSection(section);

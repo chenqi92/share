@@ -101,7 +101,7 @@ settings:
 # ─── 帮助 overlay ───
 help:
   subtitle: "按键参考"
-  tagline: "An intranet drop · radar discovery · drag-to-send · plaintext TCP (v0.1)"
+  tagline: "An intranet drop · radar discovery · drag-to-send · TLS 1.3"
   keybindings_divider: "KEYBINDINGS · 按键"
   k_move: "在焦点区上下移动"
   k_focus: "切换焦点（设备 ↔ 历史 ↔ 传输）"
@@ -113,7 +113,7 @@ help:
   k_cancel: "取消选中进行中传输（仅 Transfers 焦点）"
   k_retry: "重发选中失败发送项（仅 Transfers 焦点）"
   k_pages: "切换页（1-6 直达 / Tab·] 下一页 / Shift-Tab·[ 上一页 / F1-F6）"
-  k_demo_pairing: "弹配对 demo 模态"
+  k_pair_selected: "与选中设备配对"
   k_demo_offer: "弹文件 offer demo 模态"
   k_help: "打开 / 关闭本帮助"
   k_quit: "退出（或退出当前模式）"
@@ -139,9 +139,12 @@ offer:
 
 # ─── 状态行（动作回执）───
 status:
+  pair_saved: "已与 %{name} 配对"
+  pair_unsaved: "未保存与 %{name} 的配对"
+  pair_waiting: "等待 %{name} 确认配对"
   sent_to: "已发送到 %{name} · %{preview}"
   history_cleared: "已清空历史"
-  trust_hint: "用 :pair 流程信任设备（收到配对请求后按 t）"
+  trust_hint: "选中附近设备后按 p 发起配对。收到配对请求后，按 t 信任设备。"
   revoke_usage: "用法：:revoke <fingerprint>"
   revoked: "已撤销信任：%{fp}"
   not_in_trust: "指纹不在信任列表：%{fp}"

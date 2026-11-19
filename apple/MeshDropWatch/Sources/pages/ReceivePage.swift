@@ -10,6 +10,7 @@ struct ReceivePage: View {
     @State private var accepted: Bool = false
     @State private var rejected: Bool = false
     @State private var commandError: String?
+    @State private var forwardingFile: BridgeInboxItem?
 
     private var offer: WatchOfferVM? {
         if let debugOffer { return debugOffer }
@@ -44,6 +45,20 @@ struct ReceivePage: View {
                     }
                 }
             }
+        }
+        .sheet(item: $forwardingFile) { item in
+            List(proxy.devices.filter(\.online)) { peer in
+                Button(peer.displayName) {
+                    guard let path = item.localPath else { return }
+                    forwardingFile = nil
+                    let url = URL(fileURLWithPath: path)
+                    do {
+                        try proxy.sendFileRef(to: peer, fileURL: url, name: item.fileName ?? url.lastPathComponent)
+                        WKInterfaceDevice.current().play(.success)
+                    } catch { commandError = error.localizedDescription }
+                }
+            }
+            .navigationTitle(L10n.receiveForward)
         }
         .alert(L10n.receiveAccepted, isPresented: $accepted) { Button(L10n.commonOK, role: .cancel) {} }
         .alert(L10n.receiveRejected, isPresented: $rejected) { Button(L10n.commonOK, role: .cancel) {} }
@@ -222,7 +237,11 @@ struct ReceivePage: View {
                     size: byteString(item.sizeBytes),
                     ext: (item.fileName as NSString?)?.pathExtension ?? ""
                 )
-                Text(item.fileAvailable ? L10n.receiveFileSaved : L10n.receiveFileTransferring)
+                if item.fileAvailable {
+                    Button(L10n.receiveForward) { forwardingFile = item }
+                        .disabled(!proxy.devices.contains(where: \.online))
+                }
+                Text(item.fileAvailable ? L10n.receiveFileSaved : item.fileRef == nil ? L10n.receiveOnPhone : L10n.receiveFileTransferring)
                     .font(MDFont.mono(8, weight: .medium))
                     .foregroundColor(item.fileAvailable ? MD.lime : MD.dim)
             }

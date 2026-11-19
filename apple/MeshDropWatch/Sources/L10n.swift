@@ -60,6 +60,8 @@ enum L10n {
     static let receiveEmptyDetail = String(localized: "receive.empty.detail")
     static let receiveInboxTag = String(localized: "receive.inbox.tag")
     static let receiveFilePlaceholder = String(localized: "receive.file.placeholder")
+    static let receiveForward = String(localized: "receive.file.forward")
+    static let receiveOnPhone = String(localized: "receive.file.onPhone")
     static let receiveFileSaved = String(localized: "receive.file.saved")
     static let receiveFileTransferring = String(localized: "receive.file.transferring")
 

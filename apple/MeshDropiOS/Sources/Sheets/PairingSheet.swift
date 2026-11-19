@@ -19,7 +19,7 @@ struct PairingSheet: View {
                             fingerprint(pending.peer.humanFingerprint)
                             AsciiDivider(MD("pairing.stepsSection"))
                             steps
-                            actions(pending.id)
+                            actions(pending)
                         } else {
                             empty
                         }
@@ -97,10 +97,10 @@ struct PairingSheet: View {
         .frame(maxWidth: .infinity, minHeight: 200)
     }
 
-    private func actions(_ requestID: UUID) -> some View {
+    private func actions(_ request: PairingRequest) -> some View {
         HStack(spacing: 10) {
             Button {
-                engine.respondToPairing(requestID, decision: .reject)
+                engine.respondToPairing(request.id, decision: .reject)
                 dismiss()
             } label: {
                 Text(MD("common.reject"))
@@ -111,10 +111,10 @@ struct PairingSheet: View {
             }
             .buttonStyle(.plain)
             Button {
-                engine.respondToPairing(requestID, decision: .trust)
+                engine.respondToPairing(request.id, decision: request.canRemember ? .trust : .allowOnce)
                 dismiss()
             } label: {
-                Text(MD("pairing.primary.trust"))
+                Text(MD(request.canRemember ? "pairing.primary.trust" : "pairing.once"))
                     .font(MeshDropFont.body(15, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

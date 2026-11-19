@@ -144,6 +144,8 @@ final class AppState: ObservableObject {
         engineDevices = engine.devices.map { MockDevice.from($0, online: true) }
         engineHistory = engine.history.map(MockHistory.from)
         engineHistoryItems = engine.history
+        if tab == .chat || tab == .dragdrop { selectedDeviceID = engine.history.last?.peer.id ?? "" }
+        repairSelectedDevice(liveDevices: engine.devices)
         enginePairing = engine.pendingPairings.first.map(MockPendingPairing.from)
         engineOffer = engine.pendingFileOffers.first.map(MockPendingOffer.from)
         engineTrusted = engine.trusted.map { MockTrustedDevice.from($0) }
@@ -260,24 +262,19 @@ final class AppState: ObservableObject {
         engine.sendFiles(to: dev, sourceURLs: fileURLs)
     }
 
-    func acceptCurrentPairing(trust: Bool) {
-        guard let id = enginePairing.flatMap({ UUID(uuidString: $0.id) }) else { return }
+    func acceptPairing(_ request: String, trust: Bool) {
+        guard let id = UUID(uuidString: request) else { return }
         engine.respondToPairing(id, decision: trust ? .trust : .allowOnce)
     }
 
-    func rejectCurrentPairing() {
-        guard let id = enginePairing.flatMap({ UUID(uuidString: $0.id) }) else { return }
+    func rejectPairing(_ request: String) {
+        guard let id = UUID(uuidString: request) else { return }
         engine.respondToPairing(id, decision: .reject)
     }
 
-    func acceptCurrentOffer() {
-        guard let id = engineOffer.flatMap({ UUID(uuidString: $0.id) }) else { return }
-        engine.respondToFileOffer(id, accept: true)
-    }
-
-    func rejectCurrentOffer() {
-        guard let id = engineOffer.flatMap({ UUID(uuidString: $0.id) }) else { return }
-        engine.respondToFileOffer(id, accept: false)
+    func respondToOffer(_ offer: String, accept: Bool) {
+        guard let id = UUID(uuidString: offer) else { return }
+        engine.respondToFileOffer(id, accept: accept)
     }
 
     func clearHistory() {

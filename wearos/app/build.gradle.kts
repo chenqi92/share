@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -10,10 +12,10 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.welape.meshdrop.wear"
+        applicationId = "com.welape.meshdrop"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
+        versionCode = 2
         versionName = "0.1.0"
     }
 
@@ -21,8 +23,22 @@ android {
         localeFilters += listOf("zh-rCN", "en")
     }
 
+    val phoneProject = rootProject.file("../android")
+    val signingFile = phoneProject.resolve("key.properties")
+    signingConfigs {
+        if (signingFile.exists()) {
+            create("phoneRelease") {
+                val signing = Properties().apply { signingFile.inputStream().use { load(it) } }
+                storeFile = phoneProject.resolve(signing.getProperty("storeFile"))
+                storePassword = signing.getProperty("storePassword")
+                keyAlias = signing.getProperty("keyAlias")
+                keyPassword = signing.getProperty("keyPassword")
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("phoneRelease")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

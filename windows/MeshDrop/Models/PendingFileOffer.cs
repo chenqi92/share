@@ -10,5 +10,6 @@ public sealed record PendingFileOffer(
     string Sha256,
     DateTime ReceivedAt)
 {
+    public Guid DecisionId { get; } = Guid.NewGuid();
     public string FormattedSize => ByteFormat.Format(FileSize);
 }

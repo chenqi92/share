@@ -85,7 +85,7 @@ Electron, Flutter, or React Native — for the best performance and platform fee
 > LAN with both apps open; Windows does not support Apple peer-to-peer Wi-Fi or Bluetooth transfer.
 >
 > **Bundle identifiers are per-platform, not unified:** Apple = `com.welape.landrop`,
-> Android = `com.welape.meshdrop`, Wear OS = `com.welape.meshdrop.wear`.
+> Android and Wear OS use the same application ID, `com.welape.meshdrop`, for the companion bridge.
 
 ## How it works
 
@@ -106,13 +106,12 @@ control channel + multipart upload) so browsers can join from the LAN
 
 ## Security status
 
-- Apple and Windows `1.1+` require **TLS 1.3 with mutual device authentication**.
+- Current Apple, Android, Windows and Linux native clients require **TLS 1.3 with mutual device authentication**.
   Transport certificates are bound to each device's Ed25519 identity; older
   plaintext clients cannot connect.
 - Windows includes Bouncy Castle to provide TLS 1.3 on Windows 10 as well as 11.
 - Compare fingerprints on first pairing. mDNS discovery alone does not establish trust.
-- Other platforms have their own implementation status; do not assume their
-  pre-release clients support the encrypted Apple/Windows protocol.
+- Apple Watch and Wear OS use their encrypted phone companion channels. The phone sends and receives as the native peer.
 - The browser Web Gateway uses separate self-signed HTTPS and pairing codes.
 
 See [protocol/security.md](protocol/security.md) for the certificate and trust model.

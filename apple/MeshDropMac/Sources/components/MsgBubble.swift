@@ -33,6 +33,7 @@ struct MsgBubble<Content: View>: View {
                 .clipShape(BubbleShape(side: side, radius: radius, inset: inset))
                 .messageActions(text: copyText, fileURL: fileURL, completed: fileCompleted,
                                 historyID: historyID, retry: canRetry ? onRetry : nil)
+                .frame(maxWidth: 640, alignment: side == .outgoing ? .trailing : .leading)
 
             if !time.isEmpty {
                 HStack(spacing: 4) {

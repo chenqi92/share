@@ -64,12 +64,7 @@ body；否则一个恶意构造的 frame header 可能让接收方分配过大�
 
 ## TLS / 加密
 
-v0.1 骨架阶段允许 **明文 TCP**（仅限同局域网；同等于 LocalSend 默认配置）。
-正式版本要求所有 TCP 连接 **必须** 包裹在 TLS 1.3 内，证书使用设备自签名
-Ed25519 证书，对端身份由 mDNS TXT 中的 `fp` 字段校验。详见
-[security.md](security.md)。
-
-骨架与正式版可通过端口号或额外 TXT 字段区分（计划 v1.0 起强制加密）。
+设备间的连接在第一个 MeshDrop 帧之前完成 TLS 1.3 双向认证，并协商 ALPN `meshdrop/1`。临时 P-256 证书绑定长期 Ed25519 设备身份。发送方核对发现记录中的指纹，双方核对 HELLO 或 HELLO_ACK 中的指纹。证书格式见 [security.md](security.md)。
 
 ## 各端 API 对照
 

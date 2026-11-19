@@ -38,7 +38,8 @@ cd android
 
 - ✅ Identity（Ed25519，EncryptedSharedPreferences 存储，AndroidKeyStore 派生主密钥）
 - ✅ mDNS 发现（NsdManager + 协程封装）
-- ✅ TCP framing / HELLO / HELLO_ACK / TOFU pairing
+- ✅ TLS 1.3 双向认证，Ed25519 设备指纹绑定 P-256 传输证书
+- ✅ HELLO / HELLO_ACK、设备配对及可信设备自动收件
 - ✅ TEXT / CLIPBOARD / FILE offer/chunk/complete/cancel
 - ✅ FILE_ACCEPT.resume_offset 断点续传
 - ✅ Share Target + 待发送选择目标
@@ -50,7 +51,6 @@ cd android
 
 ## TODO
 
-- [ ] TLS 1.3 双向证书校验 / 应用层端到端加密（v0.1 LAN 传输仍为明文 TCP）
 - [ ] 切到 `NsdManager.registerServiceInfoCallback`（API 33+ 替代已废弃的
       `resolveService`）
 - [ ] 把 UI DTO 从 `Mock*` 命名迁到 `Display*`，降低误读

@@ -12,14 +12,20 @@ private let log = Logger(subsystem: "com.welape.meshdrop", category: "Connection
 ///   的 framing 规范解出 (type, body) 投给 `onMessage`。
 /// - 任一侧关闭、出错都会触发 `onClose`，触发后不再有任何回调。
 public actor Connection {
-    private let nw: NWConnection?
+    private var nw: NWConnection?
     private var stream: StreamTransport?
+    private var tlsChannel: BluetoothTLSChannel?
+    private var bluetoothSecurity: (Identity, BluetoothTLSChannel.Role)?
     private let openStream: (@Sendable () async throws -> StreamTransport)?
     public nonisolated let route: TransferRoute
     private nonisolated let endpointName: String
     private var readBuffer = Data()
     private var isClosed = false
     private var becameReady = false
+    private var needsBluetoothFlush = false
+    private var pendingPongs = 0
+    private var bluetoothCloseDeadline: Task<Void, Never>?
+    private static let heartbeatBody = Data("{}".utf8)
     public private(set) var authenticatedFingerprint: String?
 
     /// 建连 + 进入 ready 的整体超时。service endpoint 解析不到对端 / 对端不可达时
@@ -43,7 +49,8 @@ public actor Connection {
         self.endpointName = String(describing: nwConnection.endpoint)
     }
 
-    init(bluetooth open: @escaping @Sendable () async throws -> StreamTransport) {
+    init(bluetooth open: @escaping @Sendable () async throws -> StreamTransport, identity: Identity, role: BluetoothTLSChannel.Role) {
+        bluetoothSecurity = (identity, role)
         nw = nil
         openStream = open
         route = .bluetooth
@@ -109,11 +116,7 @@ public actor Connection {
         self.onClose = onClose
 
         if let nw {
-            nw.stateUpdateHandler = { [weak self] state in
-                guard let self else { return }
-                Task { await self.handleNWState(state) }
-            }
-            nw.start(queue: .global(qos: .userInitiated))
+            startTLS(nw)
         } else {
             Task { await self.startStream() }
         }
@@ -133,10 +136,26 @@ public actor Connection {
             stream = transport
             try await transport.start()
             guard !isClosed else { return }
-            becameReady = true
-            await onReady?()
-            await readLoop()
+            guard let (identity, role) = bluetoothSecurity else { throw TransportSecurity.Failure.invalidIdentity }
+            let channel = try await BluetoothTLSChannel(stream: transport, identity: identity, role: role)
+            guard !isClosed else { await channel.close(); return }
+            tlsChannel = channel
+            await channel.start(onTLS: { [weak self] connection in
+                guard let self else { connection.cancel(); return }
+                Task { await self.startTLS(connection) }
+            }, onFailure: { [weak self] error in
+                Task { await self?.closeInternal(error: error) }
+            })
         } catch { await closeInternal(error: error) }
+    }
+
+    private func startTLS(_ connection: NWConnection) {
+        guard !isClosed else { connection.cancel(); return }
+        nw = connection
+        connection.stateUpdateHandler = { [weak self] state in
+            Task { await self?.handleNWState(state) }
+        }
+        connection.start(queue: .global(qos: .userInitiated))
     }
 
     private func failIfNotReady() async {
@@ -146,13 +165,35 @@ public actor Connection {
     }
 
     public func send(type: UInt8, body: Data) async throws {
-        if isClosed { throw ConnectionError.alreadyClosed }
+        guard becameReady, !isClosed, bluetoothCloseDeadline == nil else { throw ConnectionError.alreadyClosed }
+        if route == .bluetooth {
+            if type == MessageType.ping { pendingPongs += 1 }
+            else if type != MessageType.pong { needsBluetoothFlush = true }
+        }
         let frame = Frame.encode(type: type, body: body)
         log.debug("frame tx type=0x\(String(format: "%02x", type)) len=\(frame.count)")
-        try await sendRaw(frame)
+        guard let nw else { throw ConnectionError.alreadyClosed }
+        try await nw.writeChunk(frame)
     }
 
     public func close() async {
+        guard !isClosed, bluetoothCloseDeadline == nil else { return }
+        guard needsBluetoothFlush, let nw else {
+            await closeInternal(error: nil)
+            return
+        }
+        // A successful local TLS write can still be buffered ahead of L2CAP.
+        // PONG confirms the remote endpoint consumed every preceding frame.
+        pendingPongs += 1
+        bluetoothCloseDeadline = Task {
+            do { try await Task.sleep(for: .seconds(90)) } catch { return }
+            await closeInternal(error: ConnectionError.timeout)
+        }
+        do { try await nw.writeChunk(Frame.encode(type: MessageType.ping, body: Self.heartbeatBody)) }
+        catch { await closeInternal(error: error) }
+    }
+
+    func abort() async {
         await closeInternal(error: nil)
     }
 
@@ -163,6 +204,9 @@ public actor Connection {
         switch state {
         case .ready:
             guard let metadata = nw?.metadata(definition: NWProtocolTLS.definition) as? NWProtocolTLS.Metadata,
+                  sec_protocol_metadata_get_negotiated_tls_protocol_version(metadata.securityProtocolMetadata) == .TLSv13,
+                  let negotiated = sec_protocol_metadata_get_negotiated_protocol(metadata.securityProtocolMetadata),
+                  String(cString: negotiated) == "meshdrop/1",
                   let fingerprint = TransportSecurity.peerFingerprint(metadata.securityProtocolMetadata) else {
                 await closeInternal(error: TransportSecurity.Failure.invalidIdentity)
                 return
@@ -194,7 +238,7 @@ public actor Connection {
     private func readLoop() async {
         while !isClosed {
             do {
-                guard let chunk = try await receiveChunk() else {
+                guard let chunk = try await nw?.readChunk() else {
                     await closeInternal(error: nil)
                     return
                 }
@@ -218,15 +262,38 @@ public actor Connection {
             guard let f = decoded else { return }
             readBuffer.removeFirst(f.consumed)
             log.debug("frame rx type=0x\(String(format: "%02x", f.type)) len=\(f.consumed)")
-            await onMessage?(f.type, f.body)
+            if f.type == MessageType.ping {
+                try await nw?.writeChunk(Frame.encode(type: MessageType.pong, body: Self.heartbeatBody))
+            } else if f.type == MessageType.pong, pendingPongs > 0 {
+                pendingPongs -= 1
+                if pendingPongs == 0, bluetoothCloseDeadline != nil {
+                    await closeInternal(error: nil)
+                    return
+                }
+            }
+            if bluetoothCloseDeadline == nil { await onMessage?(f.type, f.body) }
         }
     }
 
-    private func receiveChunk() async throws -> Data? {
-        if let stream { return try await stream.receive() }
-        guard let nw else { throw ConnectionError.alreadyClosed }
+    private func closeInternal(error: Error?) async {
+        if isClosed { return }
+        isClosed = true
+        bluetoothCloseDeadline?.cancel()
+        bluetoothCloseDeadline = nil
+        nw?.cancel()
+        await tlsChannel?.close()
+        await stream?.close(error: error)
+        await onClose?(error)
+        onMessage = nil
+        onClose = nil
+        onReady = nil
+    }
+}
+
+extension NWConnection {
+    func readChunk() async throws -> Data? {
         return try await withCheckedThrowingContinuation { cont in
-            nw.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
+            receive(minimumIncompleteLength: 1, maximumLength: 64 * 1024) { data, _, isComplete, error in
                 if let error {
                     cont.resume(throwing: error)
                 } else if isComplete && (data?.isEmpty ?? true) {
@@ -238,26 +305,13 @@ public actor Connection {
         }
     }
 
-    private func sendRaw(_ data: Data) async throws {
-        if let stream { try await stream.send(data); return }
-        guard let nw else { throw ConnectionError.alreadyClosed }
+    func writeChunk(_ data: Data?) async throws {
         try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-            nw.send(content: data, completion: .contentProcessed { error in
+            send(content: data, contentContext: data == nil ? .finalMessage : .defaultMessage, isComplete: true, completion: .contentProcessed { error in
                 if let error { cont.resume(throwing: error) }
                 else { cont.resume() }
             })
         }
-    }
-
-    private func closeInternal(error: Error?) async {
-        if isClosed { return }
-        isClosed = true
-        nw?.cancel()
-        await stream?.close(error: error)
-        await onClose?(error)
-        onMessage = nil
-        onClose = nil
-        onReady = nil
     }
 }
 

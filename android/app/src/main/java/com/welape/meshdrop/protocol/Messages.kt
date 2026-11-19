@@ -25,6 +25,7 @@ data class HelloAckMessage(
     val fp: String,
     val protocol_versions: List<Int>,
     val selected_version: Int,
+    val pairing_remembered: Boolean? = null,
 )
 
 @Serializable

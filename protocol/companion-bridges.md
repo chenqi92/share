@@ -235,20 +235,14 @@ LAN 上发生的事，B 主动推给 A。
 
 **watch → phone 文件代发（`send_file_ref`）**
 
-1. watch 端 `transferFile(url, metadata:)`，metadata 至少含：
-   `{ "v":1, "id":"cmd-<uuid>", "type":"send_file_ref", "peerId":"<peer>", "name":"<filename>", "ref":"<ref>" }`
-   `ref` 取 watch 自生成的唯一串（如 `cmd-<uuid>`）；它就是后续命令的 `fileRef`。
-2. phone 端 `didReceive file:` 把临时文件移到约定路径
-   `Library/Caches/com.welape.meshdrop.watchbridge/<ref>`（ref 取 `metadata["ref"]`）。
-3. watch 端**待 transferFile 入队后**再发 `send_file_ref` 命令，`payload.fileRef = "<ref>"`（与 metadata 里的 `ref` 同值）。
-4. phone 端命令处理：由 `fileRef` 拼出上述 caches 路径读取文件，交 `ShareEngine.sendFile`。
-
-> 即：Watch 的 `fileRef` = transferFile metadata 里的 `ref`，是一个**裸 token**（不是路径），两端按固定 caches 子目录约定还原路径。
+1. watch 通过 `transferFile(url, metadata:)` 排队发送文件，metadata 包含 `v`、`type: "send_file_ref"`、目标 `peerId`、原文件名 `name` 和唯一的 `ref`（例如 `ref-<uuid>`）。新版 iPhone 的设备记录包含身份指纹；手表在 metadata 中一并传入所选设备的 `fingerprint`。文件随附路由信息，只需提交一次。
+2. iPhone 在 WatchConnectivity 的回调结束前保存文件，待目标设备及其指纹与发送时的选择一致，按原文件名交给 `ShareEngine.sendFile`。
+3. 旧表单独发送的 `send_file_ref` 命令仍可提供目标和文件名。`payload.fileRef` 与文件 metadata 的 `ref` 对应；命令先到或文件先到都按同一 ref 排队，重复交付共用一次转发。
 
 **phone → watch 入站内容中转（`inbox_text` / `inbox_file_ready`）**
 
 - 文本：phone 直接推 `inbox_text`，`payload` = InboxItem（`kind="text"`，正文在 `text`）。
-- 文件：phone 先 `transferFile(fileURL, metadata:)`，metadata 含 `{ "ref":"<historyId>", "kind":"inbox_file", "name":..., "peerName":..., "historyId":... }`；再推 `inbox_file_ready`，`payload` = InboxItem（`kind="file"`，`fileRef="<historyId>"`）。watch 端 `didReceive file:` 落到 `Library/Caches/com.welape.meshdrop.inbox/<ref>-<name>`，凭 `ref` 关联到该 InboxItem。
+- 文件：phone 先 `transferFile(fileURL, metadata:)`，metadata 含 `{ "ref":"<historyId>", "kind":"inbox_file", "name":..., "peerName":..., "historyId":... }`；再推 `inbox_file_ready`，`payload` = InboxItem（`kind="file"`，`fileRef="<historyId>"`）。watch 端按 `ref` 分目录保存原文件名，后台收到文件时也可从 metadata 建立收件项，与实时事件按同一 ID 合并。
 - 文件超 **32 MiB** 时 phone 只推元数据（`fileRef=null`），不传字节，watch 端展示「请在 iPhone 上查看」。
 
 ### 4.2 Wear Bridge（WearableDataLayer）
@@ -282,6 +276,7 @@ LAN 上发生的事，B 主动推给 A。
   - `POST /api/v1/upload` (multipart) → web 端的 `send_file_ref` 前置：先 POST 文件得到 `uploadToken`，再用 `uploadToken` 作为 `send_file_ref.fileRef` 发命令
   - `GET /api/v1/download/<offerId>` → 接受 offer 后下载文件流
 - 鉴权：**首次访问**浏览器看 native client UI 上的 6 字符代码 `LR · 4K7M`，填入网页弹框，gateway 校验通过后下发 session cookie（24h 有效）
+- 本机开发页使用 `http://localhost:5173`，手动选择 HTTPS 网关。跨源请求通过 `x-meshdrop-token` 认证，WSS 提供 `meshdrop.v1` 与 `meshdrop.auth.<token>` 两个子协议，服务端仅回显 `meshdrop.v1`。同源页面使用会话 cookie。
 - TLS：gateway 用自签证书（CN = `meshdrop.local`），首次访问要让用户在浏览器里接受证书（mac 上提示用户加入 keychain）
 
 ---

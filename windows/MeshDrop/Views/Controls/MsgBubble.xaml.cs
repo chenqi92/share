@@ -68,7 +68,7 @@ public sealed partial class MsgBubble : Microsoft.UI.Xaml.Controls.UserControl
         if (Bubble is null) return;
 
         var outgoing = Side == "out";
-        Root.HorizontalAlignment = outgoing ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        Bubble.HorizontalAlignment = outgoing ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         var foreground = (Brush)Application.Current.Resources[outgoing ? "MdBubbleOutFgBrush" : "MdBubbleInFgBrush"];
         FileNameText.Foreground = foreground;
         FileSizeText.Foreground = foreground;

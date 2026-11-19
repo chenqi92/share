@@ -108,7 +108,6 @@ private fun OfferCard(
                     style = MDType.mono(9f, FontWeight.Bold, tracking = 1.6f),
                 )
             }
-            // v0.1 LAN 为明文 TCP，不得宣称端到端加密——如实标注传输状态
             MonoTag(text = "LAN", tone = Tone.Ink)
         }
 

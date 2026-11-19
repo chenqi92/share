@@ -45,7 +45,7 @@
 
     <!-- ========== Chat list（消息） ========== -->
     <string name="chat.title">聊天 · Chats</string>
-    <string name="chat.subtitle">%1$d 个会话 · LAN · 明文 · v0.1</string>
+    <string name="chat.subtitle">%1$d 个会话 · 局域网加密传输</string>
     <string name="chat.section_today">今天 · TODAY · %1$d</string>
     <string name="chat.empty">还没有会话 · No conversations yet</string>
     <string name="chat.badge_file">FILE  </string>
@@ -88,7 +88,7 @@
 
     <!-- ========== History / Library（记录） ========== -->
     <string name="history.title">记录 · Library</string>
-    <string name="history.subtitle">%1$d 条最近 · LAN · 明文 · 本机存储</string>
+    <string name="history.subtitle">%1$d 条最近记录 · 本机存储</string>
     <string name="history.filter_all">全部</string>
     <string name="history.filter_image">图片</string>
     <string name="history.filter_file">文件</string>
@@ -120,7 +120,7 @@
     <string name="me.visible_in_nearby">在 Nearby 中显示我</string>
     <string name="me.visible_in_nearby_sub">其他设备能看到本机</string>
     <string name="me.allow_stranger_pairing">允许陌生设备发起配对</string>
-    <string name="me.allow_stranger_pairing_sub">首次会弹出 6 字符代码确认</string>
+    <string name="me.allow_stranger_pairing_sub">首次连接需要确认设备指纹</string>
     <string name="me.vibrate_on_receive">接收时震动</string>
     <string name="me.vibrate_on_receive_sub">incoming · vibrate</string>
     <string name="me.auto_accept">已配对设备自动接收</string>
@@ -129,8 +129,8 @@
     <string name="me.paired_devices">已配对设备</string>
     <string name="me.paired_devices_sub">%1$d 台 · 可单独撤销</string>
     <string name="me.my_fingerprint">我的指纹 · Fingerprint</string>
-    <string name="me.scan_pair">扫码 / 6 字符配对</string>
-    <string name="me.scan_pair_sub">向新设备发起</string>
+    <string name="me.scan_pair">配对请求</string>
+    <string name="me.scan_pair_sub">查看待处理的请求</string>
     <string name="me.reset_identity">重置身份…</string>
     <string name="me.reset_identity_sub">删除当前 ID 与 Ed25519 密钥；对端需重新配对</string>
     <string name="me.reset_dialog_title">重置身份</string>
@@ -145,7 +145,7 @@
     <string name="me.section_about">关于 · ABOUT</string>
     <string name="me.about_version">meshdrop · v0.1.0</string>
     <string name="me.about_fonts">Space Grotesk · Geist · Geist Mono</string>
-    <string name="me.about_tagline">局域网直传 · 雷达发现 · 拖即发送 · LAN · 明文 · v0.1</string>
+    <string name="me.about_tagline">局域网加密直传 · 附近设备发现</string>
 
     <!-- ========== Onboarding ========== -->
     <string name="onboarding.step1_tag">STEP 1 · DISCOVERY</string>
@@ -156,7 +156,7 @@
     <string name="onboarding.step2_body">把文件拖到设备 row 上，或长按选多台。也支持 Android 原生 Share Intent。</string>
     <string name="onboarding.step3_tag">STEP 3 · PAIRING</string>
     <string name="onboarding.step3_title">配对与指纹信任</string>
-    <string name="onboarding.step3_body">身份为 Ed25519 长期密钥，指纹是公钥的 SHA-256 前缀。首次连接弹 6 字符确认（TOFU），配对后双方互信指纹。v0.1 局域网传输为明文 TCP，加密待后续版本。</string>
+    <string name="onboarding.step3_body">首次配对时，请与对方核对设备指纹，再选择允许一次或记住设备。文本和文件通过 TLS 1.3 加密传输。</string>
     <string name="onboarding.step4_tag">STEP 4 · SHORTCUTS</string>
     <string name="onboarding.step4_title">通知 / 后台 / 系统分享</string>
     <string name="onboarding.step4_body">大文件用 Foreground Service 保活，incoming 弹 heads-up 通知，三键操作。</string>
@@ -169,7 +169,6 @@
     <string name="pairing.title">配对 · Pairing</string>
     <string name="pairing.empty">暂无配对请求</string>
     <string name="pairing.requested_at">对方在 %1$s 请求与你配对</string>
-    <string name="pairing.pin_label">6 字符代码 · PIN</string>
     <string name="pairing.requested_by">REQUESTED BY</string>
     <string name="pairing.section_fingerprint">指纹 · FINGERPRINT (SHA-256/16)</string>
     <string name="pairing.section_choices">操作 · CHOICES</string>
@@ -270,4 +269,7 @@
     <string name="headsup.accept">接收</string>
     <string name="headsup.reject">拒绝</string>
     <string name="headsup.to_photos">保存到相册</string>
+    <string name="pairing.request">配对</string>
+    <string name="pairing.waiting">等待确认</string>
+    <string name="pairing.paired">已配对</string>
 </resources>

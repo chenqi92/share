@@ -77,9 +77,11 @@ struct GlobalOverlay: View {
 
             HStack(spacing: 10) {
                 Spacer()
-                pillButton(String(localized: "receive.reject"), filled: false) { state.rejectCurrentPairing() }
-                pillButton(String(localized: "overlay.pairing.thisTime"), filled: false) { state.acceptCurrentPairing(trust: false) }
-                pillButton(String(localized: "pairing.allowRemember"), filled: true) { state.acceptCurrentPairing(trust: true) }
+                pillButton(String(localized: "receive.reject"), filled: false) { state.rejectPairing(p.id) }
+                pillButton(String(localized: "overlay.pairing.thisTime"), filled: false) { state.acceptPairing(p.id, trust: false) }
+                if p.canRemember {
+                    pillButton(String(localized: "pairing.allowRemember"), filled: true) { state.acceptPairing(p.id, trust: true) }
+                }
             }
         }
         .padding(20)
@@ -122,8 +124,8 @@ struct GlobalOverlay: View {
 
             HStack(spacing: 10) {
                 Spacer()
-                pillButton(String(localized: "receive.reject"), filled: false) { state.rejectCurrentOffer() }
-                pillButton(String(localized: "overlay.offer.accept"), filled: true) { state.acceptCurrentOffer() }
+                pillButton(String(localized: "receive.reject"), filled: false) { state.respondToOffer(offer.id, accept: false) }
+                pillButton(String(localized: "overlay.offer.accept"), filled: true) { state.respondToOffer(offer.id, accept: true) }
             }
         }
         .padding(20)

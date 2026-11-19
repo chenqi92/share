@@ -34,12 +34,16 @@ public sealed class TrustStore
         lock (_lock) return _records.ContainsKey(fingerprint);
     }
 
-    public void Trust(string fingerprint, string name)
+    public bool Trust(string fingerprint, string name)
     {
         lock (_lock)
         {
+            _records.TryGetValue(fingerprint, out var previous);
             _records[fingerprint] = new TrustRecord(fingerprint, name, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
-            Persist();
+            if (Persist()) return true;
+            if (previous is null) _records.Remove(fingerprint);
+            else _records[fingerprint] = previous;
+            return previous is not null;
         }
     }
 
@@ -82,16 +86,20 @@ public sealed class TrustStore
         catch { return new(); }
     }
 
-    private void Persist()
+    private bool Persist()
     {
+        var temp = _path + "." + Guid.NewGuid().ToString("N") + ".tmp";
         try
         {
             var json = JsonSerializer.Serialize(_records);
             var raw = Encoding.UTF8.GetBytes(json);
             var encrypted = Protect(raw);
-            File.WriteAllBytes(_path, encrypted);
+            File.WriteAllBytes(temp, encrypted);
+            File.Move(temp, _path, overwrite: true);
+            return true;
         }
-        catch { /* silent */ }
+        catch { return false; }
+        finally { try { File.Delete(temp); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
     }
 
     private static byte[] Protect(byte[] raw)

@@ -52,8 +52,6 @@ final class WatchEngineProxy: ObservableObject {
     private let log = Logger(subsystem: "com.welape.meshdrop", category: "WatchEngineProxy")
     private var didStart = false
 
-    /// transferFile 先于事件到达时，暂存 ref → 本地落盘 URL，待事件来时关联。
-    private var pendingFileRefs: [String: URL] = [:]
 
     private init() {}
 
@@ -82,10 +80,8 @@ final class WatchEngineProxy: ObservableObject {
         }
 
         // iPhone transferFile 送来的入站文件落盘完成 → 关联到收件项。
-        client.onFileReceived = { [weak self] ref, localURL in
-            Task { @MainActor [weak self] in
-                self?.attachReceivedFile(ref: ref, localURL: localURL)
-            }
+        client.onFileReceived = { [weak self] item in
+            Task { @MainActor [weak self] in self?.upsertInbox(item) }
         }
 
         client.onActivationCompleted = { [weak self] ok, err in
@@ -118,21 +114,8 @@ final class WatchEngineProxy: ObservableObject {
         try await dispatch(cmd)
     }
 
-    /// 发文件：watch 先 `transferFile`（metadata 带裸 ref token），文件入队后再发 `send_file_ref`
-    /// 命令，`payload.fileRef` = 同一 ref；iPhone 凭 ref 取落盘文件 + peerId 走 LAN 代发。
-    /// 见 companion-bridges.md §4.1。
-    func sendFileRef(to peerId: String, fileURL: URL, name: String) async throws {
-        let sizeBytes = (try? FileManager.default.attributesOfItem(atPath: fileURL.path))
-            .flatMap { ($0[.size] as? NSNumber)?.int64Value }
-        let ref = try client.transferFile(at: fileURL, peerId: peerId, name: name)
-        var payload: [String: AnyCodable] = [
-            "peerId": AnyCodable(peerId),
-            "fileRef": AnyCodable(ref),
-            "name": AnyCodable(name),
-        ]
-        if let sizeBytes { payload["sizeBytes"] = AnyCodable(sizeBytes) }
-        let cmd = BridgeCommand(type: .sendFileRef, payload: payload)
-        try await dispatch(cmd)
+    func sendFileRef(to peer: BridgeDevice, fileURL: URL, name: String) throws {
+        try client.transferFile(at: fileURL, peerId: peer.id, name: name, fingerprint: peer.fingerprint)
     }
 
     func acceptOffer(_ offerId: String) async throws {
@@ -278,27 +261,11 @@ final class WatchEngineProxy: ObservableObject {
     /// 从 inbox_text / inbox_file_ready 事件里解出 InboxItem 插入收件箱。
     /// 与其余事件一致：payload 即 InboxItem（FLAT，不嵌子键），见 companion-bridges.md §2/§3。
     private func ingestInbox(from payload: [String: AnyCodable]) {
-        guard let item = try? BridgeCodec.decode(BridgeInboxItem.self, fromPayload: payload) else {
-            log.error("inbox 事件解析失败")
-            return
-        }
-        var entry = item
-        // 文件可能比事件先到（transferFile 完成回调早于 sendMessage）；如已落盘则补上本地路径。
-        if entry.kind == "file", let ref = entry.fileRef,
-           let url = pendingFileRefs.removeValue(forKey: ref) {
-            entry.localPath = url.path
-        }
-        upsertInbox(entry)
-    }
-
-    /// transferFile 落盘回调。若对应收件项事件已到则直接补路径，否则缓存等事件。
-    private func attachReceivedFile(ref: String, localURL: URL) {
-        if let idx = inbox.firstIndex(where: { $0.fileRef == ref }) {
-            inbox[idx].localPath = localURL.path
-        } else {
-            // 事件还没到，先缓存 ref → 路径。
-            pendingFileRefs[ref] = localURL
-        }
+        let flat = try? BridgeCodec.decode(BridgeInboxItem.self, fromPayload: payload)
+        let legacy = payload["inbox"]?.value as? [String: Any]
+        guard var item = flat ?? legacy.flatMap({ try? BridgeCodec.decode(BridgeInboxItem.self, from: $0) }) else { return }
+        item.localPath = nil
+        upsertInbox(item)
     }
 
     private func upsertInbox(_ item: BridgeInboxItem) {

@@ -13,11 +13,13 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <InfoBar x:Name="IncomingFilesBar" Grid.Row="0" IsOpen="False" IsClosable="False"
+        <InfoBar x:Name="IncomingBar" Grid.Row="0" IsOpen="False" IsClosable="False"
                  Severity="Informational">
-            <InfoBar.ActionButton>
-                <Button x:Name="ReviewIncomingFilesButton" Click="OnReviewIncomingFiles"/>
-            </InfoBar.ActionButton>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="RejectButton" Click="OnIncomingDecision"/>
+                <Button x:Name="AllowOnceButton" Click="OnIncomingDecision"/>
+                <Button x:Name="AcceptButton" Click="OnIncomingDecision" Style="{StaticResource MdAccentButtonStyle}"/>
+            </StackPanel>
         </InfoBar>
 
         <Grid Grid.Row="1">

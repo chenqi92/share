@@ -253,19 +253,23 @@
                 <!-- Actions -->
                 <StackPanel Grid.Row="1" Spacing="6"
                             Visibility="{x:Bind ViewModel.DetailVisibility, Mode=OneWay}">
-                    <Button Style="{StaticResource MdAccentButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                    <Button Click="OnSelectedSend" Style="{StaticResource MdAccentButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <TextBlock x:Uid="discovery/actionSend"/>
                     </Button>
-                    <Button Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                    <Button Click="OnSelectedChat" Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <TextBlock x:Uid="discovery/actionChat"/>
                     </Button>
-                    <Button Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                    <Button Click="OnSelectedClipboard" Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                         <TextBlock x:Uid="discovery/actionClipboard"/>
                     </Button>
+                    <Button x:Name="PairButton" Click="OnSelectedPair" Style="{StaticResource MdOutlineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                        <TextBlock x:Uid="discovery/actionPair"/>
+                    </Button>
+                    <TextBlock x:Name="PairStatus" TextWrapping="Wrap" Visibility="Collapsed"/>
                 </StackPanel>
 
                 <!-- Drop zone -->
-                <Border Grid.Row="2"
+                <Border Grid.Row="2" AllowDrop="True" DragOver="OnDeviceDragOver" Drop="OnDeviceDrop"
                         Visibility="{x:Bind ViewModel.DetailVisibility, Mode=OneWay}"
                         CornerRadius="12"
                         BorderBrush="{ThemeResource MdLimeBrush}"

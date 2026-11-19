@@ -28,10 +28,10 @@ impl Default for Settings {
             display_name: String::new(), // 启动时由 App::new 用 hostname 填
             save_dir: save,
             save_dir_custom: false,
-            auto_accept_trusted: false,
+            auto_accept_trusted: true,
             visible_on_lan: true,
             trusted_only: false,
-            verify_before_receive: true,
+            verify_before_receive: false,
             auto_accept_stranger: false,
             clipboard_sync: false,
             launch_at_login: false,

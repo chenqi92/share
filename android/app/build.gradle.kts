@@ -71,6 +71,13 @@ kotlin {
     }
 }
 
+// Paparazzi brings the desktop build of the same BC classes into local JVM tests.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    for (module in listOf("bcprov", "bcutil", "bcpkix")) {
+        exclude(group = "org.bouncycastle", module = "$module-jdk18on")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
@@ -92,6 +99,8 @@ dependencies {
     debugImplementation(libs.compose.ui.tooling)
 
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bc.tls)
+    implementation(libs.bc.pkix)
 
     // Wear OS companion bridge：phone 端通过 DataLayer 接收 wear 命令、推事件。
     implementation(libs.play.services.wearable)

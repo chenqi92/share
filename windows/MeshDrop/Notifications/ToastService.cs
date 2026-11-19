@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Specialized;
+using System.Linq;
 using MeshDrop.Models;
 using MeshDrop.Transport;
 using Microsoft.UI.Dispatching;
@@ -9,7 +11,7 @@ namespace MeshDrop.Notifications;
 /// <summary>
 /// 订阅 ShareEngine.Event，对 incoming 文件 offer / 文本 / 剪贴板弹系统 Toast。
 /// 用 Windows App SDK AppNotificationManager —— unpackaged 也需先 Register()。
-/// ToastBuilder 只产出 ToastContent（XML），这里负责真正 Show 及处理按钮回调。
+/// ToastBuilder 构造平台通知，本服务负责投递和处理用户的决定。
 /// </summary>
 public static class ToastService
 {
@@ -33,21 +35,43 @@ public static class ToastService
         catch { /* 注册失败（缺权限 / 环境限制）不致命；后续 Show 静默失败 */ }
 
         engine.Event += OnEngineEvent;
+        engine.PendingPairings.CollectionChanged += OnPendingChanged;
+        engine.PendingFileOffers.CollectionChanged += OnPendingChanged;
     }
 
     /// <summary>应用退出时调用，释放 COM server 注册。</summary>
     public static void Stop()
     {
         if (!_started) return;
+        if (_engine is { } engine)
+        {
+            engine.Event -= OnEngineEvent;
+            engine.PendingPairings.CollectionChanged -= OnPendingChanged;
+            engine.PendingFileOffers.CollectionChanged -= OnPendingChanged;
+        }
+        AppNotificationManager.Default.NotificationInvoked -= OnNotificationInvoked;
         try { AppNotificationManager.Default.Unregister(); }
         catch { }
         _started = false;
+    }
+
+    private static async void OnPendingChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems is null) return;
+        foreach (var item in e.OldItems)
+        {
+            var tag = item is PendingPairing p ? p.Id : ((PendingFileOffer)item).DecisionId;
+            try { await AppNotificationManager.Default.RemoveByTagAsync(tag.ToString()); }
+            catch { /* Notification Center may be unavailable. */ }
+        }
     }
 
     private static void OnEngineEvent(EngineEvent ev)
     {
         try
         {
+            if ((ev is EngineEvent.PairingPending or EngineEvent.OfferPending)
+                && App.MainWindow is MainWindow { IsWindowActive: true }) return;
             switch (ev)
             {
                 case EngineEvent.PairingPending p:
@@ -55,12 +79,12 @@ public static class ToastService
                         p.Pairing.Peer.Name,
                         $"{p.Pairing.Peer.Os} · {p.Pairing.Peer.Host ?? "—"}",
                         p.Pairing.Peer.HumanFingerprint,
-                        p.Pairing.Id.ToString()));
+                        p.Pairing.Id), p.Pairing.Id);
                     break;
                 case EngineEvent.OfferPending o:
                     Show(ToastBuilder.BuildIncomingFile(
                         o.Offer.Peer.Name, o.Offer.FileName,
-                        ByteFormat.Format(o.Offer.FileSize), offerId: o.Offer.Id.ToString()));
+                        ByteFormat.Format(o.Offer.FileSize), o.Offer.DecisionId), o.Offer.DecisionId);
                     break;
                 case EngineEvent.HistoryAdded h
                     when h.Item.Direction == TransferDirection.Incoming
@@ -76,8 +100,7 @@ public static class ToastService
     }
 
     /// <summary>
-    /// 用户点 Toast 按钮（接收 / 拒绝 / 查看）时回调。args.Arguments 已把
-    /// "action=accept&amp;offer={guid}" 解析成 dict。本回调在后台线程触发，
+    /// SDK 将按钮的 AddArgument 值交给 args.Arguments。本回调在后台线程触发，
     /// 而 engine 的 RespondToFileOffer 会改 ObservableCollection，所以必须切回 UI 线程。
     /// </summary>
     private static void OnNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
@@ -90,10 +113,10 @@ public static class ToastService
             switch (action)
             {
                 case "accept" when a.TryGetValue("offer", out var aid) && Guid.TryParse(aid, out var acceptId):
-                    RunOnUi(() => _engine?.RespondToFileOffer(acceptId, true));
+                    RunOnUi(() => ResolveOffer(acceptId, true));
                     break;
                 case "reject" when a.TryGetValue("offer", out var rid) && Guid.TryParse(rid, out var rejectId):
-                    RunOnUi(() => _engine?.RespondToFileOffer(rejectId, false));
+                    RunOnUi(() => ResolveOffer(rejectId, false));
                     break;
                 case "pair_trust" when a.TryGetValue("pairing", out var ptid) && Guid.TryParse(ptid, out var pTrustId):
                     RunOnUi(() => _engine?.RespondToPairing(pTrustId, PairingDecision.Trust));
@@ -104,15 +127,20 @@ public static class ToastService
                 case "pair_reject" when a.TryGetValue("pairing", out var prid) && Guid.TryParse(prid, out var pRejectId):
                     RunOnUi(() => _engine?.RespondToPairing(pRejectId, PairingDecision.Reject));
                     break;
-                case "open":
                 case "copy":
                 case "reply":
-                    // 把主窗口带到前台（其余操作目前由应用内 UI 承接）。
+                case "open":
                     RunOnUi(BringMainWindowToFront);
                     break;
             }
         }
         catch { /* 回调异常不影响通知系统 */ }
+    }
+
+    private static void ResolveOffer(Guid decisionId, bool accept)
+    {
+        if (_engine?.PendingFileOffers.FirstOrDefault(o => o.DecisionId == decisionId) is { } offer)
+            _engine.RespondToFileOffer(offer.Id, accept);
     }
 
     private static void RunOnUi(Action act)
@@ -127,9 +155,9 @@ public static class ToastService
         if (App.MainWindow is { } w) w.Activate();
     }
 
-    private static void Show(CommunityToolkit.WinUI.Notifications.ToastContent content)
+    private static void Show(AppNotification notification, Guid? tag = null)
     {
-        // ToastContent.GetContent() 产出 toast XML 字符串；AppNotification 接受该 payload。
-        AppNotificationManager.Default.Show(new AppNotification(content.GetContent()));
+        if (tag.HasValue) notification.Tag = tag.Value.ToString();
+        AppNotificationManager.Default.Show(notification);
     }
 }
